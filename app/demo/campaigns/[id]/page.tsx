@@ -1,12 +1,10 @@
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 
-export default async function CampaignRunPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+export default async function CampaignRunPage(
+  props: PageProps<"/demo/campaigns/[id]">
+) {
+  const { id } = await props.params;
 
   const run = await db.campaignRun.findUnique({ where: { id } });
 
