@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserSegment {
+  FREE
+  TRIAL
+  LAPSED
+  ACTIVE
+}
+
+enum SubscriptionStatus {
+  NONE
+  TRIALING
+  ACTIVE
+  CANCELED
+  EXPIRED
+}
+
+enum DeltaChangeType {
+  ADDRESS_CHANGE
+  PHONE_ADDED
+  PHONE_CHANGED
+  EMAIL_ADDED
+  ASSOCIATE_ADDED
+  LEGAL_RECORD_ADDED
+}
+
+enum CampaignStatus {
+  PENDING
+  GENERATED
+  REVIEWED
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id                 String               @id @default(cuid())
+  fullName           String
+  email              String               @unique
+  segment            UserSegment
+  subscriptionStatus SubscriptionStatus
+  lastActiveAt       DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  interestEdges      InterestEdge[]
+  campaignCandidates CampaignCandidate[]
+}
+
+model Entity {
+  id                 String               @id @default(cuid())
+  name               String
+  entityType         String
+  city               String?
+  state              String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  deltas             EntityDelta[]
+  interestEdges      InterestEdge[]
+  campaignCandidates CampaignCandidate[]
+}
+
+model EntityDelta {
+  id                 String               @id @default(cuid())
+  entityId           String
+  changeType         DeltaChangeType
+  oldValue           String?
+  newValue           String?
+  deltaSummary       String
+  detectedAt         DateTime
+  createdAt          DateTime             @default(now())
+  entity             Entity               @relation(fields: [entityId], references: [id])
+  campaignCandidates CampaignCandidate[]
+}
+
+model InterestEdge {
+  id            String   @id @default(cuid())
+  userId        String
+  entityId      String
+  interestScore Float
+  source        String
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+  entity        Entity   @relation(fields: [entityId], references: [id])
+
+  @@unique([userId, entityId, source])
+}
+
+model CampaignCandidate {
+  id                  String          @id @default(cuid())
+  userId              String
+  entityId            String
+  entityDeltaId       String
+  segmentAtGeneration UserSegment
+  priorityScore       Float
+  status              CampaignStatus  @default(PENDING)
+  createdAt           DateTime        @default(now())
+  user                User            @relation(fields: [userId], references: [id])
+  entity              Entity          @relation(fields: [entityId], references: [id])
+  entityDelta         EntityDelta     @relation(fields: [entityDeltaId], references: [id])
+  generatedMessage    GeneratedMessage?
+}
+
+model GeneratedMessage {
+  id                  String            @id @default(cuid())
+  campaignCandidateId String            @unique
+  subjectLine         String
+  previewText         String
+  emailBody           String
+  landingHeadline     String
+  landingBody         String
+  ctaText             String
+  modelName           String
+  createdAt           DateTime          @default(now())
+  campaignCandidate   CampaignCandidate @relation(fields: [campaignCandidateId], references: [id])
+}
+
+model CampaignRun {
+  id                      String   @id @default(cuid())
+  runName                 String
+  totalDeltas             Int
+  totalMatches            Int
+  totalHighPriority       Int
+  estimatedOpenRate       Float
+  estimatedCtr            Float
+  estimatedConversionRate Float
+  estimatedRevenue        Float
+  createdAt               DateTime @default(now())
+}

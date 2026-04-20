@@ -1,0 +1,37 @@
+:root {
+  --bg: #f7f7f5;
+  --text: #111111;
+  --muted: #626262;
+  --line: #ddddda;
+  --card: #ffffff;
+  --accent: #0f172a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: Arial, Helvetica, sans-serif; }
+a { color: inherit; text-decoration: none; }
+main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 80px; }
+nav { display:flex; gap:18px; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding:16px 20px; max-width:1120px; margin:0 auto; }
+nav .links { display:flex; gap:16px; flex-wrap:wrap; }
+h1 { font-size: 56px; line-height: 1.02; letter-spacing: -0.04em; margin: 0 0 18px; }
+h2 { font-size: 32px; line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 16px; }
+h3 { font-size: 22px; margin: 0 0 12px; }
+p { font-size: 18px; line-height: 1.6; color: var(--muted); margin: 0 0 16px; }
+section { padding: 36px 0; border-bottom: 1px solid var(--line); }
+.hero { padding: 56px 0 40px; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.16em; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.grid { display:grid; gap:18px; }
+.grid-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card { background: var(--card); border:1px solid var(--line); border-radius: 14px; padding: 20px; }
+.kpi { font-size: 36px; line-height: 1; margin-bottom: 8px; }
+.ctaRow { display:flex; gap:12px; flex-wrap:wrap; margin-top: 18px; }
+.btn { display:inline-block; padding: 12px 16px; border-radius: 999px; border:1px solid var(--accent); }
+.btn.primary { background: var(--accent); color:#fff; }
+.table { width:100%; border-collapse: collapse; }
+.table th, .table td { padding: 12px 10px; text-align:left; border-bottom:1px solid var(--line); font-size:14px; }
+.code { background:#111827; color:#f8fafc; border-radius:12px; padding:18px; overflow:auto; font-size:14px; }
+.small { font-size: 14px; color: var(--muted); }
+@media (max-width: 900px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  h1 { font-size: 42px; }
+}
