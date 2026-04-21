@@ -41,3 +41,16 @@ Open `http://localhost:3000`.
 - `lib/ai.ts` uses the OpenAI Responses API when `OPENAI_API_KEY` is present.
 - If no API key is set, the app falls back to deterministic template output.
 - The demo password gate is intentionally left lightweight for refinement in Codex.
+
+## Deployment (Vercel + Neon)
+
+Quick checklist:
+
+1. Create a Neon database and capture:
+   - pooled connection string → `DATABASE_URL`
+   - direct/non-pooled string → `DATABASE_URL_UNPOOLED`
+2. Add all required env vars in Vercel Project Settings.
+3. Run schema migrations with `npm run db:migrate:deploy`.
+4. Deploy with Vercel using `npm run build`.
+
+Full guide: `docs/deployment-vercel-neon.md`.

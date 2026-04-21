@@ -2,6 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const [deltas, candidates, generated, runs] = await Promise.all([
     db.entityDelta.count(),

@@ -1,9 +1,17 @@
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 
-export default async function LandingPage({ params }: { params: { id: string } }) {
+export const dynamic = "force-dynamic";
+
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function LandingPage({ params }: PageProps) {
+  const { id } = await params;
+
   const message = await db.generatedMessage.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { campaignCandidate: { include: { entity: true, entityDelta: true } } }
   });
   if (!message) return <Section title="Landing page not found"><p>No generated landing page found.</p></Section>;

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 
+export const dynamic = "force-dynamic";
+
 export default async function CampaignsPage() {
   const candidates = await db.campaignCandidate.findMany({
     include: { user: true, entity: true, entityDelta: true, generatedMessage: true },

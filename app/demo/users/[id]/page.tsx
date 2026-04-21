@@ -1,9 +1,17 @@
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 
-export default async function UserPage({ params }: { params: { id: string } }) {
+export const dynamic = "force-dynamic";
+
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function UserPage({ params }: PageProps) {
+  const { id } = await params;
+
   const user = await db.user.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { interestEdges: { include: { entity: true }, take: 20 } }
   });
   if (!user) return <Section title="User not found"><p>No user found.</p></Section>;
