@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { RunGeneratorCard } from "@/components/demo/RunGeneratorCard";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,9 @@ export default async function DashboardPage() {
               ))}
             </tbody>
           </table>
+        </Section>
+        <Section title="Run a new generation flow">
+          <RunGeneratorCard />
         </Section>
       </>
     );
