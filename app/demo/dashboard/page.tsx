@@ -4,6 +4,7 @@ import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { RunGeneratorCard } from "@/components/demo/RunGeneratorCard";
+import { DemoHowItWorks } from "@/components/demo/DemoHowItWorks";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function DashboardPage() {
 
     return (
       <>
+        <DemoHowItWorks />
         <Section eyebrow="Demo" title="Lifecycle Revenue Engine Dashboard">
           <div className="grid grid-3">
             <div className="card"><div className="kpi">{deltas}</div><p>Deltas detected</p></div>
