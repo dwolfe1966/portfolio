@@ -22,7 +22,7 @@ export default function HomePage() {
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/projects/lifecycle-revenue-engine">Explore the project</Link>
-          <Link className="btn" href="/demo/dashboard">Open the demo</Link>
+          <Link className="btn" href="/demo">Open the demo</Link>
         </div>
       </Section>
       <Section title="What I build">
