@@ -93,6 +93,14 @@ If API routes fail with DB connectivity errors, re-check:
 - `DATABASE_URL_UNPOOLED` is direct/non-pooled
 - both include SSL params
 
+If demo routes fail with Prisma `P2021` (missing table), your production schema has not been applied yet. Run:
+
+```bash
+npm run db:generate
+npx prisma db push
+npm run db:seed
+```
+
 ## Optional: Vercel CLI quick setup
 
 ```bash

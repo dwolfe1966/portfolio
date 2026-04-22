@@ -1,0 +1,22 @@
+import { Section } from "@/components/site/Section";
+
+type DemoSetupNoticeProps = {
+  title?: string;
+  detail?: string;
+};
+
+export function DemoSetupNotice({
+  title = "Demo database is not initialized",
+  detail = "Run Prisma schema setup and seed commands against your production database, then redeploy."
+}: DemoSetupNoticeProps) {
+  return (
+    <Section eyebrow="Demo" title={title}>
+      <p>{detail}</p>
+      <pre className="card" style={{ whiteSpace: "pre-wrap" }}>
+        npm run db:generate{"\n"}
+        npx prisma db push{"\n"}
+        npm run db:seed
+      </pre>
+    </Section>
+  );
+}
