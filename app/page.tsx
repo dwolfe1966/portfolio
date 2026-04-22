@@ -22,7 +22,7 @@ export default function HomePage() {
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/projects/lifecycle-revenue-engine">Explore the project</Link>
-          <Link className="btn" href="/demo/dashboard">Open the demo</Link>
+          <Link className="btn" href="/demo">Open the demo</Link>
         </div>
       </Section>
       <Section title="What I build">
@@ -38,6 +38,16 @@ export default function HomePage() {
           <h3>Generic lifecycle marketing is dying</h3>
           <p>AI is not just a content layer. It is becoming part of the revenue operating layer.</p>
           <Link className="btn" href="/writing/ai-revenue-systems">Read the essay</Link>
+        </div>
+      </Section>
+      <Section title="Now building: acquisition companion app">
+        <div className="card">
+          <h3>Agent-managed acquisition</h3>
+          <p>Paid acquisition workspace for creative generation, budget reallocation, and CAC/LTV guardrail simulations.</p>
+          <div className="ctaRow">
+            <Link className="btn primary" href="/acquisition">Open acquisition app</Link>
+            <Link className="btn" href="/projects/agent-acquisition">View acquisition case study</Link>
+          </div>
         </div>
       </Section>
     </>
