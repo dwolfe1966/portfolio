@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DEMO_ASSUMPTIONS_KEY, DEMO_ASSUMPTION_DEFAULTS } from "@/lib/demo-assumptions";
+import { DEMO_ASSUMPTION_DEFAULTS } from "@/lib/demo-assumptions";
 
 type GenerateResult = {
   ok: boolean;
@@ -24,6 +24,7 @@ type OutcomeResult = {
 };
 
 export function ScenarioLabCard() {
+  const [assumptionSetId, setAssumptionSetId] = useState<string>("");
   const [runName, setRunName] = useState("Scenario Run");
   const [topN, setTopN] = useState(DEMO_ASSUMPTION_DEFAULTS.defaultTopN);
   const [deltaCount, setDeltaCount] = useState(8);
@@ -42,11 +43,13 @@ export function ScenarioLabCard() {
   const [generateResult, setGenerateResult] = useState<GenerateResult | null>(null);
   const [outcomeResult, setOutcomeResult] = useState<OutcomeResult | null>(null);
 
-  function loadSavedAssumptions() {
+  async function loadSavedAssumptions() {
     try {
-      const raw = localStorage.getItem(DEMO_ASSUMPTIONS_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Partial<typeof DEMO_ASSUMPTION_DEFAULTS>;
+      const response = await fetch("/api/assumptions", { cache: "no-store" });
+      const payload = await response.json();
+      const parsed = payload.activeAssumptions as Partial<typeof DEMO_ASSUMPTION_DEFAULTS> | undefined;
+      if (!parsed) return;
+      setAssumptionSetId(String(payload.activeSet?.id ?? ""));
       setTopN(Number(parsed.defaultTopN ?? DEMO_ASSUMPTION_DEFAULTS.defaultTopN));
       setRecencyScore(Number(parsed.recencyScore ?? DEMO_ASSUMPTION_DEFAULTS.recencyScore));
       setMinPriorityScore(Number(parsed.minPriorityScore ?? DEMO_ASSUMPTION_DEFAULTS.minPriorityScore));
@@ -86,7 +89,8 @@ export function ScenarioLabCard() {
           recencyScore,
           minPriorityScore,
           highPriorityThreshold,
-          revenuePerHighPriority
+          revenuePerHighPriority,
+          assumptionSetId
         })
       });
       const payload = (await response.json()) as GenerateResult;
@@ -142,7 +146,7 @@ export function ScenarioLabCard() {
 
       <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
         <button type="button" onClick={loadSavedAssumptions} disabled={loadingAction !== null}>
-          Load Saved Assumptions
+          Load Active Assumptions
         </button>
         <button type="button" onClick={injectEvents} disabled={loadingAction !== null}>
           {loadingAction === "inject" ? "Injecting..." : "1) Inject Events"}
@@ -172,6 +176,7 @@ export function ScenarioLabCard() {
         <div style={{ marginTop: 14 }}>
           <h3>Generation result</h3>
           <p>Run ID: <code>{generateResult.campaignRunId ?? "n/a"}</code></p>
+          <p>Assumption set: <code>{assumptionSetId || "default-inline"}</code></p>
           <p>Generated: {generateResult.generated ?? 0}</p>
           <p>Estimated revenue: ${Number(generateResult.estimatedRevenue ?? 0).toFixed(2)}</p>
         </div>

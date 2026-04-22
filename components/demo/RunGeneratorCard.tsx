@@ -5,6 +5,7 @@ import { useState } from "react";
 type GenerateResponse = {
   ok: boolean;
   campaignRunId?: string;
+  assumptionSetId?: string | null;
   generated?: number;
   totalMatches?: number;
   totalHighPriority?: number;
@@ -71,6 +72,7 @@ export function RunGeneratorCard() {
           {result.ok ? (
             <>
               <p><strong>Success.</strong> Run ID: <code>{result.campaignRunId}</code></p>
+              <p>Assumption set: <code>{result.assumptionSetId ?? "default"}</code></p>
               <p>Generated: {result.generated ?? 0}</p>
               <p>Total matches: {result.totalMatches ?? 0}</p>
               <p>High priority: {result.totalHighPriority ?? 0}</p>

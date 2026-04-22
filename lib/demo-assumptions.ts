@@ -25,3 +25,19 @@ export const DEMO_ASSUMPTION_DEFAULTS: DemoAssumptions = {
   purchaseRate: 0.012,
   avgOrderValue: 89
 };
+
+export function normalizeDemoAssumptions(input?: Partial<DemoAssumptions> | null): DemoAssumptions {
+  const source = input ?? {};
+  return {
+    defaultTopN: Number(source.defaultTopN ?? DEMO_ASSUMPTION_DEFAULTS.defaultTopN),
+    recencyScore: Number(source.recencyScore ?? DEMO_ASSUMPTION_DEFAULTS.recencyScore),
+    minPriorityScore: Number(source.minPriorityScore ?? DEMO_ASSUMPTION_DEFAULTS.minPriorityScore),
+    highPriorityThreshold: Number(source.highPriorityThreshold ?? DEMO_ASSUMPTION_DEFAULTS.highPriorityThreshold),
+    revenuePerHighPriority: Number(source.revenuePerHighPriority ?? DEMO_ASSUMPTION_DEFAULTS.revenuePerHighPriority),
+    openRate: Number(source.openRate ?? DEMO_ASSUMPTION_DEFAULTS.openRate),
+    clickRate: Number(source.clickRate ?? DEMO_ASSUMPTION_DEFAULTS.clickRate),
+    engageRate: Number(source.engageRate ?? DEMO_ASSUMPTION_DEFAULTS.engageRate),
+    purchaseRate: Number(source.purchaseRate ?? DEMO_ASSUMPTION_DEFAULTS.purchaseRate),
+    avgOrderValue: Number(source.avgOrderValue ?? DEMO_ASSUMPTION_DEFAULTS.avgOrderValue)
+  };
+}

@@ -7,7 +7,10 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const run = await db.campaignRun.findUnique({ where: { id } });
+  const run = await db.campaignRun.findUnique({
+    where: { id },
+    include: { assumptionSet: true }
+  });
 
   if (!run) {
     return NextResponse.json(

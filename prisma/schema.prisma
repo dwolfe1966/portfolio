@@ -94,13 +94,19 @@ model InterestEdge {
 
 model CampaignCandidate {
   id                  String          @id @default(cuid())
+  campaignRunId       String?
   userId              String
   entityId            String
   entityDeltaId       String
   segmentAtGeneration UserSegment
   priorityScore       Float
+  interestContribution   Float        @default(0)
+  recencyContribution    Float        @default(0)
+  segmentContribution    Float        @default(0)
+  changeTypeContribution Float        @default(0)
   status              CampaignStatus  @default(PENDING)
   createdAt           DateTime        @default(now())
+  campaignRun         CampaignRun?    @relation(fields: [campaignRunId], references: [id])
   user                User            @relation(fields: [userId], references: [id])
   entity              Entity          @relation(fields: [entityId], references: [id])
   entityDelta         EntityDelta     @relation(fields: [entityDeltaId], references: [id])
@@ -124,6 +130,8 @@ model GeneratedMessage {
 model CampaignRun {
   id                      String   @id @default(cuid())
   runName                 String
+  assumptionSetId         String?
+  assumptionsSnapshot     Json
   totalDeltas             Int
   totalMatches            Int
   totalHighPriority       Int
@@ -132,4 +140,25 @@ model CampaignRun {
   estimatedConversionRate Float
   estimatedRevenue        Float
   createdAt               DateTime @default(now())
+  assumptionSet           AssumptionSet?      @relation(fields: [assumptionSetId], references: [id])
+  candidates              CampaignCandidate[]
+}
+
+model AssumptionSet {
+  id                      String   @id @default(cuid())
+  name                    String
+  isActive                Boolean  @default(false)
+  defaultTopN             Int      @default(10)
+  recencyScore            Float    @default(0.9)
+  minPriorityScore        Float    @default(0)
+  highPriorityThreshold   Float    @default(0.8)
+  revenuePerHighPriority  Float    @default(18.5)
+  openRate                Float    @default(0.3)
+  clickRate               Float    @default(0.08)
+  engageRate              Float    @default(0.04)
+  purchaseRate            Float    @default(0.012)
+  avgOrderValue           Float    @default(89)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  campaignRuns            CampaignRun[]
 }
