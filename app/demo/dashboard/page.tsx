@@ -5,6 +5,7 @@ import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { RunGeneratorCard } from "@/components/demo/RunGeneratorCard";
 import { DemoHowItWorks } from "@/components/demo/DemoHowItWorks";
+import { KpiTrendBars } from "@/components/demo/KpiTrendBars";
 
 export const dynamic = "force-dynamic";
 
@@ -27,21 +28,31 @@ export default async function DashboardPage() {
             <div className="card"><div className="kpi">{generated}</div><p>Generated messages</p></div>
           </div>
         </Section>
+        <Section title="Funnel visual">
+          <KpiTrendBars deltas={deltas} candidates={candidates} generated={generated} />
+        </Section>
         <Section title="Recent campaign runs">
-          <table className="table">
-            <thead><tr><th>Run</th><th>Deltas</th><th>Matches</th><th>High priority</th><th>Revenue</th></tr></thead>
-            <tbody>
-              {runs.map((run) => (
-                <tr key={run.id}>
-                  <td><Link href={`/demo/campaigns/${run.id}`}>{run.runName}</Link></td>
-                  <td>{run.totalDeltas}</td>
-                  <td>{run.totalMatches}</td>
-                  <td>{run.totalHighPriority}</td>
-                  <td>${run.estimatedRevenue.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {runs.length === 0 ? (
+            <div className="card">
+              <h3>No campaign runs yet</h3>
+              <p>Use the generator below to create your first run and populate this table.</p>
+            </div>
+          ) : (
+            <table className="table">
+              <thead><tr><th>Run</th><th>Deltas</th><th>Matches</th><th>High priority</th><th>Revenue</th></tr></thead>
+              <tbody>
+                {runs.map((run) => (
+                  <tr key={run.id}>
+                    <td><Link href={`/demo/campaigns/${run.id}`}>{run.runName}</Link></td>
+                    <td>{run.totalDeltas}</td>
+                    <td>{run.totalMatches}</td>
+                    <td>{run.totalHighPriority}</td>
+                    <td>${run.estimatedRevenue.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </Section>
         <Section title="Run a new generation flow">
           <RunGeneratorCard />
