@@ -40,6 +40,16 @@ export default function HomePage() {
           <Link className="btn" href="/writing/ai-revenue-systems">Read the essay</Link>
         </div>
       </Section>
+      <Section title="Now building: acquisition companion app">
+        <div className="card">
+          <h3>Agent-managed acquisition</h3>
+          <p>Paid acquisition workspace for creative generation, budget reallocation, and CAC/LTV guardrail simulations.</p>
+          <div className="ctaRow">
+            <Link className="btn primary" href="/acquisition">Open acquisition app</Link>
+            <Link className="btn" href="/projects/agent-acquisition">View acquisition case study</Link>
+          </div>
+        </div>
+      </Section>
     </>
   );
 }

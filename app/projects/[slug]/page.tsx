@@ -19,7 +19,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       <Section eyebrow="Project" title={project.title}>
         <p>{project.summary}</p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/demo">Open demo workspace</Link>
+          <Link className="btn primary" href={project.appHref ?? "/demo"}>
+            {project.slug === "agent-acquisition" ? "Open acquisition app" : "Open lifecycle app"}
+          </Link>
           <Link className="btn" href="/projects">Back to projects</Link>
         </div>
       </Section>

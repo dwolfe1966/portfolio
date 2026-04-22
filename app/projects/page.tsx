@@ -12,7 +12,10 @@ export default function ProjectsIndexPage() {
             <p className="small">{project.status === "live" ? "Live demo" : "In progress"}</p>
             <h3>{project.title}</h3>
             <p>{project.summary}</p>
-            <Link className="btn" href={`/projects/${project.slug}`}>View case study</Link>
+            <div className="ctaRow">
+              <Link className="btn" href={`/projects/${project.slug}`}>View case study</Link>
+              {project.appHref && <Link className="btn primary" href={project.appHref}>Open app</Link>}
+            </div>
           </div>
         ))}
       </div>

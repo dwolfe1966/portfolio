@@ -7,6 +7,7 @@ export type ProjectEntry = {
   architecture: Array<{ title: string; detail: string }>;
   commercialFraming: string;
   whatIBuilt: string;
+  appHref?: string;
   status?: "live" | "in-progress";
 };
 
@@ -31,6 +32,7 @@ export const projects: ProjectEntry[] = [
       "The purpose of the system is not just personalization. It is commercial relevance: reactivation, retention, conversion, and incremental revenue per run.",
     whatIBuilt:
       "A data model, simulation layer, prioritization logic, AI generation layer, working dashboard, and public portfolio presentation.",
+    appHref: "/demo",
     status: "live"
   },
   {
@@ -51,6 +53,7 @@ export const projects: ProjectEntry[] = [
       "Focuses spend on high-confidence opportunities while improving campaign learning loops and reducing wasted budget.",
     whatIBuilt:
       "Case-study scaffolding and product architecture blueprint (detailed implementation next).",
+    appHref: "/acquisition",
     status: "in-progress"
   }
 ];

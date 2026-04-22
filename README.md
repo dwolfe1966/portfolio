@@ -22,6 +22,11 @@ Open `http://localhost:3000`.
 - `/about`
 - `/projects`
 - `/projects/[slug]`
+- `/acquisition`
+- `/acquisition/overview`
+- `/acquisition/inputs`
+- `/acquisition/simulations`
+- `/acquisition/outputs`
 - `/writing`
 - `/writing/ai-revenue-systems`
 - `/contact`
