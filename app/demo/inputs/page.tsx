@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { DemoWorkspaceNav } from "@/components/demo/DemoWorkspaceNav";
+import { AssumptionEditorCard } from "@/components/demo/AssumptionEditorCard";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +21,30 @@ export default async function DemoInputsPage() {
         </p>
       </Section>
       <Section title="Global lifecycle assumptions">
+        <AssumptionEditorCard />
+      </Section>
+      <Section title="Assumption mapping (events → candidates → messages)">
         <div className="grid grid-3">
-          <div className="card"><h3>Open rate</h3><p>Default baseline: 30%</p></div>
-          <div className="card"><h3>Click rate</h3><p>Default baseline: 8%</p></div>
-          <div className="card"><h3>Engagement rate</h3><p>Default baseline: 4%</p></div>
-          <div className="card"><h3>Purchase rate</h3><p>Default baseline: 1.2%</p></div>
-          <div className="card"><h3>Average order value</h3><p>Default baseline: $89</p></div>
+          <div className="card">
+            <h3>Events → Candidates</h3>
+            <p>
+              Entity deltas are matched to interest edges and scored with recency + segment signals.
+              Records under <code>minPriorityScore</code> are filtered out.
+            </p>
+          </div>
+          <div className="card">
+            <h3>Candidates → Messages</h3>
+            <p>
+              Highest scored candidates are sorted and top N are generated into message assets.
+              Run-level controls determine how many messages are produced per run.
+            </p>
+          </div>
+          <div className="card">
+            <h3>Messages → Outcomes</h3>
+            <p>
+              Global funnel assumptions (open/click/engage/purchase rates and AOV) model downstream business outcomes.
+            </p>
+          </div>
         </div>
       </Section>
       <Section title="Sample users">

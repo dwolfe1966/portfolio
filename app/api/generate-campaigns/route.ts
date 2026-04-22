@@ -7,6 +7,10 @@ import { CampaignStatus } from "@prisma/client";
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const topN = Number(body.topN ?? 10);
+  const recencyScore = Number(body.recencyScore ?? 0.9);
+  const minPriorityScore = Number(body.minPriorityScore ?? 0);
+  const highPriorityThreshold = Number(body.highPriorityThreshold ?? 0.8);
+  const revenuePerHighPriority = Number(body.revenuePerHighPriority ?? 18.5);
   const deltas = await db.entityDelta.findMany({
     take: 40,
     orderBy: { detectedAt: "desc" },
@@ -28,8 +32,9 @@ export async function POST(req: NextRequest) {
         interestScore: edge.interestScore as any,
         segment: edge.user.segment as any,
         changeType: delta.changeType as any,
-        recencyScore: 0.9
+        recencyScore: Number.isFinite(recencyScore) ? recencyScore : 0.9
       });
+      if (score < minPriorityScore) continue;
       const candidate = await db.campaignCandidate.create({
         data: {
           userId: edge.userId,
@@ -82,8 +87,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const highPriority = candidates.filter((c) => c.score >= 0.8).length;
-  const estimatedRevenue = Number((highPriority * 18.5).toFixed(2));
+  const highPriority = candidates.filter((c) => c.score >= highPriorityThreshold).length;
+  const estimatedRevenue = Number((highPriority * revenuePerHighPriority).toFixed(2));
   const run = await db.campaignRun.create({
     data: {
       runName: String(body.runName ?? "Daily Demo Run"),
@@ -104,6 +109,12 @@ export async function POST(req: NextRequest) {
     totalMatches,
     totalHighPriority: highPriority,
     generated: selected.length,
-    estimatedRevenue
+    estimatedRevenue,
+    assumptions: {
+      recencyScore,
+      minPriorityScore,
+      highPriorityThreshold,
+      revenuePerHighPriority
+    }
   });
 }
