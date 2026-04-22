@@ -36,6 +36,7 @@ Open `http://localhost:3000`.
 - `POST /api/simulate-deltas`
 - `POST /api/generate-campaigns`
 - `GET /api/campaign-runs/[id]`
+- `GET /api/health/demo-db`
 
 ## Notes
 - `lib/ai.ts` uses the OpenAI Responses API when `OPENAI_API_KEY` is present.

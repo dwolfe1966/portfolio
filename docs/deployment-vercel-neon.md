@@ -83,6 +83,7 @@ After deployment, verify:
 
 - `/` loads
 - `/demo/dashboard` loads
+- `GET /api/health/demo-db` returns `{ ready: true }`
 - `POST /api/seed` works (if enabled for your environment)
 - `POST /api/simulate-deltas` works
 - `POST /api/generate-campaigns` works

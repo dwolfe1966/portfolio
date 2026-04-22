@@ -22,5 +22,8 @@ check_get "/"
 check_get "/about"
 check_get "/demo/login"
 check_get "/demo/dashboard"
+health=$(curl -s "$base/api/health/demo-db")
+echo "/api/health/demo-db -> $health"
+echo "$health" | rg '"ready":\s*true' >/dev/null
 
 echo "Smoke tests passed."
