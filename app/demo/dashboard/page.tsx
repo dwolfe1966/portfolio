@@ -8,6 +8,7 @@ import { ScenarioLabCard } from "@/components/demo/ScenarioLabCard";
 import { DemoHowItWorks } from "@/components/demo/DemoHowItWorks";
 import { KpiTrendBars } from "@/components/demo/KpiTrendBars";
 import { DataFlowMap } from "@/components/demo/DataFlowMap";
+import { DemoWorkspaceNav } from "@/components/demo/DemoWorkspaceNav";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ export default async function DashboardPage() {
 
     return (
       <>
+        <DemoWorkspaceNav />
         <DemoHowItWorks />
         <Section eyebrow="Demo" title="Lifecycle Revenue Engine Dashboard">
           <div className="grid grid-3">

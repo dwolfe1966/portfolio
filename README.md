@@ -25,6 +25,11 @@ Open `http://localhost:3000`.
 - `/contact`
 
 ### Demo
+- `/demo`
+- `/demo/overview`
+- `/demo/inputs`
+- `/demo/simulations`
+- `/demo/outputs`
 - `/demo/dashboard`
 - `/demo/campaigns`
 - `/demo/campaigns/[id]`
