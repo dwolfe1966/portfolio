@@ -20,7 +20,9 @@ Open `http://localhost:3000`.
 ### Public
 - `/`
 - `/about`
-- `/projects/lifecycle-revenue-engine`
+- `/projects`
+- `/projects/[slug]`
+- `/writing`
 - `/writing/ai-revenue-systems`
 - `/contact`
 
@@ -33,6 +35,7 @@ Open `http://localhost:3000`.
 - `/demo/dashboard`
 - `/demo/campaigns`
 - `/demo/campaigns/[id]`
+- `/demo/candidates/[id]`
 - `/demo/users/[id]`
 - `/demo/landing/[id]`
 
@@ -40,6 +43,8 @@ Open `http://localhost:3000`.
 - `POST /api/seed`
 - `POST /api/simulate-deltas`
 - `POST /api/generate-campaigns`
+- `GET /api/assumptions`
+- `POST /api/assumptions`
 - `POST /api/simulate-outcomes`
 - `GET /api/campaign-runs/[id]`
 - `GET /api/health/demo-db`
@@ -84,4 +89,16 @@ After deployment:
 ```bash
 export NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
 ./scripts/smoke-test-production.sh
+```
+
+## Troubleshooting schema drift (P2022/P2021)
+
+If you see errors like `The column CampaignRun.assumptionSetId does not exist`, your DB schema is behind the app code.
+
+Run:
+
+```bash
+npm run db:generate
+npx prisma db push
+npm run db:seed
 ```
