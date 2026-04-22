@@ -102,6 +102,8 @@ npx prisma db push
 npm run db:seed
 ```
 
+If `db:seed` fails in Codespaces with pooler host connectivity errors, set `DATABASE_URL_UNPOOLED` and rerun. This repo prefers the unpooled URL outside production for Prisma CLI/seed workflows.
+
 ## Optional: Vercel CLI quick setup
 
 ```bash
