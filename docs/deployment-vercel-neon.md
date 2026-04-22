@@ -105,3 +105,32 @@ vercel env add DEMO_PASSWORD
 vercel env add NEXT_PUBLIC_SITE_URL
 vercel --prod
 ```
+
+## Automated deployment script in this repo
+
+This repository includes:
+
+- `scripts/deploy-vercel-neon.sh`
+- `scripts/smoke-test-production.sh`
+
+Usage:
+
+```bash
+export VERCEL_TOKEN=...
+export VERCEL_ORG_ID=...
+export VERCEL_PROJECT_ID=...
+export DATABASE_URL=...
+export DATABASE_URL_UNPOOLED=...
+export DEMO_PASSWORD=...
+export NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
+export SEED_PROD=yes
+
+./scripts/deploy-vercel-neon.sh
+./scripts/smoke-test-production.sh
+```
+
+Behavior:
+
+- if `prisma/migrations/*` exists, script runs `npm run db:migrate:deploy`
+- if migrations do not exist yet, script runs `npx prisma db push`
+- if `SEED_PROD=yes`, script runs `npm run db:seed`

@@ -54,3 +54,27 @@ Quick checklist:
 4. Deploy with Vercel using `npm run build`.
 
 Full guide: `docs/deployment-vercel-neon.md`.
+
+## One-command deployment helper
+
+If you already have Vercel + Neon credentials, you can run:
+
+```bash
+export VERCEL_TOKEN=...
+export VERCEL_ORG_ID=...
+export VERCEL_PROJECT_ID=...
+export DATABASE_URL=...
+export DATABASE_URL_UNPOOLED=...
+export DEMO_PASSWORD=...
+export NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
+export SEED_PROD=yes
+
+./scripts/deploy-vercel-neon.sh
+```
+
+After deployment:
+
+```bash
+export NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
+./scripts/smoke-test-production.sh
+```
