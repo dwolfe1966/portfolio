@@ -4,6 +4,7 @@ import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { RunGeneratorCard } from "@/components/demo/RunGeneratorCard";
+import { ScenarioLabCard } from "@/components/demo/ScenarioLabCard";
 import { DemoHowItWorks } from "@/components/demo/DemoHowItWorks";
 import { KpiTrendBars } from "@/components/demo/KpiTrendBars";
 import { DataFlowMap } from "@/components/demo/DataFlowMap";
@@ -86,8 +87,11 @@ export default async function DashboardPage() {
             </table>
           )}
         </Section>
-        <Section title="Run a new generation flow">
-          <RunGeneratorCard />
+        <Section title="Run and test scenarios">
+          <div className="grid grid-2">
+            <RunGeneratorCard />
+            <ScenarioLabCard />
+          </div>
         </Section>
         <Section title="Recent users">
           <table className="table">

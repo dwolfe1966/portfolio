@@ -35,6 +35,7 @@ Open `http://localhost:3000`.
 - `POST /api/seed`
 - `POST /api/simulate-deltas`
 - `POST /api/generate-campaigns`
+- `POST /api/simulate-outcomes`
 - `GET /api/campaign-runs/[id]`
 - `GET /api/health/demo-db`
 
