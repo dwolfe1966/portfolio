@@ -11,16 +11,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <nav>
-          <Link href="/"><strong>David Wolfe</strong></Link>
-          <div className="links">
-            <Link href="/about">About</Link>
-            <Link href="/projects/lifecycle-revenue-engine">Project</Link>
-            <Link href="/writing/ai-revenue-systems">Writing</Link>
-            <Link href="/demo/dashboard">Demo</Link>
-            <Link href="/contact">Contact</Link>
-          </div>
-        </nav>
+        <header className="siteHeader">
+          <nav>
+            <Link href="/"><strong>David Wolfe</strong></Link>
+            <div className="links">
+              <Link href="/">Home</Link>
+              <Link href="/about">About</Link>
+              <Link href="/projects">Projects</Link>
+              <Link href="/writing">Writing</Link>
+              <Link href="/contact">Contact</Link>
+            </div>
+            <div>
+              <Link className="btn primary" href="/contact">Get in touch</Link>
+            </div>
+          </nav>
+        </header>
         <main>{children}</main>
       </body>
     </html>
