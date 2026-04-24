@@ -29,6 +29,7 @@ Open `http://localhost:3000`.
 - `/acquisition/outputs`
 - `/writing`
 - `/writing/ai-revenue-systems`
+- `/writing/product-discovery-ai-loops`
 - `/contact`
 
 ### Demo
@@ -138,3 +139,12 @@ npm run db:generate
 npm run db:migrate:deploy
 npm run db:seed
 ```
+
+
+## CI checks
+
+GitHub Actions workflow: `.github/workflows/ci.yml` runs:
+
+- `npm run lint`
+- `npm test`
+- `npm run build`

@@ -24,6 +24,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const spendCents = cells.reduce((sum, cell) => sum + cell.spendCents, 0);
     const conversions = cells.reduce((sum, cell) => sum + cell.conversions, 0);
     const revenueCents = cells.reduce((sum, cell) => sum + cell.revenueCents, 0);
+    const averageScore = cells.length ? cells.reduce((sum, cell) => sum + cell.score, 0) / cells.length : 0;
 
     return NextResponse.json({
       ok: true,
@@ -34,7 +35,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
         conversions,
         revenueCents,
         cpaCents: conversions ? Math.round(spendCents / conversions) : 0,
-        roas: spendCents > 0 ? Number((revenueCents / spendCents).toFixed(4)) : 0
+        roas: spendCents > 0 ? Number((revenueCents / spendCents).toFixed(4)) : 0,
+        averageScore: Number(averageScore.toFixed(4)),
+        budgetActivityCount: activities.length
       },
       topCells: cells.slice(0, 10),
       budgetActivities: activities,

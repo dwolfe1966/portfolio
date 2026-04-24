@@ -11,6 +11,8 @@ type InsightSummary = {
   revenueCents: number;
   cpaCents: number;
   roas: number;
+  averageScore: number;
+  budgetActivityCount: number;
 };
 
 type TopCell = {
@@ -117,11 +119,13 @@ export function AcquisitionInsightsPanel() {
 
       {summary && (
         <>
-          <div className="grid grid-4" style={{ marginTop: 12 }}>
+          <div className="grid grid-3" style={{ marginTop: 12 }}>
             <div className="card"><div className="kpi">{summary.totalCells}</div><p>Test cells</p></div>
             <div className="card"><div className="kpi">{summary.conversions}</div><p>Conversions</p></div>
             <div className="card"><div className="kpi">${(summary.cpaCents / 100).toFixed(0)}</div><p>CPA</p></div>
             <div className="card"><div className="kpi">{summary.roas.toFixed(2)}x</div><p>ROAS</p></div>
+            <div className="card"><div className="kpi">{summary.averageScore.toFixed(3)}</div><p>Avg score</p></div>
+            <div className="card"><div className="kpi">{summary.budgetActivityCount}</div><p>Budget actions</p></div>
           </div>
 
           <div style={{ marginTop: 16 }}>
