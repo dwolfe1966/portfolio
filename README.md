@@ -91,6 +91,9 @@ Quick checklist:
 
 Full guide: `docs/deployment-vercel-neon.md`.
 
+Backlog and execution plan: `docs/product-backlog.md`.
+
+
 ## One-command deployment helper
 
 If you already have Vercel + Neon credentials, you can run:
