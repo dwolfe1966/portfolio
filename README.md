@@ -8,7 +8,7 @@ This is a starter Next.js App Router portfolio site and demo app for an AI-drive
 npm install
 cp .env.example .env.local
 npx prisma generate
-npx prisma db push
+npm run db:migrate:deploy
 npm run db:seed
 npm run dev
 ```
@@ -74,7 +74,7 @@ If you see schema/compatibility messages, run:
 
 ```bash
 npm run db:generate
-npx prisma db push
+npm run db:migrate:deploy
 npm run db:seed
 ```
 
@@ -118,6 +118,15 @@ export NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
 ./scripts/smoke-test-production.sh
 ```
 
+## Prisma migrations in this repo
+
+This repository now includes baseline Prisma migrations under `prisma/migrations/*`.
+Use this for schema rollout:
+
+```bash
+npm run db:migrate:deploy
+```
+
 ## Troubleshooting schema drift (P2022/P2021)
 
 If you see errors like `The column CampaignRun.assumptionSetId does not exist`, your DB schema is behind the app code.
@@ -126,6 +135,6 @@ Run:
 
 ```bash
 npm run db:generate
-npx prisma db push
+npm run db:migrate:deploy
 npm run db:seed
 ```
