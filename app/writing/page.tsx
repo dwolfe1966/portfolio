@@ -3,6 +3,11 @@ import { Section } from "@/components/site/Section";
 
 const essays = [
   {
+    slug: "generic-lifecycle-marketing-is-dying",
+    title: "Generic lifecycle marketing is dying",
+    preview: "Why event-driven relevance is replacing static lifecycle calendars and broad segmentation."
+  },
+  {
     slug: "ai-revenue-systems",
     title: "AI Revenue Systems",
     preview: "How AI moves from content assistance to revenue operating layer."
@@ -23,7 +28,7 @@ export default function WritingIndexPage() {
           <div key={essay.slug} className="card">
             <h3>{essay.title}</h3>
             <p>{essay.preview}</p>
-            <Link className="btn" href={`/writing/${essay.slug}`}>Read essay</Link>
+            <Link className="btn" href={`/writing/${essay.slug}`}>Read Essay</Link>
           </div>
         ))}
       </div>

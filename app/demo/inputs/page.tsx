@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { DemoWorkspaceNav } from "@/components/demo/DemoWorkspaceNav";
 import { AssumptionEditorCard } from "@/components/demo/AssumptionEditorCard";
+import { LifecycleScoringSettings } from "@/components/demo/LifecycleScoringSettings";
+import { VariableDefinitions } from "@/components/demo/VariableDefinitions";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +46,12 @@ export default async function DemoInputsPage() {
             </p>
           </div>
         </div>
+      </Section>
+      <Section title="Scoring controls">
+        <LifecycleScoringSettings />
+      </Section>
+      <Section title="Variable context">
+        <VariableDefinitions />
       </Section>
       <Section title="Global lifecycle assumptions">
         <AssumptionEditorCard />

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DEMO_ASSUMPTION_DEFAULTS } from "@/lib/demo-assumptions";
+import { SimulationCharts } from "@/components/demo/SimulationCharts";
 
 type GenerateResult = {
   ok: boolean;
@@ -11,17 +12,25 @@ type GenerateResult = {
   error?: string;
 };
 
+type OutcomeCounts = {
+  delivered: number;
+  opens: number;
+  clicks: number;
+  engagements: number;
+  purchases: number;
+};
+
 type OutcomeResult = {
   ok: boolean;
-  counts?: {
-    delivered: number;
-    opens: number;
-    clicks: number;
-    engagements: number;
-    purchases: number;
-  };
+  counts?: OutcomeCounts;
   revenue?: number;
 };
+
+function randomAround(base: number, variance = 0.12) {
+  const spread = base * variance;
+  const delta = (Math.random() * spread * 2) - spread;
+  return Math.max(0, base + delta);
+}
 
 export function ScenarioLabCard() {
   const [assumptionSetId, setAssumptionSetId] = useState<string>("");
@@ -42,6 +51,17 @@ export function ScenarioLabCard() {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [generateResult, setGenerateResult] = useState<GenerateResult | null>(null);
   const [outcomeResult, setOutcomeResult] = useState<OutcomeResult | null>(null);
+  const [monteCarlo, setMonteCarlo] = useState<number[]>([]);
+
+  const timeline = useMemo(() => {
+    if (!outcomeResult?.counts) return [];
+    return [
+      `${deltaCount} changes detected`,
+      `${Math.max(topN, outcomeResult.counts.clicks)} candidates filtered`,
+      `${outcomeResult.counts.delivered} messages generated`,
+      `$${Number(outcomeResult.revenue ?? 0).toFixed(2)} projected revenue`
+    ];
+  }, [deltaCount, topN, outcomeResult]);
 
   async function loadSavedAssumptions() {
     try {
@@ -60,7 +80,9 @@ export function ScenarioLabCard() {
       setEngageRate(Number(parsed.engageRate ?? DEMO_ASSUMPTION_DEFAULTS.engageRate));
       setPurchaseRate(Number(parsed.purchaseRate ?? DEMO_ASSUMPTION_DEFAULTS.purchaseRate));
       setAvgOrderValue(Number(parsed.avgOrderValue ?? DEMO_ASSUMPTION_DEFAULTS.avgOrderValue));
-    } catch {}
+    } catch {
+      // no-op
+    }
   }
 
   async function injectEvents() {
@@ -124,12 +146,23 @@ export function ScenarioLabCard() {
     }
   }
 
+  function runMonteCarlo() {
+    const delivered = outcomeResult?.counts?.delivered ?? Math.max(1, topN);
+    const runs = new Array(50).fill(0).map(() => {
+      const opens = delivered * randomAround(openRate);
+      const clicks = opens * randomAround(clickRate);
+      const purchases = clicks * randomAround(purchaseRate);
+      return purchases * randomAround(avgOrderValue, 0.15);
+    });
+    setMonteCarlo(runs);
+  }
+
   return (
     <div className="card">
       <h3>Interactive scenario lab</h3>
-      <p>Edit upstream data, run generation, then simulate downstream outcomes.</p>
+      <p>Edit assumptions, run generation, and simulate downstream outcomes.</p>
 
-      <div className="grid grid-2" style={{ marginTop: 12, gap: 12 }}>
+      <div className="grid grid-3" style={{ marginTop: 12, gap: 12 }}>
         <label>
           Run name
           <input value={runName} onChange={(e) => setRunName(e.target.value)} />
@@ -145,22 +178,15 @@ export function ScenarioLabCard() {
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
-        <button type="button" onClick={loadSavedAssumptions} disabled={loadingAction !== null}>
-          Load Active Assumptions
-        </button>
-        <button type="button" onClick={injectEvents} disabled={loadingAction !== null}>
-          {loadingAction === "inject" ? "Injecting..." : "1) Inject Events"}
-        </button>
-        <button type="button" onClick={generate} disabled={loadingAction !== null}>
-          {loadingAction === "generate" ? "Generating..." : "2) Generate Campaigns"}
-        </button>
-        <button type="button" onClick={simulateOutcomes} disabled={loadingAction !== null}>
-          {loadingAction === "simulate" ? "Simulating..." : "3) Simulate Outcomes"}
-        </button>
+        <button type="button" onClick={loadSavedAssumptions} disabled={loadingAction !== null}>Load Active Assumptions</button>
+        <button type="button" onClick={injectEvents} disabled={loadingAction !== null}>{loadingAction === "inject" ? "Injecting..." : "1) Inject Events"}</button>
+        <button type="button" onClick={generate} disabled={loadingAction !== null}>{loadingAction === "generate" ? "Generating..." : "2) Generate Campaigns"}</button>
+        <button type="button" onClick={simulateOutcomes} disabled={loadingAction !== null}>{loadingAction === "simulate" ? "Simulating..." : "3) Simulate Outcomes"}</button>
+        <button type="button" onClick={runMonteCarlo} disabled={!outcomeResult?.counts}>Run Monte Carlo</button>
       </div>
 
-      <h3 style={{ marginTop: 16 }}>Global outcome assumptions</h3>
-      <div className="grid grid-3" style={{ gap: 10 }}>
+      <h3 style={{ marginTop: 16 }}>Assumption controls</h3>
+      <div className="grid grid-4" style={{ gap: 10 }}>
         <label>Recency score<input type="number" step="0.01" min={0} max={1} value={recencyScore} onChange={(e) => setRecencyScore(Number(e.target.value || 0))} /></label>
         <label>Min priority score<input type="number" step="0.01" min={0} max={1} value={minPriorityScore} onChange={(e) => setMinPriorityScore(Number(e.target.value || 0))} /></label>
         <label>High-priority threshold<input type="number" step="0.01" min={0} max={1} value={highPriorityThreshold} onChange={(e) => setHighPriorityThreshold(Number(e.target.value || 0))} /></label>
@@ -184,13 +210,15 @@ export function ScenarioLabCard() {
 
       {outcomeResult?.counts && (
         <div style={{ marginTop: 14 }}>
-          <h3>Downstream outcomes</h3>
-          <p>Delivered: {outcomeResult.counts.delivered}</p>
-          <p>Opens: {outcomeResult.counts.opens}</p>
-          <p>Clicks: {outcomeResult.counts.clicks}</p>
-          <p>Engagements: {outcomeResult.counts.engagements}</p>
-          <p>Purchases: {outcomeResult.counts.purchases}</p>
-          <p>Projected revenue: ${Number(outcomeResult.revenue ?? 0).toFixed(2)}</p>
+          <h3>Simulation and outputs</h3>
+          <SimulationCharts counts={outcomeResult.counts} monteCarlo={monteCarlo} />
+          <div className="card" style={{ marginTop: 12 }}>
+            <h3>Simulation timeline</h3>
+            <ol>
+              {timeline.map((event) => <li key={event}>{event}</li>)}
+            </ol>
+            <p className="small">Projected revenue: ${Number(outcomeResult.revenue ?? 0).toFixed(2)}</p>
+          </div>
         </div>
       )}
     </div>

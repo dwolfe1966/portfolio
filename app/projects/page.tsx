@@ -13,7 +13,7 @@ export default function ProjectsIndexPage() {
             <h3>{project.title}</h3>
             <p>{project.summary}</p>
             <div className="ctaRow">
-              <Link className="btn" href={`/projects/${project.slug}`}>View case study</Link>
+              <Link className="btn" href={`/projects/${project.slug}`}>View Project</Link>
               {project.appHref && <Link className="btn primary" href={project.appHref}>Open app</Link>}
             </div>
           </div>

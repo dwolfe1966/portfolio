@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Section } from "@/components/site/Section";
 import { getProjectBySlug, projects } from "@/lib/projects";
+import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDiagram";
+import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -27,6 +29,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       </Section>
       <Section title="The problem"><p>{project.problem}</p></Section>
       <Section title="The thesis"><p>{project.thesis}</p></Section>
+      <Section title="System flow">
+        {project.slug === "agent-acquisition" ? (
+          <AcquisitionFlowDiagram />
+        ) : (
+          <LifecyclePipelineDiagram deltas={45} candidates={20} messages={5} outcomes={480} />
+        )}
+      </Section>
       <Section title="System architecture">
         <div className="grid grid-2">
           {project.architecture.map((item) => (

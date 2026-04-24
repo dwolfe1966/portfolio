@@ -7,7 +7,7 @@ export default function DemoPage() {
       <DemoWorkspaceNav />
       <Section eyebrow="Demo" title="Lifecycle Engine Workspace">
         <p>
-          This workspace is organized into four stages: Overview, Inputs, Simulations, and Outputs.
+          This workspace is organized into five stages: Overview, Inputs, Simulations, Outputs, and Documentation.
           Use the navigation above to walk the pipeline end-to-end.
         </p>
         <div className="grid grid-2" style={{ marginTop: 14 }}>
@@ -17,7 +17,7 @@ export default function DemoPage() {
           </div>
           <div className="card">
             <h3>What to do first</h3>
-            <p>Start in Inputs, confirm assumptions, run Simulations, then inspect Runs/Candidates in Outputs.</p>
+            <p>Start in Inputs, tune scoring and assumptions, run Simulations, inspect Outputs, then use Documentation for definitions.</p>
           </div>
         </div>
       </Section>
