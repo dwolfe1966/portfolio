@@ -17,17 +17,18 @@ This backlog is the canonical source of truth for workstreams A–E.
 - ⏳ To do
 - 🚧 Blocked (waiting on dependency)
 
-## Active sprint: S7 (structure alignment + spec-priority UX)
+## Active sprint: S8 (acquisition workflows + operator controls)
 
 | ID | Item | Owner | Size | Sprint | Status | Acceptance criteria |
 |---|---|---|---|---|---|---|
-| A7 | Route context normalization (`/lifecycle/*` + `/acquisition/*`) | DW | M | S7 | ✅ | Lifecycle app has first-class route context parity with acquisition app and legacy `/demo/*` route compatibility is preserved. |
-| A8 | API namespace normalization (`/api/lifecycle/*` + `/api/acquisition/*`) | DW | M | S7 | ✅ | Lifecycle and acquisition APIs are grouped under explicit namespaces with backward-compatible aliases during transition. |
-| B10 | Interactive `ScoringSettings` panel (lock + rebalance) | DW | M | S7 | ✅ | Users can edit weights via slider/number controls with total maintained and lock behavior. |
-| B11 | `VariableDefinitions` panel (inputs/outputs/assumptions) | DW | S | S7 | ✅ | Definitions are accessible in demo workspace and organized by category tabs. |
-| D10 | Mobile hamburger nav while preserving 5-item IA | DW | S | S7 | ✅ | Mobile menu toggle works across all top-level pages and uses Home/About/Projects/Writing/Contact labels. |
-| D11 | Embed lifecycle + acquisition flow diagrams | DW | S | S7 | ✅ | Lifecycle pipeline and acquisition flow diagrams are visible in project/demo contexts. |
-| C16 | Acquisition flow diagram integration in workspace | DW | S | S7 | ✅ | Diagram appears in acquisition project/workspace context with explanatory copy. |
+| C18 | Campaign workflow pages (`/acquisition/campaigns`, `/acquisition/create`, `/acquisition/campaigns/[id]`) | DW | M | S8 | 🟡 | Operators can list campaigns, create new campaigns, and inspect campaign detail state/cell/activity data. |
+| C19 | Operator override controls (budget locks + max-shift tuning) | DW | M | S8 | ⏳ | Dashboard exposes explicit override controls and persists operator actions in audit log. |
+| C20 | Scenario-level controls + Monte Carlo distribution outputs | DW | M | S8 | ⏳ | Acquisition simulation supports scenario settings and distribution results for planning confidence. |
+| C8 | Guardrails UI (approval threshold/max-shift/cooldown) | DW | S | S8 | ⏳ | Guardrail controls are editable and reflected in run behavior. |
+| C9 | Manual override controls + persisted override logs | DW | S | S8 | ⏳ | Override actions are visible, reversible, and audit-logged. |
+| C10 | Scenario save/load presets | DW | S | S8 | ⏳ | Users can save named acquisition scenarios and rerun them reliably. |
+| E6 | Environment-specific endpoint guardrails | DW | S | S8 | ⏳ | Seed/simulation mutator endpoints are environment-gated. |
+| E7 | Structured API error contract | DW | S | S8 | ⏳ | API responses follow consistent JSON error shape across routes. |
 
 ---
 
@@ -121,7 +122,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - 🚧 C15. Add audit feed page (agent action log with filters by action type, actor, and time window).
 - ✅ C16. Add `AcquisitionFlowDiagram` visual to case-study and acquisition workspace.
 - ✅ C17. Add acquisition simulation charts for impressions/clicks/conversions/CAC/ROAS over time.
-- 🚧 C18. Add campaign CRUD UX pages (`/acquisition/campaigns`, `/acquisition/create`, `/acquisition/campaigns/[id]`).
+- 🟡 C18. Add campaign CRUD UX pages (`/acquisition/campaigns`, `/acquisition/create`, `/acquisition/campaigns/[id]`).
 - 🚧 C19. Add operator override controls (budget locks, max-shift constraint tuning) in dashboard.
 - 🚧 C20. Add scenario-level Monte Carlo controls and distribution output panels.
 

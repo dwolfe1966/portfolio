@@ -17,8 +17,8 @@ export default function AcquisitionPage() {
           <div className="card"><h3>3. Review outputs</h3><p>Inspect top performers, economics, and budget activity history.</p></div>
         </div>
         <div className="ctaRow">
-          <Link className="btn primary" href="/acquisition/inputs">Start in Inputs</Link>
-          <Link className="btn" href="/acquisition/simulations">Go to Simulations</Link>
+          <Link className="btn primary" href="/acquisition/campaigns">Open campaigns</Link>
+          <Link className="btn" href="/acquisition/create">Create campaign</Link>
           <Link className="btn" href="/projects/agent-acquisition">View case study</Link>
         </div>
       </Section>

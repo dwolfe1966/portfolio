@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
 import { AcquisitionInsightsPanel } from "@/components/acquisition/AcquisitionInsightsPanel";
@@ -51,7 +52,7 @@ export default async function AcquisitionOutputsPage() {
               <tbody>
                 {campaigns.map((campaign) => (
                   <tr key={campaign.id}>
-                    <td>{campaign.name}</td>
+                    <td><Link href={`/acquisition/campaigns/${campaign.id}`}>{campaign.name}</Link></td>
                     <td>{campaign.state}</td>
                     <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
                     <td>{campaign.testCells.length}</td>

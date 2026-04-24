@@ -28,7 +28,7 @@ export default function AcquisitionInputsPage() {
         </div>
       </Section>
 
-      <Section title="Campaign bootstrap">
+      <Section title="Campaign bootstrap (also available in /acquisition/create)">
         <AcquisitionCampaignBuilder />
       </Section>
 

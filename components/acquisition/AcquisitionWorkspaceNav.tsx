@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/acquisition/overview", label: "Overview" },
-  { href: "/acquisition/inputs", label: "Inputs" },
+  { href: "/acquisition/campaigns", label: "Campaigns" },
+  { href: "/acquisition/create", label: "Create" },
   { href: "/acquisition/simulations", label: "Simulations" },
   { href: "/acquisition/outputs", label: "Outputs" }
 ];
@@ -19,7 +20,7 @@ export function AcquisitionWorkspaceNav() {
       <p style={{ marginBottom: 10 }}>Navigate and operate the paid-acquisition agent loop.</p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         {links.map((link) => {
-          const active = pathname === link.href;
+          const active = pathname === link.href || (link.href === "/acquisition/campaigns" && pathname.startsWith("/acquisition/campaigns/"));
           return (
             <Link
               key={link.href}
