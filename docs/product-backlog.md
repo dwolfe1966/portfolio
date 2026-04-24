@@ -15,6 +15,7 @@ This backlog is the canonical source of truth for workstreams A–E.
 - ✅ Completed
 - 🟡 In progress
 - ⏳ To do
+- 🚧 Blocked (waiting on dependency)
 
 ## Active sprint: S6 (stability + execution controls)
 
@@ -27,6 +28,12 @@ This backlog is the canonical source of truth for workstreams A–E.
 | B6 | Tests for scoring reproducibility logic | DW | M | S6 | 🟡 | Tests validate contribution math and deterministic output. |
 | E4 | Migrations-first schema strategy | DW | S | S6 | ✅ | Docs and repo enforce `db:migrate:deploy` as primary path. |
 | E5 | CI gates (lint/test/build) | DW | M | S6 | ✅ | CI workflow runs lint, test, and build on push/PR. |
+
+---
+
+## Acquisition spec intake note
+
+The referenced folder `docs/acq-app-specs` is not present in this workspace yet. New acquisition tickets below are drafted from current project intent and can be refined once spec files are synced into repo.
 
 ---
 
@@ -72,12 +79,19 @@ This backlog is the canonical source of truth for workstreams A–E.
 ### In progress
 - 🟡 C5. Add higher-fidelity insights metrics in outputs panel (initial summary expansion).
 
-### To do
+### To do (core maturity)
 - ⏳ C6. Add creative-level and audience-level trend comparisons over iterations.
 - ⏳ C7. Add budget activity timeline chart (with reason + before/after deltas).
 - ⏳ C8. Add configurable guardrails UI (approval threshold, max shift policy, cooldown window).
 - ⏳ C9. Add manual override controls and persist override actions to audit log.
 - ⏳ C10. Add scenario save/load presets for repeatable acquisition experiments.
+
+### To do (spec-driven expansions)
+- 🚧 C11. Add ad-connector abstraction layer (stub + pluggable provider interfaces for Google/Meta).
+- 🚧 C12. Add multivariate cell management (creative × audience/keyword matrix explorer with significance hints).
+- 🚧 C13. Add CAC-vs-LTV policy engine controls (target ratio bands + auto-pause thresholds + approval cap).
+- 🚧 C14. Add campaign state machine UX (`DRAFT → TESTING → SCALING → PAUSED`) with explicit transition history.
+- 🚧 C15. Add audit feed page (agent action log with filters by action type, actor, and time window).
 
 ---
 
@@ -127,6 +141,10 @@ This backlog is the canonical source of truth for workstreams A–E.
 - D6, D7
 - E6, E7, E8
 
-### Sprint S9 (website conversion polish)
+### Sprint S9 (acquisition spec expansion)
+- C11, C12, C13, C14, C15
+- A6
+
+### Sprint S10 (website conversion polish)
 - D8, D9
-- Release checklist hardening (A6)
+- Final production-readiness pass
