@@ -33,7 +33,27 @@ This backlog is the canonical source of truth for workstreams A–E.
 
 ## Acquisition spec intake note
 
-The referenced folder `docs/acq-app-specs` is not present in this workspace yet. New acquisition tickets below are drafted from current project intent and can be refined once spec files are synced into repo.
+Spec set reviewed from user-provided material on 2026-04-24:
+- Codex Implementation Specification – Site & Demo Enhancements
+- Refinement Specification for David Wolfe Portfolio
+- Visual mockups for lifecycle/acquisition flow, simulation lab, and IA/layout
+
+Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
+
+---
+
+## Spec impact matrix (newly confirmed scope)
+
+| Spec theme | Backlog impact |
+|---|---|
+| Sticky 5-item nav + mobile hamburger | D10 (new) |
+| Pipeline + acquisition flow diagrams | C16 (new), D11 (new) |
+| Interactive scoring weights with lock/rebalance | B10 (new) |
+| Variable definitions/data dictionary panel | B11 (new) |
+| Simulation charts/funnel visuals with low-clutter style | B12 (new), C17 (new) |
+| Acquisition pages (campaigns/create/detail/dashboard) + operator controls | C18, C19, C20 (new) |
+| Contact form + anti-spam + UX states | D8 (existing, now priority raised) |
+| Copy cleanup + contextual tooltips + first-run intro modal | D12, B13 (new) |
 
 ---
 
@@ -65,6 +85,10 @@ The referenced folder `docs/acq-app-specs` is not present in this workspace yet.
 - ⏳ B7. Add regression tests for schema fallback paths (`P2021`/`P2022`).
 - ⏳ B8. Add richer outputs analytics (run-over-run trend, segment breakdown, filter presets).
 - ⏳ B9. Add operator audit panel linking run → top candidates → generated message chain.
+- ⏳ B10. Implement interactive `ScoringSettings` panel (slider + numeric + lock + auto-rebalance).
+- ⏳ B11. Add `VariableDefinitions` panel (input/output definitions with examples).
+- ⏳ B12. Add simulation visualizations (pipeline bars + funnel + trend chart) with low-clutter styling.
+- ⏳ B13. Add contextual tooltips and first-run intro modal in demo workspace.
 
 ---
 
@@ -92,6 +116,11 @@ The referenced folder `docs/acq-app-specs` is not present in this workspace yet.
 - 🚧 C13. Add CAC-vs-LTV policy engine controls (target ratio bands + auto-pause thresholds + approval cap).
 - 🚧 C14. Add campaign state machine UX (`DRAFT → TESTING → SCALING → PAUSED`) with explicit transition history.
 - 🚧 C15. Add audit feed page (agent action log with filters by action type, actor, and time window).
+- 🚧 C16. Add `AcquisitionFlowDiagram` visual to case-study and acquisition workspace.
+- 🚧 C17. Add acquisition simulation charts for impressions/clicks/conversions/CAC/ROAS over time.
+- 🚧 C18. Add campaign CRUD UX pages (`/acquisition/campaigns`, `/acquisition/create`, `/acquisition/campaigns/[id]`).
+- 🚧 C19. Add operator override controls (budget locks, max-shift constraint tuning) in dashboard.
+- 🚧 C20. Add scenario-level Monte Carlo controls and distribution output panels.
 
 ---
 
@@ -111,6 +140,9 @@ The referenced folder `docs/acq-app-specs` is not present in this workspace yet.
 - ⏳ D7. Add richer visual artifacts in case studies (architecture diagrams, screenshots, KPI callouts).
 - ⏳ D8. Add contact form delivery path with spam mitigation and success/error UX.
 - ⏳ D9. Perform metadata/OG pass on all key pages.
+- ⏳ D10. Add responsive mobile hamburger behavior to top nav while preserving 5-item IA.
+- ⏳ D11. Embed lifecycle pipeline diagram on project/demo overview and acquisition flow diagram on project page.
+- ⏳ D12. Copy de-duplication pass across Home/About/Projects/Demo pages to remove repeated phrasing.
 
 ---
 
@@ -132,19 +164,18 @@ The referenced folder `docs/acq-app-specs` is not present in this workspace yet.
 
 ## Next sprint sequence
 
-### Sprint S7 (analytics depth)
-- B8, B9
-- C6, C7
+### Sprint S7 (spec-priority UX + analytics)
+- B10, B11, B12
+- C16, C17
+- D10, D11
 
-### Sprint S8 (operator controls + content)
+### Sprint S8 (operator controls + acquisition workflows)
+- C18, C19, C20
 - C8, C9, C10
-- D6, D7
-- E6, E7, E8
+- E6, E7
 
-### Sprint S9 (acquisition spec expansion)
-- C11, C12, C13, C14, C15
+### Sprint S9 (content, conversion, and polish)
+- D6, D7, D8, D9, D12
+- B13
+- E8
 - A6
-
-### Sprint S10 (website conversion polish)
-- D8, D9
-- Final production-readiness pass
