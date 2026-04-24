@@ -21,13 +21,13 @@ This backlog is the canonical source of truth for workstreams A–E.
 
 | ID | Item | Owner | Size | Sprint | Status | Acceptance criteria |
 |---|---|---|---|---|---|---|
-| A7 | Route context normalization (`/lifecycle/*` + `/acquisition/*`) | DW | M | S7 | 🟡 | Lifecycle app has first-class route context parity with acquisition app and legacy `/demo/*` route compatibility is preserved. |
-| A8 | API namespace normalization (`/api/lifecycle/*` + `/api/acquisition/*`) | DW | M | S7 | 🟡 | Lifecycle and acquisition APIs are grouped under explicit namespaces with backward-compatible aliases during transition. |
-| B10 | Interactive `ScoringSettings` panel (lock + rebalance) | DW | M | S7 | 🟡 | Users can edit weights via slider/number controls with total maintained and lock behavior. |
-| B11 | `VariableDefinitions` panel (inputs/outputs/assumptions) | DW | S | S7 | 🟡 | Definitions are accessible in demo workspace and organized by category tabs. |
-| D10 | Mobile hamburger nav while preserving 5-item IA | DW | S | S7 | 🟡 | Mobile menu toggle works across all top-level pages and uses Home/About/Projects/Writing/Contact labels. |
-| D11 | Embed lifecycle + acquisition flow diagrams | DW | S | S7 | 🟡 | Lifecycle pipeline and acquisition flow diagrams are visible in project/demo contexts. |
-| C16 | Acquisition flow diagram integration in workspace | DW | S | S7 | 🟡 | Diagram appears in acquisition project/workspace context with explanatory copy. |
+| A7 | Route context normalization (`/lifecycle/*` + `/acquisition/*`) | DW | M | S7 | ✅ | Lifecycle app has first-class route context parity with acquisition app and legacy `/demo/*` route compatibility is preserved. |
+| A8 | API namespace normalization (`/api/lifecycle/*` + `/api/acquisition/*`) | DW | M | S7 | ✅ | Lifecycle and acquisition APIs are grouped under explicit namespaces with backward-compatible aliases during transition. |
+| B10 | Interactive `ScoringSettings` panel (lock + rebalance) | DW | M | S7 | ✅ | Users can edit weights via slider/number controls with total maintained and lock behavior. |
+| B11 | `VariableDefinitions` panel (inputs/outputs/assumptions) | DW | S | S7 | ✅ | Definitions are accessible in demo workspace and organized by category tabs. |
+| D10 | Mobile hamburger nav while preserving 5-item IA | DW | S | S7 | ✅ | Mobile menu toggle works across all top-level pages and uses Home/About/Projects/Writing/Contact labels. |
+| D11 | Embed lifecycle + acquisition flow diagrams | DW | S | S7 | ✅ | Lifecycle pipeline and acquisition flow diagrams are visible in project/demo contexts. |
+| C16 | Acquisition flow diagram integration in workspace | DW | S | S7 | ✅ | Diagram appears in acquisition project/workspace context with explanatory copy. |
 
 ---
 
@@ -66,9 +66,9 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 
 ### To do
 - ⏳ A6. Add release checklists (pre-release, release, post-release) linked to this backlog.
-- 🟡 A7. Normalize top-level app route contexts (`/lifecycle/*` + `/acquisition/*`) and retain `/demo/*` compatibility during migration.
-- 🟡 A8. Normalize API namespaces (`/api/lifecycle/*` + `/api/acquisition/*`) and retain existing lifecycle endpoints as aliases while clients migrate.
-- 🟡 A9. Migrate lifecycle web routes from `/demo/*` to `/lifecycle/*` and remove legacy `/demo` entry surface (no link preservation required).
+- ✅ A7. Normalize top-level app route contexts (`/lifecycle/*` + `/acquisition/*`) and finalize lifecycle-first route structure.
+- ✅ A8. Normalize API namespaces (`/api/lifecycle/*` + `/api/acquisition/*`) and update lifecycle UI surfaces to use namespaced endpoints.
+- ✅ A9. Migrate lifecycle web routes from `/demo/*` to `/lifecycle/*` and minimize legacy `/demo` surface via redirects.
 
 ---
 
@@ -88,9 +88,9 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ⏳ B7. Add regression tests for schema fallback paths (`P2021`/`P2022`).
 - ⏳ B8. Add richer outputs analytics (run-over-run trend, segment breakdown, filter presets).
 - ⏳ B9. Add operator audit panel linking run → top candidates → generated message chain.
-- 🟡 B10. Implement interactive `ScoringSettings` panel (slider + numeric + lock + auto-rebalance).
-- 🟡 B11. Add `VariableDefinitions` panel (input/output definitions with examples).
-- 🟡 B12. Add simulation visualizations (pipeline bars + funnel + trend chart) with low-clutter styling.
+- ✅ B10. Implement interactive `ScoringSettings` panel (slider + numeric + lock + auto-rebalance).
+- ✅ B11. Add `VariableDefinitions` panel (input/output definitions with examples).
+- ✅ B12. Add simulation visualizations (pipeline bars + funnel + trend chart) with low-clutter styling.
 - ⏳ B13. Add contextual tooltips and first-run intro modal in demo workspace.
 
 ---
@@ -119,8 +119,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - 🚧 C13. Add CAC-vs-LTV policy engine controls (target ratio bands + auto-pause thresholds + approval cap).
 - 🚧 C14. Add campaign state machine UX (`DRAFT → TESTING → SCALING → PAUSED`) with explicit transition history.
 - 🚧 C15. Add audit feed page (agent action log with filters by action type, actor, and time window).
-- 🟡 C16. Add `AcquisitionFlowDiagram` visual to case-study and acquisition workspace.
-- 🟡 C17. Add acquisition simulation charts for impressions/clicks/conversions/CAC/ROAS over time.
+- ✅ C16. Add `AcquisitionFlowDiagram` visual to case-study and acquisition workspace.
+- ✅ C17. Add acquisition simulation charts for impressions/clicks/conversions/CAC/ROAS over time.
 - 🚧 C18. Add campaign CRUD UX pages (`/acquisition/campaigns`, `/acquisition/create`, `/acquisition/campaigns/[id]`).
 - 🚧 C19. Add operator override controls (budget locks, max-shift constraint tuning) in dashboard.
 - 🚧 C20. Add scenario-level Monte Carlo controls and distribution output panels.
@@ -143,8 +143,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ⏳ D7. Add richer visual artifacts in case studies (architecture diagrams, screenshots, KPI callouts).
 - ⏳ D8. Add contact form delivery path with spam mitigation and success/error UX.
 - ⏳ D9. Perform metadata/OG pass on all key pages.
-- 🟡 D10. Add responsive mobile hamburger behavior to top nav while preserving 5-item IA.
-- 🟡 D11. Embed lifecycle pipeline diagram on project/demo overview and acquisition flow diagram on project page.
+- ✅ D10. Add responsive mobile hamburger behavior to top nav while preserving 5-item IA.
+- ✅ D11. Embed lifecycle pipeline diagram on project/demo overview and acquisition flow diagram on project page.
 - ⏳ D12. Copy de-duplication pass across Home/About/Projects/Demo pages to remove repeated phrasing.
 
 ---
@@ -168,10 +168,10 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ## Next sprint sequence
 
 ### Sprint S7 (structure alignment + spec-priority UX + analytics)
-- A7, A8, A9
-- B10, B11, B12
-- C16, C17
-- D10, D11
+- ✅ A7, A8, A9
+- ✅ B10, B11, B12
+- ✅ C16, C17
+- ✅ D10, D11
 
 ### Sprint S8 (operator controls + acquisition workflows)
 - C18, C19, C20

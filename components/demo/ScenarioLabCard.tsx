@@ -65,7 +65,7 @@ export function ScenarioLabCard() {
 
   async function loadSavedAssumptions() {
     try {
-      const response = await fetch("/api/assumptions", { cache: "no-store" });
+      const response = await fetch("/api/lifecycle/assumptions", { cache: "no-store" });
       const payload = await response.json();
       const parsed = payload.activeAssumptions as Partial<typeof DEMO_ASSUMPTION_DEFAULTS> | undefined;
       if (!parsed) return;
@@ -88,7 +88,7 @@ export function ScenarioLabCard() {
   async function injectEvents() {
     setLoadingAction("inject");
     try {
-      await fetch("/api/simulate-deltas", {
+      await fetch("/api/lifecycle/simulate-deltas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ count: deltaCount })
@@ -102,7 +102,7 @@ export function ScenarioLabCard() {
     setLoadingAction("generate");
     setGenerateResult(null);
     try {
-      const response = await fetch("/api/generate-campaigns", {
+      const response = await fetch("/api/lifecycle/generate-campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -128,7 +128,7 @@ export function ScenarioLabCard() {
     setLoadingAction("simulate");
     setOutcomeResult(null);
     try {
-      const response = await fetch("/api/simulate-outcomes", {
+      const response = await fetch("/api/lifecycle/simulate-outcomes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
