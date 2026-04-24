@@ -11,14 +11,19 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       return NextResponse.json({ ok: false, error: "Campaign not found" }, { status: 404 });
     }
 
-    const [cells, activities, logs] = await Promise.all([
+    const [cells, activities, logs, performanceSeries] = await Promise.all([
       db.testCell.findMany({
         where: { campaignId: id },
         include: { creative: true, audience: true },
         orderBy: { score: "desc" }
       }),
       db.budgetActivity.findMany({ where: { campaignId: id }, orderBy: { createdAt: "desc" }, take: 20 }),
-      db.acquisitionAuditLog.findMany({ where: { campaignId: id }, orderBy: { createdAt: "desc" }, take: 20 })
+      db.acquisitionAuditLog.findMany({ where: { campaignId: id }, orderBy: { createdAt: "desc" }, take: 20 }),
+      db.adPerformance.findMany({
+        where: { testCell: { campaignId: id } },
+        orderBy: { recordedAt: "asc" },
+        take: 50
+      })
     ]);
 
     const spendCents = cells.reduce((sum, cell) => sum + cell.spendCents, 0);
@@ -41,11 +46,21 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       },
       topCells: cells.slice(0, 10),
       budgetActivities: activities,
-      auditLogs: logs
+      auditLogs: logs,
+      performanceSeries: performanceSeries.map((point) => ({
+        recordedAt: point.recordedAt,
+        impressions: point.impressions,
+        clicks: point.clicks,
+        conversions: point.conversions,
+        spendCents: point.spendCents,
+        revenueCents: point.revenueCents,
+        cpaCents: point.cpaCents,
+        roas: point.roas
+      }))
     });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return NextResponse.json({ ok: true, compatibilityMode: true, summary: null, topCells: [], budgetActivities: [], auditLogs: [] });
+      return NextResponse.json({ ok: true, compatibilityMode: true, summary: null, topCells: [], budgetActivities: [], auditLogs: [], performanceSeries: [] });
     }
     throw error;
   }

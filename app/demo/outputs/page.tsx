@@ -88,14 +88,14 @@ export default async function DemoOutputsPage() {
 
         <Section title="Recent campaign runs">
           {runs.length === 0 ? (
-            <div className="card"><p>No campaign runs yet. Generate a run from /demo/simulations.</p></div>
+            <div className="card"><p>No campaign runs yet. Generate a run from /lifecycle/simulations.</p></div>
           ) : (
             <table className="table">
               <thead><tr><th>Run</th><th>Deltas</th><th>Matches</th><th>High priority</th><th>Revenue</th></tr></thead>
               <tbody>
                 {runs.map((run) => (
                   <tr key={run.id}>
-                    <td><Link href={`/demo/campaigns/${run.id}`}>{run.runName}</Link></td>
+                    <td><Link href={`/lifecycle/campaigns/${run.id}`}>{run.runName}</Link></td>
                     <td>{run.totalDeltas}</td>
                     <td>{run.totalMatches}</td>
                     <td>{run.totalHighPriority}</td>

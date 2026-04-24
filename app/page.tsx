@@ -43,7 +43,7 @@ export default function HomePage() {
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/projects/lifecycle-revenue-engine">Explore the project</Link>
-          <Link className="btn" href="/demo">Open the lifecycle app</Link>
+          <Link className="btn" href="/lifecycle">Open the lifecycle app</Link>
         </div>
       </Section>
 
@@ -56,7 +56,7 @@ export default function HomePage() {
               to production-grade operating patterns.
             </p>
             <div className="ctaRow">
-              <Link className="btn primary" href="/demo">Open lifecycle app</Link>
+              <Link className="btn primary" href="/lifecycle">Open lifecycle app</Link>
               <Link className="btn" href="/projects/lifecycle-revenue-engine">View lifecycle case study</Link>
             </div>
           </div>

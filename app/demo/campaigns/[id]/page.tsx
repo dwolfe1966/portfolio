@@ -67,7 +67,7 @@ export default async function CampaignRunPage({ params }: PageProps) {
               <tbody>
                 {run.candidates.map((candidate) => (
                   <tr key={candidate.id}>
-                    <td><Link href={`/demo/candidates/${candidate.id}`}>{candidate.id}</Link></td>
+                    <td><Link href={`/lifecycle/candidates/${candidate.id}`}>{candidate.id}</Link></td>
                     <td>{candidate.priorityScore.toFixed(3)}</td>
                     <td>{candidate.segmentAtGeneration}</td>
                   </tr>

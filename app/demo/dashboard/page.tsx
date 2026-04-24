@@ -78,7 +78,7 @@ export default async function DashboardPage() {
               <tbody>
                 {runs.map((run) => (
                   <tr key={run.id}>
-                    <td><Link href={`/demo/campaigns/${run.id}`}>{run.runName}</Link></td>
+                    <td><Link href={`/lifecycle/campaigns/${run.id}`}>{run.runName}</Link></td>
                     <td>{run.totalDeltas}</td>
                     <td>{run.totalMatches}</td>
                     <td>{run.totalHighPriority}</td>
@@ -101,7 +101,7 @@ export default async function DashboardPage() {
             <tbody>
               {users.map((user) => (
                 <tr key={user.id}>
-                  <td><Link href={`/demo/users/${user.id}`}>{user.fullName}</Link></td>
+                  <td><Link href={`/lifecycle/users/${user.id}`}>{user.fullName}</Link></td>
                   <td>{user.segment}</td>
                   <td>{user.subscriptionStatus}</td>
                   <td>{new Date(user.createdAt).toLocaleDateString()}</td>

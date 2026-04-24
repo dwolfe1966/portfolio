@@ -91,7 +91,7 @@ export default async function CampaignsPage({ searchParams }: PageProps) {
           </div>
           <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
             <button type="submit">Apply filters</button>
-            <Link className="btn" href="/demo/campaigns">Reset</Link>
+            <Link className="btn" href="/lifecycle/campaigns">Reset</Link>
           </div>
         </form>
 
@@ -108,12 +108,12 @@ export default async function CampaignsPage({ searchParams }: PageProps) {
             <tbody>
               {candidates.map((c) => (
                 <tr key={c.id}>
-                  <td><Link href={`/demo/candidates/${c.id}`}>{c.user.fullName}</Link></td>
+                  <td><Link href={`/lifecycle/candidates/${c.id}`}>{c.user.fullName}</Link></td>
                   <td>{c.entity.name}</td>
                   <td>{c.segmentAtGeneration}</td>
                   <td>{c.entityDelta.changeType}</td>
                   <td>{c.priorityScore.toFixed(2)}</td>
-                  <td>{c.campaignRun ? <Link href={`/demo/campaigns/${c.campaignRun.id}`}>{c.campaignRun.runName}</Link> : "—"}</td>
+                  <td>{c.campaignRun ? <Link href={`/lifecycle/campaigns/${c.campaignRun.id}`}>{c.campaignRun.runName}</Link> : "—"}</td>
                   <td>{c.generatedMessage?.subjectLine ?? "Not generated yet"}</td>
                 </tr>
               ))}

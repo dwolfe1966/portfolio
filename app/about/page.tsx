@@ -111,7 +111,7 @@ export default function AboutPage() {
           <div className="card">
             <h3>Lifecycle app cleanup</h3>
             <p>Strengthening reliability, explainability, and UX polish across the lifecycle workspace.</p>
-            <Link className="btn" href="/demo">Open lifecycle app</Link>
+            <Link className="btn" href="/lifecycle">Open lifecycle app</Link>
           </div>
           <div className="card">
             <h3>Acquisition system design</h3>

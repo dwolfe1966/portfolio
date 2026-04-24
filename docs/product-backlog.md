@@ -68,6 +68,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ⏳ A6. Add release checklists (pre-release, release, post-release) linked to this backlog.
 - 🟡 A7. Normalize top-level app route contexts (`/lifecycle/*` + `/acquisition/*`) and retain `/demo/*` compatibility during migration.
 - 🟡 A8. Normalize API namespaces (`/api/lifecycle/*` + `/api/acquisition/*`) and retain existing lifecycle endpoints as aliases while clients migrate.
+- 🟡 A9. Migrate lifecycle web routes from `/demo/*` to `/lifecycle/*` and remove legacy `/demo` entry surface (no link preservation required).
 
 ---
 
@@ -89,7 +90,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ⏳ B9. Add operator audit panel linking run → top candidates → generated message chain.
 - 🟡 B10. Implement interactive `ScoringSettings` panel (slider + numeric + lock + auto-rebalance).
 - 🟡 B11. Add `VariableDefinitions` panel (input/output definitions with examples).
-- ⏳ B12. Add simulation visualizations (pipeline bars + funnel + trend chart) with low-clutter styling.
+- 🟡 B12. Add simulation visualizations (pipeline bars + funnel + trend chart) with low-clutter styling.
 - ⏳ B13. Add contextual tooltips and first-run intro modal in demo workspace.
 
 ---
@@ -119,7 +120,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - 🚧 C14. Add campaign state machine UX (`DRAFT → TESTING → SCALING → PAUSED`) with explicit transition history.
 - 🚧 C15. Add audit feed page (agent action log with filters by action type, actor, and time window).
 - 🟡 C16. Add `AcquisitionFlowDiagram` visual to case-study and acquisition workspace.
-- 🚧 C17. Add acquisition simulation charts for impressions/clicks/conversions/CAC/ROAS over time.
+- 🟡 C17. Add acquisition simulation charts for impressions/clicks/conversions/CAC/ROAS over time.
 - 🚧 C18. Add campaign CRUD UX pages (`/acquisition/campaigns`, `/acquisition/create`, `/acquisition/campaigns/[id]`).
 - 🚧 C19. Add operator override controls (budget locks, max-shift constraint tuning) in dashboard.
 - 🚧 C20. Add scenario-level Monte Carlo controls and distribution output panels.
@@ -167,7 +168,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ## Next sprint sequence
 
 ### Sprint S7 (structure alignment + spec-priority UX + analytics)
-- A7, A8
+- A7, A8, A9
 - B10, B11, B12
 - C16, C17
 - D10, D11

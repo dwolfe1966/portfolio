@@ -32,7 +32,7 @@ export const projects: ProjectEntry[] = [
       "The purpose of the system is not just personalization. It is commercial relevance: reactivation, retention, conversion, and incremental revenue per run.",
     whatIBuilt:
       "A data model, simulation layer, prioritization logic, AI generation layer, working dashboard, and public portfolio presentation.",
-    appHref: "/demo",
+    appHref: "/lifecycle",
     status: "live"
   },
   {

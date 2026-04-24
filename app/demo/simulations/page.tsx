@@ -34,8 +34,8 @@ export default function DemoSimulationsPage() {
           <div className="card">
             <h3>3) Read outputs</h3>
             <p>
-              After a run, validate decisions in <code>/demo/campaigns</code> (candidate list/filtering),
-              <code>/demo/campaigns/[id]</code> (run snapshot), and <code>/demo/outputs</code> (artifact stream).
+              After a run, validate decisions in <code>/lifecycle/campaigns</code> (candidate list/filtering),
+              <code>/lifecycle/campaigns/[id]</code> (run snapshot), and <code>/lifecycle/outputs</code> (artifact stream).
             </p>
           </div>
         </div>
