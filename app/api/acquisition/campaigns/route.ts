@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
           channels: input.channels,
           maxBudgetShiftPct: input.maxBudgetShiftPct,
           minConfidence: input.minConfidence,
+          cooldownHours: input.cooldownHours,
           targetCacCents: input.targetCacCents,
           targetLtvCents: input.targetLtvCents,
           state: "TESTING"

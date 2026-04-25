@@ -23,11 +23,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (action === "update_guardrails") {
       const maxBudgetShiftPct = Math.min(0.5, Math.max(0.01, toNumber(body.maxBudgetShiftPct, campaign.maxBudgetShiftPct)));
       const minConfidence = Math.min(0.95, Math.max(0.5, toNumber(body.minConfidence, campaign.minConfidence)));
+      const cooldownHours = Math.min(168, Math.max(1, Math.round(toNumber(body.cooldownHours, campaign.cooldownHours))));
 
       const updated = await db.$transaction(async (tx) => {
         const updatedCampaign = await tx.acquisitionCampaign.update({
           where: { id: campaign.id },
-          data: { maxBudgetShiftPct, minConfidence }
+          data: { maxBudgetShiftPct, minConfidence, cooldownHours }
         });
 
         await tx.acquisitionAuditLog.create({
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             campaignId: campaign.id,
             actor: "operator",
             action: "guardrails_updated",
-            metadata: { maxBudgetShiftPct, minConfidence }
+            metadata: { maxBudgetShiftPct, minConfidence, cooldownHours }
           }
         });
 

@@ -14,12 +14,14 @@ export function AcquisitionOperatorControls({
   campaignId,
   initialMaxShift,
   initialMinConfidence,
+  initialCooldownHours,
   cellOptions,
   recentOverrideLogs
 }: {
   campaignId: string;
   initialMaxShift: number;
   initialMinConfidence: number;
+  initialCooldownHours: number;
   cellOptions: CellOption[];
   recentOverrideLogs: {
     id: string;
@@ -31,6 +33,7 @@ export function AcquisitionOperatorControls({
   const router = useRouter();
   const [maxShift, setMaxShift] = useState(initialMaxShift);
   const [minConfidence, setMinConfidence] = useState(initialMinConfidence);
+  const [cooldownHours, setCooldownHours] = useState(initialCooldownHours);
   const [cellId, setCellId] = useState(cellOptions[0]?.id ?? "");
   const [budgetCents, setBudgetCents] = useState(cellOptions[0]?.budgetCents ?? 0);
   const [status, setStatus] = useState<string>("");
@@ -43,7 +46,7 @@ export function AcquisitionOperatorControls({
       const response = await fetch(`/api/acquisition/campaigns/${campaignId}/overrides`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "update_guardrails", maxBudgetShiftPct: maxShift, minConfidence })
+        body: JSON.stringify({ action: "update_guardrails", maxBudgetShiftPct: maxShift, minConfidence, cooldownHours })
       });
       const payload = await response.json();
       setStatus(payload.ok ? "Guardrails updated." : readErrorMessage(payload, "Update failed."));
@@ -107,6 +110,10 @@ export function AcquisitionOperatorControls({
         <label>
           Min confidence threshold
           <input type="number" min={0.5} max={0.95} step={0.01} value={minConfidence} onChange={(e) => setMinConfidence(Number(e.target.value || 0.65))} />
+        </label>
+        <label>
+          Reallocation cooldown (hours)
+          <input type="number" min={1} max={168} step={1} value={cooldownHours} onChange={(e) => setCooldownHours(Number(e.target.value || 24))} />
         </label>
       </div>
 

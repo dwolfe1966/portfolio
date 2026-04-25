@@ -15,6 +15,7 @@ export function AcquisitionCampaignBuilder() {
   const [targetLtvCents, setTargetLtvCents] = useState(72000);
   const [maxBudgetShiftPct, setMaxBudgetShiftPct] = useState(0.2);
   const [minConfidence, setMinConfidence] = useState(0.65);
+  const [cooldownHours, setCooldownHours] = useState(24);
   const [channels, setChannels] = useState<Channel[]>(DEFAULT_CHANNELS);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string>("");
@@ -47,7 +48,8 @@ export function AcquisitionCampaignBuilder() {
           targetCacCents,
           targetLtvCents,
           maxBudgetShiftPct,
-          minConfidence
+          minConfidence,
+          cooldownHours
         })
       });
 
@@ -102,6 +104,10 @@ export function AcquisitionCampaignBuilder() {
       <label>
         Minimum confidence threshold
         <input type="number" min={0.5} max={0.95} step={0.01} value={minConfidence} onChange={(event) => setMinConfidence(Number(event.target.value))} />
+      </label>
+      <label>
+        Reallocation cooldown (hours)
+        <input type="number" min={1} max={168} step={1} value={cooldownHours} onChange={(event) => setCooldownHours(Number(event.target.value))} />
       </label>
 
       <fieldset style={{ border: 0, padding: 0, marginTop: 8 }}>

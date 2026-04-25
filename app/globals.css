@@ -101,16 +101,11 @@ button {
   margin-bottom: 14px;
   background: color-mix(in oklab, #ffffff 88%, #e2e8f0 12%);
 }
-.appWorkspaceSwitch,
 .appWorkspaceLinks {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
-.appWorkspaceSwitch {
-  margin: 10px 0 8px;
-}
-.appTab,
 .appPill {
   border: 1px solid #0f172a;
   border-radius: 999px;
@@ -119,7 +114,6 @@ button {
   font-weight: 600;
   background: #ffffff;
 }
-.appTab.active,
 .appPill.active {
   background: #0f172a;
   color: #ffffff;

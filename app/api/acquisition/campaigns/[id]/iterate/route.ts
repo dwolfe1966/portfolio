@@ -85,25 +85,36 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
       const ranked = [...scored].sort((a, b) => b.score - a.score);
       const winners = ranked.slice(0, Math.max(1, Math.ceil(ranked.length * 0.3)));
       const losers = ranked.slice(Math.floor(ranked.length * 0.7));
+      let reallocationCount = 0;
 
-      for (const loser of losers) {
-        const amount = Math.round(loser.budgetCents * campaign.maxBudgetShiftPct);
-        if (amount < 100) continue;
-        const winner = winners[randomInt(0, winners.length - 1)];
+      const cooldownCutoff = new Date(Date.now() - campaign.cooldownHours * 60 * 60 * 1000);
+      const recentActivity = await tx.budgetActivity.findFirst({
+        where: { campaignId: campaign.id, createdAt: { gte: cooldownCutoff } },
+        orderBy: { createdAt: "desc" }
+      });
+      const cooldownActive = Boolean(recentActivity);
 
-        await tx.testCell.update({ where: { id: loser.id }, data: { budgetCents: Math.max(0, loser.budgetCents - amount) } });
-        await tx.testCell.update({ where: { id: winner.id }, data: { budgetCents: winner.budgetCents + amount } });
-        winner.budgetCents += amount;
+      if (!cooldownActive) {
+        for (const loser of losers) {
+          const amount = Math.round(loser.budgetCents * campaign.maxBudgetShiftPct);
+          if (amount < 100) continue;
+          const winner = winners[randomInt(0, winners.length - 1)];
 
-        await tx.budgetActivity.create({
-          data: {
-            campaignId: campaign.id,
-            fromTestCellId: loser.id,
-            toTestCellId: winner.id,
-            amountCents: amount,
-            reason: "Automated budget reallocation based on score"
-          }
-        });
+          await tx.testCell.update({ where: { id: loser.id }, data: { budgetCents: Math.max(0, loser.budgetCents - amount) } });
+          await tx.testCell.update({ where: { id: winner.id }, data: { budgetCents: winner.budgetCents + amount } });
+          winner.budgetCents += amount;
+          reallocationCount++;
+
+          await tx.budgetActivity.create({
+            data: {
+              campaignId: campaign.id,
+              fromTestCellId: loser.id,
+              toTestCellId: winner.id,
+              amountCents: amount,
+              reason: "Automated budget reallocation based on score"
+            }
+          });
+        }
       }
 
       const averageScore = ranked.reduce((sum, row) => sum + row.score, 0) / ranked.length;
@@ -120,7 +131,10 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
           metadata: {
             averageScore,
             winners: winners.length,
-            losers: losers.length
+            losers: losers.length,
+            cooldownHours: campaign.cooldownHours,
+            cooldownActive,
+            reallocationCount
           }
         }
       });

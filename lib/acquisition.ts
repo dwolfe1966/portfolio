@@ -16,6 +16,7 @@ export type CreateAcquisitionCampaignInput = {
   targetLtvCents: number;
   maxBudgetShiftPct?: number;
   minConfidence?: number;
+  cooldownHours?: number;
 };
 
 export const ACQUISITION_DEFAULTS: CreateAcquisitionCampaignInput = {
@@ -28,7 +29,8 @@ export const ACQUISITION_DEFAULTS: CreateAcquisitionCampaignInput = {
   targetCacCents: 14500,
   targetLtvCents: 72000,
   maxBudgetShiftPct: 0.2,
-  minConfidence: 0.65
+  minConfidence: 0.65,
+  cooldownHours: 24
 };
 
 export function validateCreateCampaignInput(raw: unknown): { ok: true; value: CreateAcquisitionCampaignInput } | { ok: false; errors: string[] } {
@@ -49,7 +51,8 @@ export function validateCreateCampaignInput(raw: unknown): { ok: true; value: Cr
     targetCacCents: Number(body.targetCacCents ?? ACQUISITION_DEFAULTS.targetCacCents),
     targetLtvCents: Number(body.targetLtvCents ?? ACQUISITION_DEFAULTS.targetLtvCents),
     maxBudgetShiftPct: Number(body.maxBudgetShiftPct ?? ACQUISITION_DEFAULTS.maxBudgetShiftPct),
-    minConfidence: Number(body.minConfidence ?? ACQUISITION_DEFAULTS.minConfidence)
+    minConfidence: Number(body.minConfidence ?? ACQUISITION_DEFAULTS.minConfidence),
+    cooldownHours: Number(body.cooldownHours ?? ACQUISITION_DEFAULTS.cooldownHours)
   };
 
   if (!value.name) errors.push("name is required");
@@ -66,6 +69,9 @@ export function validateCreateCampaignInput(raw: unknown): { ok: true; value: Cr
   }
   if (!Number.isFinite(value.minConfidence!) || value.minConfidence! < 0.5 || value.minConfidence! > 0.95) {
     errors.push("minConfidence must be between 0.5 and 0.95");
+  }
+  if (!Number.isFinite(value.cooldownHours!) || value.cooldownHours! < 1 || value.cooldownHours! > 168) {
+    errors.push("cooldownHours must be between 1 and 168");
   }
 
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value };

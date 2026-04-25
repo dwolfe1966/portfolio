@@ -67,6 +67,7 @@ model AcquisitionCampaign {
   channels              AcquisitionChannel[]
   maxBudgetShiftPct     Float                    @default(0.2)
   minConfidence         Float                    @default(0.65)
+  cooldownHours         Int                      @default(24)
   targetCacCents        Int
   targetLtvCents        Int
   state                 AcquisitionCampaignState @default(DRAFT)

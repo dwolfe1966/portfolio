@@ -13,7 +13,8 @@ test("validateCreateCampaignInput accepts valid payload", () => {
     targetCacCents: 12000,
     targetLtvCents: 60000,
     maxBudgetShiftPct: 0.2,
-    minConfidence: 0.7
+    minConfidence: 0.7,
+    cooldownHours: 24
   });
 
   assert.equal(parsed.ok, true);
@@ -29,7 +30,8 @@ test("validateCreateCampaignInput rejects invalid economics", () => {
     targetCacCents: 30000,
     targetLtvCents: 10000,
     maxBudgetShiftPct: 0.9,
-    minConfidence: 0.1
+    minConfidence: 0.1,
+    cooldownHours: 0
   });
 
   assert.equal(parsed.ok, false);

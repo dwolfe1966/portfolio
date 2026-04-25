@@ -3,11 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const workspaceTabs = [
-  { href: "/lifecycle/overview", label: "Lifecycle app", match: "/lifecycle" },
-  { href: "/acquisition/overview", label: "Acquisition app", match: "/acquisition" }
-];
-
 const lifecycleLinks = [
   { href: "/lifecycle/overview", label: "Overview" },
   { href: "/lifecycle/inputs", label: "Inputs" },
@@ -35,18 +30,7 @@ export function AppWorkspaceShellNav({ app }: { app: "lifecycle" | "acquisition"
     <nav className="appWorkspaceNav card" aria-label={`${app} workspace navigation`}>
       <p className="eyebrow">App workspace</p>
       <h3>{app === "lifecycle" ? "Lifecycle operations app" : "Acquisition operations app"}</h3>
-      <p className="small">Switch between demo apps or jump to a specific workflow stage.</p>
-
-      <div className="appWorkspaceSwitch">
-        {workspaceTabs.map((tab) => {
-          const active = pathname.startsWith(tab.match);
-          return (
-            <Link key={tab.href} href={tab.href} className={`appTab ${active ? "active" : ""}`}>
-              {tab.label}
-            </Link>
-          );
-        })}
-      </div>
+      <p className="small">Jump to any stage within this app workflow.</p>
 
       <div className="appWorkspaceLinks">
         {appLinks.map((link) => {

@@ -43,7 +43,7 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
             <div className="card"><div className="kpi">{campaign.state}</div><p>Current state</p></div>
             <div className="card"><div className="kpi">${(cac / 100).toFixed(0)}</div><p>CAC</p></div>
             <div className="card"><div className="kpi">{roas.toFixed(2)}x</div><p>ROAS</p></div>
-            <div className="card"><div className="kpi">{campaign.testCells.length}</div><p>Active test cells</p></div>
+            <div className="card"><div className="kpi">{campaign.cooldownHours}h</div><p>Budget-shift cooldown</p></div>
           </div>
           <div className="ctaRow">
             <Link href="/acquisition/simulations" className="btn primary">Run iteration</Link>
@@ -57,6 +57,7 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
             campaignId={campaign.id}
             initialMaxShift={campaign.maxBudgetShiftPct}
             initialMinConfidence={campaign.minConfidence}
+            initialCooldownHours={campaign.cooldownHours}
             cellOptions={campaign.testCells.slice(0, 25).map((cell) => ({
               id: cell.id,
               label: `${cell.creative.headline.slice(0, 36)} • ${cell.audience.name}`,
