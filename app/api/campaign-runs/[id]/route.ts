@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { apiError, apiOk } from "@/lib/api-contract";
 
 export async function GET(
   _: Request,
@@ -13,11 +13,8 @@ export async function GET(
   });
 
   if (!run) {
-    return NextResponse.json(
-      { ok: false, error: "Not found" },
-      { status: 404 }
-    );
+    return apiError(404, "RUN_NOT_FOUND", "Campaign run not found");
   }
 
-  return NextResponse.json({ ok: true, run });
+  return apiOk({ run });
 }

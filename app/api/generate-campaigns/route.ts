@@ -1,11 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { calculatePriorityBreakdown } from "@/lib/scoring";
 import { generateLifecycleCopy } from "@/lib/ai";
 import { CampaignStatus } from "@prisma/client";
 import { DEMO_ASSUMPTION_DEFAULTS, normalizeDemoAssumptions } from "@/lib/demo-assumptions";
+import { apiError, apiOk } from "@/lib/api-contract";
+import { isDemoMutationAllowed } from "@/lib/env-guard";
 
 export async function POST(req: NextRequest) {
+  if (!isDemoMutationAllowed()) {
+    return apiError(
+      403,
+      "MUTATION_DISABLED",
+      "Campaign generation is disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable."
+    );
+  }
+
   const body = await req.json().catch(() => ({}));
   const requestedSetId = body.assumptionSetId ? String(body.assumptionSetId) : null;
   const selectedSet = requestedSetId
@@ -131,8 +141,7 @@ export async function POST(req: NextRequest) {
     }
   });
 
-  return NextResponse.json({
-    ok: true,
+  return apiOk({
     campaignRunId: run.id,
     totalDeltas: deltas.length,
     totalMatches,

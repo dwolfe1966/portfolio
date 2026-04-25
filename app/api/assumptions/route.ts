@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { DEMO_ASSUMPTION_DEFAULTS, normalizeDemoAssumptions } from "@/lib/demo-assumptions";
+import { apiError, apiOk } from "@/lib/api-contract";
+import { isDemoMutationAllowed } from "@/lib/env-guard";
 
 function toAssumptionPayload(set: {
   defaultTopN: number;
@@ -32,8 +34,7 @@ export async function GET() {
   const assumptionSets = await db.assumptionSet.findMany({ orderBy: { createdAt: "desc" } });
   const activeSet = assumptionSets.find((set) => set.isActive) ?? null;
 
-  return NextResponse.json({
-    ok: true,
+  return apiOk({
     defaults: DEMO_ASSUMPTION_DEFAULTS,
     activeSet,
     activeAssumptions: activeSet ? toAssumptionPayload(activeSet) : DEMO_ASSUMPTION_DEFAULTS,
@@ -42,13 +43,21 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isDemoMutationAllowed()) {
+    return apiError(
+      403,
+      "MUTATION_DISABLED",
+      "Assumption updates are disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable."
+    );
+  }
+
   const body = await req.json().catch(() => ({}));
 
   if (body.activateId) {
     const activateId = String(body.activateId);
     const exists = await db.assumptionSet.findUnique({ where: { id: activateId } });
     if (!exists) {
-      return NextResponse.json({ ok: false, error: "Assumption set not found" }, { status: 404 });
+      return apiError(404, "ASSUMPTION_SET_NOT_FOUND", "Assumption set not found");
     }
 
     await db.$transaction([
@@ -56,7 +65,7 @@ export async function POST(req: NextRequest) {
       db.assumptionSet.update({ where: { id: activateId }, data: { isActive: true } })
     ]);
 
-    return NextResponse.json({ ok: true, activatedId: activateId });
+    return apiOk({ activatedId: activateId });
   }
 
   const assumptions = normalizeDemoAssumptions(body.assumptions);
@@ -75,5 +84,5 @@ export async function POST(req: NextRequest) {
     }
   });
 
-  return NextResponse.json({ ok: true, assumptionSet: created });
+  return apiOk({ assumptionSet: created });
 }
