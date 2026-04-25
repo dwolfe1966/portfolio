@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { AcquisitionOperatorControls } from "@/components/acquisition/AcquisitionOperatorControls";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,20 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
             <Link href="/acquisition/simulations" className="btn primary">Run iteration</Link>
             <Link href="/acquisition/campaigns" className="btn">Back to campaigns</Link>
           </div>
+        </Section>
+
+
+        <Section title="Operator overrides and guardrails">
+          <AcquisitionOperatorControls
+            campaignId={campaign.id}
+            initialMaxShift={campaign.maxBudgetShiftPct}
+            initialMinConfidence={campaign.minConfidence}
+            cellOptions={campaign.testCells.slice(0, 25).map((cell) => ({
+              id: cell.id,
+              label: `${cell.creative.headline.slice(0, 36)} • ${cell.audience.name}`,
+              budgetCents: cell.budgetCents
+            }))}
+          />
         </Section>
 
         <Section title="Top test cells">
