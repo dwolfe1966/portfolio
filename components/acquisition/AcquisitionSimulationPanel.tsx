@@ -38,6 +38,7 @@ type ScenarioPreset = {
   runCount: number;
   spendVariance: number;
   conversionVariance: number;
+  savedAt: string;
 };
 
 const PRESET_STORAGE_KEY = "acq_scenario_presets_v1";
@@ -142,13 +143,20 @@ export function AcquisitionSimulationPanel() {
   }
 
   function savePreset() {
+    const trimmed = presetName.trim();
+    if (!trimmed) {
+      setMessage("Preset name is required.");
+      return;
+    }
+
     const next: ScenarioPreset[] = [
-      ...presets.filter((preset) => preset.name !== presetName),
-      { name: presetName, runCount, spendVariance, conversionVariance }
+      ...presets.filter((preset) => preset.name !== trimmed),
+      { name: trimmed, runCount, spendVariance, conversionVariance, savedAt: new Date().toISOString() }
     ];
     setPresets(next);
     localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(next));
-    setMessage(`Saved scenario preset: ${presetName}`);
+    setPresetName(trimmed);
+    setMessage(`Saved scenario preset: ${trimmed}`);
   }
 
   function applyPreset(name: string) {
@@ -159,6 +167,16 @@ export function AcquisitionSimulationPanel() {
     setSpendVariance(preset.spendVariance);
     setConversionVariance(preset.conversionVariance);
     setMessage(`Loaded scenario preset: ${preset.name}`);
+  }
+
+  function deletePreset(name: string) {
+    const next = presets.filter((item) => item.name !== name);
+    setPresets(next);
+    localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(next));
+    if (presetName === name) {
+      setPresetName(next[0]?.name ?? "");
+    }
+    setMessage(`Deleted scenario preset: ${name}`);
   }
 
   useEffect(() => {
@@ -174,8 +192,17 @@ export function AcquisitionSimulationPanel() {
     if (!stored) return;
 
     try {
-      const parsed = JSON.parse(stored) as ScenarioPreset[];
-      setPresets(parsed);
+      const parsed = JSON.parse(stored) as Array<Partial<ScenarioPreset>>;
+      const normalized: ScenarioPreset[] = parsed
+        .filter((item) => typeof item.name === "string")
+        .map((item) => ({
+          name: String(item.name),
+          runCount: Number(item.runCount ?? 50),
+          spendVariance: Number(item.spendVariance ?? 0.15),
+          conversionVariance: Number(item.conversionVariance ?? 0.2),
+          savedAt: typeof item.savedAt === "string" ? item.savedAt : new Date().toISOString()
+        }));
+      setPresets(normalized);
     } catch {
       // ignore parse errors
     }
@@ -208,6 +235,21 @@ export function AcquisitionSimulationPanel() {
   }, [monteCarloRevenues]);
 
   const maxBucket = Math.max(...revenueBuckets, 1);
+
+  const monteCarloSummary = useMemo(() => {
+    if (monteCarloRevenues.length === 0) return null;
+    const sorted = [...monteCarloRevenues].sort((a, b) => a - b);
+    const pick = (pct: number) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * pct))];
+    const mean = sorted.reduce((sum, value) => sum + value, 0) / sorted.length;
+    return {
+      min: sorted[0],
+      p10: pick(0.1),
+      p50: pick(0.5),
+      p90: pick(0.9),
+      max: sorted[sorted.length - 1],
+      mean
+    };
+  }, [monteCarloRevenues]);
 
   return (
     <div className="card">
@@ -326,18 +368,41 @@ export function AcquisitionSimulationPanel() {
             <div className="ctaRow">
               <button type="button" onClick={runMonteCarloScenario}>Run scenario</button>
               <button type="button" onClick={savePreset}>Save preset</button>
-              {presets.length > 0 && (
-                <select value={presetName} onChange={(e) => applyPreset(e.target.value)} style={{ minWidth: 220 }}>
-                  {presets.map((preset) => (
-                    <option key={preset.name} value={preset.name}>{preset.name}</option>
-                  ))}
-                </select>
-              )}
             </div>
 
-            {monteCarloRevenues.length > 0 && (
+            {presets.length > 0 && (
+              <div className="card" style={{ marginTop: 12 }}>
+                <h3>Scenario presets</h3>
+                <table className="table">
+                  <thead><tr><th>Name</th><th>Runs</th><th>Variance</th><th>Saved</th><th>Action</th></tr></thead>
+                  <tbody>
+                    {presets.map((preset) => (
+                      <tr key={preset.name}>
+                        <td>{preset.name}</td>
+                        <td>{preset.runCount}</td>
+                        <td>S {preset.spendVariance.toFixed(2)} / C {preset.conversionVariance.toFixed(2)}</td>
+                        <td>{new Date(preset.savedAt).toLocaleString()}</td>
+                        <td>
+                          <div className="ctaRow" style={{ marginTop: 0 }}>
+                            <button type="button" onClick={() => applyPreset(preset.name)}>Load</button>
+                            <button type="button" onClick={() => deletePreset(preset.name)}>Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {monteCarloSummary && (
               <div className="card" style={{ marginTop: 12 }}>
                 <h3>Projected revenue distribution</h3>
+                <div className="grid grid-3" style={{ marginBottom: 10 }}>
+                  <div className="card"><div className="kpi">${monteCarloSummary.p10.toFixed(0)}</div><p>P10 downside</p></div>
+                  <div className="card"><div className="kpi">${monteCarloSummary.p50.toFixed(0)}</div><p>Median (P50)</p></div>
+                  <div className="card"><div className="kpi">${monteCarloSummary.p90.toFixed(0)}</div><p>P90 upside</p></div>
+                </div>
                 <div className="chartColumns">
                   {revenueBuckets.map((bucket, index) => (
                     <div className="chartBarWrap" key={`bucket-${index}`}>
@@ -347,7 +412,7 @@ export function AcquisitionSimulationPanel() {
                   ))}
                 </div>
                 <p className="small" style={{ marginTop: 8 }}>
-                  Median approx: ${[...monteCarloRevenues].sort((a, b) => a - b)[Math.floor(monteCarloRevenues.length / 2)].toFixed(0)}
+                  Range ${monteCarloSummary.min.toFixed(0)} to ${monteCarloSummary.max.toFixed(0)} • Mean ${monteCarloSummary.mean.toFixed(0)}
                 </p>
               </div>
             )}
