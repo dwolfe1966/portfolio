@@ -2,18 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { nextStateFromScore, scoreTestCell } from "@/lib/acquisition";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { apiError, apiOk } from "@/lib/api-contract";
+import { isDemoMutationAllowed } from "@/lib/env-guard";
 
 function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 export async function POST(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!isDemoMutationAllowed()) {
+    return apiError(
+      403,
+      "MUTATION_DISABLED",
+      "Campaign iteration is disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable."
+    );
+  }
+
   const { id } = await params;
 
   try {
     const campaign = await db.acquisitionCampaign.findUnique({ where: { id } });
     if (!campaign) {
-      return NextResponse.json({ ok: false, error: "Campaign not found" }, { status: 404 });
+      return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found");
     }
 
     const cells = await db.testCell.findMany({
@@ -22,7 +32,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
     });
 
     if (!cells.length) {
-      return NextResponse.json({ ok: false, error: "No test cells found for this campaign" }, { status: 400 });
+      return apiError(400, "NO_TEST_CELLS", "No test cells found for this campaign");
     }
 
     const scored: Array<{ id: string; score: number; budgetCents: number }> = [];
@@ -140,10 +150,13 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
       });
     });
 
-    return NextResponse.json({ ok: true, campaignId: id, iteratedCells: cells.length });
+    return apiOk({ campaignId: id, iteratedCells: cells.length });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return NextResponse.json({ ok: false, compatibilityMode: true, error: "Acquisition tables are missing." }, { status: 503 });
+      return NextResponse.json(
+        { ok: false, compatibilityMode: true, error: { code: "COMPATIBILITY_MODE", message: "Acquisition tables are missing." } },
+        { status: 503 }
+      );
     }
     throw error;
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { apiError, apiOk } from "@/lib/api-contract";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -8,7 +9,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   try {
     const campaign = await db.acquisitionCampaign.findUnique({ where: { id } });
     if (!campaign) {
-      return NextResponse.json({ ok: false, error: "Campaign not found" }, { status: 404 });
+      return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found");
     }
 
     const [cells, activities, logs, performanceSeries] = await Promise.all([
@@ -31,8 +32,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const revenueCents = cells.reduce((sum, cell) => sum + cell.revenueCents, 0);
     const averageScore = cells.length ? cells.reduce((sum, cell) => sum + cell.score, 0) / cells.length : 0;
 
-    return NextResponse.json({
-      ok: true,
+    return apiOk({
       campaign,
       summary: {
         totalCells: cells.length,
@@ -60,7 +60,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return NextResponse.json({ ok: true, compatibilityMode: true, summary: null, topCells: [], budgetActivities: [], auditLogs: [], performanceSeries: [] });
+      return apiOk({ compatibilityMode: true, summary: null, topCells: [], budgetActivities: [], auditLogs: [], performanceSeries: [] });
     }
     throw error;
   }

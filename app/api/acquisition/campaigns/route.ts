@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { buildAudienceSegments, buildCreativeVariants, validateCreateCampaignInput } from "@/lib/acquisition";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { apiError, apiOk } from "@/lib/api-contract";
+import { isDemoMutationAllowed } from "@/lib/env-guard";
 
 export async function GET() {
   try {
@@ -13,21 +15,29 @@ export async function GET() {
       take: 20
     });
 
-    return NextResponse.json({ ok: true, campaigns });
+    return apiOk({ campaigns });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return NextResponse.json({ ok: true, compatibilityMode: true, campaigns: [] });
+      return apiOk({ compatibilityMode: true, campaigns: [] });
     }
     throw error;
   }
 }
 
 export async function POST(req: NextRequest) {
+  if (!isDemoMutationAllowed()) {
+    return apiError(
+      403,
+      "MUTATION_DISABLED",
+      "Campaign creation is disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable."
+    );
+  }
+
   const body = await req.json().catch(() => ({}));
   const parsed = validateCreateCampaignInput(body);
 
   if (!parsed.ok) {
-    return NextResponse.json({ ok: false, errors: parsed.errors }, { status: 400 });
+    return apiError(400, "INVALID_INPUT", "Campaign input validation failed", { errors: parsed.errors });
   }
 
   const input = parsed.value;
@@ -110,16 +120,14 @@ export async function POST(req: NextRequest) {
       return campaign;
     });
 
-    return NextResponse.json({ ok: true, campaign: result });
+    return apiOk({ campaign: result });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          compatibilityMode: true,
-          error: "Acquisition tables are missing. Run db push/migrations before using this endpoint."
-        },
-        { status: 503 }
+      return apiError(
+        503,
+        "COMPATIBILITY_MODE",
+        "Acquisition tables are missing. Run db push/migrations before using this endpoint.",
+        { compatibilityMode: true }
       );
     }
     throw error;

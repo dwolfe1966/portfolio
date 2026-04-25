@@ -5,10 +5,27 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
 export const dynamic = "force-dynamic";
 
-export default async function AcquisitionCampaignsPage() {
+type PageProps = {
+  searchParams: Promise<{
+    q?: string;
+    state?: string;
+  }>;
+};
+
+export default async function AcquisitionCampaignsPage({ searchParams }: PageProps) {
+  const query = await searchParams;
+  const q = (query.q ?? "").trim();
+  const state = (query.state ?? "").trim();
+  const validStates = new Set(["DRAFT", "TESTING", "SCALING", "PAUSED", "COMPLETED"]);
+  const stateFilter = validStates.has(state) ? state : "";
+
   try {
     const campaigns = await db.acquisitionCampaign.findMany({
-      orderBy: { createdAt: "desc" },
+      where: {
+        ...(q ? { name: { contains: q, mode: "insensitive" } } : {}),
+        ...(stateFilter ? { state: stateFilter as "DRAFT" | "TESTING" | "SCALING" | "PAUSED" | "COMPLETED" } : {})
+      },
+      orderBy: [{ createdAt: "desc" }],
       include: { _count: { select: { testCells: true, budgetActivities: true } } },
       take: 50
     });
@@ -24,6 +41,30 @@ export default async function AcquisitionCampaignsPage() {
         </Section>
 
         <Section title="Campaign list">
+          <form method="GET" className="card" style={{ marginBottom: 12 }}>
+            <div className="grid grid-3">
+              <label>
+                Search campaign
+                <input name="q" defaultValue={q} placeholder="e.g. sprint or q2" />
+              </label>
+              <label>
+                State
+                <select name="state" defaultValue={stateFilter}>
+                  <option value="">All</option>
+                  <option value="DRAFT">DRAFT</option>
+                  <option value="TESTING">TESTING</option>
+                  <option value="SCALING">SCALING</option>
+                  <option value="PAUSED">PAUSED</option>
+                  <option value="COMPLETED">COMPLETED</option>
+                </select>
+              </label>
+              <div className="ctaRow" style={{ alignItems: "end" }}>
+                <button type="submit">Apply filters</button>
+                <Link href="/acquisition/campaigns" className="btn">Reset</Link>
+              </div>
+            </div>
+          </form>
+
           {campaigns.length === 0 ? (
             <div className="card"><p>No campaigns yet. Create your first campaign to begin simulation loops.</p></div>
           ) : (

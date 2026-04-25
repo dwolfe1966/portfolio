@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { apiError, apiOk } from "@/lib/api-contract";
+import { isDemoMutationAllowed } from "@/lib/env-guard";
 
 function toNumber(value: unknown, fallback: number) {
   const parsed = Number(value);
@@ -9,6 +10,14 @@ function toNumber(value: unknown, fallback: number) {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!isDemoMutationAllowed()) {
+    return apiError(
+      403,
+      "MUTATION_DISABLED",
+      "Campaign override mutations are disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable."
+    );
+  }
+
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 

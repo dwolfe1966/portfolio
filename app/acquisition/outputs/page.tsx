@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { AcquisitionInsightsPanel } from "@/components/acquisition/AcquisitionInsightsPanel";
+import { AcquisitionOperatorControls } from "@/components/acquisition/AcquisitionOperatorControls";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
@@ -18,6 +19,15 @@ export default async function AcquisitionOutputsPage() {
     });
 
     const top = campaigns[0];
+    const topCampaign = top
+      ? await db.acquisitionCampaign.findUnique({
+        where: { id: top.id },
+        include: {
+          testCells: { include: { creative: true, audience: true }, orderBy: { score: "desc" } },
+          auditLogs: { orderBy: { createdAt: "desc" }, take: 20 }
+        }
+      })
+      : null;
     const spend = top?.testCells.reduce((sum, cell) => sum + cell.spendCents, 0) ?? 0;
     const revenue = top?.testCells.reduce((sum, cell) => sum + cell.revenueCents, 0) ?? 0;
     const conversions = top?.testCells.reduce((sum, cell) => sum + cell.conversions, 0) ?? 0;
@@ -40,6 +50,28 @@ export default async function AcquisitionOutputsPage() {
         <Section title="Interactive insights">
           <AcquisitionInsightsPanel />
         </Section>
+
+        {topCampaign ? (
+          <Section title="Operator controls (top campaign)">
+            <AcquisitionOperatorControls
+              campaignId={topCampaign.id}
+              initialMaxShift={topCampaign.maxBudgetShiftPct}
+              initialMinConfidence={topCampaign.minConfidence}
+              initialCooldownHours={topCampaign.cooldownHours}
+              cellOptions={topCampaign.testCells.slice(0, 25).map((cell) => ({
+                id: cell.id,
+                label: `${cell.creative.headline.slice(0, 36)} • ${cell.audience.name}`,
+                budgetCents: cell.budgetCents
+              }))}
+              recentOverrideLogs={topCampaign.auditLogs.map((log) => ({
+                id: log.id,
+                action: log.action,
+                createdAt: log.createdAt.toISOString(),
+                metadata: log.metadata
+              }))}
+            />
+          </Section>
+        ) : null}
 
         <Section title="Recent campaigns">
           {campaigns.length === 0 ? (
