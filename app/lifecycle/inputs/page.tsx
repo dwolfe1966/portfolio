@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
-import { DemoWorkspaceNav } from "@/components/demo/DemoWorkspaceNav";
 import { AssumptionEditorCard } from "@/components/demo/AssumptionEditorCard";
 import { LifecycleScoringSettings } from "@/components/demo/LifecycleScoringSettings";
 import { VariableDefinitions } from "@/components/demo/VariableDefinitions";
@@ -15,7 +14,6 @@ export default async function DemoInputsPage() {
 
   return (
     <>
-      <DemoWorkspaceNav />
       <Section title="Inputs: audience, entities, and assumptions">
         <p>
           This section defines the &quot;starting state&quot; for simulations: who your users are, which entities they track,

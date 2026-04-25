@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
-import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +15,7 @@ export default async function AcquisitionCampaignsPage() {
 
     return (
       <>
-        <AcquisitionWorkspaceNav />
-        <Section title="Campaign workspace">
+          <Section title="Campaign workspace">
           <p>Review campaigns, open detail pages, and monitor orchestration status over time.</p>
           <div className="ctaRow">
             <Link href="/acquisition/create" className="btn primary">Create campaign</Link>
@@ -52,8 +50,7 @@ export default async function AcquisitionCampaignsPage() {
     if (isMissingDemoTableError(error)) {
       return (
         <>
-          <AcquisitionWorkspaceNav />
-          <Section title="Acquisition schema not yet applied">
+              <Section title="Acquisition schema not yet applied">
             <div className="card">
               <p>Run migrations/schema apply before opening campaign workspace pages.</p>
               <pre className="code">npm run db:generate{"\n"}npx prisma db push{"\n"}npm run db:seed</pre>

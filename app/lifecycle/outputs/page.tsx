@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
-import { DemoWorkspaceNav } from "@/components/demo/DemoWorkspaceNav";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
@@ -64,8 +63,7 @@ export default async function DemoOutputsPage() {
 
     return (
       <>
-        <DemoWorkspaceNav />
-        <Section title="Outputs: runs, events, and generated messages">
+          <Section title="Outputs: runs, events, and generated messages">
           <p>This page focuses on resulting artifacts after simulation: campaign runs, event stream, and generated messaging.</p>
           <div className="grid grid-3" style={{ marginTop: 14 }}>
             <div className="card"><div className="kpi">{runs.length}</div><p>Recent runs shown</p></div>

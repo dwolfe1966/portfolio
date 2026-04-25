@@ -80,6 +80,50 @@ button {
 .stack.recency { background: #22c55e; }
 .stack.segment { background: #a855f7; }
 .stack.change { background: #f59e0b; }
+
+.appExperience {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+}
+.appExperienceLifecycle {
+  background: linear-gradient(180deg, #eef4ff 0%, #f7fbff 100%);
+}
+.appExperienceAcquisition {
+  background: linear-gradient(180deg, #eef8f3 0%, #f8fcfa 100%);
+}
+.appExperienceContent section:first-child {
+  padding-top: 12px;
+}
+.appWorkspaceNav {
+  border-radius: 12px;
+  margin-bottom: 14px;
+  background: color-mix(in oklab, #ffffff 88%, #e2e8f0 12%);
+}
+.appWorkspaceSwitch,
+.appWorkspaceLinks {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.appWorkspaceSwitch {
+  margin: 10px 0 8px;
+}
+.appTab,
+.appPill {
+  border: 1px solid #0f172a;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #ffffff;
+}
+.appTab.active,
+.appPill.active {
+  background: #0f172a;
+  color: #ffffff;
+}
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   h1 { font-size: 42px; }
@@ -88,4 +132,5 @@ button {
   .siteNav .links { display: none; width: 100%; flex-direction: column; gap: 12px; padding-top: 8px; }
   .siteNav .links.open { display: flex; }
   .navCta { width: 100%; margin-left: 0; }
+  .appExperience { padding: 12px; border-radius: 12px; }
 }

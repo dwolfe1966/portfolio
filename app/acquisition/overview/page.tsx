@@ -1,5 +1,4 @@
 import { Section } from "@/components/site/Section";
-import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 
 const architecture = [
@@ -41,7 +40,6 @@ const flow = [
 export default function AcquisitionOverviewPage() {
   return (
     <>
-      <AcquisitionWorkspaceNav />
       <Section title="Agent-managed paid acquisition system">
         <p>
           This workspace demonstrates a closed-loop acquisition engine where AI agents generate experiments,

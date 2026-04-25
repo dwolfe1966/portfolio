@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
-import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
 
 export default function AcquisitionPage() {
   return (
     <>
-      <AcquisitionWorkspaceNav />
       <Section eyebrow="Acquisition" title="Agent-Managed Paid Acquisition Workspace">
         <p>
           A hands-on prototype for automated paid acquisition. Build a campaign, run orchestrator iterations,

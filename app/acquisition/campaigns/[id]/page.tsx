@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
-import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { AcquisitionOperatorControls } from "@/components/acquisition/AcquisitionOperatorControls";
 
@@ -38,8 +37,7 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
 
     return (
       <>
-        <AcquisitionWorkspaceNav />
-        <Section title={`Campaign detail: ${campaign.name}`}>
+          <Section title={`Campaign detail: ${campaign.name}`}>
           <p>{campaign.objective}</p>
           <div className="grid grid-4" style={{ marginTop: 12 }}>
             <div className="card"><div className="kpi">{campaign.state}</div><p>Current state</p></div>
@@ -115,8 +113,7 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
     if (isMissingDemoTableError(error)) {
       return (
         <>
-          <AcquisitionWorkspaceNav />
-          <Section title="Acquisition schema not yet applied">
+              <Section title="Acquisition schema not yet applied">
             <div className="card">
               <p>Run migrations/schema apply before opening campaign detail pages.</p>
               <pre className="code">npm run db:generate{"\n"}npx prisma db push{"\n"}npm run db:seed</pre>

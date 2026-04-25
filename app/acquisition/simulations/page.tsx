@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
-import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
 import { AcquisitionSimulationPanel } from "@/components/acquisition/AcquisitionSimulationPanel";
 
 export default function AcquisitionSimulationsPage() {
   return (
     <>
-      <AcquisitionWorkspaceNav />
       <Section title="Simulations: orchestrator loop and budget decisions">
         <p>
           Simulations execute the core decision loop: pair creatives with audiences, evaluate cell performance,

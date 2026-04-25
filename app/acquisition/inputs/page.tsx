@@ -1,12 +1,10 @@
 import { Section } from "@/components/site/Section";
-import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
 import { AcquisitionAssumptionsCard } from "@/components/acquisition/AcquisitionAssumptionsCard";
 import { AcquisitionCampaignBuilder } from "@/components/acquisition/AcquisitionCampaignBuilder";
 
 export default function AcquisitionInputsPage() {
   return (
     <>
-      <AcquisitionWorkspaceNav />
       <Section title="Inputs: campaign brief and optimization guardrails">
         <p>
           Define what the agents are allowed to do before simulations begin. These inputs shape creative generation,

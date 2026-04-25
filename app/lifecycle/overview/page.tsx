@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
-import { DemoWorkspaceNav } from "@/components/demo/DemoWorkspaceNav";
 import { DemoHowItWorks } from "@/components/demo/DemoHowItWorks";
 import { KpiTrendBars } from "@/components/demo/KpiTrendBars";
 import { DataFlowMap } from "@/components/demo/DataFlowMap";
@@ -21,7 +20,6 @@ export default async function DemoOverviewPage() {
 
   return (
     <>
-      <DemoWorkspaceNav />
       <DemoHowItWorks />
       <Section title="Funnel visual">
         <KpiTrendBars deltas={deltas} candidates={candidates} generated={generated} />

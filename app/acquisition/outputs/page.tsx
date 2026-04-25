@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
-import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
 import { AcquisitionInsightsPanel } from "@/components/acquisition/AcquisitionInsightsPanel";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -26,8 +25,7 @@ export default async function AcquisitionOutputsPage() {
 
     return (
       <>
-        <AcquisitionWorkspaceNav />
-        <Section title="Outputs: campaign economics and decision audit trail">
+          <Section title="Outputs: campaign economics and decision audit trail">
           <p>
             Outputs include campaign-level metrics, top-performing cells, and budget-activity logs used to explain every automated action.
           </p>
@@ -69,8 +67,7 @@ export default async function AcquisitionOutputsPage() {
     if (isMissingDemoTableError(error)) {
       return (
         <>
-          <AcquisitionWorkspaceNav />
-          <Section title="Acquisition schema not yet applied">
+              <Section title="Acquisition schema not yet applied">
             <div className="card">
               <p>Run the schema update before using acquisition outputs:</p>
               <pre className="code">npm run db:generate{"\n"}npx prisma db push{"\n"}npm run db:seed</pre>
