@@ -25,10 +25,10 @@ This backlog is the canonical source of truth for workstreams A–E.
 | C19 | Operator override controls (budget locks + max-shift tuning) | DW | M | S8 | 🟡 | Dashboard exposes explicit override controls and persists operator actions in audit log. |
 | C20 | Scenario-level controls + Monte Carlo distribution outputs | DW | M | S8 | 🟡 | Acquisition simulation supports scenario settings and distribution results for planning confidence. |
 | C8 | Guardrails UI (approval threshold/max-shift/cooldown) | DW | S | S8 | 🟡 | Guardrail controls are editable and reflected in run behavior. |
-| C9 | Manual override controls + persisted override logs | DW | S | S8 | ⏳ | Override actions are visible, reversible, and audit-logged. |
+| C9 | Manual override controls + persisted override logs | DW | S | S8 | 🟡 | Override actions are visible, reversible, and audit-logged. |
 | C10 | Scenario save/load presets | DW | S | S8 | 🟡 | Users can save named acquisition scenarios and rerun them reliably. |
-| E6 | Environment-specific endpoint guardrails | DW | S | S8 | ⏳ | Seed/simulation mutator endpoints are environment-gated. |
-| E7 | Structured API error contract | DW | S | S8 | ⏳ | API responses follow consistent JSON error shape across routes. |
+| E6 | Environment-specific endpoint guardrails | DW | S | S8 | 🟡 | Seed/simulation mutator endpoints are environment-gated. |
+| E7 | Structured API error contract | DW | S | S8 | 🟡 | API responses follow consistent JSON error shape across routes. |
 
 ---
 
@@ -111,7 +111,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ⏳ C6. Add creative-level and audience-level trend comparisons over iterations.
 - ⏳ C7. Add budget activity timeline chart (with reason + before/after deltas).
 - 🟡 C8. Add configurable guardrails UI (approval threshold, max shift policy, cooldown window).
-- ⏳ C9. Add manual override controls and persist override actions to audit log.
+- 🟡 C9. Add manual override controls and persist override actions to audit log.
 - 🟡 C10. Add scenario save/load presets for repeatable acquisition experiments.
 
 ### To do (spec-driven expansions)
@@ -161,8 +161,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ E5. CI workflow added for lint/test/build gates.
 
 ### To do
-- ⏳ E6. Add environment-specific endpoint guardrails for seed/simulation mutators.
-- ⏳ E7. Add structured error contract for API routes (consistent JSON shape).
+- 🟡 E6. Add environment-specific endpoint guardrails for seed/simulation mutators.
+- 🟡 E7. Add structured error contract for API routes (consistent JSON shape).
 - ⏳ E8. Add production-ready logging + basic event IDs for cross-route tracing.
 
 ---

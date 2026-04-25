@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { apiError, apiOk } from "@/lib/api-contract";
 
 function toNumber(value: unknown, fallback: number) {
   const parsed = Number(value);
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const campaign = await db.acquisitionCampaign.findUnique({ where: { id } });
     if (!campaign) {
-      return NextResponse.json({ ok: false, error: "Campaign not found" }, { status: 404 });
+      return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found");
     }
 
     const action = String(body.action ?? "");
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return updatedCampaign;
       });
 
-      return NextResponse.json({ ok: true, campaign: updated });
+      return apiOk({ campaign: updated });
     }
 
     if (action === "lock_cell_budget") {
@@ -49,12 +50,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const budgetCents = Math.max(0, Math.round(toNumber(body.budgetCents, 0)));
 
       if (!testCellId) {
-        return NextResponse.json({ ok: false, error: "testCellId is required" }, { status: 400 });
+        return apiError(400, "INVALID_INPUT", "testCellId is required");
       }
 
       const testCell = await db.testCell.findFirst({ where: { id: testCellId, campaignId: campaign.id } });
       if (!testCell) {
-        return NextResponse.json({ ok: false, error: "Test cell not found for campaign" }, { status: 404 });
+        return apiError(404, "TEST_CELL_NOT_FOUND", "Test cell not found for campaign");
       }
 
       await db.$transaction(async (tx) => {
@@ -64,18 +65,68 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             campaignId: campaign.id,
             actor: "operator",
             action: "budget_lock_override",
-            metadata: { testCellId, budgetCents }
+            metadata: { testCellId, previousBudgetCents: testCell.budgetCents, budgetCents }
           }
         });
       });
 
-      return NextResponse.json({ ok: true, testCellId, budgetCents });
+      return apiOk({ testCellId, budgetCents });
     }
 
-    return NextResponse.json({ ok: false, error: "Unsupported action" }, { status: 400 });
+    if (action === "revert_budget_lock") {
+      const auditLogId = String(body.auditLogId ?? "");
+      if (!auditLogId) {
+        return apiError(400, "INVALID_INPUT", "auditLogId is required");
+      }
+
+      const overrideLog = await db.acquisitionAuditLog.findFirst({
+        where: { id: auditLogId, campaignId: campaign.id, action: "budget_lock_override" }
+      });
+      if (!overrideLog) {
+        return apiError(404, "AUDIT_LOG_NOT_FOUND", "Budget lock override log not found");
+      }
+
+      const metadata = (overrideLog.metadata ?? {}) as {
+        testCellId?: unknown;
+        previousBudgetCents?: unknown;
+      };
+      const testCellId = String(metadata.testCellId ?? "");
+      const previousBudgetCents = Math.max(0, Math.round(toNumber(metadata.previousBudgetCents, 0)));
+
+      if (!testCellId) {
+        return apiError(422, "INVALID_AUDIT_LOG", "Budget lock log is missing testCellId metadata");
+      }
+
+      const testCell = await db.testCell.findFirst({ where: { id: testCellId, campaignId: campaign.id } });
+      if (!testCell) {
+        return apiError(404, "TEST_CELL_NOT_FOUND", "Referenced test cell no longer exists");
+      }
+
+      await db.$transaction(async (tx) => {
+        await tx.testCell.update({
+          where: { id: testCell.id },
+          data: { budgetCents: previousBudgetCents }
+        });
+        await tx.acquisitionAuditLog.create({
+          data: {
+            campaignId: campaign.id,
+            actor: "operator",
+            action: "budget_lock_reverted",
+            metadata: { auditLogId, testCellId, restoredBudgetCents: previousBudgetCents }
+          }
+        });
+      });
+
+      return apiOk({ auditLogId, testCellId, budgetCents: previousBudgetCents });
+    }
+
+    return apiError(400, "UNSUPPORTED_ACTION", "Unsupported action");
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return NextResponse.json({ ok: false, compatibilityMode: true, error: "Acquisition tables are missing." }, { status: 503 });
+      return NextResponse.json(
+        { ok: false, compatibilityMode: true, error: { code: "COMPATIBILITY_MODE", message: "Acquisition tables are missing." } },
+        { status: 503 }
+      );
     }
     throw error;
   }

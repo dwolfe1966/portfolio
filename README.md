@@ -87,6 +87,7 @@ Quick checklist:
    - pooled connection string → `DATABASE_URL`
    - direct/non-pooled string → `DATABASE_URL_UNPOOLED`
 2. Add all required env vars in Vercel Project Settings.
+   - Set `DEMO_MUTATIONS_ENABLED=false` in production unless you explicitly need seed/simulation endpoints.
 3. Run schema migrations with `npm run db:migrate:deploy`.
 4. Deploy with Vercel using `npm run build`.
 

@@ -64,6 +64,12 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
               label: `${cell.creative.headline.slice(0, 36)} • ${cell.audience.name}`,
               budgetCents: cell.budgetCents
             }))}
+            recentOverrideLogs={campaign.auditLogs.map((log) => ({
+              id: log.id,
+              action: log.action,
+              createdAt: log.createdAt.toISOString(),
+              metadata: log.metadata
+            }))}
           />
         </Section>
 

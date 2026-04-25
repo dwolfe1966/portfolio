@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { readErrorMessage } from "@/lib/api-contract";
 
 type CellOption = {
   id: string;
@@ -13,12 +14,19 @@ export function AcquisitionOperatorControls({
   campaignId,
   initialMaxShift,
   initialMinConfidence,
-  cellOptions
+  cellOptions,
+  recentOverrideLogs
 }: {
   campaignId: string;
   initialMaxShift: number;
   initialMinConfidence: number;
   cellOptions: CellOption[];
+  recentOverrideLogs: {
+    id: string;
+    action: string;
+    createdAt: string;
+    metadata: unknown;
+  }[];
 }) {
   const router = useRouter();
   const [maxShift, setMaxShift] = useState(initialMaxShift);
@@ -38,7 +46,7 @@ export function AcquisitionOperatorControls({
         body: JSON.stringify({ action: "update_guardrails", maxBudgetShiftPct: maxShift, minConfidence })
       });
       const payload = await response.json();
-      setStatus(payload.ok ? "Guardrails updated." : payload.error ?? "Update failed.");
+      setStatus(payload.ok ? "Guardrails updated." : readErrorMessage(payload, "Update failed."));
       router.refresh();
     } catch {
       setStatus("Network error while updating guardrails.");
@@ -58,10 +66,29 @@ export function AcquisitionOperatorControls({
         body: JSON.stringify({ action: "lock_cell_budget", testCellId: cellId, budgetCents })
       });
       const payload = await response.json();
-      setStatus(payload.ok ? "Cell budget override applied." : payload.error ?? "Override failed.");
+      setStatus(payload.ok ? "Cell budget override applied." : readErrorMessage(payload, "Override failed."));
       router.refresh();
     } catch {
       setStatus("Network error while applying override.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function revertBudgetLock(auditLogId: string) {
+    setLoading(true);
+    setStatus("");
+    try {
+      const response = await fetch(`/api/acquisition/campaigns/${campaignId}/overrides`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "revert_budget_lock", auditLogId })
+      });
+      const payload = await response.json();
+      setStatus(payload.ok ? "Budget lock reverted." : readErrorMessage(payload, "Revert failed."));
+      router.refresh();
+    } catch {
+      setStatus("Network error while reverting override.");
     } finally {
       setLoading(false);
     }
@@ -106,6 +133,37 @@ export function AcquisitionOperatorControls({
 
       <div className="ctaRow">
         <button type="button" onClick={lockBudget} disabled={loading || !cellId}>Apply budget lock override</button>
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <h3>Recent override logs</h3>
+        {recentOverrideLogs.length === 0 ? (
+          <p className="small">No override logs yet.</p>
+        ) : (
+          <table className="table">
+            <thead><tr><th>When</th><th>Action</th><th>Details</th><th>Action</th></tr></thead>
+            <tbody>
+              {recentOverrideLogs.map((log) => {
+                const details = JSON.stringify(log.metadata ?? {});
+                const canRevert = log.action === "budget_lock_override";
+                return (
+                  <tr key={log.id}>
+                    <td>{new Date(log.createdAt).toLocaleString()}</td>
+                    <td>{log.action}</td>
+                    <td><code className="small">{details}</code></td>
+                    <td>
+                      {canRevert ? (
+                        <button type="button" onClick={() => revertBudgetLock(log.id)} disabled={loading}>Revert</button>
+                      ) : (
+                        <span className="small">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {status ? <p className="small" style={{ marginTop: 10 }}>{status}</p> : null}
