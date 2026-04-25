@@ -147,6 +147,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ D10. Add responsive mobile hamburger behavior to top nav while preserving 5-item IA.
 - ✅ D11. Embed lifecycle pipeline diagram on project/demo overview and acquisition flow diagram on project page.
 - ⏳ D12. Copy de-duplication pass across Home/About/Projects/Demo pages to remove repeated phrasing.
+- 🟡 D13. Run visual design agent review for Home/About/Lifecycle/Acquisition and apply imagery + infographic upgrades.
 
 ---
 

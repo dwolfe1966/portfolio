@@ -5,6 +5,7 @@ import { DemoHowItWorks } from "@/components/demo/DemoHowItWorks";
 import { KpiTrendBars } from "@/components/demo/KpiTrendBars";
 import { DataFlowMap } from "@/components/demo/DataFlowMap";
 import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDiagram";
+import { LifecycleOutcomeInfographic } from "@/components/demo/LifecycleOutcomeInfographic";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,10 @@ export default async function DemoOverviewPage() {
           outcomes={Math.round(generated * 0.2)}
         />
       </Section>
+      <Section title="Outcome infographic">
+        <LifecycleOutcomeInfographic deltas={deltas} candidates={candidates} messages={generated} />
+      </Section>
+
       <Section title="Graphical flow">
         <DataFlowMap
           users={users}

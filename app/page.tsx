@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Hero } from "@/components/site/Hero";
 import { Section } from "@/components/site/Section";
+import { RevenueLoopInfographic } from "@/components/site/RevenueLoopInfographic";
 
 export default function HomePage() {
   return (
@@ -24,6 +25,10 @@ export default function HomePage() {
             </p>
           </div>
         </div>
+      </Section>
+
+      <Section title="System infographic">
+        <RevenueLoopInfographic />
       </Section>
 
       <Section title="Core capabilities">

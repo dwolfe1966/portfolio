@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
+import { OperatorProfileInfographic } from "@/components/site/OperatorProfileInfographic";
 
 const expertise = [
   "Revenue strategy and growth leadership",
@@ -68,6 +69,10 @@ export default function AboutPage() {
           <Link className="btn primary" href="/projects">Explore projects</Link>
           <Link className="btn" href="/contact">Work with me</Link>
         </div>
+      </Section>
+
+      <Section title="Operator infographic">
+        <OperatorProfileInfographic />
       </Section>
 
       <Section title="Expertise">

@@ -1,5 +1,6 @@
 import { Section } from "@/components/site/Section";
 import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
+import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 
 const architecture = [
   {
@@ -51,6 +52,10 @@ export default function AcquisitionOverviewPage() {
           <div className="card"><div className="kpi">&lt; 1.0</div><p>Target CAC/LTV ratio threshold for sustained scaling.</p></div>
           <div className="card"><div className="kpi">100%</div><p>Budget-shift actions recorded for operator auditability.</p></div>
         </div>
+      </Section>
+
+      <Section title="Architecture infographic">
+        <AcquisitionFlowDiagram />
       </Section>
 
       <Section title="Architecture modules">
