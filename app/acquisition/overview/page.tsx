@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
+import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
 
 export const metadata: Metadata = buildMetadata({
   title: "Acquisition App Overview | David Wolfe",
@@ -72,6 +73,12 @@ export default function AcquisitionOverviewPage() {
             </div>
           ))}
         </div>
+      </Section>
+
+
+      <Section title="Operator decision canvas">
+        <p className="small">A shared frame for how inputs become governed actions and measurable learning.</p>
+        <OperatorDecisionCanvas />
       </Section>
 
       <Section title="Operating sequence">

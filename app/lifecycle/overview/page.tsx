@@ -7,6 +7,7 @@ import { KpiTrendBars } from "@/components/demo/KpiTrendBars";
 import { DataFlowMap } from "@/components/demo/DataFlowMap";
 import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDiagram";
 import { LifecycleOutcomeInfographic } from "@/components/demo/LifecycleOutcomeInfographic";
+import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
@@ -41,6 +42,12 @@ export default async function DemoOverviewPage() {
       </Section>
       <Section title="Outcome mix">
         <LifecycleOutcomeInfographic deltas={deltas} candidates={candidates} messages={generated} />
+      </Section>
+
+
+      <Section title="Operator decision canvas">
+        <p className="small">A shared frame for how inputs become governed actions and measurable learning.</p>
+        <OperatorDecisionCanvas />
       </Section>
 
       <Section title="Underlying graph topology">
