@@ -96,6 +96,10 @@ Full guide: `docs/deployment-vercel-neon.md`.
 Backlog and execution plan: `docs/product-backlog.md`.
 Release checklist: `docs/release-checklist.md`.
 
+## Codex cloud workflow note
+
+If you are using Codex in the cloud (including iPad), use the **Update branch** action in the UI to push committed changes to GitHub and trigger downstream deploy automation.
+
 
 ## One-command deployment helper
 
