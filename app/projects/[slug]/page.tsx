@@ -6,6 +6,7 @@ import { getProjectBySlug, projects } from "@/lib/projects";
 import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDiagram";
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 import { buildMetadata } from "@/lib/seo";
+import { VickreyAuctionDiagram } from "@/components/projects/VickreyAuctionDiagram";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -64,6 +65,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           ))}
         </div>
       </Section>
+      {project.slug === "vickrey-auction-closed-ads-ecosystem" ? (
+        <Section title="Auction model artifact">
+          <VickreyAuctionDiagram />
+        </Section>
+      ) : null}
       <Section title="Commercial framing"><p>{project.commercialFraming}</p></Section>
       <Section title="What I built"><p>{project.whatIBuilt}</p></Section>
       <Section title="Browse projects">
