@@ -1,16 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { calculatePriorityScore } from "@/lib/scoring";
+import { calculatePriorityBreakdown } from "@/lib/scoring";
 import { generateLifecycleCopy } from "@/lib/ai";
 import { CampaignStatus } from "@prisma/client";
+import { DEMO_ASSUMPTION_DEFAULTS, normalizeDemoAssumptions } from "@/lib/demo-assumptions";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const topN = Number(body.topN ?? 10);
+  const requestedSetId = body.assumptionSetId ? String(body.assumptionSetId) : null;
+  const selectedSet = requestedSetId
+    ? await db.assumptionSet.findUnique({ where: { id: requestedSetId } })
+    : await db.assumptionSet.findFirst({ where: { isActive: true } });
+  const baseAssumptions = normalizeDemoAssumptions(selectedSet ?? DEMO_ASSUMPTION_DEFAULTS);
+  const bodyAssumptions = normalizeDemoAssumptions(body);
+  const assumptions = {
+    ...baseAssumptions,
+    ...Object.fromEntries(
+      Object.entries(bodyAssumptions).filter(([key]) => key in body)
+    )
+  };
+  const topN = Number(body.topN ?? assumptions.defaultTopN);
+
   const deltas = await db.entityDelta.findMany({
     take: 40,
     orderBy: { detectedAt: "desc" },
     include: { entity: true }
+  });
+
+  const run = await db.campaignRun.create({
+    data: {
+      runName: String(body.runName ?? "Daily Demo Run"),
+      assumptionSetId: selectedSet?.id,
+      assumptionsSnapshot: assumptions,
+      totalDeltas: deltas.length,
+      totalMatches: 0,
+      totalHighPriority: 0,
+      estimatedOpenRate: assumptions.openRate,
+      estimatedCtr: assumptions.clickRate,
+      estimatedConversionRate: assumptions.purchaseRate,
+      estimatedRevenue: 0
+    }
   });
 
   const candidates: { id: string; score: number }[] = [];
@@ -24,23 +53,29 @@ export async function POST(req: NextRequest) {
 
     for (const edge of edges) {
       totalMatches++;
-      const score = calculatePriorityScore({
+      const breakdown = calculatePriorityBreakdown({
         interestScore: edge.interestScore as any,
         segment: edge.user.segment as any,
         changeType: delta.changeType as any,
-        recencyScore: 0.9
+        recencyScore: assumptions.recencyScore
       });
+      if (breakdown.totalScore < assumptions.minPriorityScore) continue;
       const candidate = await db.campaignCandidate.create({
         data: {
+          campaignRunId: run.id,
           userId: edge.userId,
           entityId: delta.entityId,
           entityDeltaId: delta.id,
           segmentAtGeneration: edge.user.segment,
-          priorityScore: score,
+          priorityScore: breakdown.totalScore,
+          interestContribution: breakdown.interestContribution,
+          recencyContribution: breakdown.recencyContribution,
+          segmentContribution: breakdown.segmentContribution,
+          changeTypeContribution: breakdown.changeTypeContribution,
           status: CampaignStatus.PENDING
         }
       });
-      candidates.push({ id: candidate.id, score });
+      candidates.push({ id: candidate.id, score: breakdown.totalScore });
     }
   }
 
@@ -82,17 +117,16 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const highPriority = candidates.filter((c) => c.score >= 0.8).length;
-  const estimatedRevenue = Number((highPriority * 18.5).toFixed(2));
-  const run = await db.campaignRun.create({
+  const highPriority = candidates.filter((c) => c.score >= assumptions.highPriorityThreshold).length;
+  const estimatedRevenue = Number((highPriority * assumptions.revenuePerHighPriority).toFixed(2));
+  await db.campaignRun.update({
+    where: { id: run.id },
     data: {
-      runName: String(body.runName ?? "Daily Demo Run"),
-      totalDeltas: deltas.length,
       totalMatches,
       totalHighPriority: highPriority,
-      estimatedOpenRate: 0.25,
-      estimatedCtr: 0.03,
-      estimatedConversionRate: 0.015,
+      estimatedOpenRate: assumptions.openRate,
+      estimatedCtr: assumptions.clickRate,
+      estimatedConversionRate: assumptions.purchaseRate,
       estimatedRevenue
     }
   });
@@ -104,6 +138,10 @@ export async function POST(req: NextRequest) {
     totalMatches,
     totalHighPriority: highPriority,
     generated: selected.length,
-    estimatedRevenue
+    estimatedRevenue,
+    assumptions: {
+      ...assumptions
+    },
+    assumptionSetId: selectedSet?.id ?? null
   });
 }
