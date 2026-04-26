@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { OperatorProfileInfographic } from "@/components/site/OperatorProfileInfographic";
+import { SignalDecisionRevenueStrip } from "@/components/site/SignalDecisionRevenueStrip";
 
 export const metadata: Metadata = buildMetadata({
   title: "About | David Wolfe",
@@ -81,6 +82,11 @@ export default function AboutPage() {
 
       <Section title="Operator infographic">
         <OperatorProfileInfographic />
+      </Section>
+
+      <Section title="Operating pattern">
+        <p>Across products, I use the same loop: signal quality, decision quality, execution quality, and measured commercial learning.</p>
+        <SignalDecisionRevenueStrip />
       </Section>
 
       <Section title="Expertise">

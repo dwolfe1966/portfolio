@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Hero } from "@/components/site/Hero";
 import { Section } from "@/components/site/Section";
 import { RevenueLoopInfographic } from "@/components/site/RevenueLoopInfographic";
+import { SignalDecisionRevenueStrip } from "@/components/site/SignalDecisionRevenueStrip";
 
 export const metadata: Metadata = buildMetadata({
   title: "Home | David Wolfe",
@@ -36,6 +37,11 @@ export default function HomePage() {
 
       <Section title="System infographic">
         <RevenueLoopInfographic />
+      </Section>
+
+      <Section title="Signal → decision → revenue">
+        <p className="small">A compact visual of the operating cycle used across lifecycle and acquisition projects.</p>
+        <SignalDecisionRevenueStrip />
       </Section>
 
       <Section title="Core capabilities">
