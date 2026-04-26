@@ -6,7 +6,7 @@ import { OperatorProfileInfographic } from "@/components/site/OperatorProfileInf
 
 export const metadata: Metadata = buildMetadata({
   title: "About | David Wolfe",
-  description: "Revenue-minded growth leader building AI-enabled lifecycle and acquisition systems.",
+  description: "About David Wolfe: product and growth operator focused on measurable commercial systems.",
   path: "/about"
 });
 
@@ -68,10 +68,10 @@ const principles = [
 export default function AboutPage() {
   return (
     <>
-      <Section eyebrow="About" title="Revenue-minded growth leader building AI-enabled growth systems">
+      <Section eyebrow="About" title="Product and growth operator focused on measurable systems">
         <p>
-          I am primarily a revenue-minded growth leader who builds practical AI products to improve acquisition efficiency, lifecycle conversion, and revenue quality.
-          The focus is operational leverage: faster learning loops, better decision quality, and clear economic impact.
+          I build practical operating systems that connect product decisions to commercial outcomes.
+          The goal is simple: faster learning loops, higher-quality execution, and clearer economic visibility for teams.
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/projects">Explore projects</Link>
@@ -123,12 +123,12 @@ export default function AboutPage() {
         <div className="grid grid-2">
           <div className="card">
             <h3>Lifecycle app cleanup</h3>
-            <p>Strengthening reliability, explainability, and UX polish across the lifecycle workspace.</p>
+            <p>Improving reliability, explainability, and operator UX across the lifecycle workspace.</p>
             <Link className="btn" href="/lifecycle">Open lifecycle app</Link>
           </div>
           <div className="card">
             <h3>Acquisition system design</h3>
-            <p>Building a closed-loop acquisition architecture with creative testing, budget reallocation, and decision auditability.</p>
+            <p>Designing a closed-loop acquisition architecture with rapid testing, budget discipline, and decision traceability.</p>
             <Link className="btn" href="/projects/agent-acquisition">View acquisition case study</Link>
           </div>
         </div>
@@ -136,8 +136,7 @@ export default function AboutPage() {
 
       <Section title="Work with me">
         <p>
-          If you are building an AI-native growth, lifecycle, or monetization system and want an operator who can
-          bridge strategy and execution, I would love to collaborate.
+          If you are building a growth, lifecycle, or monetization system and need an operator who bridges strategy and execution, I would love to collaborate.
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/contact">Start a conversation</Link>

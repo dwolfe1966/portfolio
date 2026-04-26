@@ -11,7 +11,7 @@ import { LifecycleOutcomeInfographic } from "@/components/demo/LifecycleOutcomeI
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
   title: "Lifecycle App Overview | David Wolfe",
-  description: "Overview of the lifecycle signal-to-message workflow, scoring funnel, and operator data flow.",
+  description: "Lifecycle overview: signal-to-message workflow, scoring funnel, and operator data flow.",
   path: "/lifecycle/overview"
 });
 

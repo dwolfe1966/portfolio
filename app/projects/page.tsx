@@ -6,14 +6,14 @@ import { projects } from "@/lib/projects";
 
 export const metadata: Metadata = buildMetadata({
   title: "Projects | David Wolfe",
-  description: "Case studies and implementation notes for AI-native lifecycle and acquisition systems.",
+  description: "Case studies and implementation notes for lifecycle and acquisition operating systems.",
   path: "/projects"
 });
 
 export default function ProjectsIndexPage() {
   return (
     <Section eyebrow="Projects" title="Case studies and systems">
-      <p>Selected AI-native product and growth systems with commercial framing and implementation detail.</p>
+      <p>Selected product and growth systems with clear commercial framing and practical implementation detail.</p>
       <div className="grid grid-2" style={{ marginTop: 18 }}>
         {projects.map((project) => (
           <div key={project.slug} className="card">
