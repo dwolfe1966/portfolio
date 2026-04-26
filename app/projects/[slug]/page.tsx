@@ -7,6 +7,7 @@ import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDia
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 import { buildMetadata } from "@/lib/seo";
 import { VickreyAuctionDiagram } from "@/components/projects/VickreyAuctionDiagram";
+import { ProjectFlowTimeline } from "@/components/projects/ProjectFlowTimeline";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -54,8 +55,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       <Section title="System flow">
         {project.slug === "agent-acquisition" ? (
           <AcquisitionFlowDiagram />
-        ) : (
+        ) : project.slug === "lifecycle-revenue-engine" ? (
           <LifecyclePipelineDiagram deltas={45} candidates={20} messages={5} outcomes={480} />
+        ) : (
+          <ProjectFlowTimeline steps={project.architecture} />
         )}
       </Section>
       <Section title="System architecture">
