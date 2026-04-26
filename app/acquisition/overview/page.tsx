@@ -50,8 +50,7 @@ export default function AcquisitionOverviewPage() {
     <>
       <Section title="Agent-managed paid acquisition system">
         <p>
-          This workspace demonstrates a closed-loop acquisition engine where AI agents generate experiments,
-          evaluate economics, and continuously reallocate spend with human-readable audit trails.
+          This workspace demonstrates a paid-growth operating loop where experiments, economics checks, and budget movement are explicitly linked for operator review.
         </p>
         <div className="grid grid-3" style={{ marginTop: 12 }}>
           <div className="card"><div className="kpi">24h</div><p>Iteration cadence target for budget and creative updates.</p></div>
@@ -75,7 +74,7 @@ export default function AcquisitionOverviewPage() {
         </div>
       </Section>
 
-      <Section title="Data flow">
+      <Section title="Operating sequence">
         <div className="grid grid-2">
           {flow.map((step) => (
             <div className="card" key={step}>

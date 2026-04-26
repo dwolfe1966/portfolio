@@ -28,10 +28,10 @@ export default async function DemoOverviewPage() {
   return (
     <>
       <DemoHowItWorks />
-      <Section title="Funnel visual">
+      <Section title="Volume and conversion snapshot">
         <KpiTrendBars deltas={deltas} candidates={candidates} generated={generated} />
       </Section>
-      <Section title="Pipeline flow">
+      <Section title="Event-to-message pipeline">
         <LifecyclePipelineDiagram
           deltas={deltas}
           candidates={candidates}
@@ -39,11 +39,11 @@ export default async function DemoOverviewPage() {
           outcomes={Math.round(generated * 0.2)}
         />
       </Section>
-      <Section title="Outcome infographic">
+      <Section title="Outcome mix">
         <LifecycleOutcomeInfographic deltas={deltas} candidates={candidates} messages={generated} />
       </Section>
 
-      <Section title="Graphical flow">
+      <Section title="Underlying graph topology">
         <DataFlowMap
           users={users}
           entities={entities}

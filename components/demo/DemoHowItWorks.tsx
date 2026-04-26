@@ -45,10 +45,9 @@ const metricGuide = [
 
 export function DemoHowItWorks() {
   return (
-    <Section title="How this demo works">
+    <Section title="Lifecycle workflow overview">
       <p>
-        This simulation mirrors an AI-driven lifecycle revenue engine: data changes trigger matches,
-        matches get prioritized, and the highest-value opportunities receive generated campaign content.
+        Think of this workspace as an operating rehearsal: signal intake, opportunity ranking, and campaign generation are shown as one continuous decision loop.
       </p>
 
       <div className="grid grid-2" style={{ marginTop: 16 }}>
@@ -61,7 +60,7 @@ export function DemoHowItWorks() {
       </div>
 
       <div style={{ marginTop: 20 }}>
-        <h3>KPI guide</h3>
+        <h3>Metric guide</h3>
         <div className="grid grid-3" style={{ marginTop: 8 }}>
           {metricGuide.map((metric) => (
             <div key={metric.label} className="card">
