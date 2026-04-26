@@ -4,26 +4,33 @@ import { nextStateFromScore, scoreTestCell } from "@/lib/acquisition";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { apiError, apiOk } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
+import { createEventId, logApiEvent } from "@/lib/logging";
 
 function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 export async function POST(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const eventId = createEventId("acq_iter");
+
   if (!isDemoMutationAllowed()) {
+    logApiEvent("warn", eventId, "acquisition.iteration.disabled");
     return apiError(
       403,
       "MUTATION_DISABLED",
-      "Campaign iteration is disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable."
+      "Campaign iteration is disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable.",
+      { eventId }
     );
   }
 
   const { id } = await params;
+  logApiEvent("info", eventId, "acquisition.iteration.started", { campaignId: id });
 
   try {
     const campaign = await db.acquisitionCampaign.findUnique({ where: { id } });
     if (!campaign) {
-      return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found");
+      logApiEvent("warn", eventId, "acquisition.iteration.not_found", { campaignId: id });
+      return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found", { eventId });
     }
 
     const cells = await db.testCell.findMany({
@@ -32,7 +39,8 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
     });
 
     if (!cells.length) {
-      return apiError(400, "NO_TEST_CELLS", "No test cells found for this campaign");
+      logApiEvent("warn", eventId, "acquisition.iteration.no_cells", { campaignId: id });
+      return apiError(400, "NO_TEST_CELLS", "No test cells found for this campaign", { eventId });
     }
 
     const scored: Array<{ id: string; score: number; budgetCents: number }> = [];
@@ -150,14 +158,17 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
       });
     });
 
-    return apiOk({ campaignId: id, iteratedCells: cells.length });
+    logApiEvent("info", eventId, "acquisition.iteration.completed", { campaignId: id, iteratedCells: cells.length });
+    return apiOk({ campaignId: id, iteratedCells: cells.length, eventId });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
+      logApiEvent("warn", eventId, "acquisition.iteration.compatibility_mode", { campaignId: id });
       return NextResponse.json(
-        { ok: false, compatibilityMode: true, error: { code: "COMPATIBILITY_MODE", message: "Acquisition tables are missing." } },
+        { ok: false, compatibilityMode: true, error: { code: "COMPATIBILITY_MODE", message: "Acquisition tables are missing.", details: { eventId } } },
         { status: 503 }
       );
     }
+    logApiEvent("error", eventId, "acquisition.iteration.unhandled_error", { campaignId: id });
     throw error;
   }
 }
