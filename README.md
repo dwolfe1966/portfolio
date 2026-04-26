@@ -51,6 +51,7 @@ Open `http://localhost:3000`.
 - `POST /api/generate-campaigns`
 - `GET /api/assumptions`
 - `POST /api/assumptions`
+- `POST /api/contact`
 - `POST /api/simulate-outcomes`
 - `GET /api/campaign-runs/[id]`
 - `GET /api/health/demo-db`
@@ -63,6 +64,7 @@ Open `http://localhost:3000`.
 - `lib/ai.ts` uses the OpenAI Responses API when `OPENAI_API_KEY` is present.
 - If no API key is set, the app falls back to deterministic template output.
 - The demo password gate is intentionally left lightweight for refinement in Codex.
+- Set `CONTACT_WEBHOOK_URL` to deliver contact form submissions to your webhook endpoint.
 
 
 ## Acquisition app quickstart

@@ -142,7 +142,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ### To do
 - ⏳ D6. Add 2–3 new project case studies beyond lifecycle/acquisition.
 - ⏳ D7. Add richer visual artifacts in case studies (architecture diagrams, screenshots, KPI callouts).
-- ⏳ D8. Add contact form delivery path with spam mitigation and success/error UX.
+- 🟡 D8. Add contact form delivery path with spam mitigation and success/error UX.
 - 🟡 D9. Perform metadata/OG pass on all key pages.
 - ✅ D10. Add responsive mobile hamburger behavior to top nav while preserving 5-item IA.
 - ✅ D11. Embed lifecycle pipeline diagram on project/demo overview and acquisition flow diagram on project page.
