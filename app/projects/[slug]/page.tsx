@@ -1,11 +1,32 @@
 import Link from "next/link";
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Section } from "@/components/site/Section";
 import { getProjectBySlug, projects } from "@/lib/projects";
 import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDiagram";
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
+import { buildMetadata } from "@/lib/seo";
 
 type PageProps = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const project = getProjectBySlug(slug);
+
+  if (!project) {
+    return buildMetadata({
+      title: "Project not found | David Wolfe",
+      description: "The requested project case study could not be found.",
+      path: "/projects"
+    });
+  }
+
+  return buildMetadata({
+    title: `${project.title} | David Wolfe`,
+    description: project.summary,
+    path: `/projects/${project.slug}`
+  });
+}
 
 export default async function ProjectDetailPage({ params }: PageProps) {
   const { slug } = await params;

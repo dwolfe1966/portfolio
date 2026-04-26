@@ -1,7 +1,16 @@
+import { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { Hero } from "@/components/site/Hero";
 import { Section } from "@/components/site/Section";
 import { RevenueLoopInfographic } from "@/components/site/RevenueLoopInfographic";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Home | David Wolfe",
+  description: "Revenue-minded growth leadership, AI-native product systems, and lifecycle/acquisition operating workflows.",
+  path: "/"
+});
+
 
 export default function HomePage() {
   return (

@@ -1,10 +1,30 @@
 import "./globals.css";
 import React from "react";
+import { Metadata } from "next";
 import { NavBar } from "@/components/site/NavBar";
+import { defaultDescription, defaultTitle, siteName } from "@/lib/seo";
 
-export const metadata = {
-  title: "David Wolfe — AI-driven revenue systems",
-  description: "Portfolio of David Wolfe: AI-driven revenue systems for subscription and data businesses."
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+const siteUrl = rawSiteUrl.replace(/\/$/, "");
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: defaultTitle,
+    template: "%s"
+  },
+  description: defaultDescription,
+  openGraph: {
+    siteName,
+    type: "website",
+    title: defaultTitle,
+    description: defaultDescription
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: defaultTitle,
+    description: defaultDescription
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

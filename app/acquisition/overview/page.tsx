@@ -1,11 +1,13 @@
 import { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Acquisition App Overview | David Wolfe",
-  description: "Agent-managed acquisition architecture with budget guardrails, orchestration, and operator controls."
-};
+  description: "Agent-managed acquisition architecture with budget guardrails, orchestration, and operator controls.",
+  path: "/acquisition/overview"
+});
 
 const architecture = [
   {

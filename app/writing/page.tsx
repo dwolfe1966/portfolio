@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Writing | David Wolfe",
-  description: "Essays on AI revenue systems, lifecycle strategy, and acquisition operating loops."
-};
+  description: "Essays on AI revenue systems, lifecycle strategy, and acquisition operating loops.",
+  path: "/writing"
+});
 
 const essays = [
   {

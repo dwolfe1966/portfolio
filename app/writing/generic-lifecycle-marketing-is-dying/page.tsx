@@ -1,4 +1,12 @@
+import { Metadata } from "next";
 import { Section } from "@/components/site/Section";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Generic Lifecycle Marketing Is Dying | David Wolfe",
+  description: "Why event-driven lifecycle relevance is replacing static campaign schedules and broad segmentation.",
+  path: "/writing/generic-lifecycle-marketing-is-dying"
+});
 
 export default function EssayPage() {
   return (

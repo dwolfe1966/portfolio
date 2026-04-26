@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { DemoHowItWorks } from "@/components/demo/DemoHowItWorks";
@@ -8,10 +9,11 @@ import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDia
 import { LifecycleOutcomeInfographic } from "@/components/demo/LifecycleOutcomeInfographic";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Lifecycle App Overview | David Wolfe",
-  description: "Overview of the lifecycle signal-to-message workflow, scoring funnel, and operator data flow."
-};
+  description: "Overview of the lifecycle signal-to-message workflow, scoring funnel, and operator data flow.",
+  path: "/lifecycle/overview"
+});
 
 export default async function DemoOverviewPage() {
   const [deltas, candidates, generated, users, entities, edges] = await Promise.all([

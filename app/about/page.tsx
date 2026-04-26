@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { OperatorProfileInfographic } from "@/components/site/OperatorProfileInfographic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "About | David Wolfe",
-  description: "Revenue-minded growth leader building AI-enabled lifecycle and acquisition systems."
-};
+  description: "Revenue-minded growth leader building AI-enabled lifecycle and acquisition systems.",
+  path: "/about"
+});
 
 const expertise = [
   "Revenue strategy and growth leadership",

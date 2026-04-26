@@ -1,5 +1,13 @@
 import Link from "next/link";
+import { Metadata } from "next";
 import { Section } from "@/components/site/Section";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Acquisition App | David Wolfe",
+  description: "Agent-managed paid acquisition workspace for campaign simulations, guardrails, and operator decisions.",
+  path: "/acquisition"
+});
 
 export default function AcquisitionPage() {
   return (

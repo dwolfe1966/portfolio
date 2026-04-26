@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { projects } from "@/lib/projects";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Projects | David Wolfe",
-  description: "Case studies and implementation notes for AI-native lifecycle and acquisition systems."
-};
+  description: "Case studies and implementation notes for AI-native lifecycle and acquisition systems.",
+  path: "/projects"
+});
 
 export default function ProjectsIndexPage() {
   return (

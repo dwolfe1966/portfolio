@@ -1,4 +1,12 @@
+import { Metadata } from "next";
 import { Section } from "@/components/site/Section";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Product Discovery in AI Loops | David Wolfe",
+  description: "Discovery patterns for AI-native products with explicit operator controls and measurable outcomes.",
+  path: "/writing/product-discovery-ai-loops"
+});
 
 export default function ProductDiscoveryAiLoopsEssayPage() {
   return (
