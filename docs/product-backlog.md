@@ -140,7 +140,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - 🟡 D5. Expand writing inventory with additional essays/previews.
 
 ### To do
-- ⏳ D6. Add 2–3 new project case studies beyond lifecycle/acquisition.
+- ✅ D6. Add 2–3 new project case studies beyond lifecycle/acquisition.
 - ⏳ D7. Add richer visual artifacts in case studies (architecture diagrams, screenshots, KPI callouts).
 - 🟡 D8. Add contact form delivery path with spam mitigation and success/error UX.
 - ✅ D9. Perform metadata/OG pass on all key pages.

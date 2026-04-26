@@ -56,6 +56,48 @@ export const projects: ProjectEntry[] = [
       "Working acquisition workspace with campaign bootstrap, orchestrator iterations, insights panels, and schema support for audit-ready optimization loops.",
     appHref: "/acquisition",
     status: "in-progress"
+  },
+  {
+    slug: "pricing-experimentation-control-tower",
+    title: "Pricing Experimentation Control Tower",
+    summary:
+      "A pricing operations system that plans, runs, and audits segmented price/packaging tests with guardrails for margin and churn risk.",
+    problem:
+      "Pricing teams often run isolated experiments in spreadsheets, making it difficult to connect test design to downstream retention, expansion, and profitability outcomes.",
+    thesis:
+      "When pricing experiments are managed as a repeatable operating loop with explicit constraints and instrumentation, teams can increase monetization without destabilizing retention.",
+    architecture: [
+      { title: "1. Experiment registry", detail: "Store hypotheses, segment eligibility, and pricing variants with owner/accountability metadata." },
+      { title: "2. Exposure and holdout service", detail: "Assign users to control/treatment cohorts while preserving analytical integrity." },
+      { title: "3. Impact monitor", detail: "Track conversion, churn, ARPU, margin, and support burden by cohort in near real time." },
+      { title: "4. Policy engine", detail: "Enforce stop-loss thresholds and rollout rules before promoting any winning treatment." }
+    ],
+    commercialFraming:
+      "Improves pricing learning velocity while protecting gross margin and net revenue retention through explicit experiment governance.",
+    whatIBuilt:
+      "An end-to-end blueprint spanning test design templates, cohort instrumentation contracts, decision policy rules, and operator reporting views.",
+    status: "in-progress"
+  },
+  {
+    slug: "retention-risk-command-center",
+    title: "Retention Risk Command Center",
+    summary:
+      "A lifecycle risk platform that prioritizes at-risk accounts, recommends interventions, and tracks save-rate economics by segment.",
+    problem:
+      "Retention workflows are frequently reactive and fragmented across CS, product, and marketing systems, which delays interventions and obscures outcome accountability.",
+    thesis:
+      "When churn risk detection, intervention design, and follow-through analytics are unified in one command center, teams can reduce preventable revenue loss and improve retention quality.",
+    architecture: [
+      { title: "1. Risk scoring layer", detail: "Combine behavioral, product, and billing signals into account-level risk trajectories." },
+      { title: "2. Intervention planner", detail: "Recommend playbooks (education, offer, outreach, product assist) by segment and risk driver." },
+      { title: "3. Execution orchestration", detail: "Trigger cross-functional tasks and customer messaging with SLA-aware ownership." },
+      { title: "4. Save-rate analytics", detail: "Measure intervention efficacy, payback, and residual churn risk over time." }
+    ],
+    commercialFraming:
+      "Shifts retention from reactive triage to proactive revenue protection, improving net retention and reducing avoidable churn cost.",
+    whatIBuilt:
+      "A practical operating design with risk taxonomy, intervention playbook matrix, KPI definitions, and implementation sequencing guidance.",
+    status: "in-progress"
   }
 ];
 
