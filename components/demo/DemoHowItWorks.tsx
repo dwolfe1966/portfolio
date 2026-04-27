@@ -28,6 +28,22 @@ const flow = [
   }
 ];
 
+
+const businessContext = [
+  {
+    label: "Users",
+    detail: "People with prior intent history. Context matters because monetization depends on sending relevant outreach to the right segment at the right time."
+  },
+  {
+    label: "Entities",
+    detail: "Products/companies/listings users care about. Entity-level context is what ties external change to a commercially meaningful trigger."
+  },
+  {
+    label: "Change events",
+    detail: "Observed deltas (new phone, updated record, status change). These events create urgency windows where conversion probability is materially higher."
+  }
+];
+
 const metricGuide = [
   {
     label: "Deltas detected",
@@ -57,6 +73,19 @@ export function DemoHowItWorks() {
             <p>{item.detail}</p>
           </div>
         ))}
+      </div>
+
+
+      <div style={{ marginTop: 20 }}>
+        <h3>Business context (why this matters)</h3>
+        <div className="grid grid-3" style={{ marginTop: 8 }}>
+          {businessContext.map((item) => (
+            <div key={item.label} className="card">
+              <h3>{item.label}</h3>
+              <p>{item.detail}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={{ marginTop: 20 }}>
