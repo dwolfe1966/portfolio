@@ -2,7 +2,8 @@ import {
   buildGraphInfluenceModel,
   CLUSTER_LABELS,
   getStrongestInfluencePath,
-  GraphClusterId
+  GraphClusterId,
+  rankInfluencePaths
 } from "@/lib/graph-influence";
 
 type GraphInfluencePathsProps = {
@@ -17,12 +18,7 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
   const eventPressure = entities > 0 ? (events / entities).toFixed(2) : "0.00";
   const { clusters, links } = buildGraphInfluenceModel({ users, entities, edges, events });
   const strongestPath = getStrongestInfluencePath(links);
-
-  const paths = [
-    "Discovery nodes absorb change-events and route high-variance edges into intent cohorts.",
-    "Intent cohorts amplify frequent entity updates into candidate surges and scoring lifts.",
-    "Conversion cohorts prioritize campaigns where cluster influence stays above guardrail targets."
-  ];
+  const rankedPaths = rankInfluencePaths(links);
 
   const clusterX: Record<GraphClusterId, number> = {
     discovery: 90,
@@ -46,7 +42,7 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
         </div>
         <div className="card">
           <p className="small">Path templates</p>
-          <div className="kpi">{paths.length}</div>
+          <div className="kpi">{rankedPaths.length}</div>
         </div>
       </div>
 
@@ -113,9 +109,10 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
         </div>
       </div>
       <div className="grid" style={{ marginTop: 10 }}>
-        {paths.map((path) => (
-          <div className="card" key={path}>
-            <p>{path}</p>
+        {rankedPaths.map((path) => (
+          <div className="card" key={path.label}>
+            <p style={{ marginBottom: 6 }}>{path.label}</p>
+            <p className="small" style={{ margin: 0 }}>Path strength: w{path.weight}</p>
           </div>
         ))}
       </div>

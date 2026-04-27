@@ -87,11 +87,32 @@ export function buildGraphInfluenceModel({ users, entities, edges, events }: Gra
   return { clusters, links };
 }
 
+
+export type RankedInfluencePath = {
+  label: string;
+  weight: number;
+};
+
+export function rankInfluencePaths(links: GraphLink[]): RankedInfluencePath[] {
+  return links
+    .map((link) => ({
+      label: `${CLUSTER_LABELS[link.from]} → ${CLUSTER_LABELS[link.to]}`,
+      weight: link.weight
+    }))
+    .sort((a, b) => {
+      if (b.weight !== a.weight) {
+        return b.weight - a.weight;
+      }
+
+      return a.label.localeCompare(b.label);
+    });
+}
+
 export function getStrongestInfluencePath(links: GraphLink[]): string {
-  const strongest = [...links].sort((a, b) => b.weight - a.weight)[0];
+  const [strongest] = rankInfluencePaths(links);
   if (!strongest) {
     return "No influence paths available";
   }
 
-  return `${CLUSTER_LABELS[strongest.from]} → ${CLUSTER_LABELS[strongest.to]} (w${strongest.weight})`;
+  return `${strongest.label} (w${strongest.weight})`;
 }

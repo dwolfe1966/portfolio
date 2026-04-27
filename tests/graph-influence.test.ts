@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildGraphInfluenceModel, getStrongestInfluencePath } from "@/lib/graph-influence";
+import { buildGraphInfluenceModel, getStrongestInfluencePath, rankInfluencePaths } from "@/lib/graph-influence";
 
 test("buildGraphInfluenceModel returns stable defaults with zeroed inputs", () => {
   const model = buildGraphInfluenceModel({ users: 0, entities: 0, edges: 0, events: 0 });
@@ -37,3 +37,18 @@ test("getStrongestInfluencePath returns highest weighted path label", () => {
   assert.match(summary, /(Discovery|Intent) → (Intent|Conversion) \(w\d+\)/);
 });
 
+
+
+test("rankInfluencePaths orders by weight then label", () => {
+  const ranked = rankInfluencePaths([
+    { from: "intent", to: "conversion", weight: 5 },
+    { from: "discovery", to: "intent", weight: 7 },
+    { from: "discovery", to: "conversion", weight: 7 }
+  ]);
+
+  assert.deepEqual(ranked.map((entry) => entry.label), [
+    "Discovery → Conversion",
+    "Discovery → Intent",
+    "Intent → Conversion"
+  ]);
+});
