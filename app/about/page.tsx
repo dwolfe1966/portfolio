@@ -47,6 +47,14 @@ const timeline = [
   }
 ];
 
+const linkedInUrl = process.env.NEXT_PUBLIC_LINKEDIN_URL || "https://www.linkedin.com";
+
+const profileHighlights = [
+  "Product and growth leadership across subscription and SaaS businesses",
+  "Cross-functional operating model design (product, data, marketing, finance)",
+  "Hands-on AI and analytics implementation with measurable commercial outcomes"
+];
+
 const principles = [
   {
     title: "System thinking",
@@ -111,6 +119,24 @@ export default function AboutPage() {
               <p>{item.detail}</p>
             </div>
           ))}
+        </div>
+      </Section>
+
+
+      <Section title="LinkedIn profile context">
+        <p>
+          For role history, endorsements, and additional professional context, review my LinkedIn profile.
+          This section anchors the portfolio narrative to public career signals.
+        </p>
+        <div className="grid grid-3" style={{ marginTop: 10 }}>
+          {profileHighlights.map((item) => (
+            <div key={item} className="card">
+              <p>{item}</p>
+            </div>
+          ))}
+        </div>
+        <div className="ctaRow">
+          <Link className="btn primary" href={linkedInUrl} target="_blank" rel="noreferrer">Open LinkedIn profile</Link>
         </div>
       </Section>
 

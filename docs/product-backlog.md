@@ -146,7 +146,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ### To do
 - ✅ D6. Add 2–3 new project case studies beyond lifecycle/acquisition.
 - ✅ D12. Copy de-duplication pass across Home/About/Projects/Demo pages to remove repeated phrasing.
-- ⏳ D14. Enrich About section with LinkedIn profile context (career highlights, credibility signals, and profile linkage).
+- 🟡 D14. Enrich About section with LinkedIn profile context (career highlights, credibility signals, and profile linkage).
 - 🟡 E8. Add production-ready logging + basic event IDs for cross-route tracing.
 - ✅ D9. Perform metadata/OG pass on all key pages.
 - ✅ D10. Add responsive mobile hamburger behavior to top nav while preserving 5-item IA.
