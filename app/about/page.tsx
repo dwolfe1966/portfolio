@@ -48,11 +48,19 @@ const timeline = [
 ];
 
 const linkedInUrl = process.env.NEXT_PUBLIC_LINKEDIN_URL || "https://www.linkedin.com";
+const linkedInHeadline = process.env.NEXT_PUBLIC_LINKEDIN_HEADLINE || "Growth + Product Operator | AI Revenue Systems";
+const linkedInHandle = process.env.NEXT_PUBLIC_LINKEDIN_HANDLE || "linkedin.com/in/your-profile";
 
 const profileHighlights = [
   "Product and growth leadership across subscription and SaaS businesses",
   "Cross-functional operating model design (product, data, marketing, finance)",
   "Hands-on AI and analytics implementation with measurable commercial outcomes"
+];
+
+const credibilitySignals = [
+  "Public role timeline with cross-functional leadership scope",
+  "Recommendation/endorsement surface for external validation",
+  "Live professional profile aligned with portfolio case studies"
 ];
 
 const principles = [
@@ -128,6 +136,14 @@ export default function AboutPage() {
           For role history, endorsements, and additional professional context, review my LinkedIn profile.
           This section anchors the portfolio narrative to public career signals.
         </p>
+        <div className="card" style={{ marginTop: 10 }}>
+          <p className="small">LinkedIn profile</p>
+          <h3>{linkedInHeadline}</h3>
+          <p>{linkedInHandle}</p>
+          <div className="ctaRow">
+            <Link className="btn primary" href={linkedInUrl} target="_blank" rel="noreferrer">Open LinkedIn profile</Link>
+          </div>
+        </div>
         <div className="grid grid-3" style={{ marginTop: 10 }}>
           {profileHighlights.map((item) => (
             <div key={item} className="card">
@@ -135,8 +151,13 @@ export default function AboutPage() {
             </div>
           ))}
         </div>
-        <div className="ctaRow">
-          <Link className="btn primary" href={linkedInUrl} target="_blank" rel="noreferrer">Open LinkedIn profile</Link>
+        <div className="grid grid-3" style={{ marginTop: 10 }}>
+          {credibilitySignals.map((item) => (
+            <div key={item} className="card">
+              <p className="small">Credibility signal</p>
+              <p>{item}</p>
+            </div>
+          ))}
         </div>
       </Section>
 
