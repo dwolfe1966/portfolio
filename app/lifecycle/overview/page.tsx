@@ -8,6 +8,7 @@ import { DataFlowMap } from "@/components/demo/DataFlowMap";
 import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDiagram";
 import { LifecycleOutcomeInfographic } from "@/components/demo/LifecycleOutcomeInfographic";
 import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
+import { GraphInfluencePaths } from "@/components/demo/GraphInfluencePaths";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
@@ -59,6 +60,7 @@ export default async function DemoOverviewPage() {
           candidates={candidates}
           messages={generated}
         />
+        <GraphInfluencePaths users={users} entities={entities} edges={edges} events={deltas} />
       </Section>
     </>
   );
