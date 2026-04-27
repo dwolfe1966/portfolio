@@ -9,6 +9,7 @@ import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDia
 import { LifecycleOutcomeInfographic } from "@/components/demo/LifecycleOutcomeInfographic";
 import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
 import { GraphInfluencePaths } from "@/components/demo/GraphInfluencePaths";
+import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
@@ -53,6 +54,11 @@ export default async function DemoOverviewPage() {
       <Section title="Operator decision canvas">
         <p className="small">A shared frame for how inputs become governed actions and measurable learning.</p>
         <OperatorDecisionCanvas />
+      </Section>
+
+
+      <Section title="Demo data operations">
+        <ResetDemoDataCard appLabel="Lifecycle" />
       </Section>
 
       <Section title="Underlying graph topology">

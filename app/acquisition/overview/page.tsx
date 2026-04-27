@@ -4,6 +4,7 @@ import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
+import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
@@ -104,6 +105,11 @@ export default async function AcquisitionOverviewPage() {
         <p className="small" style={{ marginTop: 8 }}>
           Health endpoint: <Link href="/api/acquisition/health/demo-db">/api/acquisition/health/demo-db</Link>
         </p>
+      </Section>
+
+
+      <Section title="Demo data operations">
+        <ResetDemoDataCard appLabel="Acquisition" />
       </Section>
 
       <Section title="Architecture infographic">
