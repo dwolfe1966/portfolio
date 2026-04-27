@@ -58,7 +58,7 @@ export default async function DemoOverviewPage() {
 
 
       <Section title="Demo data operations">
-        <ResetDemoDataCard appLabel="Lifecycle" />
+        <ResetDemoDataCard appLabel="Lifecycle" scope="lifecycle" />
       </Section>
 
       <Section title="Underlying graph topology">

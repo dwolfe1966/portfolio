@@ -109,7 +109,7 @@ export default async function AcquisitionOverviewPage() {
 
 
       <Section title="Demo data operations">
-        <ResetDemoDataCard appLabel="Acquisition" />
+        <ResetDemoDataCard appLabel="Acquisition" scope="acquisition" />
       </Section>
 
       <Section title="Architecture infographic">

@@ -215,10 +215,7 @@ async function seedAcquisitionDemo() {
   });
 }
 
-export async function reseed() {
-  await clearLifecycleData();
-  await clearAcquisitionData();
-
+async function seedLifecycleDemo() {
   const users = [];
   for (let i = 0; i < 80; i++) {
     const seg = i < 36 ? UserSegment.FREE : i < 48 ? UserSegment.TRIAL : i < 72 ? UserSegment.LAPSED : UserSegment.ACTIVE;
@@ -270,6 +267,21 @@ export async function reseed() {
       detectedAt: new Date()
     }});
   }
+}
 
+export async function reseedLifecycleOnly() {
+  await clearLifecycleData();
+  await seedLifecycleDemo();
+}
+
+export async function reseedAcquisitionOnly() {
+  await clearAcquisitionData();
+  await seedAcquisitionDemo();
+}
+
+export async function reseed() {
+  await clearLifecycleData();
+  await clearAcquisitionData();
+  await seedLifecycleDemo();
   await seedAcquisitionDemo();
 }
