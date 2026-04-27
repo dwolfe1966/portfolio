@@ -16,7 +16,7 @@ type GraphInfluencePathsProps = {
 export function GraphInfluencePaths({ users, entities, edges, events }: GraphInfluencePathsProps) {
   const avgNeighbors = users > 0 ? (edges / users).toFixed(1) : "0.0";
   const eventPressure = entities > 0 ? (events / entities).toFixed(2) : "0.00";
-  const { clusters, links } = buildGraphInfluenceModel({ users, entities, edges, events });
+  const { hasData, clusters, links } = buildGraphInfluenceModel({ users, entities, edges, events });
   const strongestPath = getStrongestInfluencePath(links);
   const rankedPaths = rankInfluencePaths(links);
 
@@ -30,6 +30,7 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
     <div className="card" style={{ marginTop: 12 }}>
       <h3>Influence path explorer (beta)</h3>
       <p className="small">Multi-hop relationship view with lightweight cluster and path-strength signals.</p>
+      {!hasData && <p className="small">No graph activity yet. Run simulation steps to populate influence paths.</p>}
 
       <div className="grid grid-3" style={{ marginTop: 8 }}>
         <div className="card">
@@ -109,12 +110,18 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
         </div>
       </div>
       <div className="grid" style={{ marginTop: 10 }}>
-        {rankedPaths.map((path) => (
-          <div className="card" key={path.label}>
-            <p style={{ marginBottom: 6 }}>{path.label}</p>
-            <p className="small" style={{ margin: 0 }}>Path strength: w{path.weight}</p>
+        {rankedPaths.length > 0 ? (
+          rankedPaths.map((path) => (
+            <div className="card" key={path.label}>
+              <p style={{ marginBottom: 6 }}>{path.label}</p>
+              <p className="small" style={{ margin: 0 }}>Path strength: w{path.weight}</p>
+            </div>
+          ))
+        ) : (
+          <div className="card">
+            <p className="small" style={{ margin: 0 }}>Influence path ranking will appear after first simulation run.</p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

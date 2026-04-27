@@ -6,10 +6,10 @@ import { buildGraphInfluenceModel, getStrongestInfluencePath, rankInfluencePaths
 test("buildGraphInfluenceModel returns stable defaults with zeroed inputs", () => {
   const model = buildGraphInfluenceModel({ users: 0, entities: 0, edges: 0, events: 0 });
 
+  assert.equal(model.hasData, false);
   assert.equal(model.clusters.length, 3);
-  assert.equal(model.links.length, 3);
-  assert.ok(model.clusters.every((cluster) => cluster.nodeCount >= 1));
-  assert.ok(model.links.every((link) => link.weight >= 1));
+  assert.equal(model.links.length, 0);
+  assert.ok(model.clusters.every((cluster) => cluster.nodeCount === 0));
 });
 
 test("buildGraphInfluenceModel clamps influence to 0-100", () => {
@@ -20,6 +20,7 @@ test("buildGraphInfluenceModel clamps influence to 0-100", () => {
 
 test("buildGraphInfluenceModel preserves expected link directions", () => {
   const model = buildGraphInfluenceModel({ users: 220, entities: 80, edges: 420, events: 120 });
+  assert.equal(model.hasData, true);
   const directions = model.links.map((link) => `${link.from}->${link.to}`);
 
   assert.deepEqual(directions.sort(), [
@@ -51,4 +52,9 @@ test("rankInfluencePaths orders by weight then label", () => {
     "Discovery → Intent",
     "Intent → Conversion"
   ]);
+});
+
+
+test("getStrongestInfluencePath handles empty link list", () => {
+  assert.equal(getStrongestInfluencePath([]), "No influence paths available");
 });

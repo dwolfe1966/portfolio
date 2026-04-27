@@ -21,6 +21,7 @@ export type GraphLink = {
 };
 
 export type GraphInfluenceModel = {
+  hasData: boolean;
   clusters: GraphCluster[];
   links: GraphLink[];
 };
@@ -39,7 +40,20 @@ function clampInfluence(value: number): number {
   return Math.min(100, Math.max(0, Math.round(value)));
 }
 
+function getEmptyClusters(): GraphCluster[] {
+  return [
+    { id: "discovery", label: "Discovery cluster", nodeCount: 0, influence: 0 },
+    { id: "intent", label: "Intent cluster", nodeCount: 0, influence: 0 },
+    { id: "conversion", label: "Conversion cluster", nodeCount: 0, influence: 0 }
+  ];
+}
+
 export function buildGraphInfluenceModel({ users, entities, edges, events }: GraphInfluenceInput): GraphInfluenceModel {
+  const hasData = users + entities + edges + events > 0;
+  if (!hasData) {
+    return { hasData: false, clusters: getEmptyClusters(), links: [] };
+  }
+
   const totalNodes = atLeastOne(users + entities);
   const discoveryNodes = atLeastOne(Math.round(users * 0.38));
   const intentNodes = atLeastOne(Math.round(users * 0.34));
@@ -84,9 +98,8 @@ export function buildGraphInfluenceModel({ users, entities, edges, events }: Gra
     }
   ];
 
-  return { clusters, links };
+  return { hasData: true, clusters, links };
 }
-
 
 export type RankedInfluencePath = {
   label: string;
