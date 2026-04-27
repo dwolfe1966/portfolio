@@ -25,6 +25,12 @@ export type GraphInfluenceModel = {
   links: GraphLink[];
 };
 
+export const CLUSTER_LABELS: Record<GraphClusterId, string> = {
+  discovery: "Discovery",
+  intent: "Intent",
+  conversion: "Conversion"
+};
+
 function atLeastOne(value: number): number {
   return Math.max(1, value);
 }
@@ -79,4 +85,13 @@ export function buildGraphInfluenceModel({ users, entities, edges, events }: Gra
   ];
 
   return { clusters, links };
+}
+
+export function getStrongestInfluencePath(links: GraphLink[]): string {
+  const strongest = [...links].sort((a, b) => b.weight - a.weight)[0];
+  if (!strongest) {
+    return "No influence paths available";
+  }
+
+  return `${CLUSTER_LABELS[strongest.from]} → ${CLUSTER_LABELS[strongest.to]} (w${strongest.weight})`;
 }

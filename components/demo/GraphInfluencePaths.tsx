@@ -1,4 +1,9 @@
-import { buildGraphInfluenceModel, GraphClusterId } from "@/lib/graph-influence";
+import {
+  buildGraphInfluenceModel,
+  CLUSTER_LABELS,
+  getStrongestInfluencePath,
+  GraphClusterId
+} from "@/lib/graph-influence";
 
 type GraphInfluencePathsProps = {
   users: number;
@@ -11,6 +16,7 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
   const avgNeighbors = users > 0 ? (edges / users).toFixed(1) : "0.0";
   const eventPressure = entities > 0 ? (events / entities).toFixed(2) : "0.00";
   const { clusters, links } = buildGraphInfluenceModel({ users, entities, edges, events });
+  const strongestPath = getStrongestInfluencePath(links);
 
   const paths = [
     "Discovery nodes absorb change-events and route high-variance edges into intent cohorts.",
@@ -92,6 +98,20 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
         </svg>
       </div>
 
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <p className="small" style={{ marginBottom: 8 }}>Strongest current path</p>
+        <p style={{ margin: 0 }}>{strongestPath}</p>
+        <div className="grid grid-3" style={{ marginTop: 10 }}>
+          {clusters.map((cluster) => (
+            <div className="card" key={`${cluster.id}-stats`}>
+              <p className="small">{CLUSTER_LABELS[cluster.id]}</p>
+              <p className="small" style={{ margin: 0 }}>Nodes: {cluster.nodeCount}</p>
+              <p className="small" style={{ margin: 0 }}>Influence: {cluster.influence}</p>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="grid" style={{ marginTop: 10 }}>
         {paths.map((path) => (
           <div className="card" key={path}>

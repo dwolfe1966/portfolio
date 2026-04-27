@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildGraphInfluenceModel } from "@/lib/graph-influence";
+import { buildGraphInfluenceModel, getStrongestInfluencePath } from "@/lib/graph-influence";
 
 test("buildGraphInfluenceModel returns stable defaults with zeroed inputs", () => {
   const model = buildGraphInfluenceModel({ users: 0, entities: 0, edges: 0, events: 0 });
@@ -28,3 +28,12 @@ test("buildGraphInfluenceModel preserves expected link directions", () => {
     "intent->conversion"
   ]);
 });
+
+
+test("getStrongestInfluencePath returns highest weighted path label", () => {
+  const model = buildGraphInfluenceModel({ users: 320, entities: 90, edges: 640, events: 210 });
+  const summary = getStrongestInfluencePath(model.links);
+
+  assert.match(summary, /(Discovery|Intent) → (Intent|Conversion) \(w\d+\)/);
+});
+
