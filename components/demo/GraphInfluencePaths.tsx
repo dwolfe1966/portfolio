@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   buildGraphInfluenceModel,
   CLUSTER_LABELS,
@@ -37,6 +38,9 @@ export function GraphInfluencePaths({ users, entities, edges, events, assumption
   const [recencyScore, setRecencyScore] = useState(assumptions?.recencyScore ?? 0.9);
   const [highPriorityThreshold, setHighPriorityThreshold] = useState(assumptions?.highPriorityThreshold ?? 0.8);
   const [minPriorityScore, setMinPriorityScore] = useState(assumptions?.minPriorityScore ?? 0);
+  const [saveStatus, setSaveStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+  const router = useRouter();
 
   const avgNeighbors = users > 0 ? (edges / users).toFixed(1) : "0.0";
   const eventPressure = entities > 0 ? (events / entities).toFixed(2) : "0.00";
@@ -63,6 +67,33 @@ export function GraphInfluencePaths({ users, entities, edges, events, assumption
 
   const strongestPath = getStrongestInfluencePath(assumptionAdjusted.adjustedLinks);
   const rankedPaths = rankInfluencePaths(assumptionAdjusted.adjustedLinks);
+
+  async function saveInfluenceAssumptions() {
+    setSaving(true);
+    setSaveStatus("");
+
+    try {
+      const response = await fetch("/api/lifecycle/assumptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updateActiveInfluence: true,
+          recencyScore,
+          highPriorityThreshold,
+          minPriorityScore
+        })
+      });
+
+      const payload = await response.json();
+      if (!payload.ok) throw new Error("save_failed");
+      setSaveStatus("Saved assumption sensitivity to active assumption set.");
+      router.refresh();
+    } catch {
+      setSaveStatus("Could not save assumption sensitivity.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="card" style={{ marginTop: 12 }}>
@@ -119,6 +150,13 @@ export function GraphInfluencePaths({ users, entities, edges, events, assumption
             <span className="small">{minPriorityScore.toFixed(2)}</span>
           </label>
         </div>
+      </div>
+
+      <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button type="button" onClick={saveInfluenceAssumptions} disabled={saving}>
+          {saving ? "Saving..." : "Save sensitivity as active assumptions"}
+        </button>
+        {saveStatus && <span className="small">{saveStatus}</span>}
       </div>
 
       <div className="grid grid-3" style={{ marginTop: 8 }}>

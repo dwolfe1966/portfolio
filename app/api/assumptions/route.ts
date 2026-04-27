@@ -50,6 +50,50 @@ export async function POST(req: NextRequest) {
   const eventId = createEventId("assume_post");
   const body = await req.json().catch(() => ({}));
 
+
+  if (body.updateActiveInfluence) {
+    const recencyScore = Number(body.recencyScore);
+    const highPriorityThreshold = Number(body.highPriorityThreshold);
+    const minPriorityScore = Number(body.minPriorityScore);
+
+    const partial = normalizeDemoAssumptions({
+      recencyScore: Number.isFinite(recencyScore) ? recencyScore : undefined,
+      highPriorityThreshold: Number.isFinite(highPriorityThreshold) ? highPriorityThreshold : undefined,
+      minPriorityScore: Number.isFinite(minPriorityScore) ? minPriorityScore : undefined
+    });
+
+    let activeSet = await db.assumptionSet.findFirst({ where: { isActive: true } });
+
+    if (!activeSet) {
+      await db.assumptionSet.updateMany({ data: { isActive: false } });
+      activeSet = await db.assumptionSet.create({
+        data: {
+          name: String(body.name ?? `Influence Tuning ${new Date().toISOString().slice(0, 10)}`),
+          isActive: true,
+          ...DEMO_ASSUMPTION_DEFAULTS,
+          recencyScore: partial.recencyScore,
+          highPriorityThreshold: partial.highPriorityThreshold,
+          minPriorityScore: partial.minPriorityScore
+        }
+      });
+
+      logApiEvent("info", eventId, "assumptions.influence.create_active", { id: activeSet.id });
+      return apiOk({ assumptionSet: activeSet, eventId });
+    }
+
+    const updated = await db.assumptionSet.update({
+      where: { id: activeSet.id },
+      data: {
+        recencyScore: partial.recencyScore,
+        highPriorityThreshold: partial.highPriorityThreshold,
+        minPriorityScore: partial.minPriorityScore
+      }
+    });
+
+    logApiEvent("info", eventId, "assumptions.influence.update_active", { id: updated.id });
+    return apiOk({ assumptionSet: updated, eventId });
+  }
+
   if (body.activateId) {
     const activateId = String(body.activateId);
     const exists = await db.assumptionSet.findUnique({ where: { id: activateId } });
