@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { apiError, apiOk } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
+import { createEventId, logApiEvent } from "@/lib/logging";
 
 function toRate(input: unknown, fallback: number) {
   const n = Number(input);
@@ -10,11 +11,15 @@ function toRate(input: unknown, fallback: number) {
 }
 
 export async function POST(req: NextRequest) {
+  const eventId = createEventId("sim_out");
+
   if (!isDemoMutationAllowed()) {
+    logApiEvent("warn", eventId, "simulate_outcomes.disabled");
     return apiError(
       403,
       "MUTATION_DISABLED",
-      "Outcome simulation is disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable."
+      "Outcome simulation is disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable.",
+      { eventId }
     );
   }
 
@@ -37,9 +42,12 @@ export async function POST(req: NextRequest) {
   const purchases = Math.round(engagements * purchaseRate);
   const revenue = Number((purchases * avgOrderValue).toFixed(2));
 
+  logApiEvent("info", eventId, "simulate_outcomes.completed", { delivered, purchases, revenue });
+
   return apiOk({
     assumptions: { openRate, clickRate, engageRate, purchaseRate, avgOrderValue },
     counts: { delivered, opens, clicks, engagements, purchases },
-    revenue
+    revenue,
+    eventId
   });
 }
