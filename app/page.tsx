@@ -1,102 +1,114 @@
 import { Metadata } from "next";
-import { buildMetadata } from "@/lib/seo";
 import Link from "next/link";
-import { Hero } from "@/components/site/Hero";
+import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { RevenueLoopInfographic } from "@/components/site/RevenueLoopInfographic";
-import { SignalDecisionRevenueStrip } from "@/components/site/SignalDecisionRevenueStrip";
 
 export const metadata: Metadata = buildMetadata({
   title: "Home | David Wolfe",
-  description: "Operator portfolio: lifecycle and acquisition systems, decision tooling, and measurable revenue outcomes.",
+  description: "AI-powered product, growth, and operations leadership with measurable revenue outcomes.",
   path: "/"
 });
 
+const differentiators = [
+  {
+    title: "Multi-disciplinary expertise",
+    detail: "Product, engineering, ML, growth, and operations integrated into one execution model."
+  },
+  {
+    title: "AI-driven revenue systems",
+    detail: "Decision engines that connect signals to campaign actions and commercial impact."
+  },
+  {
+    title: "Operator across strategy + execution",
+    detail: "From roadmap framing to shipped workflows, instrumentation, and iteration cadence."
+  },
+  {
+    title: "Leadership track record",
+    detail: "Built repeatable growth systems across subscription and SaaS operating environments."
+  }
+];
+
+const featuredProjects = [
+  {
+    title: "Lifecycle Revenue Engine",
+    detail: "Detects high-intent change events, matches users/entities, and generates message flows to improve retention and conversion.",
+    impact: "Why it matters: turns lifecycle targeting from generic outreach into economically grounded prioritization.",
+    href: "/projects/lifecycle-revenue-engine",
+    appHref: "/lifecycle"
+  },
+  {
+    title: "Agent-Managed Acquisition System",
+    detail: "Runs campaign setup, test-cell scoring, budget reallocation, and audit-trail logging with explicit guardrails.",
+    impact: "Why it matters: lowers CAC volatility while improving speed and confidence of media decisions.",
+    href: "/projects/agent-acquisition",
+    appHref: "/acquisition"
+  }
+];
 
 export default function HomePage() {
   return (
     <>
-      <Hero />
-
-      <Section title="Positioning">
-        <div className="grid grid-2">
-          <div className="card">
-            <h3>Commercial operator lens</h3>
+      <Section title="AI-powered product, growth, and operations leader">
+        <div className="grid grid-2" style={{ alignItems: "center" }}>
+          <div>
             <p>
-              I focus on systems that lift activation, improve retention quality, and make growth decisions financially legible.
+              I build AI-native systems across product management, engineering, machine learning, growth marketing,
+              operations, and executive leadership to drive measurable revenue outcomes.
             </p>
+            <div className="ctaRow" style={{ marginTop: 12 }}>
+              <Link className="btn primary" href="/projects">Explore my AI revenue systems</Link>
+              <Link className="btn" href="/about">See leadership profile</Link>
+            </div>
           </div>
-          <div className="card">
-            <h3>End-to-end delivery partner</h3>
-            <p>
-              I work from problem framing to shipped workflows: hypothesis design, model choices, instrumentation, and iteration cadence.
-            </p>
+          <div className="card" aria-hidden="true" style={{ minHeight: 200 }}>
+            <div
+              style={{
+                height: 180,
+                borderRadius: 14,
+                background:
+                  "radial-gradient(circle at 20% 20%, rgba(0, 180, 216, 0.22), transparent 45%), radial-gradient(circle at 80% 30%, rgba(52, 87, 213, 0.24), transparent 42%), linear-gradient(135deg, rgba(20, 25, 45, 0.82), rgba(10, 14, 28, 0.92))"
+              }}
+            />
           </div>
         </div>
       </Section>
 
-      <Section title="System infographic">
+      <Section title="Value proposition">
+        <div className="grid grid-4">
+          {differentiators.map((item) => (
+            <div className="card" key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.detail}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Featured projects">
+        <div className="grid grid-2">
+          {featuredProjects.map((project) => (
+            <div className="card" key={project.title}>
+              <h3>{project.title}</h3>
+              <p>{project.detail}</p>
+              <p className="small">{project.impact}</p>
+              <div className="ctaRow">
+                <Link className="btn primary" href={project.href}>View project</Link>
+                <Link className="btn" href={project.appHref}>Open demo</Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="How the systems work">
         <RevenueLoopInfographic />
       </Section>
 
-      <Section title="Signal → decision → revenue">
-        <p className="small">A compact visual of the operating cycle used across lifecycle and acquisition projects.</p>
-        <SignalDecisionRevenueStrip />
-      </Section>
-
-      <Section title="Core capabilities">
-        <div className="grid grid-4">
-          <div className="card"><h3>Product discovery</h3><p>Translate ambiguous market signals into concrete product bets and test plans.</p></div>
-          <div className="card"><h3>Applied modeling</h3><p>Use scoring, simulation, and AI assistance to support faster and clearer operating choices.</p></div>
-          <div className="card"><h3>Social ecosystems</h3><p>Design growth loops that leverage network effects, creator channels, and community behavior.</p></div>
-          <div className="card"><h3>Execution systems</h3><p>Design cross-functional rituals and tooling that improve ownership, speed, and accountability.</p></div>
-        </div>
-      </Section>
-
-      <Section eyebrow="Flagship project" title="Lifecycle Revenue Engine">
-        <p>
-          A working AI-enabled system that detects meaningful external changes, maps them to users
-          with demonstrated interest, and generates targeted outreach and landing experiences
-          designed to improve reactivation and conversion.
-        </p>
+      <Section title="Continue exploring">
         <div className="ctaRow">
-          <Link className="btn primary" href="/projects/lifecycle-revenue-engine">Explore the project</Link>
-          <Link className="btn" href="/lifecycle">Open the lifecycle app</Link>
-        </div>
-      </Section>
-
-      <Section title="Now building">
-        <div className="grid grid-2">
-          <div className="card">
-            <h3>Lifecycle app cleanup</h3>
-            <p>
-              Tightening observability, assumptions discipline, and workflow clarity so simulations translate to practical team operations.
-            </p>
-            <div className="ctaRow">
-              <Link className="btn primary" href="/lifecycle">Open lifecycle app</Link>
-              <Link className="btn" href="/projects/lifecycle-revenue-engine">View lifecycle case study</Link>
-            </div>
-          </div>
-          <div className="card">
-            <h3>Product and growth systems roadmap</h3>
-            <p>
-              Expanding case studies and field notes around acquisition mechanics, lifecycle monetization, and operating design.
-            </p>
-            <div className="ctaRow">
-              <Link className="btn" href="/projects">Browse projects</Link>
-              <Link className="btn" href="/writing">Read writing</Link>
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Point of view">
-        <div className="card">
-          <h3>AI as an operating layer, not a content add-on</h3>
-          <p>
-The strongest AI products are embedded in decision loops and unit economics, not treated as standalone content tools.
-          </p>
-          <Link className="btn" href="/writing/ai-revenue-systems">Read the essay</Link>
+          <Link className="btn" href="/writing">Read essays</Link>
+          <Link className="btn" href="/contact">Discuss collaboration</Link>
         </div>
       </Section>
     </>

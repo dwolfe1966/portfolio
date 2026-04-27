@@ -2,198 +2,99 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
-import { OperatorProfileInfographic } from "@/components/site/OperatorProfileInfographic";
-import { SignalDecisionRevenueStrip } from "@/components/site/SignalDecisionRevenueStrip";
 
 export const metadata: Metadata = buildMetadata({
   title: "About | David Wolfe",
-  description: "About David Wolfe: product and growth operator focused on measurable commercial systems.",
+  description: "About David Wolfe: AI-powered product, growth, and operations leader.",
   path: "/about"
 });
 
-const expertise = [
-  "Revenue strategy and growth leadership",
-  "Product discovery and opportunity shaping",
-  "Data science and applied AI systems",
-  "Social ecosystems and community-led growth",
-  "High-performance org design and execution",
-  "Subscription economics, monetization, and lifecycle optimization"
+const competencies = [
+  { title: "Product discovery & design", detail: "Translate ambiguous demand signals into concrete hypotheses and shipped product loops." },
+  { title: "Machine learning & data science", detail: "Build practical scoring and simulation systems that improve decision quality." },
+  { title: "Growth marketing & monetization", detail: "Optimize CAC, retention, and LTV with clear measurement and budget discipline." },
+  { title: "Engineering & operations", detail: "Turn strategy into reliable workflows, instrumentation, and repeatable team execution." },
+  { title: "Executive leadership", detail: "Align product, data, marketing, and finance around common commercial outcomes." }
 ];
 
-const timeline = [
+const milestones = [
   {
     period: "Today",
-    title: "Independent operator-builder",
-    detail:
-      "Designing applied AI systems for acquisition, lifecycle, and revenue operations with measurable commercial outcomes."
+    role: "Independent operator-builder",
+    impact: "Designing AI-powered lifecycle and acquisition systems with hands-on implementation and measurable revenue impact."
   },
   {
     period: "2018–2024",
-    title: "Product and growth leadership",
-    detail:
-      "Led roadmap, pricing, and growth loops for subscription and SaaS products; partnered deeply with engineering, marketing, and finance."
+    role: "Product + growth leadership",
+    impact: "Led growth-roadmap execution across subscription/SaaS contexts with focus on pricing, retention quality, and operating leverage."
   },
   {
     period: "2010–2018",
-    title: "Data and platform focus",
-    detail:
-      "Built data-enriched product surfaces and operational analytics to improve activation, retention, and monetization decisions."
-  },
-  {
-    period: "Early career",
-    title: "Commercial operations foundation",
-    detail:
-      "Developed a strong economics-first lens across product delivery, customer outcomes, and go-to-market execution."
-  }
-];
-
-const linkedInUrl = process.env.NEXT_PUBLIC_LINKEDIN_URL || "https://www.linkedin.com";
-const linkedInHeadline = process.env.NEXT_PUBLIC_LINKEDIN_HEADLINE || "Growth + Product Operator | AI Revenue Systems";
-const linkedInHandle = process.env.NEXT_PUBLIC_LINKEDIN_HANDLE || "linkedin.com/in/your-profile";
-
-const profileHighlights = [
-  "Product and growth leadership across subscription and SaaS businesses",
-  "Cross-functional operating model design (product, data, marketing, finance)",
-  "Hands-on AI and analytics implementation with measurable commercial outcomes"
-];
-
-const credibilitySignals = [
-  "Public role timeline with cross-functional leadership scope",
-  "Recommendation/endorsement surface for external validation",
-  "Live professional profile aligned with portfolio case studies"
-];
-
-const principles = [
-  {
-    title: "System thinking",
-    detail: "Model the full loop from signal to decision to commercial outcome, not isolated features."
-  },
-  {
-    title: "Economic orientation",
-    detail: "Use CAC, payback, retention, and LTV as design constraints from day one."
-  },
-  {
-    title: "AI pragmatism",
-    detail: "Use AI where it changes throughput or quality; avoid complexity that does not improve outcomes."
-  },
-  {
-    title: "Operator-grade clarity",
-    detail: "Ship transparent assumptions, audit trails, and controls so teams trust and adopt the system."
+    role: "Data + platform product roles",
+    impact: "Built analytics-backed product experiences to improve activation, expansion, and cross-functional planning cadence."
   }
 ];
 
 export default function AboutPage() {
   return (
     <>
-      <Section eyebrow="About" title="Product and growth operator focused on measurable systems">
+      <Section eyebrow="About" title="Building AI systems that turn decisions into revenue">
         <p>
-          I build practical operating systems that connect product decisions to commercial outcomes.
-          The goal is simple: faster learning loops, higher-quality execution, and clearer economic visibility for teams.
+          I build operating systems that connect product strategy, data science, and go-to-market execution.
+          My focus is helping teams move faster with clearer decisions and stronger commercial outcomes.
         </p>
-        <div className="ctaRow">
-          <Link className="btn primary" href="/projects">Explore projects</Link>
-          <Link className="btn" href="/contact">Work with me</Link>
-        </div>
       </Section>
 
-      <Section title="Operator infographic">
-        <OperatorProfileInfographic />
-      </Section>
-
-      <Section title="Operating pattern">
-        <p>Across products, I use the same loop: signal quality, decision quality, execution quality, and measured commercial learning.</p>
-        <SignalDecisionRevenueStrip />
-      </Section>
-
-      <Section title="Expertise">
+      <Section title="Core competencies">
         <div className="grid grid-2">
-          {expertise.map((item) => (
-            <div className="card" key={item}>
-              <h3>{item}</h3>
-              <p>
-                Applied through hands-on product architecture, data modeling, and iterative operating workflows.
-              </p>
+          {competencies.map((item) => (
+            <div className="card" key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.detail}</p>
             </div>
           ))}
         </div>
       </Section>
 
-      <Section title="Professional timeline">
+      <Section title="Experience and milestones">
         <div className="grid">
-          {timeline.map((item) => (
-            <div className="card" key={item.title}>
+          {milestones.map((item) => (
+            <div className="card" key={item.period}>
               <p className="small" style={{ marginBottom: 6 }}>{item.period}</p>
-              <h3>{item.title}</h3>
-              <p>{item.detail}</p>
+              <h3>{item.role}</h3>
+              <p>{item.impact}</p>
             </div>
           ))}
         </div>
       </Section>
 
-
-      <Section title="LinkedIn profile context">
-        <p>
-          For role history, endorsements, and additional professional context, review my LinkedIn profile.
-          This section anchors the portfolio narrative to public career signals.
-        </p>
-        <div className="card" style={{ marginTop: 10 }}>
-          <p className="small">LinkedIn profile</p>
-          <h3>{linkedInHeadline}</h3>
-          <p>{linkedInHandle}</p>
-          <div className="ctaRow">
-            <Link className="btn primary" href={linkedInUrl} target="_blank" rel="noreferrer">Open LinkedIn profile</Link>
-          </div>
-        </div>
-        <div className="grid grid-3" style={{ marginTop: 10 }}>
-          {profileHighlights.map((item) => (
-            <div key={item} className="card">
-              <p>{item}</p>
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-3" style={{ marginTop: 10 }}>
-          {credibilitySignals.map((item) => (
-            <div key={item} className="card">
-              <p className="small">Credibility signal</p>
-              <p>{item}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Values and working style">
-        <div className="grid grid-2">
-          {principles.map((item) => (
-            <div className="card" key={item.title}>
-              <h3>{item.title}</h3>
-              <p>{item.detail}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Current build focus">
+      <Section title="Approach and philosophy">
         <div className="grid grid-2">
           <div className="card">
-            <h3>Lifecycle app cleanup</h3>
-            <p>Improving reliability, explainability, and operator UX across the lifecycle workspace.</p>
-            <Link className="btn" href="/lifecycle">Open lifecycle app</Link>
+            <h3>Strategy + execution in one loop</h3>
+            <p>
+              I combine high-level operating strategy with direct implementation so teams get both direction and delivery momentum.
+            </p>
           </div>
           <div className="card">
-            <h3>Acquisition system design</h3>
-            <p>Designing a closed-loop acquisition architecture with rapid testing, budget discipline, and decision traceability.</p>
-            <Link className="btn" href="/projects/agent-acquisition">View acquisition case study</Link>
+            <h3>AI pragmatism and operating leverage</h3>
+            <p>
+              AI should improve throughput, decision quality, and economics—not add complexity without measurable gains.
+            </p>
           </div>
         </div>
       </Section>
 
-      <Section title="Work with me">
+      <Section title="Personal note">
         <p>
-          If you are building a growth, lifecycle, or monetization system and need an operator who bridges strategy and execution, I would love to collaborate.
+          I enjoy translating complex systems into clear operator workflows that teams can trust and iterate.
         </p>
+      </Section>
+
+      <Section title="Let’s collaborate">
         <div className="ctaRow">
           <Link className="btn primary" href="/contact">Start a conversation</Link>
-          <Link className="btn" href="/writing">Read POV essays</Link>
+          <Link className="btn" href="/projects">Review case studies</Link>
         </div>
       </Section>
     </>
