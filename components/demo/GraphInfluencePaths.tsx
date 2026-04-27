@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import {
   buildGraphInfluenceModel,
   CLUSTER_LABELS,
@@ -11,6 +14,11 @@ type GraphInfluencePathsProps = {
   entities: number;
   edges: number;
   events: number;
+  assumptions?: {
+    recencyScore: number;
+    highPriorityThreshold: number;
+    minPriorityScore: number;
+  };
 };
 
 type Position = { x: number; y: number };
@@ -21,18 +29,97 @@ const clusterPos: Record<GraphClusterId, Position> = {
   conversion: { x: 410, y: 88 }
 };
 
-export function GraphInfluencePaths({ users, entities, edges, events }: GraphInfluencePathsProps) {
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+export function GraphInfluencePaths({ users, entities, edges, events, assumptions }: GraphInfluencePathsProps) {
+  const [recencyScore, setRecencyScore] = useState(assumptions?.recencyScore ?? 0.9);
+  const [highPriorityThreshold, setHighPriorityThreshold] = useState(assumptions?.highPriorityThreshold ?? 0.8);
+  const [minPriorityScore, setMinPriorityScore] = useState(assumptions?.minPriorityScore ?? 0);
+
   const avgNeighbors = users > 0 ? (edges / users).toFixed(1) : "0.0";
   const eventPressure = entities > 0 ? (events / entities).toFixed(2) : "0.00";
   const { hasData, clusters, links } = buildGraphInfluenceModel({ users, entities, edges, events });
-  const strongestPath = getStrongestInfluencePath(links);
-  const rankedPaths = rankInfluencePaths(links);
+
+  const assumptionAdjusted = useMemo(() => {
+    const recencyFactor = 1 + (recencyScore - 0.9) * 0.7;
+    const thresholdFactor = 1 + (0.85 - highPriorityThreshold) * 0.55;
+    const floorFactor = 1 + minPriorityScore * 0.25;
+    const combinedFactor = clamp(recencyFactor * thresholdFactor * floorFactor, 0.65, 1.55);
+
+    const adjustedLinks = links.map((link) => ({
+      ...link,
+      weight: Math.max(1, Math.round(link.weight * combinedFactor))
+    }));
+
+    const adjustedClusters = clusters.map((cluster) => ({
+      ...cluster,
+      influence: clamp(Math.round(cluster.influence * combinedFactor), 0, 100)
+    }));
+
+    return { adjustedLinks, adjustedClusters };
+  }, [clusters, highPriorityThreshold, links, minPriorityScore, recencyScore]);
+
+  const strongestPath = getStrongestInfluencePath(assumptionAdjusted.adjustedLinks);
+  const rankedPaths = rankInfluencePaths(assumptionAdjusted.adjustedLinks);
 
   return (
     <div className="card" style={{ marginTop: 12 }}>
       <h3>Influence path explorer (beta)</h3>
       <p className="small">Multi-hop relationship view with lightweight cluster and path-strength signals.</p>
+      <p className="small">
+        Interpretation: Discovery captures broad intent collection, Intent shows concentrated qualification pressure,
+        and Conversion reflects where operator-ready actions are most likely to emerge.
+      </p>
+      <p className="small">
+        Use the assumption controls below to preview how stronger recency emphasis or tighter priority thresholds alter
+        link strength and cluster influence before running a full simulation.
+      </p>
+
       {!hasData && <p className="small">No graph activity yet. Run simulation steps to populate influence paths.</p>}
+
+      <div className="card" style={{ marginTop: 10 }}>
+        <p className="small" style={{ marginBottom: 6 }}>Assumption sensitivity (preview)</p>
+        <div className="grid grid-3">
+          <label>
+            Recency score
+            <input
+              type="range"
+              min="0.5"
+              max="1.2"
+              step="0.01"
+              value={recencyScore}
+              onChange={(event) => setRecencyScore(Number(event.target.value))}
+            />
+            <span className="small">{recencyScore.toFixed(2)}</span>
+          </label>
+          <label>
+            High-priority threshold
+            <input
+              type="range"
+              min="0.4"
+              max="0.95"
+              step="0.01"
+              value={highPriorityThreshold}
+              onChange={(event) => setHighPriorityThreshold(Number(event.target.value))}
+            />
+            <span className="small">{highPriorityThreshold.toFixed(2)}</span>
+          </label>
+          <label>
+            Priority floor
+            <input
+              type="range"
+              min="0"
+              max="0.6"
+              step="0.01"
+              value={minPriorityScore}
+              onChange={(event) => setMinPriorityScore(Number(event.target.value))}
+            />
+            <span className="small">{minPriorityScore.toFixed(2)}</span>
+          </label>
+        </div>
+      </div>
 
       <div className="grid grid-3" style={{ marginTop: 8 }}>
         <div className="card">
@@ -58,7 +145,7 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
           style={{ width: "100%", height: "auto", overflow: "visible" }}
         >
           <title>Lifecycle influence cluster map</title>
-          {links.map((link) => {
+          {assumptionAdjusted.adjustedLinks.map((link) => {
             const from = clusterPos[link.from];
             const to = clusterPos[link.to];
             const ctrlY = Math.min(from.y, to.y) - 28;
@@ -85,7 +172,7 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
             );
           })}
 
-          {clusters.map((cluster) => {
+          {assumptionAdjusted.adjustedClusters.map((cluster) => {
             const pos = clusterPos[cluster.id];
             const radius = cluster.nodeCount > 0
               ? 14 + Math.min(18, Math.round(cluster.nodeCount / 2))
@@ -117,7 +204,7 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
         <p className="small" style={{ marginBottom: 8 }}>Strongest current path</p>
         <p style={{ margin: 0 }}>{strongestPath}</p>
         <div className="grid grid-3" style={{ marginTop: 10 }}>
-          {clusters.map((cluster) => (
+          {assumptionAdjusted.adjustedClusters.map((cluster) => (
             <div className="card" key={`${cluster.id}-stats`}>
               <p className="small">{CLUSTER_LABELS[cluster.id]}</p>
               <p className="small" style={{ margin: 0 }}>Nodes: {cluster.nodeCount}</p>

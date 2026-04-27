@@ -18,13 +18,17 @@ export const metadata: Metadata = buildMetadata({
 });
 
 export default async function DemoOverviewPage() {
-  const [deltas, candidates, generated, users, entities, edges] = await Promise.all([
+  const [deltas, candidates, generated, users, entities, edges, activeAssumptions] = await Promise.all([
     db.entityDelta.count(),
     db.campaignCandidate.count(),
     db.generatedMessage.count(),
     db.user.count(),
     db.entity.count(),
-    db.interestEdge.count()
+    db.interestEdge.count(),
+    db.assumptionSet.findFirst({
+      where: { isActive: true },
+      select: { recencyScore: true, highPriorityThreshold: true, minPriorityScore: true }
+    })
   ]);
 
   return (
@@ -60,7 +64,13 @@ export default async function DemoOverviewPage() {
           candidates={candidates}
           messages={generated}
         />
-        <GraphInfluencePaths users={users} entities={entities} edges={edges} events={deltas} />
+        <GraphInfluencePaths
+          users={users}
+          entities={entities}
+          edges={edges}
+          events={deltas}
+          assumptions={activeAssumptions ?? undefined}
+        />
       </Section>
     </>
   );
