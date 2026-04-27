@@ -1,3 +1,5 @@
+import { buildGraphInfluenceModel, GraphClusterId } from "@/lib/graph-influence";
+
 type GraphInfluencePathsProps = {
   users: number;
   entities: number;
@@ -5,71 +7,10 @@ type GraphInfluencePathsProps = {
   events: number;
 };
 
-type Cluster = {
-  id: string;
-  label: string;
-  nodeCount: number;
-  influence: number;
-};
-
-type Link = {
-  from: string;
-  to: string;
-  weight: number;
-};
-
-function buildGraphModel({ users, entities, edges, events }: GraphInfluencePathsProps) {
-  const totalNodes = Math.max(users + entities, 1);
-  const discoveryNodes = Math.max(Math.round(users * 0.38), 1);
-  const intentNodes = Math.max(Math.round(users * 0.34), 1);
-  const conversionNodes = Math.max(totalNodes - discoveryNodes - intentNodes, 1);
-
-  const clusters: Cluster[] = [
-    {
-      id: "discovery",
-      label: "Discovery cluster",
-      nodeCount: discoveryNodes,
-      influence: Math.min(100, Math.round((edges / totalNodes) * 10))
-    },
-    {
-      id: "intent",
-      label: "Intent cluster",
-      nodeCount: intentNodes,
-      influence: Math.min(100, Math.round((events / Math.max(entities, 1)) * 18))
-    },
-    {
-      id: "conversion",
-      label: "Conversion cluster",
-      nodeCount: conversionNodes,
-      influence: Math.min(100, Math.round((events / Math.max(users, 1)) * 22))
-    }
-  ];
-
-  const links: Link[] = [
-    {
-      from: "discovery",
-      to: "intent",
-      weight: Math.max(1, Math.round((edges / totalNodes) * 4))
-    },
-    {
-      from: "intent",
-      to: "conversion",
-      weight: Math.max(1, Math.round((events / Math.max(users, 1)) * 8))
-    },
-    {
-      from: "discovery",
-      to: "conversion",
-      weight: Math.max(1, Math.round((events / totalNodes) * 6))
-    }
-  ];
-
-  return { clusters, links };
-}
-
 export function GraphInfluencePaths({ users, entities, edges, events }: GraphInfluencePathsProps) {
   const avgNeighbors = users > 0 ? (edges / users).toFixed(1) : "0.0";
   const eventPressure = entities > 0 ? (events / entities).toFixed(2) : "0.00";
-  const { clusters, links } = buildGraphModel({ users, entities, edges, events });
+  const { clusters, links } = buildGraphInfluenceModel({ users, entities, edges, events });
 
   const paths = [
     "Discovery nodes absorb change-events and route high-variance edges into intent cohorts.",
@@ -77,7 +18,7 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
     "Conversion cohorts prioritize campaigns where cluster influence stays above guardrail targets."
   ];
 
-  const clusterX: Record<string, number> = {
+  const clusterX: Record<GraphClusterId, number> = {
     discovery: 90,
     intent: 250,
     conversion: 410
@@ -106,6 +47,7 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
       <div className="card" style={{ marginTop: 12 }}>
         <p className="small" style={{ marginBottom: 8 }}>Cluster influence map</p>
         <svg viewBox="0 0 500 170" role="img" aria-label="Influence cluster map" style={{ width: "100%", height: "auto" }}>
+          <title>Lifecycle influence cluster map</title>
           {links.map((link) => {
             const fromX = clusterX[link.from];
             const toX = clusterX[link.to];
