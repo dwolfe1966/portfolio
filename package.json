@@ -10,7 +10,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "tsx --test tests/**/*.test.ts",
+    "check:prisma-artifacts": "./scripts/check-prisma-artifacts.sh"
   },
   "dependencies": {
     "@prisma/client": "6.18.0",

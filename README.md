@@ -153,6 +153,7 @@ npm run db:seed
 
 GitHub Actions workflow: `.github/workflows/ci.yml` runs:
 
+- `npm run check:prisma-artifacts`
 - `npm run lint`
 - `npm test`
 - `npm run build`

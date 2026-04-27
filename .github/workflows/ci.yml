@@ -24,6 +24,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+
+      - name: Prisma artifact guard
+        run: npm run check:prisma-artifacts
+
       - name: Lint
         run: npm run lint
 
