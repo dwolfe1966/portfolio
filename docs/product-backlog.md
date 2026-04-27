@@ -55,6 +55,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 | Acquisition pages (campaigns/create/detail/dashboard) + operator controls | C18, C19, C20 (new) |
 | Contact form + anti-spam + UX states | D8 (existing, now priority raised) |
 | Copy cleanup + contextual tooltips + first-run intro modal | D12, B13 (new) |
+| About section informed by LinkedIn profile | D14 (new) |
+| Richer business context + advanced graph visuals in demo explanations | B14, B15 (new) |
 
 ---
 
@@ -93,6 +95,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ B11. Add `VariableDefinitions` panel (input/output definitions with examples).
 - ✅ B12. Add simulation visualizations (pipeline bars + funnel + trend chart) with low-clutter styling.
 - ⏳ B13. Add contextual tooltips and first-run intro modal in demo workspace.
+- ⏳ B14. Add business-context explanation blocks in demo flows (why users/entities/change-events matter commercially).
+- ⏳ B15. Explore advanced graph-based dataflow visualizations beyond current topology map (multi-hop relationships, influence paths, and cluster views).
 
 ---
 
@@ -142,6 +146,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ### To do
 - ✅ D6. Add 2–3 new project case studies beyond lifecycle/acquisition.
 - ✅ D12. Copy de-duplication pass across Home/About/Projects/Demo pages to remove repeated phrasing.
+- ⏳ D14. Enrich About section with LinkedIn profile context (career highlights, credibility signals, and profile linkage).
 - 🟡 E8. Add production-ready logging + basic event IDs for cross-route tracing.
 - ✅ D9. Perform metadata/OG pass on all key pages.
 - ✅ D10. Add responsive mobile hamburger behavior to top nav while preserving 5-item IA.
