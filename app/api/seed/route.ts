@@ -1,12 +1,15 @@
 import { reseed, reseedAcquisitionOnly, reseedLifecycleOnly } from "@/lib/seed";
 import { apiError, apiOk } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
+import { resolveDemoResetRequest } from "@/lib/demo-reset";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
-  if (body.confirm !== "RESET_DEMO") {
-    return apiError(400, "CONFIRMATION_REQUIRED", "Reset requires confirm=RESET_DEMO in request body.");
+  const resolved = resolveDemoResetRequest(body);
+  if (!resolved.ok) {
+    return apiError(400, resolved.code, resolved.message);
   }
+
   if (!isDemoMutationAllowed()) {
     return apiError(
       403,
@@ -15,14 +18,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const scope = body.scope === "lifecycle" || body.scope === "acquisition" ? body.scope : "all";
-  if (scope === "lifecycle") {
+  if (resolved.scope === "lifecycle") {
     await reseedLifecycleOnly();
-  } else if (scope === "acquisition") {
+  } else if (resolved.scope === "acquisition") {
     await reseedAcquisitionOnly();
   } else {
     await reseed();
   }
 
-  return apiOk({ scope });
+  return apiOk({ scope: resolved.scope });
 }
