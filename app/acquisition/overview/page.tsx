@@ -1,8 +1,11 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
+import { db } from "@/lib/db";
+import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
 export const metadata: Metadata = buildMetadata({
   title: "Acquisition App Overview | David Wolfe",
@@ -46,7 +49,31 @@ const flow = [
   "6) Promote winning cells to scaling and continue monitoring."
 ];
 
-export default function AcquisitionOverviewPage() {
+export default async function AcquisitionOverviewPage() {
+  let schemaReady = true;
+  let counts = {
+    campaigns: 0,
+    cells: 0,
+    budgetActivities: 0,
+    auditLogs: 0
+  };
+
+  try {
+    const [campaigns, cells, budgetActivities, auditLogs] = await Promise.all([
+      db.acquisitionCampaign.count(),
+      db.testCell.count(),
+      db.budgetActivity.count(),
+      db.acquisitionAuditLog.count()
+    ]);
+    counts = { campaigns, cells, budgetActivities, auditLogs };
+  } catch (error) {
+    if (isMissingDemoTableError(error)) {
+      schemaReady = false;
+    } else {
+      throw error;
+    }
+  }
+
   return (
     <>
       <Section title="Agent-managed paid acquisition system">
@@ -58,6 +85,25 @@ export default function AcquisitionOverviewPage() {
           <div className="card"><div className="kpi">&lt; 1.0</div><p>Target CAC/LTV ratio threshold for sustained scaling.</p></div>
           <div className="card"><div className="kpi">100%</div><p>Budget-shift actions recorded for operator auditability.</p></div>
         </div>
+      </Section>
+
+      <Section title="Acquisition data readiness">
+        {schemaReady ? (
+          <div className="grid grid-2">
+            <div className="card"><p className="small">Campaigns</p><div className="kpi">{counts.campaigns}</div></div>
+            <div className="card"><p className="small">Test cells</p><div className="kpi">{counts.cells}</div></div>
+            <div className="card"><p className="small">Budget actions</p><div className="kpi">{counts.budgetActivities}</div></div>
+            <div className="card"><p className="small">Audit logs</p><div className="kpi">{counts.auditLogs}</div></div>
+          </div>
+        ) : (
+          <div className="card">
+            <p>Acquisition schema is not initialized yet.</p>
+            <pre className="code">npm run db:generate{"\n"}npx prisma db push{"\n"}npm run db:seed</pre>
+          </div>
+        )}
+        <p className="small" style={{ marginTop: 8 }}>
+          Health endpoint: <Link href="/api/acquisition/health/demo-db">/api/acquisition/health/demo-db</Link>
+        </p>
       </Section>
 
       <Section title="Architecture infographic">
