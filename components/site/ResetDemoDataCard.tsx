@@ -10,13 +10,18 @@ type ResetDemoDataCardProps = {
 export function ResetDemoDataCard({ appLabel }: ResetDemoDataCardProps) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
+  const [confirm, setConfirm] = useState(false);
   const router = useRouter();
 
   async function resetAndReseed() {
     setLoading(true);
     setStatus("");
     try {
-      const response = await fetch("/api/seed", { method: "POST" });
+      const response = await fetch("/api/seed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "RESET_DEMO" })
+      });
       const payload = await response.json();
       if (!payload.ok) {
         setStatus(payload.error?.message ?? "Reset failed.");
@@ -37,7 +42,16 @@ export function ResetDemoDataCard({ appLabel }: ResetDemoDataCardProps) {
       <p className="small">
         Clears lifecycle and acquisition demo records, then reseeds representative baseline data for both apps.
       </p>
-      <button type="button" onClick={resetAndReseed} disabled={loading}>
+      <label className="small" style={{ display: "block", marginBottom: 8 }}>
+        <input
+          type="checkbox"
+          checked={confirm}
+          onChange={(event) => setConfirm(event.target.checked)}
+          style={{ marginRight: 6 }}
+        />
+        I understand this will delete current demo rows and reseed both workspaces.
+      </label>
+      <button type="button" onClick={resetAndReseed} disabled={loading || !confirm}>
         {loading ? "Resetting..." : "Reset DB + reseed demo"}
       </button>
       {status && <p className="small" style={{ marginTop: 8 }}>{status}</p>}
