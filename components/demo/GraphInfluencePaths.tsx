@@ -13,18 +13,20 @@ type GraphInfluencePathsProps = {
   events: number;
 };
 
+type Position = { x: number; y: number };
+
+const clusterPos: Record<GraphClusterId, Position> = {
+  discovery: { x: 90, y: 88 },
+  intent: { x: 250, y: 56 },
+  conversion: { x: 410, y: 88 }
+};
+
 export function GraphInfluencePaths({ users, entities, edges, events }: GraphInfluencePathsProps) {
   const avgNeighbors = users > 0 ? (edges / users).toFixed(1) : "0.0";
   const eventPressure = entities > 0 ? (events / entities).toFixed(2) : "0.00";
   const { hasData, clusters, links } = buildGraphInfluenceModel({ users, entities, edges, events });
   const strongestPath = getStrongestInfluencePath(links);
   const rankedPaths = rankInfluencePaths(links);
-
-  const clusterX: Record<GraphClusterId, number> = {
-    discovery: 90,
-    intent: 250,
-    conversion: 410
-  };
 
   return (
     <div className="card" style={{ marginTop: 12 }}>
@@ -49,52 +51,67 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
 
       <div className="card" style={{ marginTop: 12 }}>
         <p className="small" style={{ marginBottom: 8 }}>Cluster influence map</p>
-        <svg viewBox="0 0 500 170" role="img" aria-label="Influence cluster map" style={{ width: "100%", height: "auto" }}>
+        <svg
+          viewBox="0 0 500 180"
+          role="img"
+          aria-label="Influence cluster map"
+          style={{ width: "100%", height: "auto", overflow: "visible" }}
+        >
           <title>Lifecycle influence cluster map</title>
           {links.map((link) => {
-            const fromX = clusterX[link.from];
-            const toX = clusterX[link.to];
+            const from = clusterPos[link.from];
+            const to = clusterPos[link.to];
+            const ctrlY = Math.min(from.y, to.y) - 28;
 
             return (
               <g key={`${link.from}-${link.to}`}>
-                <line
-                  x1={fromX}
-                  y1={85}
-                  x2={toX}
-                  y2={85}
+                <path
+                  d={`M ${from.x} ${from.y} Q ${(from.x + to.x) / 2} ${ctrlY}, ${to.x} ${to.y}`}
+                  fill="none"
                   stroke="currentColor"
-                  strokeOpacity={0.45}
-                  strokeWidth={Math.min(10, 2 + link.weight)}
-                  strokeDasharray="4 4"
+                  strokeOpacity={0.35}
+                  strokeWidth={Math.min(8, 1.5 + link.weight)}
                 />
-                <text x={(fromX + toX) / 2} y={70} textAnchor="middle" fontSize="11" fill="currentColor">
+                <text
+                  x={(from.x + to.x) / 2}
+                  y={ctrlY - 4}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fill="currentColor"
+                >
                   w{link.weight}
                 </text>
               </g>
             );
           })}
 
-          {clusters.map((cluster) => (
-            <g key={cluster.id}>
-              <circle
-                cx={clusterX[cluster.id]}
-                cy={85}
-                r={22 + Math.min(22, Math.round(cluster.nodeCount / 2))}
-                fill="currentColor"
-                fillOpacity={0.1 + cluster.influence / 200}
-                stroke="currentColor"
-              />
-              <text x={clusterX[cluster.id]} y={82} textAnchor="middle" fontSize="11" fill="currentColor">
-                {cluster.label.split(" ")[0]}
-              </text>
-              <text x={clusterX[cluster.id]} y={98} textAnchor="middle" fontSize="10" fill="currentColor">
-                {cluster.nodeCount} nodes
-              </text>
-            </g>
-          ))}
+          {clusters.map((cluster) => {
+            const pos = clusterPos[cluster.id];
+            const radius = cluster.nodeCount > 0
+              ? 14 + Math.min(18, Math.round(cluster.nodeCount / 2))
+              : 12;
+
+            return (
+              <g key={cluster.id}>
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={radius}
+                  fill="currentColor"
+                  fillOpacity={cluster.influence > 0 ? 0.1 + cluster.influence / 250 : 0.08}
+                  stroke="currentColor"
+                />
+                <text x={pos.x} y={pos.y - 2} textAnchor="middle" fontSize="11" fill="currentColor">
+                  {CLUSTER_LABELS[cluster.id]}
+                </text>
+                <text x={pos.x} y={pos.y + 14} textAnchor="middle" fontSize="10" fill="currentColor">
+                  {cluster.nodeCount} nodes
+                </text>
+              </g>
+            );
+          })}
         </svg>
       </div>
-
 
       <div className="card" style={{ marginTop: 12 }}>
         <p className="small" style={{ marginBottom: 8 }}>Strongest current path</p>
