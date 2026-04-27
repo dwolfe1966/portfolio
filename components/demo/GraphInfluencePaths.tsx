@@ -5,20 +5,88 @@ type GraphInfluencePathsProps = {
   events: number;
 };
 
+type Cluster = {
+  id: string;
+  label: string;
+  nodeCount: number;
+  influence: number;
+};
+
+type Link = {
+  from: string;
+  to: string;
+  weight: number;
+};
+
+function buildGraphModel({ users, entities, edges, events }: GraphInfluencePathsProps) {
+  const totalNodes = Math.max(users + entities, 1);
+  const discoveryNodes = Math.max(Math.round(users * 0.38), 1);
+  const intentNodes = Math.max(Math.round(users * 0.34), 1);
+  const conversionNodes = Math.max(totalNodes - discoveryNodes - intentNodes, 1);
+
+  const clusters: Cluster[] = [
+    {
+      id: "discovery",
+      label: "Discovery cluster",
+      nodeCount: discoveryNodes,
+      influence: Math.min(100, Math.round((edges / totalNodes) * 10))
+    },
+    {
+      id: "intent",
+      label: "Intent cluster",
+      nodeCount: intentNodes,
+      influence: Math.min(100, Math.round((events / Math.max(entities, 1)) * 18))
+    },
+    {
+      id: "conversion",
+      label: "Conversion cluster",
+      nodeCount: conversionNodes,
+      influence: Math.min(100, Math.round((events / Math.max(users, 1)) * 22))
+    }
+  ];
+
+  const links: Link[] = [
+    {
+      from: "discovery",
+      to: "intent",
+      weight: Math.max(1, Math.round((edges / totalNodes) * 4))
+    },
+    {
+      from: "intent",
+      to: "conversion",
+      weight: Math.max(1, Math.round((events / Math.max(users, 1)) * 8))
+    },
+    {
+      from: "discovery",
+      to: "conversion",
+      weight: Math.max(1, Math.round((events / totalNodes) * 6))
+    }
+  ];
+
+  return { clusters, links };
+}
+
 export function GraphInfluencePaths({ users, entities, edges, events }: GraphInfluencePathsProps) {
   const avgNeighbors = users > 0 ? (edges / users).toFixed(1) : "0.0";
   const eventPressure = entities > 0 ? (events / entities).toFixed(2) : "0.00";
+  const { clusters, links } = buildGraphModel({ users, entities, edges, events });
 
   const paths = [
-    `User intent cluster → watched entity → high-intent change event`,
-    `High-degree entity → multiple user edges → campaign candidate burst`,
-    `Recent event streak → candidate scoring lift → prioritized outreach queue`
+    "Discovery nodes absorb change-events and route high-variance edges into intent cohorts.",
+    "Intent cohorts amplify frequent entity updates into candidate surges and scoring lifts.",
+    "Conversion cohorts prioritize campaigns where cluster influence stays above guardrail targets."
   ];
+
+  const clusterX: Record<string, number> = {
+    discovery: 90,
+    intent: 250,
+    conversion: 410
+  };
 
   return (
     <div className="card" style={{ marginTop: 12 }}>
       <h3>Influence path explorer (beta)</h3>
-      <p className="small">Early multi-hop view to complement the core topology map.</p>
+      <p className="small">Multi-hop relationship view with lightweight cluster and path-strength signals.</p>
 
       <div className="grid grid-3" style={{ marginTop: 8 }}>
         <div className="card">
@@ -33,6 +101,53 @@ export function GraphInfluencePaths({ users, entities, edges, events }: GraphInf
           <p className="small">Path templates</p>
           <div className="kpi">{paths.length}</div>
         </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <p className="small" style={{ marginBottom: 8 }}>Cluster influence map</p>
+        <svg viewBox="0 0 500 170" role="img" aria-label="Influence cluster map" style={{ width: "100%", height: "auto" }}>
+          {links.map((link) => {
+            const fromX = clusterX[link.from];
+            const toX = clusterX[link.to];
+
+            return (
+              <g key={`${link.from}-${link.to}`}>
+                <line
+                  x1={fromX}
+                  y1={85}
+                  x2={toX}
+                  y2={85}
+                  stroke="currentColor"
+                  strokeOpacity={0.45}
+                  strokeWidth={Math.min(10, 2 + link.weight)}
+                  strokeDasharray="4 4"
+                />
+                <text x={(fromX + toX) / 2} y={70} textAnchor="middle" fontSize="11" fill="currentColor">
+                  w{link.weight}
+                </text>
+              </g>
+            );
+          })}
+
+          {clusters.map((cluster) => (
+            <g key={cluster.id}>
+              <circle
+                cx={clusterX[cluster.id]}
+                cy={85}
+                r={22 + Math.min(22, Math.round(cluster.nodeCount / 2))}
+                fill="currentColor"
+                fillOpacity={0.1 + cluster.influence / 200}
+                stroke="currentColor"
+              />
+              <text x={clusterX[cluster.id]} y={82} textAnchor="middle" fontSize="11" fill="currentColor">
+                {cluster.label.split(" ")[0]}
+              </text>
+              <text x={clusterX[cluster.id]} y={98} textAnchor="middle" fontSize="10" fill="currentColor">
+                {cluster.nodeCount} nodes
+              </text>
+            </g>
+          ))}
+        </svg>
       </div>
 
       <div className="grid" style={{ marginTop: 10 }}>
