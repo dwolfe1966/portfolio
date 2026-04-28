@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { LifecycleMessageMetricsStrip } from "@/components/demo/LifecycleMessageMetricsStrip";
+import { LifecycleFunnelKpiStrip } from "@/components/demo/LifecycleFunnelKpiStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +52,18 @@ async function loadRunsWithLegacyFallback() {
 
 export default async function DemoOutputsPage() {
   try {
-    const [{ runs, usingLegacyFallback }, events, messages, activeAssumptions] = await Promise.all([
+    const [
+      { runs, usingLegacyFallback },
+      events,
+      messages,
+      activeAssumptions,
+      usersCount,
+      entitiesCount,
+      edgesCount,
+      deltasCount,
+      candidatesCount,
+      generatedCount
+    ] = await Promise.all([
       loadRunsWithLegacyFallback(),
       db.entityDelta.findMany({ orderBy: { detectedAt: "desc" }, take: 10, include: { entity: true } }),
       db.generatedMessage.findMany({
@@ -63,7 +74,13 @@ export default async function DemoOutputsPage() {
       db.assumptionSet.findFirst({
         where: { isActive: true },
         select: { openRate: true, clickRate: true, engageRate: true, purchaseRate: true, avgOrderValue: true }
-      })
+      }),
+      db.user.count(),
+      db.entity.count(),
+      db.interestEdge.count(),
+      db.entityDelta.count(),
+      db.campaignCandidate.count(),
+      db.generatedMessage.count()
     ]);
 
     return (
@@ -71,15 +88,15 @@ export default async function DemoOutputsPage() {
           <Section title="Outputs: runs, events, and generated messages">
           <p>This page focuses on resulting artifacts after simulation: campaign runs, event stream, and generated messaging.</p>
           <div style={{ marginTop: 12 }}>
-            <LifecycleMessageMetricsStrip
+            <LifecycleFunnelKpiStrip
+              users={usersCount}
+              entities={entitiesCount}
+              interestEdges={edgesCount}
+              entityChangeEvents={deltasCount}
+              candidates={candidatesCount}
+              sentMessages={generatedCount}
               assumptions={activeAssumptions}
-              caption="These are the message-response inputs used to interpret run quality and expected commercial impact."
             />
-          </div>
-          <div className="grid grid-3" style={{ marginTop: 14 }}>
-            <div className="card"><div className="kpi">{runs.length}</div><p>Recent runs shown</p></div>
-            <div className="card"><div className="kpi">{events.length}</div><p>Recent deltas shown</p></div>
-            <div className="card"><div className="kpi">{messages.length}</div><p>Recent messages shown</p></div>
           </div>
         </Section>
 

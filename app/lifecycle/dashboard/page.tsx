@@ -8,12 +8,27 @@ import { ScenarioLabCard } from "@/components/demo/ScenarioLabCard";
 import { DemoHowItWorks } from "@/components/demo/DemoHowItWorks";
 import { KpiTrendBars } from "@/components/demo/KpiTrendBars";
 import { DataFlowMap } from "@/components/demo/DataFlowMap";
+import { LifecycleFunnelKpiStrip } from "@/components/demo/LifecycleFunnelKpiStrip";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   try {
-    const [deltas, candidates, generated, runs, users, entities, edges, events, messages] = await Promise.all([
+    const [
+      deltas,
+      candidates,
+      generated,
+      runs,
+      users,
+      entities,
+      edges,
+      events,
+      messages,
+      usersCount,
+      entitiesCount,
+      edgesCount,
+      activeAssumptions
+    ] = await Promise.all([
       db.entityDelta.count(),
       db.campaignCandidate.count(),
       db.generatedMessage.count(),
@@ -38,6 +53,13 @@ export default async function DashboardPage() {
             include: { user: true, entity: true, entityDelta: true }
           }
         }
+      }),
+      db.user.count(),
+      db.entity.count(),
+      db.interestEdge.count(),
+      db.assumptionSet.findFirst({
+        where: { isActive: true },
+        select: { openRate: true, clickRate: true, engageRate: true, purchaseRate: true, avgOrderValue: true }
       })
     ]);
 
@@ -45,11 +67,15 @@ export default async function DashboardPage() {
       <>
           <DemoHowItWorks />
         <Section eyebrow="Demo" title="Lifecycle Revenue Engine Dashboard">
-          <div className="grid grid-3">
-            <div className="card"><div className="kpi">{deltas}</div><p>Deltas detected</p></div>
-            <div className="card"><div className="kpi">{candidates}</div><p>Campaign candidates</p></div>
-            <div className="card"><div className="kpi">{generated}</div><p>Generated messages</p></div>
-          </div>
+          <LifecycleFunnelKpiStrip
+            users={usersCount}
+            entities={entitiesCount}
+            interestEdges={edgesCount}
+            entityChangeEvents={deltas}
+            candidates={candidates}
+            sentMessages={generated}
+            assumptions={activeAssumptions}
+          />
         </Section>
         <Section title="Funnel visual">
           <KpiTrendBars deltas={deltas} candidates={candidates} generated={generated} />
