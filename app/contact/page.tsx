@@ -1,11 +1,13 @@
-import { Section } from "@/components/site/Section";
+import { Metadata } from "next";
+import ContactClient from "./ContactClient";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Contact | David Wolfe",
+  description: "Contact David Wolfe about AI-native lifecycle, acquisition, and revenue operating systems.",
+  path: "/contact"
+});
 
 export default function ContactPage() {
-  return (
-    <Section title="Contact">
-      <p>If you’re working on subscription businesses, product systems, lifecycle marketing, or AI-enabled operating leverage, I’d be glad to connect.</p>
-      <p>Email: your-email@example.com</p>
-      <p>LinkedIn: linkedin.com/in/davidwolfe</p>
-    </Section>
-  );
+  return <ContactClient />;
 }

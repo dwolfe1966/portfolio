@@ -23,17 +23,38 @@ const changeWeights: Record<ChangeType, number> = {
   LEGAL_RECORD_ADDED: 0.95
 };
 
+const INTEREST_WEIGHT = 0.45;
+const SEGMENT_WEIGHT = 0.25;
+const CHANGE_WEIGHT = 0.15;
+const RECENCY_WEIGHT = 0.15;
+
 export function calculatePriorityScore(args: {
   interestScore: number;
   segment: Segment;
   changeType: ChangeType;
   recencyScore: number;
 }) {
+  return calculatePriorityBreakdown(args).totalScore;
+}
+
+export function calculatePriorityBreakdown(args: {
+  interestScore: number;
+  segment: Segment;
+  changeType: ChangeType;
+  recencyScore: number;
+}) {
   const { interestScore, segment, changeType, recencyScore } = args;
-  return (
-    interestScore * 0.45 +
-    segmentWeights[segment] * 0.25 +
-    changeWeights[changeType] * 0.15 +
-    recencyScore * 0.15
-  );
+  const interestContribution = interestScore * INTEREST_WEIGHT;
+  const segmentContribution = segmentWeights[segment] * SEGMENT_WEIGHT;
+  const changeTypeContribution = changeWeights[changeType] * CHANGE_WEIGHT;
+  const recencyContribution = recencyScore * RECENCY_WEIGHT;
+  const totalScore = interestContribution + segmentContribution + changeTypeContribution + recencyContribution;
+
+  return {
+    totalScore,
+    interestContribution,
+    segmentContribution,
+    changeTypeContribution,
+    recencyContribution
+  };
 }
