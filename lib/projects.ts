@@ -37,7 +37,7 @@ export const projects: ProjectEntry[] = [
     commercialFraming:
       "The purpose of the system is not just personalization. It is commercial relevance: reactivation, retention, conversion, and incremental revenue per run.",
     whatIBuilt:
-      "A data model, simulation layer, prioritization logic, AI generation layer, working dashboard, and public portfolio presentation.",
+      "I specified, designed, implemented, and evolved the data model, simulation layer, prioritization logic, AI generation layer, working dashboard, and public portfolio presentation.",
     appHref: "/lifecycle",
     status: "live"
   },
@@ -64,7 +64,7 @@ export const projects: ProjectEntry[] = [
     commercialFraming:
       "Focuses spend on high-confidence cells, keeps CAC under LTV-informed thresholds, and improves learning velocity via rapid multivariate testing.",
     whatIBuilt:
-      "Working acquisition workspace with campaign bootstrap, orchestrator iterations, insights panels, and schema support for audit-ready optimization loops.",
+      "I specified, designed, implemented, and evolved a working acquisition workspace with campaign bootstrap, orchestrator iterations, insights panels, and schema support for audit-ready optimization loops.",
     appHref: "/acquisition",
     status: "in-progress"
   },
@@ -91,7 +91,7 @@ export const projects: ProjectEntry[] = [
     commercialFraming:
       "Improves pricing learning velocity while protecting gross margin and net revenue retention through explicit experiment governance.",
     whatIBuilt:
-      "An end-to-end blueprint spanning test design templates, cohort instrumentation contracts, decision policy rules, and operator reporting views.",
+      "I specified, designed, implemented, and evolved an end-to-end blueprint spanning test design templates, cohort instrumentation contracts, decision policy rules, and operator reporting views.",
     status: "in-progress"
   },
   {
@@ -117,7 +117,7 @@ export const projects: ProjectEntry[] = [
     commercialFraming:
       "Shifts retention from reactive triage to proactive revenue protection, improving net retention and reducing avoidable churn cost.",
     whatIBuilt:
-      "A practical operating design with risk taxonomy, intervention playbook matrix, KPI definitions, and implementation sequencing guidance.",
+      "I specified, designed, implemented, and evolved a practical operating design with risk taxonomy, intervention playbook matrix, KPI definitions, and implementation sequencing guidance.",
     status: "in-progress"
   },
   {
@@ -143,7 +143,7 @@ export const projects: ProjectEntry[] = [
     commercialFraming:
       "Creates healthier long-term marketplace economics by reducing overpayment risk, improving bidder confidence, and maintaining predictable platform yield.",
     whatIBuilt:
-      "Auction policy blueprint with ranking/clearing math, simulation scenarios, guardrails for reserve/pacing, and operator dashboards for pricing diagnostics.",
+      "I specified, designed, implemented, and evolved an auction policy blueprint with ranking/clearing math, simulation scenarios, guardrails for reserve/pacing, and operator dashboards for pricing diagnostics.",
     status: "in-progress"
   }
 ];

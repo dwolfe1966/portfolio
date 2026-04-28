@@ -21,17 +21,44 @@ const milestones = [
   {
     period: "Today",
     role: "Independent operator-builder",
-    impact: "Designing AI-powered lifecycle and acquisition systems with hands-on implementation and measurable revenue impact."
+    impact: "Specify, design, implement, and evolve AI-powered lifecycle and acquisition systems with direct ownership of product, data, and delivery quality."
   },
   {
     period: "2018–2024",
     role: "Product + growth leadership",
-    impact: "Led growth-roadmap execution across subscription/SaaS contexts with focus on pricing, retention quality, and operating leverage."
+    impact: "Owned growth and monetization roadmaps across subscription/SaaS contexts, pairing experimentation discipline with cross-functional execution."
   },
   {
     period: "2010–2018",
-    role: "Data + platform product roles",
-    impact: "Built analytics-backed product experiences to improve activation, expansion, and cross-functional planning cadence."
+    role: "Software engineer + data platform product roles",
+    impact: "Built analytics-backed product capabilities and production workflows as a hands-on engineer before moving into broader product leadership."
+  }
+];
+
+const competencyTimeline = [
+  {
+    period: "2010–2014",
+    focus: "Engineering foundation",
+    competencies: "Software engineering, data modeling, production instrumentation",
+    evidence: "Shipped data-platform and workflow systems that improved activation and reporting reliability."
+  },
+  {
+    period: "2014–2018",
+    focus: "Product + data integration",
+    competencies: "Product discovery, analytics, experimentation, ML collaboration",
+    evidence: "Connected user behavior signals to product decisions and repeatable optimization loops."
+  },
+  {
+    period: "2018–2024",
+    focus: "Growth and monetization leadership",
+    competencies: "Lifecycle strategy, CAC/LTV economics, operating cadence",
+    evidence: "Led pricing, retention, and growth execution while aligning product/marketing/data teams."
+  },
+  {
+    period: "Today",
+    focus: "Operator-builder",
+    competencies: "AI systems implementation, cross-functional execution, executive decision support",
+    evidence: "Builds and runs AI-native revenue systems end to end with measurable commercial impact."
   }
 ];
 
@@ -65,6 +92,28 @@ export default function AboutPage() {
               <p>{item.impact}</p>
             </div>
           ))}
+        </div>
+      </Section>
+
+      <Section title="Competencies mapped to experience timeline">
+        <div className="grid">
+          {competencyTimeline.map((item) => (
+            <div className="card" key={item.period}>
+              <p className="small" style={{ marginBottom: 6 }}>{item.period} · {item.focus}</p>
+              <p><strong>Competencies:</strong> {item.competencies}</p>
+              <p className="small">{item.evidence}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Engineering experience">
+        <div className="card">
+          <h3>Hands-on engineering foundation</h3>
+          <p>
+            I started as an engineer and still work directly in implementation. That engineering depth is what lets me
+            connect strategy to production systems, from data contracts and APIs to operator-facing workflows.
+          </p>
         </div>
       </Section>
 

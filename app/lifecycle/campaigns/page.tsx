@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { LifecycleMessageMetricsStrip } from "@/components/demo/LifecycleMessageMetricsStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -45,15 +46,25 @@ export default async function CampaignsPage({ searchParams }: PageProps) {
             ? { entityDelta: { changeType: sortDir } }
             : { createdAt: sortDir };
 
-    const candidates = await db.campaignCandidate.findMany({
-      include: { user: true, entity: true, entityDelta: true, generatedMessage: true, campaignRun: true },
-      orderBy,
-      where,
-      take: 80
-    });
+    const [candidates, activeAssumptions] = await Promise.all([
+      db.campaignCandidate.findMany({
+        include: { user: true, entity: true, entityDelta: true, generatedMessage: true, campaignRun: true },
+        orderBy,
+        where,
+        take: 80
+      }),
+      db.assumptionSet.findFirst({
+        where: { isActive: true },
+        select: { openRate: true, clickRate: true, engageRate: true, purchaseRate: true, avgOrderValue: true }
+      })
+    ]);
 
     return (
       <Section eyebrow="Demo" title="Campaign opportunities">
+        <LifecycleMessageMetricsStrip
+          assumptions={activeAssumptions}
+          caption="Keep core funnel metrics prominent while filtering and prioritizing campaign opportunities."
+        />
         <form method="GET" className="card" style={{ marginBottom: 16 }}>
           <div className="grid grid-3" style={{ gap: 10 }}>
             <label>
