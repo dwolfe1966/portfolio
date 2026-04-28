@@ -5,7 +5,7 @@ import { Section } from "@/components/site/Section";
 
 export const metadata: Metadata = buildMetadata({
   title: "About | David Wolfe",
-  description: "About David Wolfe: AI-powered product, growth, and operations leader.",
+  description: "About David Wolfe: AI practitioner and product, growth, and operations leader.",
   path: "/about"
 });
 
@@ -58,17 +58,17 @@ const competencyTimeline = [
     period: "Today",
     focus: "Operator-builder",
     competencies: "AI systems implementation, cross-functional execution, executive decision support",
-    evidence: "Builds and runs AI-native revenue systems end to end with measurable commercial impact."
+    evidence: "Applies AI practitioner methods to build and run revenue systems end to end with measurable commercial impact."
   }
 ];
 
 export default function AboutPage() {
   return (
     <>
-      <Section eyebrow="About" title="Building AI systems that turn decisions into revenue">
+      <Section eyebrow="About" title="AI practitioner building systems that turn decisions into revenue">
         <p>
-          I build operating systems that connect product strategy, data science, and go-to-market execution.
-          My focus is helping teams move faster with clearer decisions and stronger commercial outcomes.
+          I am an AI practitioner who builds operating systems that connect product strategy, data science, and go-to-market execution.
+          My focus is helping teams move faster with clearer decisions, stronger commercial outcomes, and practical adoption of AI in daily operations.
         </p>
       </Section>
 
@@ -109,7 +109,7 @@ export default function AboutPage() {
 
       <Section title="Engineering experience">
         <div className="card">
-          <h3>Hands-on engineering foundation</h3>
+          <h3>Hands-on engineering + AI practitioner foundation</h3>
           <p>
             I started as an engineer and still work directly in implementation. That engineering depth is what lets me
             connect strategy to production systems, from data contracts and APIs to operator-facing workflows.
