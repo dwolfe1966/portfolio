@@ -1,7 +1,6 @@
 import { Section } from "@/components/site/Section";
 import { RunGeneratorCard } from "@/components/demo/RunGeneratorCard";
 import { ScenarioLabCard } from "@/components/demo/ScenarioLabCard";
-import { LifecycleMessageMetricsStrip } from "@/components/demo/LifecycleMessageMetricsStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -13,9 +12,6 @@ export default function DemoSimulationsPage() {
           Use these controls to run experiments: inject fresh entity events, generate campaign opportunities,
           then model downstream opens, clicks, engagement, purchases, and revenue.
         </p>
-      </Section>
-      <Section title="Message response metrics">
-        <LifecycleMessageMetricsStrip caption="Keep these five metrics in view while running scenario experiments." />
       </Section>
       <Section title="How to use this tab">
         <div className="grid grid-3">

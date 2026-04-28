@@ -10,7 +10,6 @@ import { LifecycleOutcomeInfographic } from "@/components/demo/LifecycleOutcomeI
 import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
 import { GraphInfluencePaths } from "@/components/demo/GraphInfluencePaths";
 import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
-import { LifecycleMessageMetricsStrip } from "@/components/demo/LifecycleMessageMetricsStrip";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
@@ -29,16 +28,7 @@ export default async function DemoOverviewPage() {
     db.interestEdge.count(),
     db.assumptionSet.findFirst({
       where: { isActive: true },
-      select: {
-        recencyScore: true,
-        highPriorityThreshold: true,
-        minPriorityScore: true,
-        openRate: true,
-        clickRate: true,
-        engageRate: true,
-        purchaseRate: true,
-        avgOrderValue: true
-      }
+      select: { recencyScore: true, highPriorityThreshold: true, minPriorityScore: true }
     })
   ]);
 
@@ -46,11 +36,7 @@ export default async function DemoOverviewPage() {
     <>
       <DemoHowItWorks />
       <Section title="Volume and conversion snapshot">
-        <LifecycleMessageMetricsStrip
-          assumptions={activeAssumptions}
-          caption="These response assumptions drive scenario framing and expected campaign economics."
-        />
-        <div style={{ marginTop: 12 }}><KpiTrendBars deltas={deltas} candidates={candidates} generated={generated} /></div>
+        <KpiTrendBars deltas={deltas} candidates={candidates} generated={generated} />
       </Section>
       <Section title="Event-to-message pipeline">
         <LifecyclePipelineDiagram
