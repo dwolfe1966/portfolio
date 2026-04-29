@@ -119,7 +119,7 @@ export default async function DashboardPage() {
             <ScenarioLabCard />
           </div>
         </Section>
-        <Section title="Recent users">
+        <div id="recent-users"><Section title="Recent users">
           <table className="table">
             <thead><tr><th>User</th><th>Segment</th><th>Status</th><th>Created</th></tr></thead>
             <tbody>
@@ -133,8 +133,8 @@ export default async function DashboardPage() {
               ))}
             </tbody>
           </table>
-        </Section>
-        <Section title="Recent entities of interest">
+        </Section></div>
+        <div id="recent-entities"><Section title="Recent entities of interest">
           <table className="table">
             <thead><tr><th>Entity</th><th>Type</th><th>Location</th><th>Created</th></tr></thead>
             <tbody>
@@ -148,8 +148,8 @@ export default async function DashboardPage() {
               ))}
             </tbody>
           </table>
-        </Section>
-        <Section title="Recent user ↔ entity relationships">
+        </Section></div>
+        <div id="recent-interest-edges"><Section title="Recent user ↔ entity relationships">
           <table className="table">
             <thead><tr><th>User</th><th>Entity</th><th>Score</th><th>Source</th></tr></thead>
             <tbody>
@@ -163,8 +163,8 @@ export default async function DashboardPage() {
               ))}
             </tbody>
           </table>
-        </Section>
-        <Section title="Recent events (entity deltas)">
+        </Section></div>
+        <div id="recent-events"><Section title="Recent events (entity deltas)">
           <table className="table">
             <thead><tr><th>Entity</th><th>Change type</th><th>Summary</th><th>Detected</th></tr></thead>
             <tbody>
@@ -178,8 +178,8 @@ export default async function DashboardPage() {
               ))}
             </tbody>
           </table>
-        </Section>
-        <Section title="Recent generated messages">
+        </Section></div>
+        <div id="recent-generated-messages"><Section title="Recent generated messages">
           <table className="table">
             <thead><tr><th>User</th><th>Entity</th><th>Subject</th><th>Model</th></tr></thead>
             <tbody>
@@ -193,7 +193,7 @@ export default async function DashboardPage() {
               ))}
             </tbody>
           </table>
-        </Section>
+        </Section></div>
       </>
     );
   } catch (error) {

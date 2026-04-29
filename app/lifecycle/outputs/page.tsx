@@ -112,7 +112,7 @@ export default async function DemoOutputsPage() {
           </Section>
         )}
 
-        <Section title="Recent campaign runs">
+        <div id="recent-campaign-runs"><Section title="Recent campaign runs">
           {runs.length === 0 ? (
             <div className="card"><p>No campaign runs yet. Generate a run from /lifecycle/simulations.</p></div>
           ) : (
@@ -131,7 +131,7 @@ export default async function DemoOutputsPage() {
               </tbody>
             </table>
           )}
-        </Section>
+        </Section></div>
         <Section title="Recent events">
           <table className="table">
             <thead><tr><th>Entity</th><th>Change type</th><th>Summary</th></tr></thead>
@@ -146,7 +146,7 @@ export default async function DemoOutputsPage() {
             </tbody>
           </table>
         </Section>
-        <Section title="Recent generated messages">
+        <div id="recent-generated-messages"><Section title="Recent generated messages">
           <table className="table">
             <thead><tr><th>User</th><th>Entity</th><th>Subject</th><th>Model</th></tr></thead>
             <tbody>
@@ -160,7 +160,7 @@ export default async function DemoOutputsPage() {
               ))}
             </tbody>
           </table>
-        </Section>
+        </Section></div>
       </>
     );
   } catch (error) {
