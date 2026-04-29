@@ -75,6 +75,12 @@ export default async function DashboardPage() {
             candidates={candidates}
             sentMessages={generated}
             assumptions={activeAssumptions}
+            actuals={{
+              revenue: runs.reduce((sum, run) => sum + Number(run.estimatedRevenue), 0),
+              conversions: activeAssumptions
+                ? Math.round(runs.reduce((sum, run) => sum + Number(run.estimatedRevenue), 0) / Math.max(activeAssumptions.avgOrderValue, 1))
+                : undefined
+            }}
           />
         </Section>
         <Section title="Funnel visual">

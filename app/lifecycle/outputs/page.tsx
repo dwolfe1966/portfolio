@@ -96,6 +96,12 @@ export default async function DemoOutputsPage() {
               candidates={candidatesCount}
               sentMessages={generatedCount}
               assumptions={activeAssumptions}
+              actuals={{
+                revenue: runs.reduce((sum, run) => sum + Number(run.estimatedRevenue), 0),
+                conversions: activeAssumptions
+                  ? Math.round(runs.reduce((sum, run) => sum + Number(run.estimatedRevenue), 0) / Math.max(activeAssumptions.avgOrderValue, 1))
+                  : undefined
+              }}
             />
           </div>
         </Section>

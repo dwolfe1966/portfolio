@@ -160,7 +160,7 @@ export function ScenarioLabCard() {
   return (
     <div className="card">
       <h3>Interactive scenario lab</h3>
-      <p>Edit assumptions, run generation, and simulate downstream outcomes.</p>
+      <p>Edit assumptions, run generation, and simulate downstream outcomes. Use recommended defaults first, then change one variable at a time.</p>
 
       <div className="grid grid-3" style={{ marginTop: 12, gap: 12 }}>
         <label>
@@ -170,10 +170,12 @@ export function ScenarioLabCard() {
         <label>
           Top N campaigns
           <input type="number" min={1} max={100} value={topN} onChange={(e) => setTopN(Number(e.target.value || 10))} />
+          <span className="small">How many highest-priority candidates to include in this run (start: 15–25).</span>
         </label>
         <label>
           Inject delta events
           <input type="number" min={1} max={200} value={deltaCount} onChange={(e) => setDeltaCount(Number(e.target.value || 8))} />
+          <span className="small">How many new trigger events to simulate before generation (start: 8–20).</span>
         </label>
       </div>
 
@@ -185,18 +187,20 @@ export function ScenarioLabCard() {
         <button type="button" onClick={runMonteCarlo} disabled={!outcomeResult?.counts}>Run Monte Carlo</button>
       </div>
 
-      <h3 style={{ marginTop: 16 }}>Assumption controls</h3>
-      <div className="grid grid-4" style={{ gap: 10 }}>
-        <label>Recency score<input type="number" step="0.01" min={0} max={1} value={recencyScore} onChange={(e) => setRecencyScore(Number(e.target.value || 0))} /></label>
-        <label>Min priority score<input type="number" step="0.01" min={0} max={1} value={minPriorityScore} onChange={(e) => setMinPriorityScore(Number(e.target.value || 0))} /></label>
-        <label>High-priority threshold<input type="number" step="0.01" min={0} max={1} value={highPriorityThreshold} onChange={(e) => setHighPriorityThreshold(Number(e.target.value || 0))} /></label>
-        <label>Revenue / high-priority<input type="number" min={0} value={revenuePerHighPriority} onChange={(e) => setRevenuePerHighPriority(Number(e.target.value || 0))} /></label>
-        <label>Open rate<input type="number" step="0.01" min={0} max={1} value={openRate} onChange={(e) => setOpenRate(Number(e.target.value || 0))} /></label>
-        <label>Click rate<input type="number" step="0.01" min={0} max={1} value={clickRate} onChange={(e) => setClickRate(Number(e.target.value || 0))} /></label>
-        <label>Engage rate<input type="number" step="0.01" min={0} max={1} value={engageRate} onChange={(e) => setEngageRate(Number(e.target.value || 0))} /></label>
-        <label>Purchase rate<input type="number" step="0.001" min={0} max={1} value={purchaseRate} onChange={(e) => setPurchaseRate(Number(e.target.value || 0))} /></label>
-        <label>Avg order value<input type="number" min={0} value={avgOrderValue} onChange={(e) => setAvgOrderValue(Number(e.target.value || 0))} /></label>
-      </div>
+      <details style={{ marginTop: 16 }}>
+        <summary><strong>Advanced assumption controls</strong> (optional)</summary>
+        <div className="grid grid-4" style={{ gap: 10, marginTop: 10 }}>
+          <label>Recency score<input type="number" step="0.01" min={0} max={1} value={recencyScore} onChange={(e) => setRecencyScore(Number(e.target.value || 0))} /></label>
+          <label>Min priority score<input type="number" step="0.01" min={0} max={1} value={minPriorityScore} onChange={(e) => setMinPriorityScore(Number(e.target.value || 0))} /></label>
+          <label>High-priority threshold<input type="number" step="0.01" min={0} max={1} value={highPriorityThreshold} onChange={(e) => setHighPriorityThreshold(Number(e.target.value || 0))} /></label>
+          <label>Revenue / high-priority<input type="number" min={0} value={revenuePerHighPriority} onChange={(e) => setRevenuePerHighPriority(Number(e.target.value || 0))} /></label>
+          <label>Open rate<input type="number" step="0.01" min={0} max={1} value={openRate} onChange={(e) => setOpenRate(Number(e.target.value || 0))} /></label>
+          <label>Click rate<input type="number" step="0.01" min={0} max={1} value={clickRate} onChange={(e) => setClickRate(Number(e.target.value || 0))} /></label>
+          <label>Engage rate<input type="number" step="0.01" min={0} max={1} value={engageRate} onChange={(e) => setEngageRate(Number(e.target.value || 0))} /></label>
+          <label>Purchase rate<input type="number" step="0.001" min={0} max={1} value={purchaseRate} onChange={(e) => setPurchaseRate(Number(e.target.value || 0))} /></label>
+          <label>Avg order value<input type="number" min={0} value={avgOrderValue} onChange={(e) => setAvgOrderValue(Number(e.target.value || 0))} /></label>
+        </div>
+      </details>
 
       {generateResult && (
         <div style={{ marginTop: 14 }}>
