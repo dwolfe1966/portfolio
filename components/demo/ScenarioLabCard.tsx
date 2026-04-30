@@ -124,7 +124,7 @@ export function ScenarioLabCard() {
     }
   }
 
-  async function simulateOutcomes() {
+  async function simulateOutcomes(): Promise<OutcomeResult | null> {
     setLoadingAction("simulate");
     setOutcomeResult(null);
     try {
@@ -141,13 +141,15 @@ export function ScenarioLabCard() {
       });
       const payload = (await response.json()) as OutcomeResult;
       setOutcomeResult(payload);
+      return payload;
     } finally {
       setLoadingAction(null);
     }
   }
 
-  function runMonteCarlo() {
-    const delivered = outcomeResult?.counts?.delivered ?? Math.max(1, topN);
+  async function runMonteCarlo() {
+    const baseOutcome = outcomeResult?.counts ? outcomeResult : await simulateOutcomes();
+    const delivered = baseOutcome?.counts?.delivered ?? Math.max(1, topN);
     const runs = new Array(50).fill(0).map(() => {
       const opens = delivered * randomAround(openRate);
       const clicks = opens * randomAround(clickRate);
@@ -184,7 +186,7 @@ export function ScenarioLabCard() {
         <button type="button" onClick={injectEvents} disabled={loadingAction !== null}>{loadingAction === "inject" ? "Injecting..." : "1) Inject Events"}</button>
         <button type="button" onClick={generate} disabled={loadingAction !== null}>{loadingAction === "generate" ? "Generating..." : "2) Generate Campaigns"}</button>
         <button type="button" onClick={simulateOutcomes} disabled={loadingAction !== null}>{loadingAction === "simulate" ? "Simulating..." : "3) Simulate Outcomes"}</button>
-        <button type="button" onClick={runMonteCarlo} disabled={!outcomeResult?.counts}>Run Monte Carlo</button>
+        <button type="button" onClick={runMonteCarlo} disabled={loadingAction !== null}>Run Monte Carlo</button>
       </div>
 
       <details style={{ marginTop: 16 }}>
