@@ -32,6 +32,9 @@ export function SimulationCharts({ counts, monteCarlo }: { counts: Counts; monte
 
   const maxBucket = Math.max(...buckets, 1);
 
+  const sorted = [...monteCarlo].sort((a, b) => a - b);
+  const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+
   return (
     <div className="grid grid-2">
       <div className="card">
@@ -51,6 +54,7 @@ export function SimulationCharts({ counts, monteCarlo }: { counts: Counts; monte
       <div className="card">
         <h3>Revenue distribution (Monte Carlo)</h3>
         <p className="small">50 runs with random variation around assumptions.</p>
+        <p className="small">Range: ${min.toFixed(0)} - ${max.toFixed(0)} · Median: ${median.toFixed(0)}</p>
         <div className="chartColumns">
           {buckets.map((bucket, index) => (
             <div key={index} className="chartBarWrap">
