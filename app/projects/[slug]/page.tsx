@@ -1,9 +1,34 @@
 import Link from "next/link";
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Section } from "@/components/site/Section";
 import { getProjectBySlug, projects } from "@/lib/projects";
+import { LifecyclePipelineDiagram } from "@/components/demo/LifecyclePipelineDiagram";
+import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
+import { buildMetadata } from "@/lib/seo";
+import { VickreyAuctionDiagram } from "@/components/projects/VickreyAuctionDiagram";
+import { ProjectFlowTimeline } from "@/components/projects/ProjectFlowTimeline";
 
 type PageProps = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const project = getProjectBySlug(slug);
+
+  if (!project) {
+    return buildMetadata({
+      title: "Project not found | David Wolfe",
+      description: "The requested project case study could not be found.",
+      path: "/projects"
+    });
+  }
+
+  return buildMetadata({
+    title: `${project.title} | David Wolfe`,
+    description: project.summary,
+    path: `/projects/${project.slug}`
+  });
+}
 
 export default async function ProjectDetailPage({ params }: PageProps) {
   const { slug } = await params;
@@ -19,7 +44,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       <Section eyebrow="Project" title={project.title}>
         <p>{project.summary}</p>
         <div className="ctaRow">
-          <Link className="btn primary" href={project.appHref ?? "/demo"}>
+          <Link className="btn primary" href={project.appHref ?? "/lifecycle"}>
             {project.slug === "agent-acquisition" ? "Open acquisition app" : "Open lifecycle app"}
           </Link>
           <Link className="btn" href="/projects">Back to projects</Link>
@@ -27,10 +52,35 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       </Section>
       <Section title="The problem"><p>{project.problem}</p></Section>
       <Section title="The thesis"><p>{project.thesis}</p></Section>
+      <Section title="System flow">
+        {project.slug === "agent-acquisition" ? (
+          <AcquisitionFlowDiagram />
+        ) : project.slug === "lifecycle-revenue-engine" ? (
+          <LifecyclePipelineDiagram deltas={45} candidates={20} messages={5} outcomes={480} />
+        ) : (
+          <ProjectFlowTimeline steps={project.architecture} />
+        )}
+      </Section>
       <Section title="System architecture">
         <div className="grid grid-2">
           {project.architecture.map((item) => (
             <div key={item.title} className="card"><h3>{item.title}</h3><p>{item.detail}</p></div>
+          ))}
+        </div>
+      </Section>
+      {project.slug === "vickrey-auction-closed-ads-ecosystem" ? (
+        <Section title="Auction model artifact">
+          <VickreyAuctionDiagram />
+        </Section>
+      ) : null}
+      <Section title="KPI callouts">
+        <div className="grid grid-3">
+          {project.kpiCallouts.map((item) => (
+            <div key={item.label} className="card">
+              <p className="small">{item.label}</p>
+              <div className="kpi">{item.value}</div>
+              <p>{item.detail}</p>
+            </div>
           ))}
         </div>
       </Section>

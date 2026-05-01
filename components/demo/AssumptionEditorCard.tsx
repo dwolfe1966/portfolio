@@ -20,7 +20,7 @@ export function AssumptionEditorCard() {
   async function loadFromServer() {
     setLoading(true);
     try {
-      const response = await fetch("/api/assumptions", { cache: "no-store" });
+      const response = await fetch("/api/lifecycle/assumptions", { cache: "no-store" });
       const payload = await response.json();
       setSets(payload.assumptionSets ?? []);
       if (payload.activeAssumptions) setForm(payload.activeAssumptions);
@@ -44,7 +44,7 @@ export function AssumptionEditorCard() {
   async function save() {
     setLoading(true);
     try {
-      const response = await fetch("/api/assumptions", {
+      const response = await fetch("/api/lifecycle/assumptions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: setName, assumptions: form, makeActive: true })
@@ -64,7 +64,7 @@ export function AssumptionEditorCard() {
     if (!activeSetId) return;
     setLoading(true);
     try {
-      const response = await fetch("/api/assumptions", {
+      const response = await fetch("/api/lifecycle/assumptions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activateId: activeSetId })

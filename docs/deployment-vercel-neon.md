@@ -37,11 +37,13 @@ npx prisma migrate dev --name init
 npm run db:migrate:deploy
 ```
 
-### Option B: Prisma DB Push (quick start)
+### Option B: Prisma DB Push (quick start, fallback only)
 
 ```bash
 npx prisma db push
 ```
+
+> Note: this repo includes baseline migrations, so prefer `npm run db:migrate:deploy` for consistent environments.
 
 Then seed data if desired:
 
@@ -98,9 +100,11 @@ If demo routes fail with Prisma `P2021` (missing table), your production schema 
 
 ```bash
 npm run db:generate
-npx prisma db push
+npm run db:migrate:deploy
 npm run db:seed
 ```
+
+If your environment is intentionally db-push based (no migration history yet), use `npx prisma db push` as a fallback.
 
 If `db:seed` fails in Codespaces with pooler host connectivity errors, set `DATABASE_URL_UNPOOLED` and rerun. This repo prefers the unpooled URL outside production for Prisma CLI/seed workflows.
 

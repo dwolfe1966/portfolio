@@ -10,6 +10,12 @@ type DataFlowMapProps = {
 const arrow = "→";
 
 export function DataFlowMap({ users, entities, edges, events, candidates, messages }: DataFlowMapProps) {
+  const edgesPerUser = users > 0 ? (edges / users).toFixed(2) : "0.00";
+  const edgesPerEntity = entities > 0 ? (edges / entities).toFixed(2) : "0.00";
+  const candidateLiftFromEvents = events > 0 ? (candidates / events).toFixed(2) : "0.00";
+  const messageLiftFromCandidates = candidates > 0 ? (messages / candidates).toFixed(2) : "0.00";
+  const clusterEstimate = Math.max(1, Math.round(Math.sqrt(Math.max(edges, 1)) / 2));
+
   return (
     <div className="card">
       <h3>Pipeline map</h3>
@@ -49,6 +55,31 @@ export function DataFlowMap({ users, entities, edges, events, candidates, messag
           <h3>Messages</h3>
           <div className="kpi">{messages}</div>
         </div>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <h3>Graph complexity view</h3>
+        <div className="grid grid-4" style={{ marginTop: 8 }}>
+          <div className="card">
+            <p className="small">Edges / user</p>
+            <div className="kpi">{edgesPerUser}</div>
+          </div>
+          <div className="card">
+            <p className="small">Edges / entity</p>
+            <div className="kpi">{edgesPerEntity}</div>
+          </div>
+          <div className="card">
+            <p className="small">Candidates / event</p>
+            <div className="kpi">{candidateLiftFromEvents}</div>
+          </div>
+          <div className="card">
+            <p className="small">Messages / candidate</p>
+            <div className="kpi">{messageLiftFromCandidates}</div>
+          </div>
+        </div>
+        <p className="small" style={{ marginTop: 8 }}>
+          Estimated active relationship clusters: <strong>{clusterEstimate}</strong>. This is a proxy to guide future multi-hop and cluster-based graph exploration.
+        </p>
       </div>
     </div>
   );

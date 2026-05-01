@@ -1,70 +1,149 @@
 import Link from "next/link";
+import { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
+
+export const metadata: Metadata = buildMetadata({
+  title: "About | David Wolfe",
+  description: "About David Wolfe: AI practitioner and product, growth, and operations leader.",
+  path: "/about"
+});
+
+const competencies = [
+  { title: "Product discovery & design", detail: "Translate ambiguous demand signals into concrete hypotheses and shipped product loops." },
+  { title: "Machine learning & data science", detail: "Build practical scoring and simulation systems that improve decision quality." },
+  { title: "Growth marketing & monetization", detail: "Optimize CAC, retention, and LTV with clear measurement and budget discipline." },
+  { title: "Engineering & operations", detail: "Turn strategy into reliable workflows, instrumentation, and repeatable team execution." },
+  { title: "Executive leadership", detail: "Align product, data, marketing, and finance around common commercial outcomes." }
+];
+
+const milestones = [
+  {
+    period: "Today",
+    role: "Independent operator-builder",
+    impact: "Specify, design, implement, and evolve AI-powered lifecycle and acquisition systems with direct ownership of product, data, and delivery quality."
+  },
+  {
+    period: "2018–2024",
+    role: "Product + growth leadership",
+    impact: "Owned growth and monetization roadmaps across subscription/SaaS contexts, pairing experimentation discipline with cross-functional execution."
+  },
+  {
+    period: "2010–2018",
+    role: "Software engineer + data platform product roles",
+    impact: "Built analytics-backed product capabilities and production workflows as a hands-on engineer before moving into broader product leadership."
+  }
+];
+
+const competencyTimeline = [
+  {
+    period: "2010–2014",
+    focus: "Engineering foundation",
+    competencies: "Software engineering, data modeling, production instrumentation",
+    evidence: "Shipped data-platform and workflow systems that improved activation and reporting reliability."
+  },
+  {
+    period: "2014–2018",
+    focus: "Product + data integration",
+    competencies: "Product discovery, analytics, experimentation, ML collaboration",
+    evidence: "Connected user behavior signals to product decisions and repeatable optimization loops."
+  },
+  {
+    period: "2018–2024",
+    focus: "Growth and monetization leadership",
+    competencies: "Lifecycle strategy, CAC/LTV economics, operating cadence",
+    evidence: "Led pricing, retention, and growth execution while aligning product/marketing/data teams."
+  },
+  {
+    period: "Today",
+    focus: "Operator-builder",
+    competencies: "AI systems implementation, cross-functional execution, executive decision support",
+    evidence: "Applies AI practitioner methods to build and run revenue systems end to end with measurable commercial impact."
+  }
+];
 
 export default function AboutPage() {
   return (
     <>
-      <Section eyebrow="About" title="Operator-builder focused on AI-native revenue systems">
+      <Section eyebrow="About" title="AI practitioner building systems that turn decisions into revenue">
         <p>
-          I have spent 20+ years building and scaling products across subscription, SaaS, and data businesses.
-          My current focus is designing practical AI operating systems that move commercial metrics—not just output volume.
+          I am an AI practitioner who builds operating systems that connect product strategy, data science, and go-to-market execution.
+          My focus is helping teams move faster with clearer decisions, stronger commercial outcomes, and practical adoption of AI in daily operations.
         </p>
+      </Section>
+
+      <Section title="Core competencies">
+        <div className="grid grid-2">
+          {competencies.map((item) => (
+            <div className="card" key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.detail}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Experience and milestones">
+        <div className="grid">
+          {milestones.map((item) => (
+            <div className="card" key={item.period}>
+              <p className="small" style={{ marginBottom: 6 }}>{item.period}</p>
+              <h3>{item.role}</h3>
+              <p>{item.impact}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Competencies mapped to experience timeline">
+        <div className="grid">
+          {competencyTimeline.map((item) => (
+            <div className="card" key={item.period}>
+              <p className="small" style={{ marginBottom: 6 }}>{item.period} · {item.focus}</p>
+              <p><strong>Competencies:</strong> {item.competencies}</p>
+              <p className="small">{item.evidence}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Engineering experience">
+        <div className="card">
+          <h3>Hands-on engineering + AI practitioner foundation</h3>
+          <p>
+            I started as an engineer and still work directly in implementation. That engineering depth is what lets me
+            connect strategy to production systems, from data contracts and APIs to operator-facing workflows.
+          </p>
+        </div>
+      </Section>
+
+      <Section title="Approach and philosophy">
+        <div className="grid grid-2">
+          <div className="card">
+            <h3>Strategy + execution in one loop</h3>
+            <p>
+              I combine high-level operating strategy with direct implementation so teams get both direction and delivery momentum.
+            </p>
+          </div>
+          <div className="card">
+            <h3>AI pragmatism and operating leverage</h3>
+            <p>
+              AI should improve throughput, decision quality, and economics—not add complexity without measurable gains.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Personal note">
+        <p>
+          I enjoy translating complex systems into clear operator workflows that teams can trust and iterate.
+        </p>
+      </Section>
+
+      <Section title="Let’s collaborate">
         <div className="ctaRow">
-          <Link className="btn primary" href="/projects">See projects</Link>
-          <Link className="btn" href="/contact">Work together</Link>
-        </div>
-      </Section>
-
-      <Section title="What I build">
-        <div className="grid grid-3">
-          <div className="card">
-            <h3>Lifecycle engine systems</h3>
-            <p>Signal-driven retention/reactivation systems connected to measurable revenue outcomes.</p>
-          </div>
-          <div className="card">
-            <h3>Acquisition operating loops</h3>
-            <p>Agent-assisted creative + budget orchestration tied to CAC, payback, and LTV quality.</p>
-          </div>
-          <div className="card">
-            <h3>Execution architecture</h3>
-            <p>Cross-functional workflows that let smaller teams run faster with better decision quality.</p>
-          </div>
-        </div>
-      </Section>
-
-      <Section title="How I work">
-        <div className="grid grid-2">
-          <div className="card">
-            <h3>Economics first</h3>
-            <p>Every system starts with business constraints and unit-economics targets.</p>
-          </div>
-          <div className="card">
-            <h3>Signals over schedules</h3>
-            <p>I prefer event-triggered systems over static campaign calendars.</p>
-          </div>
-          <div className="card">
-            <h3>Working proofs</h3>
-            <p>I ship operable demos and instrumentation, not just strategy narratives.</p>
-          </div>
-          <div className="card">
-            <h3>Tight loops</h3>
-            <p>Design for rapid iteration: hypothesis, run, read outcomes, and reallocate quickly.</p>
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Current build focus">
-        <div className="grid grid-2">
-          <div className="card">
-            <h3>Lifecycle app cleanup</h3>
-            <p>Improving reliability, schema compatibility, and clarity inside the lifecycle workspace.</p>
-            <Link className="btn" href="/demo">Open lifecycle app</Link>
-          </div>
-          <div className="card">
-            <h3>Acquisition app build-out</h3>
-            <p>Building the paid acquisition companion app that closes the CAC-to-LTV operating loop.</p>
-            <Link className="btn" href="/acquisition">Open acquisition app</Link>
-          </div>
+          <Link className="btn primary" href="/contact">Start a conversation</Link>
+          <Link className="btn" href="/projects">Review case studies</Link>
         </div>
       </Section>
     </>

@@ -24,7 +24,7 @@ export function RunGeneratorCard() {
     setResult(null);
 
     try {
-      const response = await fetch("/api/generate-campaigns", {
+      const response = await fetch("/api/lifecycle/generate-campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topN, runName })
@@ -42,7 +42,7 @@ export function RunGeneratorCard() {
   return (
     <div className="card" style={{ maxWidth: 640 }}>
       <h3>Run Campaign Generation</h3>
-      <p>Trigger <code>POST /api/generate-campaigns</code> from the demo UI.</p>
+      <p>Trigger <code>POST /api/lifecycle/generate-campaigns</code> from the demo UI.</p>
       <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
         <label>
           Run name

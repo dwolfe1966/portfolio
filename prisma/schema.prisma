@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
@@ -40,42 +40,194 @@ enum CampaignStatus {
   REJECTED
 }
 
+enum AcquisitionChannel {
+  SEARCH
+  SOCIAL
+  DISPLAY
+  VIDEO
+}
+
+enum AcquisitionCampaignState {
+  DRAFT
+  TESTING
+  SCALING
+  PAUSED
+  COMPLETED
+}
+
+model AcquisitionCampaign {
+  id                String                   @id @default(cuid())
+  name              String
+  objective         String
+  budgetCents       Int
+  startAt           DateTime
+  endAt             DateTime
+  channels          AcquisitionChannel[]
+  maxBudgetShiftPct Float                    @default(0.2)
+  minConfidence     Float                    @default(0.65)
+  cooldownHours     Int                      @default(24)
+  targetCacCents    Int
+  targetLtvCents    Int
+  state             AcquisitionCampaignState @default(DRAFT)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  creatives         AdCreative[]
+  audiences         AudienceSegment[]
+  testCells         TestCell[]
+  budgetActivities  BudgetActivity[]
+  auditLogs         AcquisitionAuditLog[]
+
+  @@index([state, updatedAt])
+  @@index([startAt, endAt])
+}
+
+model AdCreative {
+  id                  String              @id @default(cuid())
+  campaignId          String
+  headline            String
+  description         String
+  callToAction        String
+  channel             AcquisitionChannel
+  predictedCtr        Float
+  predictedConversion Float
+  status              CampaignStatus      @default(PENDING)
+  createdAt           DateTime            @default(now())
+  campaign            AcquisitionCampaign @relation(fields: [campaignId], references: [id])
+  testCells           TestCell[]
+
+  @@index([campaignId, status])
+  @@index([campaignId, channel])
+}
+
+model AudienceSegment {
+  id                String              @id @default(cuid())
+  campaignId        String
+  name              String
+  audienceType      String
+  targetingJson     Json
+  predictedCpcCents Int
+  predictedCacCents Int
+  createdAt         DateTime            @default(now())
+  campaign          AcquisitionCampaign @relation(fields: [campaignId], references: [id])
+  testCells         TestCell[]
+
+  @@index([campaignId, audienceType])
+  @@index([campaignId, createdAt])
+}
+
+model TestCell {
+  id              String              @id @default(cuid())
+  campaignId      String
+  creativeId      String
+  audienceId      String
+  budgetCents     Int
+  impressions     Int                 @default(0)
+  clicks          Int                 @default(0)
+  conversions     Int                 @default(0)
+  spendCents      Int                 @default(0)
+  revenueCents    Int                 @default(0)
+  cacCents        Int                 @default(0)
+  roas            Float               @default(0)
+  score           Float               @default(0)
+  status          CampaignStatus      @default(PENDING)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  campaign        AcquisitionCampaign @relation(fields: [campaignId], references: [id])
+  creative        AdCreative          @relation(fields: [creativeId], references: [id])
+  audience        AudienceSegment     @relation(fields: [audienceId], references: [id])
+  performances    AdPerformance[]
+  budgetMovesFrom BudgetActivity[]    @relation("BudgetMoveFrom")
+  budgetMovesTo   BudgetActivity[]    @relation("BudgetMoveTo")
+
+  @@unique([campaignId, creativeId, audienceId])
+  @@index([campaignId, score])
+  @@index([campaignId, status])
+}
+
+model AdPerformance {
+  id             String   @id @default(cuid())
+  testCellId     String
+  recordedAt     DateTime @default(now())
+  impressions    Int
+  clicks         Int
+  conversions    Int
+  spendCents     Int
+  revenueCents   Int
+  ctr            Float
+  conversionRate Float
+  cpcCents       Int
+  cpaCents       Int
+  roas           Float
+  testCell       TestCell @relation(fields: [testCellId], references: [id])
+
+  @@index([testCellId, recordedAt])
+}
+
+model BudgetActivity {
+  id             String              @id @default(cuid())
+  campaignId     String
+  fromTestCellId String?
+  toTestCellId   String?
+  amountCents    Int
+  reason         String
+  createdAt      DateTime            @default(now())
+  campaign       AcquisitionCampaign @relation(fields: [campaignId], references: [id])
+  fromTestCell   TestCell?           @relation("BudgetMoveFrom", fields: [fromTestCellId], references: [id])
+  toTestCell     TestCell?           @relation("BudgetMoveTo", fields: [toTestCellId], references: [id])
+
+  @@index([campaignId, createdAt])
+  @@index([fromTestCellId])
+  @@index([toTestCellId])
+}
+
+model AcquisitionAuditLog {
+  id         String              @id @default(cuid())
+  campaignId String
+  actor      String
+  action     String
+  metadata   Json
+  createdAt  DateTime            @default(now())
+  campaign   AcquisitionCampaign @relation(fields: [campaignId], references: [id])
+
+  @@index([campaignId, createdAt])
+}
+
 model User {
-  id                 String               @id @default(cuid())
+  id                 String              @id @default(cuid())
   fullName           String
-  email              String               @unique
+  email              String              @unique
   segment            UserSegment
   subscriptionStatus SubscriptionStatus
   lastActiveAt       DateTime?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
   interestEdges      InterestEdge[]
   campaignCandidates CampaignCandidate[]
 }
 
 model Entity {
-  id                 String               @id @default(cuid())
+  id                 String              @id @default(cuid())
   name               String
   entityType         String
   city               String?
   state              String?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
   deltas             EntityDelta[]
   interestEdges      InterestEdge[]
   campaignCandidates CampaignCandidate[]
 }
 
 model EntityDelta {
-  id                 String               @id @default(cuid())
+  id                 String              @id @default(cuid())
   entityId           String
   changeType         DeltaChangeType
   oldValue           String?
   newValue           String?
   deltaSummary       String
   detectedAt         DateTime
-  createdAt          DateTime             @default(now())
-  entity             Entity               @relation(fields: [entityId], references: [id])
+  createdAt          DateTime            @default(now())
+  entity             Entity              @relation(fields: [entityId], references: [id])
   campaignCandidates CampaignCandidate[]
 }
 
@@ -93,24 +245,24 @@ model InterestEdge {
 }
 
 model CampaignCandidate {
-  id                  String          @id @default(cuid())
-  campaignRunId       String?
-  userId              String
-  entityId            String
-  entityDeltaId       String
-  segmentAtGeneration UserSegment
-  priorityScore       Float
-  interestContribution   Float        @default(0)
-  recencyContribution    Float        @default(0)
-  segmentContribution    Float        @default(0)
-  changeTypeContribution Float        @default(0)
-  status              CampaignStatus  @default(PENDING)
-  createdAt           DateTime        @default(now())
-  campaignRun         CampaignRun?    @relation(fields: [campaignRunId], references: [id])
-  user                User            @relation(fields: [userId], references: [id])
-  entity              Entity          @relation(fields: [entityId], references: [id])
-  entityDelta         EntityDelta     @relation(fields: [entityDeltaId], references: [id])
-  generatedMessage    GeneratedMessage?
+  id                     String            @id @default(cuid())
+  campaignRunId          String?
+  userId                 String
+  entityId               String
+  entityDeltaId          String
+  segmentAtGeneration    UserSegment
+  priorityScore          Float
+  interestContribution   Float             @default(0)
+  recencyContribution    Float             @default(0)
+  segmentContribution    Float             @default(0)
+  changeTypeContribution Float             @default(0)
+  status                 CampaignStatus    @default(PENDING)
+  createdAt              DateTime          @default(now())
+  campaignRun            CampaignRun?      @relation(fields: [campaignRunId], references: [id])
+  user                   User              @relation(fields: [userId], references: [id])
+  entity                 Entity            @relation(fields: [entityId], references: [id])
+  entityDelta            EntityDelta       @relation(fields: [entityDeltaId], references: [id])
+  generatedMessage       GeneratedMessage?
 }
 
 model GeneratedMessage {
@@ -128,7 +280,7 @@ model GeneratedMessage {
 }
 
 model CampaignRun {
-  id                      String   @id @default(cuid())
+  id                      String              @id @default(cuid())
   runName                 String
   assumptionSetId         String?
   assumptionsSnapshot     Json
@@ -139,26 +291,26 @@ model CampaignRun {
   estimatedCtr            Float
   estimatedConversionRate Float
   estimatedRevenue        Float
-  createdAt               DateTime @default(now())
+  createdAt               DateTime            @default(now())
   assumptionSet           AssumptionSet?      @relation(fields: [assumptionSetId], references: [id])
   candidates              CampaignCandidate[]
 }
 
 model AssumptionSet {
-  id                      String   @id @default(cuid())
-  name                    String
-  isActive                Boolean  @default(false)
-  defaultTopN             Int      @default(10)
-  recencyScore            Float    @default(0.9)
-  minPriorityScore        Float    @default(0)
-  highPriorityThreshold   Float    @default(0.8)
-  revenuePerHighPriority  Float    @default(18.5)
-  openRate                Float    @default(0.3)
-  clickRate               Float    @default(0.08)
-  engageRate              Float    @default(0.04)
-  purchaseRate            Float    @default(0.012)
-  avgOrderValue           Float    @default(89)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  campaignRuns            CampaignRun[]
+  id                     String        @id @default(cuid())
+  name                   String
+  isActive               Boolean       @default(false)
+  defaultTopN            Int           @default(10)
+  recencyScore           Float         @default(0.9)
+  minPriorityScore       Float         @default(0)
+  highPriorityThreshold  Float         @default(0.8)
+  revenuePerHighPriority Float         @default(18.5)
+  openRate               Float         @default(0.3)
+  clickRate              Float         @default(0.08)
+  engageRate             Float         @default(0.04)
+  purchaseRate           Float         @default(0.012)
+  avgOrderValue          Float         @default(89)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  campaignRuns           CampaignRun[]
 }

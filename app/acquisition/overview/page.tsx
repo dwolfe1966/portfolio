@@ -1,22 +1,146 @@
+import { Metadata } from "next";
+import Link from "next/link";
+import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
-import { AcquisitionWorkspaceNav } from "@/components/acquisition/AcquisitionWorkspaceNav";
+import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
+import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
+import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
+import { db } from "@/lib/db";
+import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
-export default function AcquisitionOverviewPage() {
+export const metadata: Metadata = buildMetadata({
+  title: "Acquisition App Overview | David Wolfe",
+  description: "Agent-managed acquisition architecture with budget guardrails, orchestration, and operator controls.",
+  path: "/acquisition/overview"
+});
+
+const architecture = [
+  {
+    title: "Campaign manager",
+    detail: "Stores campaign objective, constraints, channels, and state transitions (draft → testing → scaling)."
+  },
+  {
+    title: "Creative generation",
+    detail: "Produces headline/description variants and predictive quality signals for faster test-cell construction."
+  },
+  {
+    title: "Audience + keyword selector",
+    detail: "Builds target pools, exclusions, and testable combinations for channel-specific execution."
+  },
+  {
+    title: "Agent orchestrator",
+    detail: "Runs iteration loops: score cells, pause weak performers, shift budget, and request new variants."
+  },
+  {
+    title: "Performance analytics",
+    detail: "Aggregates spend, conversions, CAC, and ROAS to inform budget decisions and operator review."
+  },
+  {
+    title: "Audit + controls",
+    detail: "Logs budget actions and decision context so humans can override and tune safely."
+  }
+];
+
+const flow = [
+  "1) Define campaign objective, budget, channels, and economic constraints.",
+  "2) Generate creatives and audience/keyword candidates.",
+  "3) Assemble test cells and allocate initial spend.",
+  "4) Ingest performance and compute score quality.",
+  "5) Reallocate budget toward winners while enforcing guardrails.",
+  "6) Promote winning cells to scaling and continue monitoring."
+];
+
+export default async function AcquisitionOverviewPage() {
+  let schemaReady = true;
+  let counts = {
+    campaigns: 0,
+    cells: 0,
+    budgetActivities: 0,
+    auditLogs: 0
+  };
+
+  try {
+    const [campaigns, cells, budgetActivities, auditLogs] = await Promise.all([
+      db.acquisitionCampaign.count(),
+      db.testCell.count(),
+      db.budgetActivity.count(),
+      db.acquisitionAuditLog.count()
+    ]);
+    counts = { campaigns, cells, budgetActivities, auditLogs };
+  } catch (error) {
+    if (isMissingDemoTableError(error)) {
+      schemaReady = false;
+    } else {
+      throw error;
+    }
+  }
+
   return (
     <>
-      <AcquisitionWorkspaceNav />
-      <Section title="Acquisition operating model">
-        <div className="grid grid-3">
-          <div className="card"><div className="kpi">3x</div><p>Creative iteration velocity target.</p></div>
-          <div className="card"><div className="kpi">-18%</div><p>CAC reduction target via budget optimization.</p></div>
-          <div className="card"><div className="kpi">+22%</div><p>Pipeline quality lift from intent-aware targeting.</p></div>
+      <Section title="Agent-managed paid acquisition system">
+        <p>
+          This workspace demonstrates a paid-growth operating loop where experiments, economics checks, and budget movement are explicitly linked for operator review.
+        </p>
+        <div className="grid grid-3" style={{ marginTop: 12 }}>
+          <div className="card"><div className="kpi">24h</div><p>Iteration cadence target for budget and creative updates.</p></div>
+          <div className="card"><div className="kpi">&lt; 1.0</div><p>Target CAC/LTV ratio threshold for sustained scaling.</p></div>
+          <div className="card"><div className="kpi">100%</div><p>Budget-shift actions recorded for operator auditability.</p></div>
         </div>
       </Section>
-      <Section title="How this app fits with lifecycle">
-        <p>
-          Acquisition feeds higher-quality users into lifecycle. Lifecycle then increases retention and LTV.
-          Together they create a closed economic loop instead of isolated channel optimization.
+
+      <Section title="Acquisition data readiness">
+        {schemaReady ? (
+          <div className="grid grid-2">
+            <div className="card"><p className="small">Campaigns</p><div className="kpi">{counts.campaigns}</div></div>
+            <div className="card"><p className="small">Test cells</p><div className="kpi">{counts.cells}</div></div>
+            <div className="card"><p className="small">Budget actions</p><div className="kpi">{counts.budgetActivities}</div></div>
+            <div className="card"><p className="small">Audit logs</p><div className="kpi">{counts.auditLogs}</div></div>
+          </div>
+        ) : (
+          <div className="card">
+            <p>Acquisition schema is not initialized yet.</p>
+            <pre className="code">npm run db:generate{"\n"}npx prisma db push{"\n"}npm run db:seed</pre>
+          </div>
+        )}
+        <p className="small" style={{ marginTop: 8 }}>
+          Health endpoint: <Link href="/api/acquisition/health/demo-db">/api/acquisition/health/demo-db</Link>
         </p>
+      </Section>
+
+
+      <Section title="Demo data operations">
+        <ResetDemoDataCard appLabel="Acquisition" scope="acquisition" />
+      </Section>
+
+      <Section title="Architecture infographic">
+        <AcquisitionFlowDiagram />
+      </Section>
+
+      <Section title="Architecture modules">
+        <div className="grid grid-2">
+          {architecture.map((item) => (
+            <div className="card" key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.detail}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+
+      <Section title="Operator decision canvas">
+        <p className="small">A shared frame for how inputs become governed actions and measurable learning.</p>
+        <OperatorDecisionCanvas />
+      </Section>
+
+      <Section title="Operating sequence">
+        <div className="grid grid-2">
+          {flow.map((step) => (
+            <div className="card" key={step}>
+              <p>{step}</p>
+            </div>
+          ))}
+        </div>
       </Section>
     </>
   );

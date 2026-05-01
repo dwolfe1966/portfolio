@@ -8,7 +8,7 @@ This is a starter Next.js App Router portfolio site and demo app for an AI-drive
 npm install
 cp .env.example .env.local
 npx prisma generate
-npx prisma db push
+npm run db:migrate:deploy
 npm run db:seed
 npm run dev
 ```
@@ -29,6 +29,7 @@ Open `http://localhost:3000`.
 - `/acquisition/outputs`
 - `/writing`
 - `/writing/ai-revenue-systems`
+- `/writing/product-discovery-ai-loops`
 - `/contact`
 
 ### Demo
@@ -50,14 +51,35 @@ Open `http://localhost:3000`.
 - `POST /api/generate-campaigns`
 - `GET /api/assumptions`
 - `POST /api/assumptions`
+- `POST /api/contact`
 - `POST /api/simulate-outcomes`
 - `GET /api/campaign-runs/[id]`
 - `GET /api/health/demo-db`
+- `GET /api/acquisition/campaigns`
+- `POST /api/acquisition/campaigns`
+- `POST /api/acquisition/campaigns/[id]/iterate`
+- `GET /api/acquisition/campaigns/[id]/insights`
 
 ## Notes
 - `lib/ai.ts` uses the OpenAI Responses API when `OPENAI_API_KEY` is present.
 - If no API key is set, the app falls back to deterministic template output.
 - The demo password gate is intentionally left lightweight for refinement in Codex.
+- Set `CONTACT_WEBHOOK_URL` to deliver contact form submissions to your webhook endpoint.
+
+
+## Acquisition app quickstart
+
+1. Open `/acquisition/inputs` and create a campaign from **Campaign bootstrap**.
+2. Open `/acquisition/simulations` and run one or more orchestrator iterations.
+3. Open `/acquisition/outputs` to inspect spend, revenue, ROAS, and top cells.
+
+If you see schema/compatibility messages, run:
+
+```bash
+npm run db:generate
+npm run db:migrate:deploy
+npm run db:seed
+```
 
 ## Deployment (Vercel + Neon)
 
@@ -67,10 +89,19 @@ Quick checklist:
    - pooled connection string → `DATABASE_URL`
    - direct/non-pooled string → `DATABASE_URL_UNPOOLED`
 2. Add all required env vars in Vercel Project Settings.
+   - Set `DEMO_MUTATIONS_ENABLED=false` in production unless you explicitly need seed/simulation endpoints.
 3. Run schema migrations with `npm run db:migrate:deploy`.
 4. Deploy with Vercel using `npm run build`.
 
 Full guide: `docs/deployment-vercel-neon.md`.
+
+Backlog and execution plan: `docs/product-backlog.md`.
+Release checklist: `docs/release-checklist.md`.
+
+## Codex cloud workflow note
+
+If you are using Codex in the cloud (including iPad), use the **Update branch** action in the UI to push committed changes to GitHub and trigger downstream deploy automation.
+
 
 ## One-command deployment helper
 
@@ -96,6 +127,15 @@ export NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
 ./scripts/smoke-test-production.sh
 ```
 
+## Prisma migrations in this repo
+
+This repository now includes baseline Prisma migrations under `prisma/migrations/*`.
+Use this for schema rollout:
+
+```bash
+npm run db:migrate:deploy
+```
+
 ## Troubleshooting schema drift (P2022/P2021)
 
 If you see errors like `The column CampaignRun.assumptionSetId does not exist`, your DB schema is behind the app code.
@@ -104,6 +144,16 @@ Run:
 
 ```bash
 npm run db:generate
-npx prisma db push
+npm run db:migrate:deploy
 npm run db:seed
 ```
+
+
+## CI checks
+
+GitHub Actions workflow: `.github/workflows/ci.yml` runs:
+
+- `npm run check:prisma-artifacts`
+- `npm run lint`
+- `npm test`
+- `npm run build`

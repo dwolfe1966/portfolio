@@ -1,10 +1,11 @@
 import Link from "next/link";
 
 const links = [
-  { href: "/demo/overview", label: "Overview" },
-  { href: "/demo/inputs", label: "Inputs" },
-  { href: "/demo/simulations", label: "Simulations" },
-  { href: "/demo/outputs", label: "Outputs" }
+  { href: "/lifecycle/overview", label: "Overview" },
+  { href: "/lifecycle/inputs", label: "Inputs" },
+  { href: "/lifecycle/simulations", label: "Simulations" },
+  { href: "/lifecycle/outputs", label: "Outputs" },
+  { href: "/lifecycle/documentation", label: "Documentation" }
 ];
 
 export function DemoWorkspaceNav() {
