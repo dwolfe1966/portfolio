@@ -1,6 +1,6 @@
 # Product Backlog (Execution Plan)
 
-Last updated: 2026-04-28
+Last updated: 2026-04-30
 
 This backlog is the canonical source of truth for workstreams A–E.
 
@@ -107,6 +107,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ⏳ B13. Add contextual tooltips and first-run intro modal in demo workspace.
 - 🟡 B14. Add business-context explanation blocks in demo flows (why users/entities/change-events matter commercially).
 - ✅ B15. Explore advanced graph-based dataflow visualizations beyond current topology map (multi-hop relationships, influence paths, and cluster views).
+- ✅ B16. Improve Monte Carlo UX feedback in simulations (visible run count, refresh confirmation, and distribution summary cues).
 
 ---
 

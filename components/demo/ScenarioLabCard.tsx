@@ -52,6 +52,8 @@ export function ScenarioLabCard() {
   const [generateResult, setGenerateResult] = useState<GenerateResult | null>(null);
   const [outcomeResult, setOutcomeResult] = useState<OutcomeResult | null>(null);
   const [monteCarlo, setMonteCarlo] = useState<number[]>([]);
+  const [monteCarloRunCount, setMonteCarloRunCount] = useState(0);
+  const [monteCarloLastRunAt, setMonteCarloLastRunAt] = useState<string | null>(null);
 
   const timeline = useMemo(() => {
     if (!outcomeResult?.counts) return [];
@@ -157,6 +159,8 @@ export function ScenarioLabCard() {
       return purchases * randomAround(avgOrderValue, 0.15);
     });
     setMonteCarlo(runs);
+    setMonteCarloRunCount((value) => value + 1);
+    setMonteCarloLastRunAt(new Date().toLocaleTimeString());
   }
 
   return (
@@ -186,8 +190,13 @@ export function ScenarioLabCard() {
         <button type="button" onClick={injectEvents} disabled={loadingAction !== null}>{loadingAction === "inject" ? "Injecting..." : "1) Inject Events"}</button>
         <button type="button" onClick={generate} disabled={loadingAction !== null}>{loadingAction === "generate" ? "Generating..." : "2) Generate Campaigns"}</button>
         <button type="button" onClick={simulateOutcomes} disabled={loadingAction !== null}>{loadingAction === "simulate" ? "Simulating..." : "3) Simulate Outcomes"}</button>
-        <button type="button" onClick={runMonteCarlo} disabled={loadingAction !== null}>Run Monte Carlo</button>
+        <button type="button" onClick={runMonteCarlo} disabled={loadingAction !== null}>Run Monte Carlo {monteCarloRunCount > 0 ? `(run ${monteCarloRunCount})` : ""}</button>
       </div>
+      {monteCarloRunCount > 0 && (
+        <p className="small" style={{ marginTop: 8 }}>
+          Monte Carlo refreshed {monteCarloRunCount}x{monteCarloLastRunAt ? ` · last run at ${monteCarloLastRunAt}` : ""}.
+        </p>
+      )}
 
       <details style={{ marginTop: 16 }}>
         <summary><strong>Advanced assumption controls</strong> (optional)</summary>
