@@ -11,10 +11,10 @@ export const metadata: Metadata = buildMetadata({
 
 const competencies = [
   { title: "Product discovery & design", detail: "Translate ambiguous demand signals into concrete hypotheses and shipped product loops." },
-  { title: "Machine learning & data science", detail: "Build practical scoring and simulation systems that improve decision quality." },
-  { title: "Growth marketing & monetization", detail: "Optimize CAC, retention, and LTV with clear measurement and budget discipline." },
+  { title: "Machine learning & data science", detail: "Build practical scoring and simulation systems that improve decision quality, not just analytics dashboards." },
+  { title: "Growth marketing & monetization", detail: "Optimize CAC, retention, and LTV with clear measurement and explicit budget discipline." },
   { title: "Engineering & operations", detail: "Turn strategy into reliable workflows, instrumentation, and repeatable team execution." },
-  { title: "Executive leadership", detail: "Align product, data, marketing, and finance around common commercial outcomes." }
+  { title: "Executive leadership", detail: "Align product, data, marketing, and finance around shared commercial outcomes and operating cadence." }
 ];
 
 const milestones = [
@@ -67,8 +67,10 @@ export default function AboutPage() {
     <>
       <Section eyebrow="About" title="AI practitioner building systems that turn decisions into revenue">
         <p>
-          I am an AI practitioner who builds operating systems that connect product strategy, data science, and go-to-market execution.
-          My focus is helping teams move faster with clearer decisions, stronger commercial outcomes, and practical adoption of AI in daily operations.
+          I build operating systems that connect product strategy, data science, and go-to-market
+          execution. The work is direct — I write the schema, ship the app, and own the operating
+          cadence around it. The portfolio you&apos;re browsing is itself an example: every case
+          study points at running software, not screenshots.
         </p>
         <div className="signalStrip" aria-label="Operator profile summary">
           <div className="signalStep">
@@ -84,6 +86,17 @@ export default function AboutPage() {
             <p className="small">Cross-functional alignment around product, growth, and finance outcomes.</p>
           </div>
         </div>
+        {process.env.NEXT_PUBLIC_LINKEDIN_URL ? (
+          <p className="small" style={{ marginTop: 12 }}>
+            More context on{" "}
+            <a href={process.env.NEXT_PUBLIC_LINKEDIN_URL} target="_blank" rel="noreferrer noopener">
+              LinkedIn
+            </a>
+            {process.env.NEXT_PUBLIC_LINKEDIN_HEADLINE
+              ? ` — ${process.env.NEXT_PUBLIC_LINKEDIN_HEADLINE}.`
+              : "."}
+          </p>
+        ) : null}
       </Section>
 
       <Section title="Core competencies">
@@ -121,40 +134,48 @@ export default function AboutPage() {
         </div>
       </Section>
 
-      <Section title="Engineering experience">
-        <div className="card">
-          <h3>Hands-on engineering + AI practitioner foundation</h3>
-          <p>
-            I started as an engineer and still work directly in implementation. That engineering depth is what lets me
-            connect strategy to production systems, from data contracts and APIs to operator-facing workflows.
-          </p>
-        </div>
-      </Section>
-
-      <Section title="Approach and philosophy">
+      <Section title="How I work">
         <div className="grid grid-2">
           <div className="card">
-            <h3>Strategy + execution in one loop</h3>
+            <h3>Strategy and execution in one loop</h3>
             <p>
-              I combine high-level operating strategy with direct implementation so teams get both direction and delivery momentum.
+              I combine operating strategy with direct implementation so teams get both direction and
+              delivery momentum. No handoffs that lose fidelity between the deck and the deploy.
             </p>
           </div>
           <div className="card">
-            <h3>AI pragmatism and operating leverage</h3>
+            <h3>AI pragmatism, not AI theatre</h3>
             <p>
-              AI should improve throughput, decision quality, and economics—not add complexity without measurable gains.
+              AI should improve throughput, decision quality, and economics — not add complexity for
+              its own sake. Every system I build can answer &quot;what changed because of this?&quot;
+              with measured outcomes.
+            </p>
+          </div>
+          <div className="card">
+            <h3>Hands-on engineering still</h3>
+            <p>
+              I started as an engineer and still write the code. That depth is what lets me connect
+              strategy to production systems — data contracts, APIs, and operator workflows — without
+              translation loss.
+            </p>
+          </div>
+          <div className="card">
+            <h3>Operator instinct</h3>
+            <p>
+              Most of what I ship is the bit-of-software a small team didn&apos;t have time to build:
+              the operator console, the audit feed, the policy engine. The boring infrastructure that
+              makes the agent loop trustworthy.
             </p>
           </div>
         </div>
-      </Section>
-
-      <Section title="Personal note">
-        <p>
-          I enjoy translating complex systems into clear operator workflows that teams can trust and iterate.
-        </p>
       </Section>
 
       <Section title="Let’s collaborate">
+        <p>
+          I take on operator-builder engagements where strategy and code live close together —
+          revenue systems, AI-native operating consoles, marketplace mechanics, lifecycle plumbing.
+          If that maps to a problem you&apos;re solving, the contact form below is the fastest path.
+        </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/contact">Start a conversation</Link>
           <Link className="btn" href="/projects">Review case studies</Link>

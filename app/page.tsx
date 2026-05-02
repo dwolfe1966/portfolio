@@ -13,19 +13,19 @@ export const metadata: Metadata = buildMetadata({
 
 const differentiators = [
   {
-    title: "Multi-disciplinary expertise",
+    title: "Multi-disciplinary",
     detail: "Product, engineering, ML, growth, and operations integrated into one execution model."
   },
   {
-    title: "AI-driven revenue systems",
-    detail: "Decision engines that connect signals to campaign actions and commercial impact."
+    title: "AI-native revenue systems",
+    detail: "Decision engines that connect change signals to campaign actions and commercial impact."
   },
   {
-    title: "Operator across strategy + execution",
-    detail: "From roadmap framing to shipped workflows, instrumentation, and iteration cadence."
+    title: "Strategy + execution",
+    detail: "Roadmap framing through shipped workflows, instrumentation, and operating cadence."
   },
   {
-    title: "Leadership track record",
+    title: "Operator track record",
     detail: "Built repeatable growth systems across subscription and SaaS operating environments."
   }
 ];
@@ -42,24 +42,24 @@ type FeaturedProject = {
 const featuredProjects: FeaturedProject[] = [
   {
     title: "Lifecycle Revenue Engine",
-    detail: "Detects high-intent change events, matches users/entities, and generates message flows to improve retention and conversion.",
-    impact: "Why it matters: turns lifecycle targeting from generic outreach into economically grounded prioritization.",
+    detail: "Detects high-intent change events, matches users to entities, and generates outreach with economics-aware prioritization.",
+    impact: "Turns lifecycle targeting from generic outreach into economically grounded prioritization.",
     href: "/projects/lifecycle-revenue-engine",
     appHref: "/lifecycle/overview",
     demoApp: "lifecycle"
   },
   {
-    title: "Agent-Managed Acquisition System",
-    detail: "Runs campaign setup, test-cell scoring, budget reallocation, and audit-trail logging with explicit guardrails.",
-    impact: "Why it matters: lowers CAC volatility while improving speed and confidence of media decisions.",
+    title: "Agent-Managed Acquisition",
+    detail: "Campaign setup, test-cell scoring, budget reallocation, and policy-engine guardrails with full audit trail.",
+    impact: "Lowers CAC volatility while improving speed and confidence of media decisions.",
     href: "/projects/agent-acquisition",
     appHref: "/acquisition/overview",
     demoApp: "acquisition"
   },
   {
-    title: "Auction Desk · Closed Ad Marketplace",
-    detail: "Quality-adjusted second-price auctions with reserve, pacing, behavior-mode bidders, and a live clearing ticker.",
-    impact: "Why it matters: a transparent Vickrey-style clearing model improves bidder trust and revenue stability vs. opaque max-charge auctions.",
+    title: "Closed-Marketplace Auction",
+    detail: "Quality-adjusted second-price auctions with reserve, pacing, behavior modes, and a live clearing ticker.",
+    impact: "Transparent Vickrey clearing improves bidder trust and revenue stability vs. opaque max-charge auctions.",
     href: "/projects/vickrey-auction-closed-ads-ecosystem",
     appHref: "/auction/overview",
     demoApp: "auction"
@@ -120,12 +120,16 @@ export default function HomePage() {
       </Section>
 
       <Section title="Featured projects">
-        <div className="grid grid-2">
+        <p>
+          Three runnable demo apps backing the case studies — every page below clicks through to
+          live software, not screenshots.
+        </p>
+        <div className="grid grid-3">
           {featuredProjects.map((project) => (
             <div className="card accentCard" key={project.title}>
               <h3>{project.title}</h3>
               <p>{project.detail}</p>
-              <p className="small">{project.impact}</p>
+              <p className="small"><em>{project.impact}</em></p>
               <div style={{ marginTop: 12 }}>
                 <DemoAppLaunchCard app={project.demoApp} href={project.appHref} />
               </div>
