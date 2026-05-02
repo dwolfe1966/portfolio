@@ -1,11 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { buildAudienceSegments, buildCreativeVariants, validateCreateCampaignInput } from "@/lib/acquisition";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { apiError, apiOk } from "@/lib/api-contract";
+import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
+import { createEventId, logApiEvent } from "@/lib/logging";
 
 export async function GET() {
+  const eventId = createEventId("acq_campaigns_get");
+
   try {
     const campaigns = await db.acquisitionCampaign.findMany({
       orderBy: { createdAt: "desc" },
@@ -15,21 +18,28 @@ export async function GET() {
       take: 20
     });
 
-    return apiOk({ campaigns });
+    logApiEvent("info", eventId, "acquisition.campaigns.list.completed", { count: campaigns.length });
+    return apiOk({ campaigns, eventId });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return apiOk({ compatibilityMode: true, campaigns: [] });
+      logApiEvent("warn", eventId, "acquisition.campaigns.list.compatibility_mode");
+      return apiOk({ compatibilityMode: true, campaigns: [], eventId });
     }
-    throw error;
+    logApiEvent("error", eventId, "acquisition.campaigns.list.unhandled_error");
+    return apiUnhandledError(error, eventId);
   }
 }
 
 export async function POST(req: NextRequest) {
+  const eventId = createEventId("acq_campaigns_post");
+
   if (!isDemoMutationAllowed()) {
+    logApiEvent("warn", eventId, "acquisition.campaigns.create.disabled");
     return apiError(
       403,
       "MUTATION_DISABLED",
-      "Campaign creation is disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable."
+      "Campaign creation is disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable.",
+      { eventId }
     );
   }
 
@@ -37,7 +47,8 @@ export async function POST(req: NextRequest) {
   const parsed = validateCreateCampaignInput(body);
 
   if (!parsed.ok) {
-    return apiError(400, "INVALID_INPUT", "Campaign input validation failed", { errors: parsed.errors });
+    logApiEvent("warn", eventId, "acquisition.campaigns.create.invalid", { errors: parsed.errors });
+    return apiError(400, "INVALID_INPUT", "Campaign input validation failed", { errors: parsed.errors, eventId });
   }
 
   const input = parsed.value;
@@ -120,16 +131,14 @@ export async function POST(req: NextRequest) {
       return campaign;
     });
 
-    return apiOk({ campaign: result });
+    logApiEvent("info", eventId, "acquisition.campaigns.create.completed", { campaignId: result.id });
+    return apiOk({ campaign: result, eventId });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return apiError(
-        503,
-        "COMPATIBILITY_MODE",
-        "Acquisition tables are missing. Run db push/migrations before using this endpoint.",
-        { compatibilityMode: true }
-      );
+      logApiEvent("warn", eventId, "acquisition.campaigns.create.compatibility_mode");
+      return apiCompatibilityError("Acquisition tables are missing.", { eventId });
     }
-    throw error;
+    logApiEvent("error", eventId, "acquisition.campaigns.create.unhandled_error");
+    return apiUnhandledError(error, eventId);
   }
 }

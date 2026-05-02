@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { apiError, apiOk } from "@/lib/api-contract";
+import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
+import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
 
@@ -30,24 +31,34 @@ export async function POST(req: NextRequest) {
   const purchaseRate = toRate(body.purchaseRate, 0.012);
   const avgOrderValue = Number(body.avgOrderValue ?? 89);
 
-  const messages = await db.generatedMessage.findMany({
-    orderBy: { createdAt: "desc" },
-    take: Number(body.sampleSize ?? 500)
-  });
+  try {
+    const messages = await db.generatedMessage.findMany({
+      orderBy: { createdAt: "desc" },
+      take: Number(body.sampleSize ?? 500)
+    });
 
-  const delivered = messages.length;
-  const opens = Math.round(delivered * openRate);
-  const clicks = Math.round(opens * clickRate);
-  const engagements = Math.round(clicks * engageRate);
-  const purchases = Math.round(engagements * purchaseRate);
-  const revenue = Number((purchases * avgOrderValue).toFixed(2));
+    const delivered = messages.length;
+    const opens = Math.round(delivered * openRate);
+    const clicks = Math.round(opens * clickRate);
+    const engagements = Math.round(clicks * engageRate);
+    const purchases = Math.round(engagements * purchaseRate);
+    const revenue = Number((purchases * avgOrderValue).toFixed(2));
 
-  logApiEvent("info", eventId, "simulate_outcomes.completed", { delivered, purchases, revenue });
+    logApiEvent("info", eventId, "simulate_outcomes.completed", { delivered, purchases, revenue });
 
-  return apiOk({
-    assumptions: { openRate, clickRate, engageRate, purchaseRate, avgOrderValue },
-    counts: { delivered, opens, clicks, engagements, purchases },
-    revenue,
-    eventId
-  });
+    return apiOk({
+      assumptions: { openRate, clickRate, engageRate, purchaseRate, avgOrderValue },
+      counts: { delivered, opens, clicks, engagements, purchases },
+      revenue,
+      eventId
+    });
+  } catch (error) {
+    if (isMissingDemoTableError(error)) {
+      logApiEvent("warn", eventId, "simulate_outcomes.compatibility_mode");
+      return apiCompatibilityError("Lifecycle generated message tables are missing.", { eventId });
+    }
+
+    logApiEvent("error", eventId, "simulate_outcomes.unhandled_error");
+    return apiUnhandledError(error, eventId);
+  }
 }

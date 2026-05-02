@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { apiError, apiOk } from "@/lib/api-contract";
+import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
+import { createEventId, logApiEvent } from "@/lib/logging";
 
 function toNumber(value: unknown, fallback: number) {
   const parsed = Number(value);
@@ -10,11 +11,15 @@ function toNumber(value: unknown, fallback: number) {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const eventId = createEventId("acq_override");
+
   if (!isDemoMutationAllowed()) {
+    logApiEvent("warn", eventId, "acquisition.override.disabled");
     return apiError(
       403,
       "MUTATION_DISABLED",
-      "Campaign override mutations are disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable."
+      "Campaign override mutations are disabled in this environment. Set DEMO_MUTATIONS_ENABLED=true to enable.",
+      { eventId }
     );
   }
 
@@ -24,7 +29,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const campaign = await db.acquisitionCampaign.findUnique({ where: { id } });
     if (!campaign) {
-      return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found");
+      logApiEvent("warn", eventId, "acquisition.override.campaign_not_found", { campaignId: id });
+      return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found", { eventId });
     }
 
     const action = String(body.action ?? "");
@@ -52,7 +58,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return updatedCampaign;
       });
 
-      return apiOk({ campaign: updated });
+      logApiEvent("info", eventId, "acquisition.override.guardrails_updated", { campaignId: id });
+      return apiOk({ campaign: updated, eventId });
     }
 
     if (action === "lock_cell_budget") {
@@ -60,12 +67,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const budgetCents = Math.max(0, Math.round(toNumber(body.budgetCents, 0)));
 
       if (!testCellId) {
-        return apiError(400, "INVALID_INPUT", "testCellId is required");
+        return apiError(400, "INVALID_INPUT", "testCellId is required", { eventId });
       }
 
       const testCell = await db.testCell.findFirst({ where: { id: testCellId, campaignId: campaign.id } });
       if (!testCell) {
-        return apiError(404, "TEST_CELL_NOT_FOUND", "Test cell not found for campaign");
+        return apiError(404, "TEST_CELL_NOT_FOUND", "Test cell not found for campaign", { eventId });
       }
 
       await db.$transaction(async (tx) => {
@@ -80,20 +87,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
       });
 
-      return apiOk({ testCellId, budgetCents });
+      logApiEvent("info", eventId, "acquisition.override.budget_locked", { campaignId: id, testCellId, budgetCents });
+      return apiOk({ testCellId, budgetCents, eventId });
     }
 
     if (action === "revert_budget_lock") {
       const auditLogId = String(body.auditLogId ?? "");
       if (!auditLogId) {
-        return apiError(400, "INVALID_INPUT", "auditLogId is required");
+        return apiError(400, "INVALID_INPUT", "auditLogId is required", { eventId });
       }
 
       const overrideLog = await db.acquisitionAuditLog.findFirst({
         where: { id: auditLogId, campaignId: campaign.id, action: "budget_lock_override" }
       });
       if (!overrideLog) {
-        return apiError(404, "AUDIT_LOG_NOT_FOUND", "Budget lock override log not found");
+        return apiError(404, "AUDIT_LOG_NOT_FOUND", "Budget lock override log not found", { eventId });
       }
 
       const metadata = (overrideLog.metadata ?? {}) as {
@@ -104,12 +112,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const previousBudgetCents = Math.max(0, Math.round(toNumber(metadata.previousBudgetCents, 0)));
 
       if (!testCellId) {
-        return apiError(422, "INVALID_AUDIT_LOG", "Budget lock log is missing testCellId metadata");
+        return apiError(422, "INVALID_AUDIT_LOG", "Budget lock log is missing testCellId metadata", { eventId });
       }
 
       const testCell = await db.testCell.findFirst({ where: { id: testCellId, campaignId: campaign.id } });
       if (!testCell) {
-        return apiError(404, "TEST_CELL_NOT_FOUND", "Referenced test cell no longer exists");
+        return apiError(404, "TEST_CELL_NOT_FOUND", "Referenced test cell no longer exists", { eventId });
       }
 
       await db.$transaction(async (tx) => {
@@ -127,17 +135,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
       });
 
-      return apiOk({ auditLogId, testCellId, budgetCents: previousBudgetCents });
+      logApiEvent("info", eventId, "acquisition.override.budget_reverted", { campaignId: id, auditLogId, testCellId });
+      return apiOk({ auditLogId, testCellId, budgetCents: previousBudgetCents, eventId });
     }
 
-    return apiError(400, "UNSUPPORTED_ACTION", "Unsupported action");
+    return apiError(400, "UNSUPPORTED_ACTION", "Unsupported action", { eventId });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return NextResponse.json(
-        { ok: false, compatibilityMode: true, error: { code: "COMPATIBILITY_MODE", message: "Acquisition tables are missing." } },
-        { status: 503 }
-      );
+      logApiEvent("warn", eventId, "acquisition.override.compatibility_mode", { campaignId: id });
+      return apiCompatibilityError("Acquisition tables are missing.", { eventId });
     }
-    throw error;
+    logApiEvent("error", eventId, "acquisition.override.unhandled_error", { campaignId: id });
+    return apiUnhandledError(error, eventId);
   }
 }

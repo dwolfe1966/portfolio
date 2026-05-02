@@ -1,15 +1,17 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { apiError, apiOk } from "@/lib/api-contract";
+import { apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
+import { createEventId, logApiEvent } from "@/lib/logging";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const eventId = createEventId("acq_insights");
   const { id } = await params;
 
   try {
     const campaign = await db.acquisitionCampaign.findUnique({ where: { id } });
     if (!campaign) {
-      return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found");
+      logApiEvent("warn", eventId, "acquisition.insights.campaign_not_found", { campaignId: id });
+      return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found", { eventId });
     }
 
     const [cells, activities, logs, performanceSeries] = await Promise.all([
@@ -56,12 +58,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
         revenueCents: point.revenueCents,
         cpaCents: point.cpaCents,
         roas: point.roas
-      }))
+      })),
+      eventId
     });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return apiOk({ compatibilityMode: true, summary: null, topCells: [], budgetActivities: [], auditLogs: [], performanceSeries: [] });
+      logApiEvent("warn", eventId, "acquisition.insights.compatibility_mode", { campaignId: id });
+      return apiOk({ compatibilityMode: true, summary: null, topCells: [], budgetActivities: [], auditLogs: [], performanceSeries: [], eventId });
     }
-    throw error;
+    logApiEvent("error", eventId, "acquisition.insights.unhandled_error", { campaignId: id });
+    return apiUnhandledError(error, eventId);
   }
 }

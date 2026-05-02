@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { nextStateFromScore, scoreTestCell } from "@/lib/acquisition";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { apiError, apiOk } from "@/lib/api-contract";
+import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
 
@@ -163,12 +163,9 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
   } catch (error) {
     if (isMissingDemoTableError(error)) {
       logApiEvent("warn", eventId, "acquisition.iteration.compatibility_mode", { campaignId: id });
-      return NextResponse.json(
-        { ok: false, compatibilityMode: true, error: { code: "COMPATIBILITY_MODE", message: "Acquisition tables are missing.", details: { eventId } } },
-        { status: 503 }
-      );
+      return apiCompatibilityError("Acquisition tables are missing.", { eventId });
     }
     logApiEvent("error", eventId, "acquisition.iteration.unhandled_error", { campaignId: id });
-    throw error;
+    return apiUnhandledError(error, eventId);
   }
 }

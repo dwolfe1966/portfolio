@@ -13,6 +13,7 @@ export const metadata: Metadata = buildMetadata({
   description: "Agent-managed acquisition architecture with budget guardrails, orchestration, and operator controls.",
   path: "/acquisition/overview"
 });
+export const dynamic = "force-dynamic";
 
 const architecture = [
   {
@@ -99,7 +100,7 @@ export default async function AcquisitionOverviewPage() {
         ) : (
           <div className="card">
             <p>Acquisition schema is not initialized yet.</p>
-            <pre className="code">npm run db:generate{"\n"}npx prisma db push{"\n"}npm run db:seed</pre>
+            <pre className="code">npm run db:generate{"\n"}npm run db:migrate:deploy{"\n"}npm run db:seed</pre>
           </div>
         )}
         <p className="small" style={{ marginTop: 8 }}>

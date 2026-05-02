@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { apiCompatibilityError, apiOk, apiUnhandledError } from "@/lib/api-contract";
+import { createEventId, logApiEvent } from "@/lib/logging";
 
 export async function GET() {
+  const eventId = createEventId("health_acq");
+
   try {
     const [campaigns, cells, budgetActivities, auditLogs] = await Promise.all([
       db.acquisitionCampaign.count(),
@@ -11,26 +14,20 @@ export async function GET() {
       db.acquisitionAuditLog.count()
     ]);
 
-    return NextResponse.json({
-      ok: true,
+    logApiEvent("info", eventId, "health.acquisition.ready", { campaigns, cells, budgetActivities, auditLogs });
+
+    return apiOk({
       ready: true,
-      counts: { campaigns, cells, budgetActivities, auditLogs }
+      counts: { campaigns, cells, budgetActivities, auditLogs },
+      eventId
     });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          ready: false,
-          code: "ACQ_SCHEMA_MISSING",
-          message: "Acquisition schema is not initialized.",
-          fix: ["npm run db:generate", "npx prisma db push", "npm run db:seed"]
-        },
-        { status: 503 }
-      );
+      logApiEvent("warn", eventId, "health.acquisition.compatibility_mode");
+      return apiCompatibilityError("Acquisition schema is not initialized.", { eventId, ready: false });
     }
 
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ ok: false, ready: false, code: "UNKNOWN", message }, { status: 500 });
+    logApiEvent("error", eventId, "health.acquisition.unhandled_error");
+    return apiUnhandledError(error, eventId);
   }
 }
