@@ -62,7 +62,8 @@ export default async function DemoOutputsPage() {
       edgesCount,
       deltasCount,
       candidatesCount,
-      generatedCount
+      generatedCount,
+      segmentBreakdown
     ] = await Promise.all([
       loadRunsWithLegacyFallback(),
       db.entityDelta.findMany({ orderBy: { detectedAt: "desc" }, take: 10, include: { entity: true } }),
@@ -80,8 +81,16 @@ export default async function DemoOutputsPage() {
       db.interestEdge.count(),
       db.entityDelta.count(),
       db.campaignCandidate.count(),
-      db.generatedMessage.count()
+      db.generatedMessage.count(),
+      db.campaignCandidate.groupBy({
+        by: ["segmentAtGeneration"],
+        _count: { _all: true },
+        _avg: { priorityScore: true }
+      })
     ]);
+    const trendRuns = [...runs].slice(0, 6).reverse();
+    const maxTrendRevenue = Math.max(...trendRuns.map((run) => Number(run.estimatedRevenue)), 1);
+    const sortedSegmentBreakdown = [...segmentBreakdown].sort((a, b) => b._count._all - a._count._all);
 
     return (
       <>
@@ -113,7 +122,7 @@ export default async function DemoOutputsPage() {
                 Your database appears to be on an older schema. This page is running in compatibility mode so outputs stay viewable,
                 but you should still apply schema updates to unlock full run metadata.
               </p>
-              <pre className="code">npm run db:generate{"\n"}npx prisma db push{"\n"}npm run db:seed</pre>
+              <pre className="code">npm run db:generate{"\n"}npm run db:migrate:deploy{"\n"}npm run db:seed</pre>
             </div>
           </Section>
         )}
@@ -138,6 +147,48 @@ export default async function DemoOutputsPage() {
             </table>
           )}
         </Section></div>
+        <Section title="Run-over-run trend">
+          {trendRuns.length === 0 ? (
+            <div className="card"><p>No trend data yet. Generate multiple runs to compare revenue estimates.</p></div>
+          ) : (
+            <div className="card">
+              <div className="chartColumns">
+                {trendRuns.map((run) => {
+                  const revenue = Number(run.estimatedRevenue);
+                  return (
+                    <div className="chartBarWrap" key={run.id}>
+                      <div
+                        className="chartBar"
+                        style={{ height: `${Math.max(8, (revenue / maxTrendRevenue) * 150)}px` }}
+                        title={`$${revenue.toFixed(2)}`}
+                      />
+                      <p className="small" style={{ marginTop: 8 }}>{new Date(run.createdAt).toLocaleDateString()}</p>
+                      <p className="small">${revenue.toFixed(0)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </Section>
+        <Section title="Segment breakdown">
+          {sortedSegmentBreakdown.length === 0 ? (
+            <div className="card"><p>No candidate segment data yet. Generate a run to populate this breakdown.</p></div>
+          ) : (
+            <table className="table">
+              <thead><tr><th>Segment</th><th>Candidates</th><th>Average priority score</th></tr></thead>
+              <tbody>
+                {sortedSegmentBreakdown.map((row) => (
+                  <tr key={row.segmentAtGeneration}>
+                    <td>{row.segmentAtGeneration}</td>
+                    <td>{row._count._all}</td>
+                    <td>{Number(row._avg.priorityScore ?? 0).toFixed(3)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Section>
         <Section title="Recent events">
           <table className="table">
             <thead><tr><th>Entity</th><th>Change type</th><th>Summary</th></tr></thead>
@@ -174,7 +225,7 @@ export default async function DemoOutputsPage() {
       return (
         <DemoSetupNotice
           title="Demo schema is out of date"
-          detail="The database schema is missing required demo tables or columns. Run db push/migrations and seed, then reload this page."
+          detail="The database schema is missing required demo tables or columns. Run migrations and seed, then reload this page."
         />
       );
     }

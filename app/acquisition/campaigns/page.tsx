@@ -94,7 +94,7 @@ export default async function AcquisitionCampaignsPage({ searchParams }: PagePro
               <Section title="Acquisition schema not yet applied">
             <div className="card">
               <p>Run migrations/schema apply before opening campaign workspace pages.</p>
-              <pre className="code">npm run db:generate{"\n"}npx prisma db push{"\n"}npm run db:seed</pre>
+              <pre className="code">npm run db:generate{"\n"}npm run db:migrate:deploy{"\n"}npm run db:seed</pre>
             </div>
           </Section>
         </>

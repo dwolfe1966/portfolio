@@ -73,7 +73,7 @@ export function AcquisitionSimulationPanel() {
         return;
       }
       if (json.compatibilityMode) {
-        setMessage("Acquisition schema not available yet. Run db push/migrations and seed.");
+        setMessage("Acquisition schema not available yet. Run migrations and seed.");
       }
       const nextCampaigns: Campaign[] = json.campaigns ?? [];
       setCampaigns(nextCampaigns);

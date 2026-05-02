@@ -10,6 +10,7 @@ import { LifecycleOutcomeInfographic } from "@/components/demo/LifecycleOutcomeI
 import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
 import { GraphInfluencePaths } from "@/components/demo/GraphInfluencePaths";
 import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
+import { InfoTooltip } from "@/components/site/InfoTooltip";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
@@ -35,10 +36,28 @@ export default async function DemoOverviewPage() {
   return (
     <>
       <DemoHowItWorks />
-      <Section title="Volume and conversion snapshot">
+      <Section
+        title={
+          <>
+            Volume and conversion snapshot
+            <InfoTooltip label="Volume and conversion snapshot context">
+              These counts show whether the graph has enough events, matches, and messages to support a useful demo run.
+            </InfoTooltip>
+          </>
+        }
+      >
         <KpiTrendBars deltas={deltas} candidates={candidates} generated={generated} />
       </Section>
-      <Section title="Event-to-message pipeline">
+      <Section
+        title={
+          <>
+            Event-to-message pipeline
+            <InfoTooltip label="Event-to-message pipeline context">
+              The pipeline shows where commercial opportunity narrows from raw change events to usable message assets.
+            </InfoTooltip>
+          </>
+        }
+      >
         <LifecyclePipelineDiagram
           deltas={deltas}
           candidates={candidates}

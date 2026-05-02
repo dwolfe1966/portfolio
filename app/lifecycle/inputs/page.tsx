@@ -3,6 +3,7 @@ import { Section } from "@/components/site/Section";
 import { AssumptionEditorCard } from "@/components/demo/AssumptionEditorCard";
 import { LifecycleScoringSettings } from "@/components/demo/LifecycleScoringSettings";
 import { VariableDefinitions } from "@/components/demo/VariableDefinitions";
+import { InfoTooltip } from "@/components/site/InfoTooltip";
 
 export const dynamic = "force-dynamic";
 
@@ -23,21 +24,36 @@ export default async function DemoInputsPage() {
       <Section title="Input guide: what each control affects">
         <div className="grid grid-3">
           <div className="card">
-            <h3>Assumption sets</h3>
+            <h3>
+              Assumption sets
+              <InfoTooltip label="Assumption sets context">
+                Saved assumptions make simulation runs repeatable and easier to compare.
+              </InfoTooltip>
+            </h3>
             <p>
               Save named parameter sets to make runs reproducible.
               The active set is attached to new campaign runs and stored as a run snapshot.
             </p>
           </div>
           <div className="card">
-            <h3>Scoring thresholds</h3>
+            <h3>
+              Scoring thresholds
+              <InfoTooltip label="Scoring thresholds context">
+                Thresholds control which opportunities are worth generating messages for.
+              </InfoTooltip>
+            </h3>
             <p>
               <code>minPriorityScore</code> filters low-fit candidates, while
               <code>highPriorityThreshold</code> controls what counts as high-value opportunity.
             </p>
           </div>
           <div className="card">
-            <h3>Funnel assumptions</h3>
+            <h3>
+              Funnel assumptions
+              <InfoTooltip label="Funnel assumptions context">
+                Funnel rates translate generated messages into modeled commercial outcomes.
+              </InfoTooltip>
+            </h3>
             <p>
               Open/click/engage/purchase rates and AOV drive modeled outcomes downstream.
               Tune these to test conservative vs aggressive commercial scenarios.

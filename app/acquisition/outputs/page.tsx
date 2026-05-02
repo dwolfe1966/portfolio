@@ -102,7 +102,7 @@ export default async function AcquisitionOutputsPage() {
               <Section title="Acquisition schema not yet applied">
             <div className="card">
               <p>Run the schema update before using acquisition outputs:</p>
-              <pre className="code">npm run db:generate{"\n"}npx prisma db push{"\n"}npm run db:seed</pre>
+              <pre className="code">npm run db:generate{"\n"}npm run db:migrate:deploy{"\n"}npm run db:seed</pre>
             </div>
           </Section>
         </>

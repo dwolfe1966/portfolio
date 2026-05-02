@@ -45,7 +45,7 @@ export function AcquisitionInsightsPanel() {
         return;
       }
       if (json.compatibilityMode) {
-        setMessage("Acquisition schema is not ready yet. Run db push/migrations and seed.");
+        setMessage("Acquisition schema is not ready yet. Run migrations and seed.");
       } else {
         setMessage("");
       }

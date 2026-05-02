@@ -14,7 +14,7 @@ export function DemoSetupNotice({
       <p>{detail}</p>
       <pre className="card" style={{ whiteSpace: "pre-wrap" }}>
         npm run db:generate{"\n"}
-        npx prisma db push{"\n"}
+        npm run db:migrate:deploy{"\n"}
         npm run db:seed
       </pre>
     </Section>

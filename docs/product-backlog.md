@@ -1,6 +1,6 @@
 # Product Backlog (Execution Plan)
 
-Last updated: 2026-04-30
+Last updated: 2026-05-02
 
 This backlog is the canonical source of truth for workstreams A–E.
 
@@ -28,14 +28,14 @@ This backlog is the canonical source of truth for workstreams A–E.
 | C9 | Manual override controls + persisted override logs | DW | S | S8 | ✅ | Override actions are visible, reversible, and audit-logged. |
 | C10 | Scenario save/load presets | DW | S | S8 | ✅ | Users can save named acquisition scenarios and rerun them reliably. |
 | E6 | Environment-specific endpoint guardrails | DW | S | S8 | ✅ | Seed/simulation mutator endpoints are environment-gated. |
-| E7 | Structured API error contract | DW | S | S8 | 🟡 | API responses follow consistent JSON error shape across routes. (Core routes complete; continue harmonizing legacy endpoints.) |
+| E7 | Structured API error contract | DW | S | S8 | ✅ | API responses follow consistent JSON error shape across lifecycle/acquisition routes, including legacy endpoints and compatibility-mode fallbacks. |
 
 ### S8 & S9 status snapshot (2026-04-28)
 
 | Sprint | Completed | In progress | Remaining |
 |---|---|---|---|
-| S8 | C8, C9, C10, C18, C19, C20, E6 | E7 | — |
-| S9 | A6, D6, D8, D9, D12 | D7, B13, E8 | — |
+| S8 | C8, C9, C10, C18, C19, C20, E6, E7 | — | — |
+| S9 | A6, B7, B13, B14, D6, D8, D9, D12, E8 | D7 | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -98,16 +98,17 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - 🟡 B6. Add tests for scoring reproducibility logic.
 
 ### To do
-- ⏳ B7. Add regression tests for schema fallback paths (`P2021`/`P2022`).
-- ⏳ B8. Add richer outputs analytics (run-over-run trend, segment breakdown, filter presets).
+- ✅ B7. Add regression tests for schema fallback paths (`P2021`/`P2022`) and structured compatibility response payloads.
+- 🟡 B8. Add richer outputs analytics (run-over-run trend and segment breakdown added; filter presets remain).
 - ⏳ B9. Add operator audit panel linking run → top candidates → generated message chain.
 - ✅ B10. Implement interactive `ScoringSettings` panel (slider + numeric + lock + auto-rebalance).
 - ✅ B11. Add `VariableDefinitions` panel (input/output definitions with examples).
 - ✅ B12. Add simulation visualizations (pipeline bars + funnel + trend chart) with low-clutter styling.
-- ⏳ B13. Add contextual tooltips and first-run intro modal in demo workspace.
-- 🟡 B14. Add business-context explanation blocks in demo flows (why users/entities/change-events matter commercially).
+- ✅ B13. Add contextual tooltips and first-run intro modal in demo workspace.
+- ✅ B14. Add business-context explanation blocks in demo flows (why users/entities/change-events matter commercially).
 - ✅ B15. Explore advanced graph-based dataflow visualizations beyond current topology map (multi-hop relationships, influence paths, and cluster views).
 - ✅ B16. Improve Monte Carlo UX feedback in simulations (visible run count, refresh confirmation, and distribution summary cues).
+- ⏳ B17. Add interest relations visibility on Lifecycle Inputs alongside sample users and entities.
 
 ---
 
@@ -178,8 +179,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 
 ### To do
 - ✅ E6. Add environment-specific endpoint guardrails for seed/simulation mutators.
-- 🟡 E7. Add structured error contract for API routes (consistent JSON shape, including remaining legacy endpoints).
-- 🟡 E8. Add production-ready logging + basic event IDs for cross-route tracing (baseline helper + contact route integrated).
+- ✅ E7. Add structured error contract for API routes (consistent JSON shape, including remaining legacy endpoints).
+- ✅ E8. Add production-ready logging + basic event IDs for cross-route tracing across lifecycle/acquisition API routes.
 
 ---
 
@@ -200,6 +201,6 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ### Sprint S9 (content, conversion, and polish)
 - ✅ D6, D8, D9, D12
 - 🟡 D7
-- ⏳ B13
-- 🟡 E8
+- ✅ B13, B14
+- ✅ B7, E7, E8
 - ✅ A6
