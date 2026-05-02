@@ -121,6 +121,25 @@ model AudienceSegment {
   @@index([templateId])
 }
 
+model AdAccountConnection {
+  id                  String   @id @default(cuid())
+  provider            String
+  externalAccountId   String
+  accountName         String
+  isTestAccount       Boolean  @default(true)
+  scopes              String[]
+  encryptedAccessToken String
+  encryptedRefreshToken String?
+  expiresAt           DateTime?
+  lastFetchedAt       DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([provider, externalAccountId])
+  @@index([provider])
+  @@index([createdAt])
+}
+
 model AudienceTemplate {
   id                String            @id @default(cuid())
   name              String
