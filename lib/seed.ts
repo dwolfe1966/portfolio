@@ -77,6 +77,95 @@ async function clearAcquisitionData() {
   await db.acquisitionCampaign.deleteMany();
 }
 
+async function clearAuctionData() {
+  // Order matters: child rows first, then parents.
+  await db.auctionAuditLog.deleteMany();
+  await db.auctionAdvertiserSpend.deleteMany();
+  await db.auctionResultRow.deleteMany();
+  await db.auctionResult.deleteMany();
+  await db.auctionRun.deleteMany();
+  await db.auctionBid.deleteMany();
+  await db.auctionAdvertiser.deleteMany();
+  await db.auctionSlot.deleteMany();
+}
+
+async function seedAuctionDemo() {
+  const advertisers = await Promise.all([
+    db.auctionAdvertiser.create({
+      data: {
+        name: "ICP Brand",
+        qualityScore: 0.85,
+        dailyBudgetCents: 80000,
+        smoothingFactor: 0.6,
+        behaviorMode: "truthful",
+        targetCacCents: null
+      }
+    }),
+    db.auctionAdvertiser.create({
+      data: {
+        name: "Performance Bidder",
+        qualityScore: 0.7,
+        dailyBudgetCents: 60000,
+        smoothingFactor: 0.5,
+        behaviorMode: "auto_bid",
+        targetCacCents: 18000
+      }
+    }),
+    db.auctionAdvertiser.create({
+      data: {
+        name: "Bargain Hunter",
+        qualityScore: 0.6,
+        dailyBudgetCents: 40000,
+        smoothingFactor: 0.4,
+        behaviorMode: "shaded",
+        targetCacCents: null
+      }
+    }),
+    db.auctionAdvertiser.create({
+      data: {
+        name: "Display Whale",
+        qualityScore: 0.5,
+        dailyBudgetCents: 100000,
+        smoothingFactor: 0.7,
+        behaviorMode: "truthful",
+        targetCacCents: null
+      }
+    })
+  ]);
+
+  const slots = await Promise.all([
+    db.auctionSlot.create({
+      data: { name: "Top banner", reservePriceCents: 250, expectedDailyVolume: 200 }
+    }),
+    db.auctionSlot.create({
+      data: { name: "Sidebar", reservePriceCents: 120, expectedDailyVolume: 350 }
+    }),
+    db.auctionSlot.create({
+      data: { name: "Newsletter inline", reservePriceCents: 80, expectedDailyVolume: 90 }
+    })
+  ]);
+
+  // Bid matrix: each advertiser bids on each slot at slightly different premiums.
+  const matrix: Record<string, Record<string, number>> = {
+    "ICP Brand": { "Top banner": 800, "Sidebar": 380, "Newsletter inline": 200 },
+    "Performance Bidder": { "Top banner": 650, "Sidebar": 320, "Newsletter inline": 180 },
+    "Bargain Hunter": { "Top banner": 500, "Sidebar": 260, "Newsletter inline": 150 },
+    "Display Whale": { "Top banner": 700, "Sidebar": 300, "Newsletter inline": 130 }
+  };
+
+  for (const advertiser of advertisers) {
+    const row = matrix[advertiser.name];
+    if (!row) continue;
+    for (const slot of slots) {
+      const bid = row[slot.name];
+      if (bid == null) continue;
+      await db.auctionBid.create({
+        data: { advertiserId: advertiser.id, slotId: slot.id, bidCents: bid }
+      });
+    }
+  }
+}
+
 async function seedAcquisitionDemo() {
   const now = new Date();
   const endAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -279,9 +368,16 @@ export async function reseedAcquisitionOnly() {
   await seedAcquisitionDemo();
 }
 
+export async function reseedAuctionOnly() {
+  await clearAuctionData();
+  await seedAuctionDemo();
+}
+
 export async function reseed() {
   await clearLifecycleData();
   await clearAcquisitionData();
+  await clearAuctionData();
   await seedLifecycleDemo();
   await seedAcquisitionDemo();
+  await seedAuctionDemo();
 }

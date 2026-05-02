@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,10 @@ export default async function AuctionOverviewPage() {
             <p>Advertisers can be truthful, shaded (×0.85), or auto-bid (capped by target CAC). Vickrey rewards truthful.</p>
           </div>
         </div>
+      </Section>
+
+      <Section title="Demo data operations">
+        <ResetDemoDataCard appLabel="Auction" scope="auction" />
       </Section>
     </>
   );

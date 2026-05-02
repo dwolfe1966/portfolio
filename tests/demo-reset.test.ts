@@ -16,7 +16,7 @@ test("resolveDemoResetRequest defaults invalid scope to all", () => {
   assert.deepEqual(result, { ok: true, scope: "all" });
 });
 
-test("resolveDemoResetRequest accepts lifecycle and acquisition scopes", () => {
+test("resolveDemoResetRequest accepts lifecycle, acquisition, and auction scopes", () => {
   assert.deepEqual(resolveDemoResetRequest({ confirm: "RESET_DEMO", scope: "lifecycle" }), {
     ok: true,
     scope: "lifecycle"
@@ -24,5 +24,9 @@ test("resolveDemoResetRequest accepts lifecycle and acquisition scopes", () => {
   assert.deepEqual(resolveDemoResetRequest({ confirm: "RESET_DEMO", scope: "acquisition" }), {
     ok: true,
     scope: "acquisition"
+  });
+  assert.deepEqual(resolveDemoResetRequest({ confirm: "RESET_DEMO", scope: "auction" }), {
+    ok: true,
+    scope: "auction"
   });
 });
