@@ -23,7 +23,7 @@ async function loadRunsWithLegacyFallback() {
     return {
       runs: await db.campaignRun.findMany({
         orderBy: { createdAt: "desc" },
-        take: 10,
+        take: 25,
         select: {
           id: true,
           runName: true,
@@ -43,15 +43,42 @@ async function loadRunsWithLegacyFallback() {
       SELECT id, "runName", "totalDeltas", "totalMatches", "totalHighPriority", "estimatedRevenue", "createdAt"
       FROM "CampaignRun"
       ORDER BY "createdAt" DESC
-      LIMIT 10
+      LIMIT 25
     `);
 
     return { runs: rows, usingLegacyFallback: true };
   }
 }
 
-export default async function DemoOutputsPage() {
+type PageProps = {
+  searchParams: Promise<{ preset?: string }>;
+};
+
+const outputPresets = [
+  { id: "all", label: "All runs", href: "/lifecycle/outputs" },
+  { id: "high-priority", label: "High-priority runs", href: "/lifecycle/outputs?preset=high-priority" },
+  { id: "revenue", label: "Revenue-positive", href: "/lifecycle/outputs?preset=revenue" },
+  { id: "recent", label: "Recent 5", href: "/lifecycle/outputs?preset=recent" }
+];
+
+function applyRunPreset(runs: OutputRunRow[], preset: string) {
+  if (preset === "high-priority") return runs.filter((run) => run.totalHighPriority > 0);
+  if (preset === "revenue") return runs.filter((run) => Number(run.estimatedRevenue) > 0);
+  if (preset === "recent") return runs.slice(0, 5);
+  return runs;
+}
+
+function presetEmptyMessage(preset: string) {
+  if (preset === "high-priority") return "No runs match this preset yet. Generate a run with high-priority candidates to populate it.";
+  if (preset === "revenue") return "No revenue-positive runs match this preset yet. Generate a run with modeled revenue to populate it.";
+  if (preset === "recent") return "No recent runs yet. Generate a run from /lifecycle/simulations.";
+  return "No campaign runs yet. Generate a run from /lifecycle/simulations.";
+}
+
+export default async function DemoOutputsPage({ searchParams }: PageProps) {
   try {
+    const query = await searchParams;
+    const activePreset = query.preset ?? "all";
     const [
       { runs, usingLegacyFallback },
       events,
@@ -88,7 +115,8 @@ export default async function DemoOutputsPage() {
         _avg: { priorityScore: true }
       })
     ]);
-    const trendRuns = [...runs].slice(0, 6).reverse();
+    const visibleRuns = applyRunPreset(runs, activePreset);
+    const trendRuns = [...visibleRuns].slice(0, 6).reverse();
     const maxTrendRevenue = Math.max(...trendRuns.map((run) => Number(run.estimatedRevenue)), 1);
     const sortedSegmentBreakdown = [...segmentBreakdown].sort((a, b) => b._count._all - a._count._all);
 
@@ -106,9 +134,9 @@ export default async function DemoOutputsPage() {
               sentMessages={generatedCount}
               assumptions={activeAssumptions}
               actuals={{
-                revenue: runs.reduce((sum, run) => sum + Number(run.estimatedRevenue), 0),
+                revenue: visibleRuns.reduce((sum, run) => sum + Number(run.estimatedRevenue), 0),
                 conversions: activeAssumptions
-                  ? Math.round(runs.reduce((sum, run) => sum + Number(run.estimatedRevenue), 0) / Math.max(activeAssumptions.avgOrderValue, 1))
+                  ? Math.round(visibleRuns.reduce((sum, run) => sum + Number(run.estimatedRevenue), 0) / Math.max(activeAssumptions.avgOrderValue, 1))
                   : undefined
               }}
             />
@@ -127,14 +155,31 @@ export default async function DemoOutputsPage() {
           </Section>
         )}
 
+        <Section title="Output filter presets">
+          <div className="card">
+            <p className="small">Use presets to focus the run list and trend chart without changing the underlying data.</p>
+            <div className="ctaRow">
+              {outputPresets.map((preset) => (
+                <Link
+                  className={`btn ${activePreset === preset.id ? "primary" : ""}`}
+                  href={preset.href}
+                  key={preset.id}
+                >
+                  {preset.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </Section>
+
         <div id="recent-campaign-runs"><Section title="Recent campaign runs">
-          {runs.length === 0 ? (
-            <div className="card"><p>No campaign runs yet. Generate a run from /lifecycle/simulations.</p></div>
+          {visibleRuns.length === 0 ? (
+            <div className="card"><p>{presetEmptyMessage(activePreset)}</p></div>
           ) : (
             <table className="table">
               <thead><tr><th>Run</th><th>Deltas</th><th>Matches</th><th>High priority</th><th>Revenue</th></tr></thead>
               <tbody>
-                {runs.map((run) => (
+                {visibleRuns.map((run) => (
                   <tr key={run.id}>
                     <td><Link href={`/lifecycle/campaigns/${run.id}`}>{run.runName}</Link></td>
                     <td>{run.totalDeltas}</td>

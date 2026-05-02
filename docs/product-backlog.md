@@ -99,8 +99,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 
 ### To do
 - ✅ B7. Add regression tests for schema fallback paths (`P2021`/`P2022`) and structured compatibility response payloads.
-- 🟡 B8. Add richer outputs analytics (run-over-run trend and segment breakdown added; filter presets remain).
-- ⏳ B9. Add operator audit panel linking run → top candidates → generated message chain.
+- ✅ B8. Add richer outputs analytics (run-over-run trend, segment breakdown, filter presets).
+- ✅ B9. Add operator audit panel linking run → top candidates → generated message chain.
 - ✅ B10. Implement interactive `ScoringSettings` panel (slider + numeric + lock + auto-rebalance).
 - ✅ B11. Add `VariableDefinitions` panel (input/output definitions with examples).
 - ✅ B12. Add simulation visualizations (pipeline bars + funnel + trend chart) with low-clutter styling.
