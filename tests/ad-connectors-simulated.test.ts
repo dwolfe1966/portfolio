@@ -58,13 +58,14 @@ test("SimulatedConnector returns empty daily list for invalid date ranges", asyn
   assert.equal(result.daily.length, 0);
 });
 
-test("getConnector falls back to SimulatedConnector for providers without real impls", () => {
+test("getConnector dispatch resolves the right provider", () => {
   const google = getConnector("google_ads");
   const meta = getConnector("meta_ads");
   const sim = getConnector("simulated");
 
-  // Until Phase 3, all providers resolve to the simulated impl.
-  assert.equal(google.provider, "simulated");
+  // Phase 3: google_ads dispatches to GoogleAdsConnector.
+  assert.equal(google.provider, "google_ads");
+  // Meta still falls back to simulated until that connector is wired.
   assert.equal(meta.provider, "simulated");
   assert.equal(sim.provider, "simulated");
 });

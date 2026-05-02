@@ -1,4 +1,5 @@
 import { SimulatedConnector } from "./simulated";
+import { GoogleAdsConnector } from "./google-ads-connector";
 import type { AdConnector, AdProvider } from "./types";
 
 export type { AdConnector, AdProvider } from "./types";
@@ -10,20 +11,22 @@ export type {
   RemotePerformancePoint
 } from "./types";
 export { SimulatedConnector } from "./simulated";
+export { GoogleAdsConnector, GoogleAdsConnectorError, GoogleAdsNotTestAccountError } from "./google-ads-connector";
 
 /**
- * Resolve a connector for a given provider. Real provider connectors
- * (google_ads, meta_ads) will be wired in Phase 3 once OAuth credentials
- * and developer tokens are in place. Until then, all providers fall back
- * to the SimulatedConnector so the UI works end-to-end.
+ * Resolve a connector for a given provider.
+ * - "simulated" returns the deterministic mock connector
+ * - "google_ads" returns the real GoogleAdsConnector (read-only against
+ *   stored OAuth connections, refuses non-test accounts)
+ * - "meta_ads" still falls back to SimulatedConnector until Meta is wired
  */
 export function getConnector(provider: AdProvider): AdConnector {
   switch (provider) {
     case "simulated":
       return new SimulatedConnector();
     case "google_ads":
+      return new GoogleAdsConnector();
     case "meta_ads":
-      // Phase 3: replace with GoogleAdsConnector / MetaAdsConnector.
       return new SimulatedConnector();
     default:
       return new SimulatedConnector();

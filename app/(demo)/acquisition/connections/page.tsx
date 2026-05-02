@@ -144,7 +144,9 @@ export default async function ConnectionsPage({
                 <tr key={conn.id}>
                   <td>{PROVIDER_LABEL[conn.provider] ?? conn.provider}</td>
                   <td>
-                    <code className="small">{conn.externalAccountId}</code>
+                    <Link href={`/acquisition/connections/${conn.id}`}>
+                      <code className="small">{conn.externalAccountId}</code>
+                    </Link>
                     <div className="small">{conn.accountName}</div>
                   </td>
                   <td>

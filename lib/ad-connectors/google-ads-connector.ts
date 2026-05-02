@@ -1,0 +1,320 @@
+import { db } from "@/lib/db";
+import {
+  decryptOAuthToken,
+  encryptOAuthToken,
+  isOAuthEncryptionAvailable
+} from "@/lib/oauth-tokens";
+import {
+  loadGoogleOAuthConfig,
+  refreshGoogleAccessToken,
+  type GoogleOAuthConfig
+} from "./google-oauth";
+import type {
+  AdConnector,
+  AdProvider,
+  DateRange,
+  RemoteAdAccount,
+  RemoteCampaign,
+  RemotePerformance,
+  RemotePerformancePoint
+} from "./types";
+
+const ADS_API_BASE = "https://googleads.googleapis.com/v17";
+const ACCESS_TOKEN_REFRESH_BUFFER_MS = 60_000;
+
+export class GoogleAdsConnectorError extends Error {}
+export class GoogleAdsNotTestAccountError extends GoogleAdsConnectorError {
+  constructor(externalAccountId: string) {
+    super(
+      `Refusing to fetch from non-test customer ${externalAccountId}. Demo scope is read-only against test accounts only.`
+    );
+    this.name = "GoogleAdsNotTestAccountError";
+  }
+}
+
+type StoredConnection = {
+  id: string;
+  externalAccountId: string;
+  accountName: string;
+  isTestAccount: boolean;
+  encryptedAccessToken: string;
+  encryptedRefreshToken: string | null;
+  expiresAt: Date | null;
+};
+
+/**
+ * Real Google Ads connector. Read-only against test customers.
+ *
+ * The connector is per-provider (not per-account) — each method looks up
+ * the relevant AdAccountConnection from the database, refreshes the access
+ * token if expired, verifies test_account=true on the live customer
+ * resource before issuing data queries, and returns provider-shaped data.
+ */
+export class GoogleAdsConnector implements AdConnector {
+  readonly provider: AdProvider = "google_ads";
+
+  async fetchAccounts(): Promise<RemoteAdAccount[]> {
+    if (!isOAuthEncryptionAvailable()) {
+      throw new GoogleAdsConnectorError("OAUTH_ENCRYPTION_KEY is not configured");
+    }
+
+    const config = loadGoogleOAuthConfig();
+    const connections = await db.adAccountConnection.findMany({
+      where: { provider: "google_ads" },
+      orderBy: { createdAt: "asc" }
+    });
+
+    const out: RemoteAdAccount[] = [];
+    for (const conn of connections) {
+      try {
+        const accessToken = await this.ensureAccessToken(conn, config);
+        const customer = await this.fetchCustomerResource(conn.externalAccountId, accessToken, config);
+        const isTest = customer.testAccount === true;
+        if (!isTest && conn.isTestAccount) {
+          // Drift detection: connection was assumed test but the customer
+          // resource says otherwise. Persist the truth and refuse downstream.
+          await db.adAccountConnection.update({
+            where: { id: conn.id },
+            data: { isTestAccount: false, accountName: customer.descriptiveName ?? conn.accountName }
+          });
+        } else if (customer.descriptiveName && customer.descriptiveName !== conn.accountName) {
+          await db.adAccountConnection.update({
+            where: { id: conn.id },
+            data: { accountName: customer.descriptiveName, isTestAccount: isTest }
+          });
+        }
+
+        out.push({
+          provider: "google_ads",
+          externalAccountId: conn.externalAccountId,
+          name: customer.descriptiveName ?? conn.accountName,
+          currencyCode: customer.currencyCode ?? "USD",
+          isTestAccount: isTest
+        });
+      } catch (err) {
+        // Surface unreachable customers as a row marked non-test/empty so the
+        // UI can render the error rather than the page failing entirely.
+        out.push({
+          provider: "google_ads",
+          externalAccountId: conn.externalAccountId,
+          name: `${conn.accountName} (error: ${err instanceof Error ? err.message.slice(0, 80) : "unknown"})`,
+          currencyCode: "USD",
+          isTestAccount: false
+        });
+      }
+    }
+    return out;
+  }
+
+  async fetchCampaigns(externalAccountId: string): Promise<RemoteCampaign[]> {
+    const { connection, accessToken, config } = await this.resolveAuth(externalAccountId);
+    await this.assertTestAccount(connection, accessToken, config);
+
+    const query = [
+      "SELECT campaign.id, campaign.name, campaign.status,",
+      "campaign.start_date, campaign.end_date",
+      "FROM campaign",
+      "ORDER BY campaign.id"
+    ].join(" ");
+
+    const results = await this.googleAdsSearch<{
+      campaign: {
+        id: string;
+        name: string;
+        status: string;
+        startDate?: string;
+        endDate?: string;
+      };
+    }>(externalAccountId, query, accessToken, config);
+
+    await db.adAccountConnection.update({
+      where: { id: connection.id },
+      data: { lastFetchedAt: new Date() }
+    });
+
+    return results.map((row) => ({
+      externalCampaignId: row.campaign.id,
+      name: row.campaign.name,
+      status: this.normalizeCampaignStatus(row.campaign.status),
+      startDate: row.campaign.startDate ?? null,
+      endDate: row.campaign.endDate ?? null
+    }));
+  }
+
+  async fetchPerformance(
+    externalAccountId: string,
+    externalCampaignId: string,
+    range: DateRange
+  ): Promise<RemotePerformance> {
+    const { connection, accessToken, config } = await this.resolveAuth(externalAccountId);
+    await this.assertTestAccount(connection, accessToken, config);
+
+    const query = [
+      "SELECT segments.date, metrics.impressions, metrics.clicks,",
+      "metrics.conversions, metrics.cost_micros",
+      "FROM campaign",
+      `WHERE campaign.id = ${externalCampaignId}`,
+      `AND segments.date BETWEEN '${range.start}' AND '${range.end}'`,
+      "ORDER BY segments.date"
+    ].join(" ");
+
+    const results = await this.googleAdsSearch<{
+      segments: { date: string };
+      metrics: {
+        impressions?: string;
+        clicks?: string;
+        conversions?: number;
+        costMicros?: string;
+      };
+    }>(externalAccountId, query, accessToken, config);
+
+    const daily: RemotePerformancePoint[] = results.map((row) => {
+      const impressions = Number(row.metrics.impressions ?? 0);
+      const clicks = Number(row.metrics.clicks ?? 0);
+      const conversions = Number(row.metrics.conversions ?? 0);
+      const costMicros = Number(row.metrics.costMicros ?? 0);
+      const spendCents = Math.round(costMicros / 10_000);
+      return {
+        date: row.segments.date,
+        impressions,
+        clicks,
+        conversions,
+        spendCents
+      };
+    });
+
+    const totals = daily.reduce(
+      (acc, p) => ({
+        impressions: acc.impressions + p.impressions,
+        clicks: acc.clicks + p.clicks,
+        conversions: acc.conversions + p.conversions,
+        spendCents: acc.spendCents + p.spendCents
+      }),
+      { impressions: 0, clicks: 0, conversions: 0, spendCents: 0 }
+    );
+
+    await db.adAccountConnection.update({
+      where: { id: connection.id },
+      data: { lastFetchedAt: new Date() }
+    });
+
+    return { externalCampaignId, totals, daily };
+  }
+
+  // ----- internals -----
+
+  private async resolveAuth(externalAccountId: string): Promise<{
+    connection: StoredConnection;
+    accessToken: string;
+    config: GoogleOAuthConfig;
+  }> {
+    if (!isOAuthEncryptionAvailable()) {
+      throw new GoogleAdsConnectorError("OAUTH_ENCRYPTION_KEY is not configured");
+    }
+    const config = loadGoogleOAuthConfig();
+    const connection = await db.adAccountConnection.findUnique({
+      where: { provider_externalAccountId: { provider: "google_ads", externalAccountId } }
+    });
+    if (!connection) {
+      throw new GoogleAdsConnectorError(`No Google Ads connection for customer ${externalAccountId}`);
+    }
+    const accessToken = await this.ensureAccessToken(connection, config);
+    return { connection, accessToken, config };
+  }
+
+  private async ensureAccessToken(connection: StoredConnection, config: GoogleOAuthConfig): Promise<string> {
+    const decrypted = decryptOAuthToken(connection.encryptedAccessToken);
+    const expiresAt = connection.expiresAt?.getTime() ?? 0;
+    if (expiresAt - Date.now() > ACCESS_TOKEN_REFRESH_BUFFER_MS) {
+      return decrypted;
+    }
+    if (!connection.encryptedRefreshToken) {
+      throw new GoogleAdsConnectorError(
+        `Access token expired for customer ${connection.externalAccountId} and no refresh token is stored. Reconnect from /acquisition/connections.`
+      );
+    }
+    const refreshToken = decryptOAuthToken(connection.encryptedRefreshToken);
+    const refreshed = await refreshGoogleAccessToken(refreshToken, config);
+    await db.adAccountConnection.update({
+      where: { id: connection.id },
+      data: {
+        encryptedAccessToken: encryptOAuthToken(refreshed.accessToken),
+        expiresAt: refreshed.expiresAt
+      }
+    });
+    return refreshed.accessToken;
+  }
+
+  private async assertTestAccount(
+    connection: StoredConnection,
+    accessToken: string,
+    config: GoogleOAuthConfig
+  ): Promise<void> {
+    const customer = await this.fetchCustomerResource(connection.externalAccountId, accessToken, config);
+    if (customer.testAccount !== true) {
+      if (connection.isTestAccount) {
+        await db.adAccountConnection.update({
+          where: { id: connection.id },
+          data: { isTestAccount: false }
+        });
+      }
+      throw new GoogleAdsNotTestAccountError(connection.externalAccountId);
+    }
+  }
+
+  private async fetchCustomerResource(
+    customerId: string,
+    accessToken: string,
+    config: GoogleOAuthConfig
+  ): Promise<{ id: string; descriptiveName?: string; currencyCode?: string; testAccount?: boolean }> {
+    const query =
+      "SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.test_account FROM customer LIMIT 1";
+    const rows = await this.googleAdsSearch<{
+      customer: {
+        id: string;
+        descriptiveName?: string;
+        currencyCode?: string;
+        testAccount?: boolean;
+      };
+    }>(customerId, query, accessToken, config);
+    if (rows.length === 0) {
+      throw new GoogleAdsConnectorError(`Customer ${customerId} returned no resource row`);
+    }
+    return rows[0].customer;
+  }
+
+  private async googleAdsSearch<T>(
+    customerId: string,
+    query: string,
+    accessToken: string,
+    config: GoogleOAuthConfig
+  ): Promise<T[]> {
+    const response = await fetch(`${ADS_API_BASE}/customers/${customerId}/googleAds:search`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "developer-token": config.developerToken,
+        "login-customer-id": customerId,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ query, pageSize: 200 })
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new GoogleAdsConnectorError(
+        `Google Ads search failed (${response.status}) for customer ${customerId}: ${text.slice(0, 240)}`
+      );
+    }
+
+    const json = (await response.json()) as { results?: T[] };
+    return json.results ?? [];
+  }
+
+  private normalizeCampaignStatus(status: string): RemoteCampaign["status"] {
+    if (status === "ENABLED") return "ENABLED";
+    if (status === "PAUSED") return "PAUSED";
+    if (status === "REMOVED") return "REMOVED";
+    return "UNKNOWN";
+  }
+}
