@@ -174,6 +174,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 
 Cross-cutting UX/IA workstream covering both lifecycle and acquisition demo apps. Goal: make the demo experience visually and structurally distinct from the portfolio site (which today only differs by background color).
 
+Design direction: **Mission Control with monospace KPIs**. Full spec: [`docs/demo-design-system.md`](./demo-design-system.md).
+
 ### To do
 - ⏳ F1. Replace the top-of-page workspace nav cards with a persistent **left vertical navigation rail** for both `/lifecycle/*` and `/acquisition/*` routes. Should anchor each demo app, expose all stages (Overview/Inputs/Simulations/Outputs/etc.) without scrolling, and remain visible during deep navigation (campaign detail, audit page).
 - ⏳ F2. Define a **visual differentiation system** for demo apps vs. portfolio web pages. Includes: distinct accent palette, denser type scale, "operator console" framing (compact cards, monospace metric chips), an app-level header with environment indicator, and information-architecture cues (e.g., breadcrumbs anchored to current campaign run / scenario context). Brainstorm pass first, then a design spec, then phased rollout. Touches `components/site/AppWorkspaceShellNav.tsx`, lifecycle/acquisition layout shells, and shared section/card primitives.
