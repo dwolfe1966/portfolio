@@ -93,9 +93,9 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ B3. Health endpoint exists for demo DB readiness checks.
 - ✅ B4. Scoring explainability UI and assumptions persistence baseline are present.
 
-### In progress
-- 🟡 B5. Add tests for assumptions lifecycle logic.
-- 🟡 B6. Add tests for scoring reproducibility logic.
+### Completed
+- ✅ B5. Add tests for assumptions lifecycle logic.
+- ✅ B6. Add tests for scoring reproducibility logic.
 
 ### To do
 - ✅ B7. Add regression tests for schema fallback paths (`P2021`/`P2022`) and structured compatibility response payloads.
@@ -108,7 +108,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ B14. Add business-context explanation blocks in demo flows (why users/entities/change-events matter commercially).
 - ✅ B15. Explore advanced graph-based dataflow visualizations beyond current topology map (multi-hop relationships, influence paths, and cluster views).
 - ✅ B16. Improve Monte Carlo UX feedback in simulations (visible run count, refresh confirmation, and distribution summary cues).
-- ⏳ B17. Add interest relations visibility on Lifecycle Inputs alongside sample users and entities.
+- ✅ B17. Add interest relations visibility on Lifecycle Inputs alongside sample users and entities.
+- ⏳ B18. Derive estimated revenue from funnel (purchaseRate × avgOrderValue × highPriorityLift) and remove standalone `revenuePerHighPriority` editable input. Currently the funnel rates and the hardcoded $/high-priority value are inconsistent (~$0.026 vs $18.50), letting users edit funnel inputs with no effect on estimated revenue.
 
 ---
 

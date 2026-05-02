@@ -8,9 +8,15 @@ import { InfoTooltip } from "@/components/site/InfoTooltip";
 export const dynamic = "force-dynamic";
 
 export default async function DemoInputsPage() {
-  const [users, entities] = await Promise.all([
+  const [users, entities, interestEdges, interestEdgeCount] = await Promise.all([
     db.user.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
-    db.entity.findMany({ orderBy: { createdAt: "desc" }, take: 10 })
+    db.entity.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
+    db.interestEdge.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: { user: true, entity: true }
+    }),
+    db.interestEdge.count()
   ]);
 
   return (
@@ -121,6 +127,41 @@ export default async function DemoInputsPage() {
             ))}
           </tbody>
         </table>
+      </Section>
+      <Section
+        title="Sample interest relations"
+        eyebrow={`${interestEdgeCount.toLocaleString()} total user → entity edges`}
+      >
+        <p>
+          Interest edges connect users to the entities they care about, scored by{" "}
+          <code>interestScore</code> and tagged with the <code>source</code> that captured the
+          relationship (signup form, behavioral inference, manual import). Edges feed the{" "}
+          <code>interestContribution</code> channel of priority scoring.
+        </p>
+        {interestEdges.length === 0 ? (
+          <p className="small">No interest edges yet — seed the demo data to populate this view.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Entity</th>
+                <th>Interest score</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {interestEdges.map((edge) => (
+                <tr key={edge.id}>
+                  <td>{edge.user.fullName}</td>
+                  <td>{edge.entity.name}</td>
+                  <td>{edge.interestScore.toFixed(2)}</td>
+                  <td>{edge.source}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Section>
     </>
   );
