@@ -176,10 +176,10 @@ Cross-cutting UX/IA workstream covering both lifecycle and acquisition demo apps
 
 Design direction: **Mission Control with monospace KPIs**. Full spec: [`docs/demo-design-system.md`](./demo-design-system.md).
 
-### To do
-- ⏳ F1. Replace the top-of-page workspace nav cards with a persistent **left vertical navigation rail** for both `/lifecycle/*` and `/acquisition/*` routes. Should anchor each demo app, expose all stages (Overview/Inputs/Simulations/Outputs/etc.) without scrolling, and remain visible during deep navigation (campaign detail, audit page).
-- ⏳ F2. Define a **visual differentiation system** for demo apps vs. portfolio web pages. Includes: distinct accent palette, denser type scale, "operator console" framing (compact cards, monospace metric chips), an app-level header with environment indicator, and information-architecture cues (e.g., breadcrumbs anchored to current campaign run / scenario context). Brainstorm pass first, then a design spec, then phased rollout. Touches `components/site/AppWorkspaceShellNav.tsx`, lifecycle/acquisition layout shells, and shared section/card primitives.
-- ⏳ F3. Audit the existing portfolio↔demo app transition (header, footer, breadcrumbs) and define an explicit "you are now in the demo app" entry/exit treatment so visitors orient quickly.
+### Completed
+- ✅ F1. Persistent left vertical navigation rail and DemoAppShell wrapping for `/lifecycle/*` and `/acquisition/*` routes. Marketing chrome suppressed inside demo routes.
+- ✅ F2. Visual differentiation system shipped: design tokens scoped under `.demoAppShell`, monospace KPIs, denser typography/tables, status colors mapped to policy-engine bands, StatusDot/MetricChip/Breadcrumbs primitives, optional global status indicator in app header.
+- ✅ F3. Portfolio↔demo entry/exit treatment: `DemoAppLaunchCard` on home and project detail pages establishes intentional handoff; demo breadcrumbs lead with `Portfolio` for one-click return.
 
 ---
 

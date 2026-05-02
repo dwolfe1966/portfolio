@@ -201,7 +201,7 @@ Acceptance:
 - All band-colored UI uses tokens; no remaining inline color literals for status.
 - Existing tests pass; type-check clean.
 
-### Phase 3 — F3: Entry/exit treatment
+### Phase 3 — F3: Entry/exit treatment ✅ Shipped (commit 702be88)
 
 Goal: explicit transition between portfolio and demo apps so visitors orient on context switch.
 
