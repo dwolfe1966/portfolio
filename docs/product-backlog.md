@@ -134,7 +134,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ### To do (spec-driven expansions)
 - ✅ C21. Audience test-cell management area shipped (commit f5b44d4): new AudienceTemplate model + library UX at `/acquisition/audiences` with CRUD, JSON targeting editor, usage rollup, and side-nav entry.
 - ✅ C21.1. Campaign Create flow wired to audience templates (commit 84e7416): operators can pick from the library or fall back to built-in defaults; selected templates are cloned into AudienceSegment rows with templateId provenance.
-- 🟡 C11. Ad-connector abstraction. Phase 1 shipped (commit 73ed034): read-only AdConnector interface, SimulatedConnector, AdAccountConnection schema, setup guide at `docs/ad-connector-setup.md`. Phase 2 (OAuth flows + Connections UI) gated on user completing setup checklist. Phase 3 (real Google/Meta connectors) gated on Google Ads developer token approval (test tier, 1–3 business days).
+- ✅ C11. Ad-connector abstraction shipped end-to-end across three phases: foundation + AdConnector interface (73ed034), Google OAuth flow + Connections UI (fc32f21), real GoogleAdsConnector with live-data detail page (544d2d6). Read-only against test customers; refuses non-test customers at the connector layer. Meta-Ads connector remains as future work (currently dispatches to simulated).
 - ✅ C12. Add multivariate cell management (creative × audience/keyword matrix explorer with significance hints).
 - ✅ C13. Add CAC-vs-LTV policy engine controls (target ratio bands + auto-pause thresholds + approval cap).
 - ✅ C14. Add campaign state machine UX (`DRAFT → TESTING → SCALING → PAUSED`) with explicit transition history.
