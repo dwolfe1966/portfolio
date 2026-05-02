@@ -40,7 +40,7 @@ export function ScenarioLabCard() {
   const [recencyScore, setRecencyScore] = useState(DEMO_ASSUMPTION_DEFAULTS.recencyScore);
   const [minPriorityScore, setMinPriorityScore] = useState(DEMO_ASSUMPTION_DEFAULTS.minPriorityScore);
   const [highPriorityThreshold, setHighPriorityThreshold] = useState(DEMO_ASSUMPTION_DEFAULTS.highPriorityThreshold);
-  const [revenuePerHighPriority, setRevenuePerHighPriority] = useState(DEMO_ASSUMPTION_DEFAULTS.revenuePerHighPriority);
+  const [highPriorityLift, setHighPriorityLift] = useState(DEMO_ASSUMPTION_DEFAULTS.highPriorityLift);
 
   const [openRate, setOpenRate] = useState(DEMO_ASSUMPTION_DEFAULTS.openRate);
   const [clickRate, setClickRate] = useState(DEMO_ASSUMPTION_DEFAULTS.clickRate);
@@ -76,7 +76,7 @@ export function ScenarioLabCard() {
       setRecencyScore(Number(parsed.recencyScore ?? DEMO_ASSUMPTION_DEFAULTS.recencyScore));
       setMinPriorityScore(Number(parsed.minPriorityScore ?? DEMO_ASSUMPTION_DEFAULTS.minPriorityScore));
       setHighPriorityThreshold(Number(parsed.highPriorityThreshold ?? DEMO_ASSUMPTION_DEFAULTS.highPriorityThreshold));
-      setRevenuePerHighPriority(Number(parsed.revenuePerHighPriority ?? DEMO_ASSUMPTION_DEFAULTS.revenuePerHighPriority));
+      setHighPriorityLift(Number(parsed.highPriorityLift ?? DEMO_ASSUMPTION_DEFAULTS.highPriorityLift));
       setOpenRate(Number(parsed.openRate ?? DEMO_ASSUMPTION_DEFAULTS.openRate));
       setClickRate(Number(parsed.clickRate ?? DEMO_ASSUMPTION_DEFAULTS.clickRate));
       setEngageRate(Number(parsed.engageRate ?? DEMO_ASSUMPTION_DEFAULTS.engageRate));
@@ -113,7 +113,7 @@ export function ScenarioLabCard() {
           recencyScore,
           minPriorityScore,
           highPriorityThreshold,
-          revenuePerHighPriority,
+          highPriorityLift,
           assumptionSetId
         })
       });
@@ -204,7 +204,7 @@ export function ScenarioLabCard() {
           <label>Recency score<input type="number" step="0.01" min={0} max={1} value={recencyScore} onChange={(e) => setRecencyScore(Number(e.target.value || 0))} /></label>
           <label>Min priority score<input type="number" step="0.01" min={0} max={1} value={minPriorityScore} onChange={(e) => setMinPriorityScore(Number(e.target.value || 0))} /></label>
           <label>High-priority threshold<input type="number" step="0.01" min={0} max={1} value={highPriorityThreshold} onChange={(e) => setHighPriorityThreshold(Number(e.target.value || 0))} /></label>
-          <label>Revenue / high-priority<input type="number" min={0} value={revenuePerHighPriority} onChange={(e) => setRevenuePerHighPriority(Number(e.target.value || 0))} /></label>
+          <label>High-priority lift (× base conversion)<input type="number" step="0.1" min={1} max={5} value={highPriorityLift} onChange={(e) => setHighPriorityLift(Number(e.target.value || 1))} /><span className="small">Estimated revenue/high-priority = purchaseRate × AOV × lift = ${(purchaseRate * avgOrderValue * highPriorityLift).toFixed(2)}.</span></label>
           <label>Open rate<input type="number" step="0.01" min={0} max={1} value={openRate} onChange={(e) => setOpenRate(Number(e.target.value || 0))} /></label>
           <label>Click rate<input type="number" step="0.01" min={0} max={1} value={clickRate} onChange={(e) => setClickRate(Number(e.target.value || 0))} /></label>
           <label>Engage rate<input type="number" step="0.01" min={0} max={1} value={engageRate} onChange={(e) => setEngageRate(Number(e.target.value || 0))} /></label>

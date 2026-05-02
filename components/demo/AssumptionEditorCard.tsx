@@ -93,7 +93,7 @@ export function AssumptionEditorCard() {
       recencyScore: selected.recencyScore,
       minPriorityScore: selected.minPriorityScore,
       highPriorityThreshold: selected.highPriorityThreshold,
-      revenuePerHighPriority: selected.revenuePerHighPriority,
+      highPriorityLift: selected.highPriorityLift,
       openRate: selected.openRate,
       clickRate: selected.clickRate,
       engageRate: selected.engageRate,
@@ -115,7 +115,7 @@ export function AssumptionEditorCard() {
         <label>Recency score<input type="number" step="0.01" min={0} max={1} value={form.recencyScore} onChange={(e) => update("recencyScore", Number(e.target.value || 0))} /></label>
         <label>Min priority score<input type="number" step="0.01" min={0} max={1} value={form.minPriorityScore} onChange={(e) => update("minPriorityScore", Number(e.target.value || 0))} /></label>
         <label>High-priority threshold<input type="number" step="0.01" min={0} max={1} value={form.highPriorityThreshold} onChange={(e) => update("highPriorityThreshold", Number(e.target.value || 0))} /></label>
-        <label>Revenue per high-priority<input type="number" min={0} value={form.revenuePerHighPriority} onChange={(e) => update("revenuePerHighPriority", Number(e.target.value || 0))} /></label>
+        <label>High-priority lift (× base conversion)<input type="number" step="0.1" min={1} max={5} value={form.highPriorityLift} onChange={(e) => update("highPriorityLift", Number(e.target.value || 1))} /><span className="small">Estimated revenue/high-priority = purchaseRate × AOV × lift = ${(form.purchaseRate * form.avgOrderValue * form.highPriorityLift).toFixed(2)}.</span></label>
         <label>Open rate<input type="number" step="0.01" min={0} max={1} value={form.openRate} onChange={(e) => update("openRate", Number(e.target.value || 0))} /></label>
         <label>Click rate<input type="number" step="0.01" min={0} max={1} value={form.clickRate} onChange={(e) => update("clickRate", Number(e.target.value || 0))} /></label>
         <label>Engage rate<input type="number" step="0.01" min={0} max={1} value={form.engageRate} onChange={(e) => update("engageRate", Number(e.target.value || 0))} /></label>

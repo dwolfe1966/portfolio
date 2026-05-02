@@ -58,6 +58,9 @@ export default async function AcquisitionOutputsPage() {
               initialMaxShift={topCampaign.maxBudgetShiftPct}
               initialMinConfidence={topCampaign.minConfidence}
               initialCooldownHours={topCampaign.cooldownHours}
+              initialCacAutoPausePct={topCampaign.cacAutoPausePctOfTarget}
+              initialMinLtvCacRatio={topCampaign.minLtvCacRatio}
+              initialApprovalCapPct={topCampaign.approvalCapPct}
               cellOptions={topCampaign.testCells.slice(0, 25).map((cell) => ({
                 id: cell.id,
                 label: `${cell.creative.headline.slice(0, 36)} • ${cell.audience.name}`,

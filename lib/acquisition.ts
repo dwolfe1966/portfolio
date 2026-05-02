@@ -17,7 +17,16 @@ export type CreateAcquisitionCampaignInput = {
   maxBudgetShiftPct?: number;
   minConfidence?: number;
   cooldownHours?: number;
+  cacAutoPausePctOfTarget?: number;
+  minLtvCacRatio?: number;
+  approvalCapPct?: number;
 };
+
+export const POLICY_DEFAULTS = {
+  cacAutoPausePctOfTarget: 1.25,
+  minLtvCacRatio: 2.5,
+  approvalCapPct: 0.15
+} as const;
 
 export const ACQUISITION_DEFAULTS: CreateAcquisitionCampaignInput = {
   name: "Q2 Growth Sprint",
@@ -30,7 +39,10 @@ export const ACQUISITION_DEFAULTS: CreateAcquisitionCampaignInput = {
   targetLtvCents: 72000,
   maxBudgetShiftPct: 0.2,
   minConfidence: 0.65,
-  cooldownHours: 24
+  cooldownHours: 24,
+  cacAutoPausePctOfTarget: POLICY_DEFAULTS.cacAutoPausePctOfTarget,
+  minLtvCacRatio: POLICY_DEFAULTS.minLtvCacRatio,
+  approvalCapPct: POLICY_DEFAULTS.approvalCapPct
 };
 
 export function validateCreateCampaignInput(raw: unknown): { ok: true; value: CreateAcquisitionCampaignInput } | { ok: false; errors: string[] } {
@@ -52,7 +64,10 @@ export function validateCreateCampaignInput(raw: unknown): { ok: true; value: Cr
     targetLtvCents: Number(body.targetLtvCents ?? ACQUISITION_DEFAULTS.targetLtvCents),
     maxBudgetShiftPct: Number(body.maxBudgetShiftPct ?? ACQUISITION_DEFAULTS.maxBudgetShiftPct),
     minConfidence: Number(body.minConfidence ?? ACQUISITION_DEFAULTS.minConfidence),
-    cooldownHours: Number(body.cooldownHours ?? ACQUISITION_DEFAULTS.cooldownHours)
+    cooldownHours: Number(body.cooldownHours ?? ACQUISITION_DEFAULTS.cooldownHours),
+    cacAutoPausePctOfTarget: Number(body.cacAutoPausePctOfTarget ?? ACQUISITION_DEFAULTS.cacAutoPausePctOfTarget),
+    minLtvCacRatio: Number(body.minLtvCacRatio ?? ACQUISITION_DEFAULTS.minLtvCacRatio),
+    approvalCapPct: Number(body.approvalCapPct ?? ACQUISITION_DEFAULTS.approvalCapPct)
   };
 
   if (!value.name) errors.push("name is required");
@@ -72,6 +87,15 @@ export function validateCreateCampaignInput(raw: unknown): { ok: true; value: Cr
   }
   if (!Number.isFinite(value.cooldownHours!) || value.cooldownHours! < 1 || value.cooldownHours! > 168) {
     errors.push("cooldownHours must be between 1 and 168");
+  }
+  if (!Number.isFinite(value.cacAutoPausePctOfTarget!) || value.cacAutoPausePctOfTarget! < 1 || value.cacAutoPausePctOfTarget! > 3) {
+    errors.push("cacAutoPausePctOfTarget must be between 1 and 3");
+  }
+  if (!Number.isFinite(value.minLtvCacRatio!) || value.minLtvCacRatio! < 1 || value.minLtvCacRatio! > 10) {
+    errors.push("minLtvCacRatio must be between 1 and 10");
+  }
+  if (!Number.isFinite(value.approvalCapPct!) || value.approvalCapPct! <= 0 || value.approvalCapPct! > 0.5) {
+    errors.push("approvalCapPct must be between 0 and 0.5");
   }
 
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value };
@@ -143,4 +167,143 @@ export function nextStateFromScore(score: number): AcquisitionCampaignState {
   if (score >= 0.78) return "SCALING";
   if (score >= 0.55) return "TESTING";
   return "PAUSED";
+}
+
+const STATE_TRANSITIONS: Record<AcquisitionCampaignState, AcquisitionCampaignState[]> = {
+  DRAFT: ["TESTING", "COMPLETED"],
+  TESTING: ["SCALING", "PAUSED", "COMPLETED"],
+  SCALING: ["TESTING", "PAUSED", "COMPLETED"],
+  PAUSED: ["TESTING", "COMPLETED"],
+  COMPLETED: []
+};
+
+export function validTransitionsFrom(state: AcquisitionCampaignState): AcquisitionCampaignState[] {
+  return [...STATE_TRANSITIONS[state]];
+}
+
+export function isValidStateTransition(
+  from: AcquisitionCampaignState,
+  to: AcquisitionCampaignState
+): boolean {
+  if (from === to) return false;
+  return STATE_TRANSITIONS[from].includes(to);
+}
+
+export type PolicyBand = "healthy" | "watch" | "unhealthy";
+
+export type PolicyEvaluationInput = {
+  observedCacCents: number;
+  observedRevenueCents: number;
+  conversions: number;
+  targetCacCents: number;
+  targetLtvCents: number;
+  cacAutoPausePctOfTarget: number;
+  minLtvCacRatio: number;
+};
+
+export type PolicyEvaluationResult = {
+  band: PolicyBand;
+  observedRatio: number;
+  cacOverrunPct: number;
+  shouldPause: boolean;
+  reasons: string[];
+};
+
+export function classifyLtvCacRatio(ratio: number, minLtvCacRatio: number): PolicyBand {
+  if (!Number.isFinite(ratio) || ratio <= 0) return "unhealthy";
+  if (ratio < minLtvCacRatio) return "unhealthy";
+  if (ratio < minLtvCacRatio + 1) return "watch";
+  return "healthy";
+}
+
+export function evaluateCampaignPolicy(input: PolicyEvaluationInput): PolicyEvaluationResult {
+  const reasons: string[] = [];
+  const observedLtvPerConversion = input.conversions > 0 ? input.observedRevenueCents / input.conversions : 0;
+  const ratioBasis = observedLtvPerConversion > 0 ? observedLtvPerConversion : input.targetLtvCents;
+  const observedRatio = input.observedCacCents > 0 ? ratioBasis / input.observedCacCents : 0;
+  const cacOverrunPct = input.targetCacCents > 0 ? input.observedCacCents / input.targetCacCents : 0;
+
+  const band = classifyLtvCacRatio(observedRatio, input.minLtvCacRatio);
+
+  if (cacOverrunPct >= input.cacAutoPausePctOfTarget) {
+    reasons.push(
+      `Observed CAC is ${(cacOverrunPct * 100).toFixed(0)}% of target (auto-pause at ${(input.cacAutoPausePctOfTarget * 100).toFixed(0)}%).`
+    );
+  }
+  if (observedRatio > 0 && observedRatio < input.minLtvCacRatio) {
+    reasons.push(
+      `LTV:CAC ratio ${observedRatio.toFixed(2)} is below floor ${input.minLtvCacRatio.toFixed(2)}.`
+    );
+  }
+
+  return {
+    band,
+    observedRatio,
+    cacOverrunPct,
+    shouldPause: reasons.length > 0,
+    reasons
+  };
+}
+
+export type SignificanceHint =
+  | "significant_high"
+  | "trending_high"
+  | "neutral"
+  | "trending_low"
+  | "significant_low"
+  | "insufficient";
+
+export type CellSignificance = {
+  hint: SignificanceHint;
+  zScore: number;
+  sampleSize: number;
+};
+
+const MIN_CLICKS_FOR_SIGNIFICANCE = 30;
+
+export function computeCellSignificance(args: {
+  cellConversions: number;
+  cellClicks: number;
+  campaignMeanConversionRate: number;
+}): CellSignificance {
+  const { cellConversions, cellClicks, campaignMeanConversionRate: mean } = args;
+
+  if (cellClicks < MIN_CLICKS_FOR_SIGNIFICANCE) {
+    return { hint: "insufficient", zScore: 0, sampleSize: cellClicks };
+  }
+  if (mean <= 0 || mean >= 1) {
+    return { hint: "neutral", zScore: 0, sampleSize: cellClicks };
+  }
+
+  const cellRate = cellConversions / cellClicks;
+  const standardError = Math.sqrt((mean * (1 - mean)) / cellClicks);
+  const zScore = standardError > 0 ? (cellRate - mean) / standardError : 0;
+
+  let hint: SignificanceHint;
+  if (zScore >= 1.96) hint = "significant_high";
+  else if (zScore >= 1) hint = "trending_high";
+  else if (zScore <= -1.96) hint = "significant_low";
+  else if (zScore <= -1) hint = "trending_low";
+  else hint = "neutral";
+
+  return { hint, zScore: Number(zScore.toFixed(3)), sampleSize: cellClicks };
+}
+
+export type BudgetShiftDecision = {
+  approved: boolean;
+  shiftPct: number;
+  approvalCapPct: number;
+};
+
+export function evaluateBudgetShift(args: {
+  amountCents: number;
+  fromBudgetCents: number;
+  approvalCapPct: number;
+}): BudgetShiftDecision {
+  const shiftPct = args.fromBudgetCents > 0 ? args.amountCents / args.fromBudgetCents : 1;
+  return {
+    approved: shiftPct <= args.approvalCapPct,
+    shiftPct,
+    approvalCapPct: args.approvalCapPct
+  };
 }

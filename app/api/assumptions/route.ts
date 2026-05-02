@@ -10,7 +10,7 @@ function toAssumptionPayload(set: {
   recencyScore: number;
   minPriorityScore: number;
   highPriorityThreshold: number;
-  revenuePerHighPriority: number;
+  highPriorityLift: number;
   openRate: number;
   clickRate: number;
   engageRate: number;
@@ -22,7 +22,7 @@ function toAssumptionPayload(set: {
     recencyScore: set.recencyScore,
     minPriorityScore: set.minPriorityScore,
     highPriorityThreshold: set.highPriorityThreshold,
-    revenuePerHighPriority: set.revenuePerHighPriority,
+    highPriorityLift: set.highPriorityLift,
     openRate: set.openRate,
     clickRate: set.clickRate,
     engageRate: set.engageRate,

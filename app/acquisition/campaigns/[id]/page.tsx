@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { AcquisitionOperatorControls } from "@/components/acquisition/AcquisitionOperatorControls";
+import { CampaignStateControls } from "@/components/acquisition/CampaignStateControls";
+import { CellMatrixExplorer } from "@/components/acquisition/CellMatrixExplorer";
+import { evaluateCampaignPolicy, type AcquisitionCampaignState } from "@/lib/acquisition";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +38,39 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
     const cac = conversions ? Math.round(spend / conversions) : 0;
     const roas = spend > 0 ? revenue / spend : 0;
 
+    const policy = evaluateCampaignPolicy({
+      observedCacCents: cac,
+      observedRevenueCents: revenue,
+      conversions,
+      targetCacCents: campaign.targetCacCents,
+      targetLtvCents: campaign.targetLtvCents,
+      cacAutoPausePctOfTarget: campaign.cacAutoPausePctOfTarget,
+      minLtvCacRatio: campaign.minLtvCacRatio
+    });
+    const targetRatio = campaign.targetLtvCents / Math.max(campaign.targetCacCents, 1);
+    const bandLabel: Record<typeof policy.band, string> = {
+      healthy: "Healthy",
+      watch: "Watch",
+      unhealthy: "Unhealthy"
+    };
+    const pendingApprovalCount = campaign.auditLogs.filter(
+      (log) => log.action === "budget_shift_pending_approval"
+    ).length;
+
+    const transitionHistory = campaign.auditLogs
+      .filter((log) => log.action === "campaign_state_change")
+      .map((log) => {
+        const meta = (log.metadata ?? {}) as { from?: unknown; to?: unknown; reason?: unknown };
+        return {
+          id: log.id,
+          actor: log.actor,
+          createdAt: log.createdAt.toISOString(),
+          from: String(meta.from ?? "—"),
+          to: String(meta.to ?? "—"),
+          reason: String(meta.reason ?? "—")
+        };
+      });
+
     return (
       <>
           <Section title={`Campaign detail: ${campaign.name}`}>
@@ -52,12 +88,58 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
         </Section>
 
 
+        <Section title="Policy engine status">
+          <div className="grid grid-4">
+            <div className="card">
+              <div className="kpi">{bandLabel[policy.band]}</div>
+              <p>LTV : CAC band</p>
+            </div>
+            <div className="card">
+              <div className="kpi">
+                {policy.observedRatio > 0 ? `${policy.observedRatio.toFixed(2)}x` : "—"}
+              </div>
+              <p>Observed ratio (target {targetRatio.toFixed(2)}x, floor {campaign.minLtvCacRatio.toFixed(2)}x)</p>
+            </div>
+            <div className="card">
+              <div className="kpi">
+                {policy.cacOverrunPct > 0 ? `${(policy.cacOverrunPct * 100).toFixed(0)}%` : "—"}
+              </div>
+              <p>CAC vs. target (auto-pause at {(campaign.cacAutoPausePctOfTarget * 100).toFixed(0)}%)</p>
+            </div>
+            <div className="card">
+              <div className="kpi">{pendingApprovalCount}</div>
+              <p>Budget shifts pending approval</p>
+            </div>
+          </div>
+          {policy.reasons.length > 0 ? (
+            <div className="card" style={{ marginTop: 12 }}>
+              <h3>Policy alerts</h3>
+              <ul>
+                {policy.reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </Section>
+
+        <Section title="Campaign state machine">
+          <CampaignStateControls
+            campaignId={campaign.id}
+            currentState={campaign.state as AcquisitionCampaignState}
+            history={transitionHistory}
+          />
+        </Section>
+
         <Section title="Operator overrides and guardrails">
           <AcquisitionOperatorControls
             campaignId={campaign.id}
             initialMaxShift={campaign.maxBudgetShiftPct}
             initialMinConfidence={campaign.minConfidence}
             initialCooldownHours={campaign.cooldownHours}
+            initialCacAutoPausePct={campaign.cacAutoPausePctOfTarget}
+            initialMinLtvCacRatio={campaign.minLtvCacRatio}
+            initialApprovalCapPct={campaign.approvalCapPct}
             cellOptions={campaign.testCells.slice(0, 25).map((cell) => ({
               id: cell.id,
               label: `${cell.creative.headline.slice(0, 36)} • ${cell.audience.name}`,
@@ -68,6 +150,32 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
               action: log.action,
               createdAt: log.createdAt.toISOString(),
               metadata: log.metadata
+            }))}
+          />
+        </Section>
+
+        <Section title="Test cell matrix (creative × audience)">
+          <CellMatrixExplorer
+            creatives={campaign.creatives.map((c) => ({
+              id: c.id,
+              headline: c.headline,
+              channel: c.channel
+            }))}
+            audiences={campaign.audiences.map((a) => ({
+              id: a.id,
+              name: a.name,
+              audienceType: a.audienceType
+            }))}
+            cells={campaign.testCells.map((cell) => ({
+              id: cell.id,
+              creativeId: cell.creativeId,
+              audienceId: cell.audienceId,
+              clicks: cell.clicks,
+              conversions: cell.conversions,
+              spendCents: cell.spendCents,
+              cacCents: cell.cacCents,
+              roas: cell.roas,
+              score: cell.score
             }))}
           />
         </Section>

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   DEMO_ASSUMPTIONS_KEY,
   DEMO_ASSUMPTION_DEFAULTS,
+  expectedRevenuePerHighPriority,
   normalizeDemoAssumptions,
   type DemoAssumptions
 } from "@/lib/demo-assumptions";
@@ -17,7 +18,7 @@ test("DEMO_ASSUMPTION_DEFAULTS exposes every assumption field as a finite number
     "recencyScore",
     "minPriorityScore",
     "highPriorityThreshold",
-    "revenuePerHighPriority",
+    "highPriorityLift",
     "openRate",
     "clickRate",
     "engageRate",
@@ -49,7 +50,7 @@ test("normalizeDemoAssumptions passes through a full valid payload", () => {
     recencyScore: 0.55,
     minPriorityScore: 0.1,
     highPriorityThreshold: 0.75,
-    revenuePerHighPriority: 22.5,
+    highPriorityLift: 2.1,
     openRate: 0.42,
     clickRate: 0.11,
     engageRate: 0.07,
@@ -58,6 +59,29 @@ test("normalizeDemoAssumptions passes through a full valid payload", () => {
   };
 
   assert.deepEqual(normalizeDemoAssumptions(fullPayload), fullPayload);
+});
+
+test("expectedRevenuePerHighPriority derives revenue from funnel inputs", () => {
+  const value = expectedRevenuePerHighPriority({
+    purchaseRate: 0.012,
+    avgOrderValue: 89,
+    highPriorityLift: 1.5
+  });
+  assert.equal(Number(value.toFixed(4)), 1.602);
+});
+
+test("expectedRevenuePerHighPriority scales linearly with lift", () => {
+  const baseline = expectedRevenuePerHighPriority({
+    purchaseRate: 0.02,
+    avgOrderValue: 100,
+    highPriorityLift: 1
+  });
+  const doubled = expectedRevenuePerHighPriority({
+    purchaseRate: 0.02,
+    avgOrderValue: 100,
+    highPriorityLift: 2
+  });
+  assert.equal(Number(doubled.toFixed(6)), Number((baseline * 2).toFixed(6)));
 });
 
 test("normalizeDemoAssumptions merges partial values with defaults", () => {

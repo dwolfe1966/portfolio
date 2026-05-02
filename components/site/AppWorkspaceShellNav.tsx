@@ -19,7 +19,8 @@ const acquisitionLinks = [
   { href: "/acquisition/create", label: "Create" },
   { href: "/acquisition/campaigns", label: "Campaigns" },
   { href: "/acquisition/simulations", label: "Simulations" },
-  { href: "/acquisition/outputs", label: "Outputs" }
+  { href: "/acquisition/outputs", label: "Outputs" },
+  { href: "/acquisition/audit", label: "Audit" }
 ];
 
 export function AppWorkspaceShellNav({ app }: { app: "lifecycle" | "acquisition" }) {

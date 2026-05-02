@@ -68,6 +68,9 @@ model AcquisitionCampaign {
   cooldownHours     Int                      @default(24)
   targetCacCents    Int
   targetLtvCents    Int
+  cacAutoPausePctOfTarget Float              @default(1.25)
+  minLtvCacRatio    Float                    @default(2.5)
+  approvalCapPct    Float                    @default(0.15)
   state             AcquisitionCampaignState @default(DRAFT)
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
@@ -304,7 +307,7 @@ model AssumptionSet {
   recencyScore           Float         @default(0.9)
   minPriorityScore       Float         @default(0)
   highPriorityThreshold  Float         @default(0.8)
-  revenuePerHighPriority Float         @default(18.5)
+  highPriorityLift       Float         @default(1.5)
   openRate               Float         @default(0.3)
   clickRate              Float         @default(0.08)
   engageRate             Float         @default(0.04)

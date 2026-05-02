@@ -15,6 +15,9 @@ export function AcquisitionOperatorControls({
   initialMaxShift,
   initialMinConfidence,
   initialCooldownHours,
+  initialCacAutoPausePct,
+  initialMinLtvCacRatio,
+  initialApprovalCapPct,
   cellOptions,
   recentOverrideLogs
 }: {
@@ -22,6 +25,9 @@ export function AcquisitionOperatorControls({
   initialMaxShift: number;
   initialMinConfidence: number;
   initialCooldownHours: number;
+  initialCacAutoPausePct: number;
+  initialMinLtvCacRatio: number;
+  initialApprovalCapPct: number;
   cellOptions: CellOption[];
   recentOverrideLogs: {
     id: string;
@@ -34,6 +40,9 @@ export function AcquisitionOperatorControls({
   const [maxShift, setMaxShift] = useState(initialMaxShift);
   const [minConfidence, setMinConfidence] = useState(initialMinConfidence);
   const [cooldownHours, setCooldownHours] = useState(initialCooldownHours);
+  const [cacAutoPausePct, setCacAutoPausePct] = useState(initialCacAutoPausePct);
+  const [minLtvCacRatio, setMinLtvCacRatio] = useState(initialMinLtvCacRatio);
+  const [approvalCapPct, setApprovalCapPct] = useState(initialApprovalCapPct);
   const [cellId, setCellId] = useState(cellOptions[0]?.id ?? "");
   const [budgetCents, setBudgetCents] = useState(cellOptions[0]?.budgetCents ?? 0);
   const [status, setStatus] = useState<string>("");
@@ -46,7 +55,15 @@ export function AcquisitionOperatorControls({
       const response = await fetch(`/api/acquisition/campaigns/${campaignId}/overrides`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "update_guardrails", maxBudgetShiftPct: maxShift, minConfidence, cooldownHours })
+        body: JSON.stringify({
+          action: "update_guardrails",
+          maxBudgetShiftPct: maxShift,
+          minConfidence,
+          cooldownHours,
+          cacAutoPausePctOfTarget: cacAutoPausePct,
+          minLtvCacRatio,
+          approvalCapPct
+        })
       });
       const payload = await response.json();
       setStatus(payload.ok ? "Guardrails updated." : readErrorMessage(payload, "Update failed."));
@@ -114,6 +131,25 @@ export function AcquisitionOperatorControls({
         <label>
           Reallocation cooldown (hours)
           <input type="number" min={1} max={168} step={1} value={cooldownHours} onChange={(e) => setCooldownHours(Number(e.target.value || 24))} />
+        </label>
+      </div>
+
+      <h4 style={{ marginTop: 16 }}>Policy engine</h4>
+      <p className="small">
+        CAC/LTV thresholds drive auto-pause decisions and gate large budget shifts behind operator approval.
+      </p>
+      <div className="grid grid-2" style={{ marginTop: 8 }}>
+        <label>
+          Auto-pause at CAC × target
+          <input type="number" min={1} max={3} step={0.05} value={cacAutoPausePct} onChange={(e) => setCacAutoPausePct(Number(e.target.value || 1.25))} />
+        </label>
+        <label>
+          Min LTV : CAC ratio
+          <input type="number" min={1} max={10} step={0.1} value={minLtvCacRatio} onChange={(e) => setMinLtvCacRatio(Number(e.target.value || 2.5))} />
+        </label>
+        <label>
+          Auto-approval cap (budget shift fraction)
+          <input type="number" min={0.01} max={0.5} step={0.01} value={approvalCapPct} onChange={(e) => setApprovalCapPct(Number(e.target.value || 0.15))} />
         </label>
       </div>
 

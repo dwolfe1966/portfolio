@@ -1,6 +1,11 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { nextStateFromScore, scoreTestCell } from "@/lib/acquisition";
+import {
+  evaluateBudgetShift,
+  evaluateCampaignPolicy,
+  nextStateFromScore,
+  scoreTestCell
+} from "@/lib/acquisition";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -44,6 +49,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
     }
 
     const scored: Array<{ id: string; score: number; budgetCents: number }> = [];
+    const aggregate = { spendCents: 0, revenueCents: 0, conversions: 0 };
 
     await db.$transaction(async (tx) => {
       for (const cell of cells) {
@@ -67,6 +73,9 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
         });
 
         scored.push({ id: cell.id, score, budgetCents: cell.budgetCents });
+        aggregate.spendCents += spendCents;
+        aggregate.revenueCents += revenueCents;
+        aggregate.conversions += conversions;
 
         await tx.testCell.update({
           where: { id: cell.id },
@@ -104,6 +113,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
       const winners = ranked.slice(0, Math.max(1, Math.ceil(ranked.length * 0.3)));
       const losers = ranked.slice(Math.floor(ranked.length * 0.7));
       let reallocationCount = 0;
+      let pendingApprovalCount = 0;
 
       const cooldownCutoff = new Date(Date.now() - campaign.cooldownHours * 60 * 60 * 1000);
       const recentActivity = await tx.budgetActivity.findFirst({
@@ -117,6 +127,31 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
           const amount = Math.round(loser.budgetCents * campaign.maxBudgetShiftPct);
           if (amount < 100) continue;
           const winner = winners[randomInt(0, winners.length - 1)];
+          const decision = evaluateBudgetShift({
+            amountCents: amount,
+            fromBudgetCents: loser.budgetCents,
+            approvalCapPct: campaign.approvalCapPct
+          });
+
+          if (!decision.approved) {
+            pendingApprovalCount++;
+            await tx.acquisitionAuditLog.create({
+              data: {
+                campaignId: campaign.id,
+                actor: "agent-orchestrator",
+                action: "budget_shift_pending_approval",
+                metadata: {
+                  fromTestCellId: loser.id,
+                  toTestCellId: winner.id,
+                  amountCents: amount,
+                  shiftPct: Number(decision.shiftPct.toFixed(4)),
+                  approvalCapPct: campaign.approvalCapPct,
+                  reason: "Shift exceeds auto-approval cap; operator review required"
+                }
+              }
+            });
+            continue;
+          }
 
           await tx.testCell.update({ where: { id: loser.id }, data: { budgetCents: Math.max(0, loser.budgetCents - amount) } });
           await tx.testCell.update({ where: { id: winner.id }, data: { budgetCents: winner.budgetCents + amount } });
@@ -136,10 +171,60 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
       }
 
       const averageScore = ranked.reduce((sum, row) => sum + row.score, 0) / ranked.length;
+      const observedCacCents = aggregate.conversions > 0
+        ? Math.round(aggregate.spendCents / aggregate.conversions)
+        : 0;
+      const policy = evaluateCampaignPolicy({
+        observedCacCents,
+        observedRevenueCents: aggregate.revenueCents,
+        conversions: aggregate.conversions,
+        targetCacCents: campaign.targetCacCents,
+        targetLtvCents: campaign.targetLtvCents,
+        cacAutoPausePctOfTarget: campaign.cacAutoPausePctOfTarget,
+        minLtvCacRatio: campaign.minLtvCacRatio
+      });
+
+      const nextState = policy.shouldPause ? "PAUSED" : nextStateFromScore(averageScore);
+      const previousState = campaign.state;
       await tx.acquisitionCampaign.update({
         where: { id: campaign.id },
-        data: { state: nextStateFromScore(averageScore) }
+        data: { state: nextState }
       });
+
+      if (nextState !== previousState) {
+        await tx.acquisitionAuditLog.create({
+          data: {
+            campaignId: campaign.id,
+            actor: policy.shouldPause ? "policy-engine" : "agent-orchestrator",
+            action: "campaign_state_change",
+            metadata: {
+              from: previousState,
+              to: nextState,
+              reason: policy.shouldPause
+                ? "Auto-pause triggered by policy engine"
+                : `Score-based transition (avg ${averageScore.toFixed(3)})`,
+              averageScore: Number(averageScore.toFixed(4))
+            }
+          }
+        });
+      }
+
+      if (policy.shouldPause) {
+        await tx.acquisitionAuditLog.create({
+          data: {
+            campaignId: campaign.id,
+            actor: "policy-engine",
+            action: "policy_auto_pause",
+            metadata: {
+              band: policy.band,
+              observedCacCents,
+              observedRatio: Number(policy.observedRatio.toFixed(4)),
+              cacOverrunPct: Number(policy.cacOverrunPct.toFixed(4)),
+              reasons: policy.reasons
+            }
+          }
+        });
+      }
 
       await tx.acquisitionAuditLog.create({
         data: {
@@ -152,7 +237,11 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
             losers: losers.length,
             cooldownHours: campaign.cooldownHours,
             cooldownActive,
-            reallocationCount
+            reallocationCount,
+            pendingApprovalCount,
+            policyBand: policy.band,
+            observedCacCents,
+            observedRatio: Number(policy.observedRatio.toFixed(4))
           }
         }
       });

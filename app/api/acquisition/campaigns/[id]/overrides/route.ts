@@ -4,6 +4,9 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
+import { isValidStateTransition, type AcquisitionCampaignState } from "@/lib/acquisition";
+
+const VALID_STATES: AcquisitionCampaignState[] = ["DRAFT", "TESTING", "SCALING", "PAUSED", "COMPLETED"];
 
 function toNumber(value: unknown, fallback: number) {
   const parsed = Number(value);
@@ -39,11 +42,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const maxBudgetShiftPct = Math.min(0.5, Math.max(0.01, toNumber(body.maxBudgetShiftPct, campaign.maxBudgetShiftPct)));
       const minConfidence = Math.min(0.95, Math.max(0.5, toNumber(body.minConfidence, campaign.minConfidence)));
       const cooldownHours = Math.min(168, Math.max(1, Math.round(toNumber(body.cooldownHours, campaign.cooldownHours))));
+      const cacAutoPausePctOfTarget = Math.min(3, Math.max(1, toNumber(body.cacAutoPausePctOfTarget, campaign.cacAutoPausePctOfTarget)));
+      const minLtvCacRatio = Math.min(10, Math.max(1, toNumber(body.minLtvCacRatio, campaign.minLtvCacRatio)));
+      const approvalCapPct = Math.min(0.5, Math.max(0.01, toNumber(body.approvalCapPct, campaign.approvalCapPct)));
 
       const updated = await db.$transaction(async (tx) => {
         const updatedCampaign = await tx.acquisitionCampaign.update({
           where: { id: campaign.id },
-          data: { maxBudgetShiftPct, minConfidence, cooldownHours }
+          data: {
+            maxBudgetShiftPct,
+            minConfidence,
+            cooldownHours,
+            cacAutoPausePctOfTarget,
+            minLtvCacRatio,
+            approvalCapPct
+          }
         });
 
         await tx.acquisitionAuditLog.create({
@@ -51,7 +64,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             campaignId: campaign.id,
             actor: "operator",
             action: "guardrails_updated",
-            metadata: { maxBudgetShiftPct, minConfidence, cooldownHours }
+            metadata: {
+              maxBudgetShiftPct,
+              minConfidence,
+              cooldownHours,
+              cacAutoPausePctOfTarget,
+              minLtvCacRatio,
+              approvalCapPct
+            }
           }
         });
 
@@ -137,6 +157,51 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       logApiEvent("info", eventId, "acquisition.override.budget_reverted", { campaignId: id, auditLogId, testCellId });
       return apiOk({ auditLogId, testCellId, budgetCents: previousBudgetCents, eventId });
+    }
+
+    if (action === "transition_state") {
+      const requested = String(body.toState ?? "").toUpperCase();
+      if (!VALID_STATES.includes(requested as AcquisitionCampaignState)) {
+        return apiError(400, "INVALID_STATE", `toState must be one of ${VALID_STATES.join(", ")}`, { eventId });
+      }
+      const targetState = requested as AcquisitionCampaignState;
+      const fromState = campaign.state as AcquisitionCampaignState;
+
+      if (!isValidStateTransition(fromState, targetState)) {
+        return apiError(
+          422,
+          "INVALID_TRANSITION",
+          `Cannot transition from ${fromState} to ${targetState}`,
+          { eventId }
+        );
+      }
+
+      const reason = String(body.reason ?? "Operator-initiated transition").slice(0, 240);
+
+      const updated = await db.$transaction(async (tx) => {
+        const updatedCampaign = await tx.acquisitionCampaign.update({
+          where: { id: campaign.id },
+          data: { state: targetState }
+        });
+
+        await tx.acquisitionAuditLog.create({
+          data: {
+            campaignId: campaign.id,
+            actor: "operator",
+            action: "campaign_state_change",
+            metadata: { from: fromState, to: targetState, reason }
+          }
+        });
+
+        return updatedCampaign;
+      });
+
+      logApiEvent("info", eventId, "acquisition.override.state_transitioned", {
+        campaignId: id,
+        from: fromState,
+        to: targetState
+      });
+      return apiOk({ campaign: updated, from: fromState, to: targetState, eventId });
     }
 
     return apiError(400, "UNSUPPORTED_ACTION", "Unsupported action", { eventId });

@@ -109,7 +109,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ B15. Explore advanced graph-based dataflow visualizations beyond current topology map (multi-hop relationships, influence paths, and cluster views).
 - ✅ B16. Improve Monte Carlo UX feedback in simulations (visible run count, refresh confirmation, and distribution summary cues).
 - ✅ B17. Add interest relations visibility on Lifecycle Inputs alongside sample users and entities.
-- ⏳ B18. Derive estimated revenue from funnel (purchaseRate × avgOrderValue × highPriorityLift) and remove standalone `revenuePerHighPriority` editable input. Currently the funnel rates and the hardcoded $/high-priority value are inconsistent (~$0.026 vs $18.50), letting users edit funnel inputs with no effect on estimated revenue.
+- ✅ B18. Derive estimated revenue from funnel (purchaseRate × avgOrderValue × highPriorityLift); replaced standalone `revenuePerHighPriority` editable input with a `highPriorityLift` multiplier so funnel inputs and revenue projection stay internally consistent.
 
 ---
 
@@ -133,10 +133,10 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 
 ### To do (spec-driven expansions)
 - 🚧 C11. Add ad-connector abstraction layer (stub + pluggable provider interfaces for Google/Meta).
-- 🚧 C12. Add multivariate cell management (creative × audience/keyword matrix explorer with significance hints).
-- 🚧 C13. Add CAC-vs-LTV policy engine controls (target ratio bands + auto-pause thresholds + approval cap).
-- 🚧 C14. Add campaign state machine UX (`DRAFT → TESTING → SCALING → PAUSED`) with explicit transition history.
-- 🚧 C15. Add audit feed page (agent action log with filters by action type, actor, and time window).
+- ✅ C12. Add multivariate cell management (creative × audience/keyword matrix explorer with significance hints).
+- ✅ C13. Add CAC-vs-LTV policy engine controls (target ratio bands + auto-pause thresholds + approval cap).
+- ✅ C14. Add campaign state machine UX (`DRAFT → TESTING → SCALING → PAUSED`) with explicit transition history.
+- ✅ C15. Add audit feed page (agent action log with filters by action type, actor, and time window).
 - ✅ C16. Add `AcquisitionFlowDiagram` visual to case-study and acquisition workspace.
 - ✅ C17. Add acquisition simulation charts for impressions/clicks/conversions/CAC/ROAS over time.
 - ✅ C18. Add campaign CRUD UX pages (`/acquisition/campaigns`, `/acquisition/create`, `/acquisition/campaigns/[id]`).

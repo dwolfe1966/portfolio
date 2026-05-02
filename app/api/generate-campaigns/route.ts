@@ -3,7 +3,11 @@ import { db } from "@/lib/db";
 import { calculatePriorityBreakdown } from "@/lib/scoring";
 import { generateLifecycleCopy } from "@/lib/ai";
 import { CampaignStatus } from "@prisma/client";
-import { DEMO_ASSUMPTION_DEFAULTS, normalizeDemoAssumptions } from "@/lib/demo-assumptions";
+import {
+  DEMO_ASSUMPTION_DEFAULTS,
+  expectedRevenuePerHighPriority,
+  normalizeDemoAssumptions
+} from "@/lib/demo-assumptions";
 import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -135,7 +139,12 @@ export async function POST(req: NextRequest) {
     }
 
     const highPriority = candidates.filter((c) => c.score >= assumptions.highPriorityThreshold).length;
-    const estimatedRevenue = Number((highPriority * assumptions.revenuePerHighPriority).toFixed(2));
+    const revenuePerHighPriority = expectedRevenuePerHighPriority({
+      purchaseRate: assumptions.purchaseRate,
+      avgOrderValue: assumptions.avgOrderValue,
+      highPriorityLift: assumptions.highPriorityLift
+    });
+    const estimatedRevenue = Number((highPriority * revenuePerHighPriority).toFixed(2));
     await db.campaignRun.update({
       where: { id: run.id },
       data: {
