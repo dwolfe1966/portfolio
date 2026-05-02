@@ -185,7 +185,7 @@ Acceptance:
 - Visiting `/about` is unchanged.
 - All existing tests pass; type-check clean.
 
-### Phase 2 — F2: Visual
+### Phase 2 — F2: Visual ✅ Shipped (commit f57b155)
 
 Goal: apply the mission-control visual language. Tokens, typography, density, status colors mapped to bands.
 
