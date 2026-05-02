@@ -18,6 +18,7 @@ const SEGMENT_LABEL: Record<string, string> = {
   create: "Create",
   audit: "Audit",
   audiences: "Audiences",
+  connections: "Connections",
   dashboard: "Dashboard",
   documentation: "Docs",
   candidates: "Candidates",

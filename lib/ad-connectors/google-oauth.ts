@@ -1,0 +1,178 @@
+/**
+ * Google Ads OAuth helpers — URL builder, code exchange, token refresh,
+ * and accessible-customer listing. All read-only against the user's
+ * own test accounts.
+ */
+
+const AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+const TOKEN_URL = "https://oauth2.googleapis.com/token";
+const ADS_API_BASE = "https://googleads.googleapis.com/v17";
+const ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords";
+
+export type GoogleOAuthConfig = {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  developerToken: string;
+};
+
+export class GoogleOAuthConfigError extends Error {}
+
+export function loadGoogleOAuthConfig(): GoogleOAuthConfig {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI;
+  const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+
+  const missing: string[] = [];
+  if (!clientId) missing.push("GOOGLE_OAUTH_CLIENT_ID");
+  if (!clientSecret) missing.push("GOOGLE_OAUTH_CLIENT_SECRET");
+  if (!redirectUri) missing.push("GOOGLE_OAUTH_REDIRECT_URI");
+  if (!developerToken) missing.push("GOOGLE_ADS_DEVELOPER_TOKEN");
+
+  if (missing.length > 0) {
+    throw new GoogleOAuthConfigError(
+      `Missing Google OAuth environment variables: ${missing.join(", ")}`
+    );
+  }
+
+  return {
+    clientId: clientId!,
+    clientSecret: clientSecret!,
+    redirectUri: redirectUri!,
+    developerToken: developerToken!
+  };
+}
+
+export function isGoogleOAuthConfigured(): boolean {
+  try {
+    loadGoogleOAuthConfig();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function buildGoogleAuthorizeUrl(state: string, config?: GoogleOAuthConfig): string {
+  const cfg = config ?? loadGoogleOAuthConfig();
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: cfg.clientId,
+    redirect_uri: cfg.redirectUri,
+    scope: ADWORDS_SCOPE,
+    access_type: "offline",
+    prompt: "consent",
+    include_granted_scopes: "true",
+    state
+  });
+  return `${AUTHORIZE_URL}?${params.toString()}`;
+}
+
+export type GoogleTokenResponse = {
+  accessToken: string;
+  refreshToken: string | null;
+  expiresAt: Date;
+  scope: string;
+};
+
+export async function exchangeGoogleAuthCode(
+  code: string,
+  config?: GoogleOAuthConfig
+): Promise<GoogleTokenResponse> {
+  const cfg = config ?? loadGoogleOAuthConfig();
+  const body = new URLSearchParams({
+    code,
+    client_id: cfg.clientId,
+    client_secret: cfg.clientSecret,
+    redirect_uri: cfg.redirectUri,
+    grant_type: "authorization_code"
+  });
+
+  const response = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString()
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Google token exchange failed: ${response.status} ${text}`);
+  }
+
+  const json = (await response.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    expires_in: number;
+    scope: string;
+  };
+
+  return {
+    accessToken: json.access_token,
+    refreshToken: json.refresh_token ?? null,
+    expiresAt: new Date(Date.now() + json.expires_in * 1000),
+    scope: json.scope
+  };
+}
+
+export async function refreshGoogleAccessToken(
+  refreshToken: string,
+  config?: GoogleOAuthConfig
+): Promise<GoogleTokenResponse> {
+  const cfg = config ?? loadGoogleOAuthConfig();
+  const body = new URLSearchParams({
+    refresh_token: refreshToken,
+    client_id: cfg.clientId,
+    client_secret: cfg.clientSecret,
+    grant_type: "refresh_token"
+  });
+
+  const response = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString()
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Google token refresh failed: ${response.status} ${text}`);
+  }
+
+  const json = (await response.json()) as {
+    access_token: string;
+    expires_in: number;
+    scope: string;
+  };
+
+  return {
+    accessToken: json.access_token,
+    refreshToken,
+    expiresAt: new Date(Date.now() + json.expires_in * 1000),
+    scope: json.scope
+  };
+}
+
+/**
+ * Returns the customer IDs the access token has access to.
+ * The Google Ads REST API returns resourceNames like "customers/1234567890".
+ */
+export async function listAccessibleCustomers(
+  accessToken: string,
+  config?: GoogleOAuthConfig
+): Promise<string[]> {
+  const cfg = config ?? loadGoogleOAuthConfig();
+  const response = await fetch(`${ADS_API_BASE}/customers:listAccessibleCustomers`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "developer-token": cfg.developerToken
+    }
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Google Ads listAccessibleCustomers failed: ${response.status} ${text}`);
+  }
+
+  const json = (await response.json()) as { resourceNames?: string[] };
+  return (json.resourceNames ?? []).map((rn) => rn.replace(/^customers\//, ""));
+}

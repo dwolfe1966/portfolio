@@ -29,6 +29,7 @@ const ACQUISITION_LINKS: NavLink[] = [
   { href: "/acquisition/campaigns", label: "Campaigns", group: "primary" },
   { href: "/acquisition/simulations", label: "Simulations", group: "primary" },
   { href: "/acquisition/outputs", label: "Outputs", group: "primary" },
+  { href: "/acquisition/connections", label: "Connections", group: "operations" },
   { href: "/acquisition/audit", label: "Audit", group: "operations" }
 ];
 
