@@ -171,6 +171,19 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 
 ---
 
+## G) Auction Desk demo (Tier C)
+
+Third demo app — interactive Vickrey-style auction simulator for a closed advertising ecosystem. Spec at [`docs/auction-demo-spec.md`](./auction-demo-spec.md).
+
+### Completed
+- ✅ G1. Phase A — pure auction engine (`lib/auction-engine.ts`) + 8-model schema + migration + 22 unit tests covering ranking, reserve, pacing, behavior modes, KPI math, suggestReserve, and HHI/churn (`706c1a5`).
+- ✅ G2. Phase B — validation helpers, advertiser/slot/bid CRUD APIs, and run orchestrator that persists results in a single transaction (`0eaf3a6`).
+- ✅ G3. Phase C — third-app shell wiring, 7 pages, editor components, SSE live ticker (`fb4bead`).
+- ✅ G4. Phase E (partial) — Vickrey case study flipped to live + appHref + home-page launch card (`bcc898a`).
+- ✅ G5. Phase D — marketplace health page (trends, HHI, churn) + reserve auto-tuning with one-click apply (`206f5dd`).
+
+---
+
 ## F) Demo app design system
 
 Cross-cutting UX/IA workstream covering both lifecycle and acquisition demo apps. Goal: make the demo experience visually and structurally distinct from the portfolio site (which today only differs by background color).
