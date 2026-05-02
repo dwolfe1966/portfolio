@@ -103,42 +103,157 @@ button {
 .stack.segment { background: #a855f7; }
 .stack.change { background: #f59e0b; }
 
-.appExperience {
+.demoAppShell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 0;
   margin-top: 12px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 16px;
+  overflow: hidden;
+  min-height: 600px;
 }
-.appExperienceLifecycle {
+.demoAppShell-lifecycle {
   background: linear-gradient(180deg, #eef4ff 0%, #f7fbff 100%);
 }
-.appExperienceAcquisition {
+.demoAppShell-acquisition {
   background: linear-gradient(180deg, #eef8f3 0%, #f8fcfa 100%);
 }
-.appExperienceContent section:first-child {
-  padding-top: 12px;
-}
-.appWorkspaceNav {
-  border-radius: 8px;
-  margin-bottom: 14px;
-  background: color-mix(in oklab, #ffffff 88%, #e2e8f0 12%);
-}
-.appWorkspaceLinks {
+.demoAppShellMain {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  min-width: 0;
 }
-.appPill {
-  border: 1px solid #0f172a;
-  border-radius: 999px;
-  padding: 8px 12px;
+.demoAppShellContent {
+  padding: 8px 20px 32px;
+  min-width: 0;
+}
+.demoAppShellContent section:first-child {
+  padding-top: 16px;
+}
+.demoSideNav {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.7);
+  border-right: 1px solid var(--line);
+  padding: 14px 10px;
+  gap: 10px;
+  min-height: 100%;
+}
+.demoSideNavBrand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.demoSideNavEnv {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+  color: var(--muted);
+}
+.demoSideNavApp {
   font-size: 14px;
   font-weight: 600;
-  background: #ffffff;
+  color: var(--text);
 }
-.appPill.active {
-  background: #0f172a;
-  color: #ffffff;
+.demoSideNavSwitcher {
+  display: flex;
+  gap: 4px;
+}
+.demoSideNavSwitchItem {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+}
+.demoSideNavSwitchItem.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.demoSideNavGroupLabel {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 8px 4px;
+  margin-top: 2px;
+}
+.demoSideNavList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.demoSideNavLink {
+  display: block;
+  padding: 7px 10px 7px 9px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  border-left: 3px solid transparent;
+}
+.demoSideNavLink:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+.demoSideNavLink.active {
+  border-left-color: var(--accent);
+  background: rgba(15, 23, 42, 0.06);
+  font-weight: 600;
+}
+.demoSideNavFooter {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.demoSideNavReturn {
+  font-size: 12px;
+  color: var(--muted);
+  display: block;
+  padding: 6px 8px;
+}
+.demoSideNavReturn:hover {
+  color: var(--text);
+}
+.demoAppHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  min-height: 44px;
+}
+.demoAppHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.demoAppHeaderAppName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.demoEnvChip {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  padding: 3px 8px;
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.8);
 }
 .infoTooltip {
   position: relative;
@@ -248,5 +363,10 @@ button {
   .siteNav .links { display: none; width: 100%; flex-direction: column; gap: 12px; padding-top: 8px; }
   .siteNav .links.open { display: flex; }
   .navCta { width: 100%; margin-left: 0; }
-  .appExperience { padding: 12px; border-radius: 12px; }
+  .demoAppShell { grid-template-columns: 1fr; min-height: 0; }
+  .demoSideNav { border-right: 0; border-bottom: 1px solid var(--line); padding: 10px; }
+  .demoSideNavList { flex-direction: row; flex-wrap: wrap; }
+  .demoSideNavLink { border-left: 0; border-bottom: 3px solid transparent; padding: 6px 10px; }
+  .demoSideNavLink.active { border-left: 0; border-bottom-color: var(--accent); background: transparent; }
+  .demoSideNavFooter { margin-top: 8px; padding-top: 8px; }
 }

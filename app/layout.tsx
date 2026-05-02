@@ -1,7 +1,7 @@
 import "./globals.css";
 import React from "react";
 import { Metadata } from "next";
-import { NavBar } from "@/components/site/NavBar";
+import { SiteHeader } from "@/components/site/SiteHeader";
 import { defaultDescription, defaultTitle, siteName } from "@/lib/seo";
 
 const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -31,9 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <header className="siteHeader">
-          <NavBar />
-        </header>
+        <SiteHeader />
         <main>{children}</main>
       </body>
     </html>
