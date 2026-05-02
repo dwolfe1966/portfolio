@@ -17,7 +17,7 @@ export default function ProjectsIndexPage() {
       <div className="grid grid-2" style={{ marginTop: 18 }}>
         {projects.map((project) => (
           <div key={project.slug} className="card">
-            <p className="small">{project.status === "live" ? "Live demo" : "In progress"}</p>
+            <p className={`statusPill ${project.status === "live" ? "live" : "progress"}`}>{project.status === "live" ? "Live demo" : "In progress"}</p>
             <h3>{project.title}</h3>
             <p>{project.summary}</p>
             <div className="ctaRow">

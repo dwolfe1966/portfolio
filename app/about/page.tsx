@@ -70,6 +70,20 @@ export default function AboutPage() {
           I am an AI practitioner who builds operating systems that connect product strategy, data science, and go-to-market execution.
           My focus is helping teams move faster with clearer decisions, stronger commercial outcomes, and practical adoption of AI in daily operations.
         </p>
+        <div className="signalStrip" aria-label="Operator profile summary">
+          <div className="signalStep">
+            <strong>Builder</strong>
+            <p className="small">Hands-on implementation across app, data, and workflow layers.</p>
+          </div>
+          <div className="signalStep">
+            <strong>Operator</strong>
+            <p className="small">Commercial cadence, decision quality, and execution accountability.</p>
+          </div>
+          <div className="signalStep">
+            <strong>Leader</strong>
+            <p className="small">Cross-functional alignment around product, growth, and finance outcomes.</p>
+          </div>
+        </div>
       </Section>
 
       <Section title="Core competencies">

@@ -56,6 +56,20 @@ export default function HomePage() {
               I build AI-native systems across product management, engineering, machine learning, growth marketing,
               operations, and executive leadership to drive measurable revenue outcomes.
             </p>
+            <div className="signalStrip" aria-label="Revenue system operating model">
+              <div className="signalStep">
+                <strong>Signal</strong>
+                <p className="small">Detect meaningful user, market, and campaign changes.</p>
+              </div>
+              <div className="signalStep">
+                <strong>Decision</strong>
+                <p className="small">Rank opportunities with economics-aware logic.</p>
+              </div>
+              <div className="signalStep">
+                <strong>Revenue</strong>
+                <p className="small">Generate actions, measure outcomes, and iterate.</p>
+              </div>
+            </div>
             <div className="ctaRow" style={{ marginTop: 12 }}>
               <Link className="btn primary" href="/projects">Explore my AI revenue systems</Link>
               <Link className="btn" href="/about">See leadership profile</Link>
@@ -88,7 +102,7 @@ export default function HomePage() {
       <Section title="Featured projects">
         <div className="grid grid-2">
           {featuredProjects.map((project) => (
-            <div className="card" key={project.title}>
+            <div className="card accentCard" key={project.title}>
               <h3>{project.title}</h3>
               <p>{project.detail}</p>
               <p className="small">{project.impact}</p>
