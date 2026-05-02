@@ -132,7 +132,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ C10. Add scenario save/load presets for repeatable acquisition experiments.
 
 ### To do (spec-driven expansions)
-- ⏳ C21. Add audience test-cell management area (define + view audiences as a first-class library, decoupled from the auto-generated `buildAudienceSegments` defaults). Should support audience CRUD, targeting JSON editing, and reuse across campaigns. Complements the C12 matrix viewer, which only renders existing cells.
+- ✅ C21. Audience test-cell management area shipped (commit f5b44d4): new AudienceTemplate model + library UX at `/acquisition/audiences` with CRUD, JSON targeting editor, usage rollup, and side-nav entry. Follow-up: wire template selection into Campaign Create flow (currently still seeds from `buildAudienceSegments()` defaults).
 - 🚧 C11. Add ad-connector abstraction layer (stub + pluggable provider interfaces for Google/Meta).
 - ✅ C12. Add multivariate cell management (creative × audience/keyword matrix explorer with significance hints).
 - ✅ C13. Add CAC-vs-LTV policy engine controls (target ratio bands + auto-pause thresholds + approval cap).
