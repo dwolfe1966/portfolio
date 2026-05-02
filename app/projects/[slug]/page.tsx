@@ -9,6 +9,7 @@ import { buildMetadata } from "@/lib/seo";
 import { VickreyAuctionDiagram } from "@/components/projects/VickreyAuctionDiagram";
 import { ProjectFlowTimeline } from "@/components/projects/ProjectFlowTimeline";
 import { CaseStudyArtifacts } from "@/components/projects/CaseStudyArtifacts";
+import { DemoAppLaunchCard, type DemoAppLaunchTarget } from "@/components/site/DemoAppLaunchCard";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -44,10 +45,15 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     <>
       <Section eyebrow="Project" title={project.title}>
         <p>{project.summary}</p>
+        {project.appHref ? (
+          <div style={{ maxWidth: 520, marginTop: 16 }}>
+            <DemoAppLaunchCard
+              app={(project.slug === "agent-acquisition" ? "acquisition" : "lifecycle") as DemoAppLaunchTarget}
+              href={project.appHref}
+            />
+          </div>
+        ) : null}
         <div className="ctaRow">
-          <Link className="btn primary" href={project.appHref ?? "/lifecycle"}>
-            {project.slug === "agent-acquisition" ? "Open acquisition app" : "Open lifecycle app"}
-          </Link>
           <Link className="btn" href="/projects">Back to projects</Link>
         </div>
       </Section>

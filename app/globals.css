@@ -251,6 +251,63 @@ button {
 .demoBreadcrumbs a:hover { color: var(--demo-text); }
 .demoBreadcrumbs__sep { color: var(--demo-divider); }
 .demoBreadcrumbs__current { color: var(--demo-text); font-weight: 500; }
+
+/* Demo app launch card — used on portfolio pages to surface an explicit
+   handoff into the demo apps. Sits inside portfolio chrome but borrows
+   the demo accent + monospace chip so the destination is recognizable. */
+.demoLaunchCard {
+  display: block;
+  padding: 18px 20px;
+  border: 1px solid #1e6ddc;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f3f7ff 0%, #ffffff 100%);
+  color: #0e1218;
+  text-decoration: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.demoLaunchCard:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -8px rgba(30, 109, 220, 0.45);
+}
+.demoLaunchCard__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.demoLaunchCard__chip {
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', 'Menlo', 'Monaco', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  padding: 3px 7px;
+  border: 1px solid #1e6ddc;
+  border-radius: 3px;
+  color: #1e6ddc;
+  background: rgba(30, 109, 220, 0.08);
+}
+.demoLaunchCard__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0e1218;
+}
+.demoLaunchCard__arrow {
+  margin-left: auto;
+  font-size: 18px;
+  color: #1e6ddc;
+}
+.demoLaunchCard__tagline {
+  font-size: 14px;
+  color: #5a6371;
+  margin: 0 0 6px;
+}
+.demoLaunchCard__surface {
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', 'Menlo', 'Monaco', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: #5a6371;
+  margin: 0;
+}
 .demoAppShellMain {
   display: flex;
   flex-direction: column;

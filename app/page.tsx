@@ -3,6 +3,7 @@ import Link from "next/link";
 import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { RevenueLoopInfographic } from "@/components/site/RevenueLoopInfographic";
+import { DemoAppLaunchCard, type DemoAppLaunchTarget } from "@/components/site/DemoAppLaunchCard";
 
 export const metadata: Metadata = buildMetadata({
   title: "Home | David Wolfe",
@@ -29,20 +30,31 @@ const differentiators = [
   }
 ];
 
-const featuredProjects = [
+type FeaturedProject = {
+  title: string;
+  detail: string;
+  impact: string;
+  href: string;
+  appHref: string;
+  demoApp: DemoAppLaunchTarget;
+};
+
+const featuredProjects: FeaturedProject[] = [
   {
     title: "Lifecycle Revenue Engine",
     detail: "Detects high-intent change events, matches users/entities, and generates message flows to improve retention and conversion.",
     impact: "Why it matters: turns lifecycle targeting from generic outreach into economically grounded prioritization.",
     href: "/projects/lifecycle-revenue-engine",
-    appHref: "/lifecycle"
+    appHref: "/lifecycle/overview",
+    demoApp: "lifecycle"
   },
   {
     title: "Agent-Managed Acquisition System",
     detail: "Runs campaign setup, test-cell scoring, budget reallocation, and audit-trail logging with explicit guardrails.",
     impact: "Why it matters: lowers CAC volatility while improving speed and confidence of media decisions.",
     href: "/projects/agent-acquisition",
-    appHref: "/acquisition"
+    appHref: "/acquisition/overview",
+    demoApp: "acquisition"
   }
 ];
 
@@ -106,9 +118,11 @@ export default function HomePage() {
               <h3>{project.title}</h3>
               <p>{project.detail}</p>
               <p className="small">{project.impact}</p>
+              <div style={{ marginTop: 12 }}>
+                <DemoAppLaunchCard app={project.demoApp} href={project.appHref} />
+              </div>
               <div className="ctaRow">
-                <Link className="btn primary" href={project.href}>View project</Link>
-                <Link className="btn" href={project.appHref}>Open demo</Link>
+                <Link className="btn" href={project.href}>Read case study</Link>
               </div>
             </div>
           ))}
