@@ -139,6 +139,76 @@ test("validateCreateCampaignInput rejects out-of-range policy fields", () => {
   }
 });
 
+test("validateCreateCampaignInput accepts templateIds when provided", () => {
+  const result = validateCreateCampaignInput({
+    name: "Templated",
+    objective: "Test",
+    budgetCents: 10000,
+    startAt: new Date().toISOString(),
+    endAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+    channels: ["SEARCH"],
+    targetCacCents: 14500,
+    targetLtvCents: 72000,
+    templateIds: ["tmpl_abc", "tmpl_def"]
+  });
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(result.value.templateIds, ["tmpl_abc", "tmpl_def"]);
+  }
+});
+
+test("validateCreateCampaignInput filters non-string templateIds and leaves array undefined when omitted", () => {
+  const omitted = validateCreateCampaignInput({
+    name: "No templates",
+    objective: "Test",
+    budgetCents: 10000,
+    startAt: new Date().toISOString(),
+    endAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+    channels: ["SEARCH"],
+    targetCacCents: 14500,
+    targetLtvCents: 72000
+  });
+  assert.equal(omitted.ok, true);
+  if (omitted.ok) assert.equal(omitted.value.templateIds, undefined);
+
+  const filtered = validateCreateCampaignInput({
+    name: "Mixed",
+    objective: "Test",
+    budgetCents: 10000,
+    startAt: new Date().toISOString(),
+    endAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+    channels: ["SEARCH"],
+    targetCacCents: 14500,
+    targetLtvCents: 72000,
+    templateIds: ["valid_id", "", null, 42, "another_id"]
+  });
+  assert.equal(filtered.ok, true);
+  if (filtered.ok) {
+    assert.deepEqual(filtered.value.templateIds, ["valid_id", "another_id"]);
+  }
+});
+
+test("validateCreateCampaignInput rejects more than 12 templateIds", () => {
+  const tooMany = Array.from({ length: 13 }, (_, i) => `tmpl_${i}`);
+  const result = validateCreateCampaignInput({
+    name: "Too many",
+    objective: "Test",
+    budgetCents: 10000,
+    startAt: new Date().toISOString(),
+    endAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+    channels: ["SEARCH"],
+    targetCacCents: 14500,
+    targetLtvCents: 72000,
+    templateIds: tooMany
+  });
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.errors.some((e) => /templateIds.*12/.test(e)));
+  }
+});
+
 test("validateCreateCampaignInput accepts defaults when policy fields are omitted", () => {
   const result = validateCreateCampaignInput({
     name: "Test",

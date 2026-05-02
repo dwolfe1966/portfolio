@@ -1,9 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type Channel = "SEARCH" | "SOCIAL" | "DISPLAY" | "VIDEO";
+type AudienceSource = "defaults" | "templates";
+type TemplateOption = {
+  id: string;
+  name: string;
+  audienceType: string;
+  predictedCpcCents: number;
+  predictedCacCents: number;
+};
 
 const DEFAULT_CHANNELS: Channel[] = ["SEARCH", "SOCIAL"];
 
@@ -17,11 +25,42 @@ export function AcquisitionCampaignBuilder() {
   const [minConfidence, setMinConfidence] = useState(0.65);
   const [cooldownHours, setCooldownHours] = useState(24);
   const [channels, setChannels] = useState<Channel[]>(DEFAULT_CHANNELS);
+  const [audienceSource, setAudienceSource] = useState<AudienceSource>("defaults");
+  const [templates, setTemplates] = useState<TemplateOption[]>([]);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string>("");
 
   const startAt = useMemo(() => new Date().toISOString(), []);
   const endAt = useMemo(() => new Date(Date.now() + 14 * 86400000).toISOString(), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTemplates() {
+      try {
+        const response = await fetch("/api/acquisition/audiences", { cache: "no-store" });
+        const json = await response.json();
+        if (cancelled) return;
+        if (json.ok && Array.isArray(json.templates)) {
+          setTemplates(
+            json.templates.map((t: TemplateOption) => ({
+              id: t.id,
+              name: t.name,
+              audienceType: t.audienceType,
+              predictedCpcCents: t.predictedCpcCents,
+              predictedCacCents: t.predictedCacCents
+            }))
+          );
+        }
+      } catch {
+        // leave templates empty; UI falls back to defaults-only.
+      }
+    }
+    void loadTemplates();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function toggleChannel(channel: Channel) {
     setChannels((current) =>
@@ -29,10 +68,21 @@ export function AcquisitionCampaignBuilder() {
     );
   }
 
+  function toggleTemplate(id: string) {
+    setSelectedTemplateIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  }
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
     setStatus("");
+
+    const templateIds =
+      audienceSource === "templates" && selectedTemplateIds.length > 0
+        ? selectedTemplateIds
+        : undefined;
 
     try {
       const response = await fetch("/api/acquisition/campaigns", {
@@ -49,7 +99,8 @@ export function AcquisitionCampaignBuilder() {
           targetLtvCents,
           maxBudgetShiftPct,
           minConfidence,
-          cooldownHours
+          cooldownHours,
+          templateIds
         })
       });
 
@@ -126,8 +177,79 @@ export function AcquisitionCampaignBuilder() {
         </div>
       </fieldset>
 
+      <fieldset style={{ border: 0, padding: 0, marginTop: 12 }}>
+        <legend className="small" style={{ marginBottom: 6 }}>Audience source</legend>
+        <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <input
+              type="radio"
+              name="audienceSource"
+              value="defaults"
+              checked={audienceSource === "defaults"}
+              onChange={() => setAudienceSource("defaults")}
+            />
+            <span>Built-in defaults (3 audiences)</span>
+          </label>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <input
+              type="radio"
+              name="audienceSource"
+              value="templates"
+              checked={audienceSource === "templates"}
+              onChange={() => setAudienceSource("templates")}
+              disabled={templates.length === 0}
+            />
+            <span>
+              Pick from library
+              {templates.length === 0 ? " (none yet)" : ` (${templates.length} available)`}
+            </span>
+          </label>
+        </div>
+        {audienceSource === "templates" ? (
+          <div className="card" style={{ marginTop: 4 }}>
+            {templates.length === 0 ? (
+              <p className="small">
+                No templates yet — <Link href="/acquisition/audiences">create one in the audience library</Link> first.
+              </p>
+            ) : (
+              <>
+                <p className="small" style={{ marginBottom: 8 }}>
+                  Pick at least one template. Selected templates are cloned into this campaign as
+                  audience segments and tagged with their template id.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {templates.map((template) => (
+                    <label key={template.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedTemplateIds.includes(template.id)}
+                        onChange={() => toggleTemplate(template.id)}
+                      />
+                      <span style={{ fontWeight: 500 }}>{template.name}</span>
+                      <code className="small">{template.audienceType}</code>
+                      <span className="small">
+                        CPC ${(template.predictedCpcCents / 100).toFixed(2)} · CAC ${(template.predictedCacCents / 100).toFixed(0)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : null}
+      </fieldset>
+
       <div className="ctaRow">
-        <button type="submit" disabled={loading || channels.length === 0}>{loading ? "Creating..." : "Create campaign"}</button>
+        <button
+          type="submit"
+          disabled={
+            loading ||
+            channels.length === 0 ||
+            (audienceSource === "templates" && selectedTemplateIds.length === 0)
+          }
+        >
+          {loading ? "Creating..." : "Create campaign"}
+        </button>
         <Link className="btn" href="/acquisition/simulations">Go to simulations</Link>
       </div>
       {status ? <p className="small" style={{ marginTop: 10 }}>{status}</p> : null}

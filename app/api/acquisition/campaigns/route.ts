@@ -55,7 +55,43 @@ export async function POST(req: NextRequest) {
 
   try {
     const creatives = buildCreativeVariants(input.channels);
-    const audiences = buildAudienceSegments();
+
+    let audienceSeed: Array<{
+      name: string;
+      audienceType: string;
+      targetingJson: import("@prisma/client").Prisma.InputJsonValue;
+      predictedCpcCents: number;
+      predictedCacCents: number;
+      templateId: string | null;
+    }>;
+
+    if (input.templateIds && input.templateIds.length > 0) {
+      const templates = await db.audienceTemplate.findMany({
+        where: { id: { in: input.templateIds } }
+      });
+      const foundIds = new Set(templates.map((t) => t.id));
+      const missing = input.templateIds.filter((id) => !foundIds.has(id));
+      if (missing.length > 0) {
+        logApiEvent("warn", eventId, "acquisition.campaigns.create.templates_missing", { missing });
+        return apiError(422, "AUDIENCE_TEMPLATES_MISSING", "Some audience templates were not found", {
+          eventId,
+          missingIds: missing
+        });
+      }
+      audienceSeed = templates.map((template) => ({
+        name: template.name,
+        audienceType: template.audienceType,
+        targetingJson: template.targetingJson as import("@prisma/client").Prisma.InputJsonValue,
+        predictedCpcCents: template.predictedCpcCents,
+        predictedCacCents: template.predictedCacCents,
+        templateId: template.id
+      }));
+    } else {
+      audienceSeed = buildAudienceSegments().map((audience) => ({
+        ...audience,
+        templateId: null
+      }));
+    }
 
     const result = await db.$transaction(async (tx) => {
       const campaign = await tx.acquisitionCampaign.create({
@@ -87,7 +123,7 @@ export async function POST(req: NextRequest) {
       );
 
       const createdAudiences = await Promise.all(
-        audiences.map((audience) =>
+        audienceSeed.map((audience) =>
           tx.audienceSegment.create({
             data: {
               campaignId: campaign.id,
@@ -123,7 +159,9 @@ export async function POST(req: NextRequest) {
             channels: input.channels,
             creatives: createdCreatives.length,
             audiences: createdAudiences.length,
-            totalCells
+            totalCells,
+            audienceSource: input.templateIds && input.templateIds.length > 0 ? "library_templates" : "default_segments",
+            templateIds: input.templateIds ?? []
           }
         }
       });

@@ -20,6 +20,7 @@ export type CreateAcquisitionCampaignInput = {
   cacAutoPausePctOfTarget?: number;
   minLtvCacRatio?: number;
   approvalCapPct?: number;
+  templateIds?: string[];
 };
 
 export const POLICY_DEFAULTS = {
@@ -67,7 +68,10 @@ export function validateCreateCampaignInput(raw: unknown): { ok: true; value: Cr
     cooldownHours: Number(body.cooldownHours ?? ACQUISITION_DEFAULTS.cooldownHours),
     cacAutoPausePctOfTarget: Number(body.cacAutoPausePctOfTarget ?? ACQUISITION_DEFAULTS.cacAutoPausePctOfTarget),
     minLtvCacRatio: Number(body.minLtvCacRatio ?? ACQUISITION_DEFAULTS.minLtvCacRatio),
-    approvalCapPct: Number(body.approvalCapPct ?? ACQUISITION_DEFAULTS.approvalCapPct)
+    approvalCapPct: Number(body.approvalCapPct ?? ACQUISITION_DEFAULTS.approvalCapPct),
+    templateIds: Array.isArray(body.templateIds)
+      ? body.templateIds.filter((id): id is string => typeof id === "string" && id.length > 0)
+      : undefined
   };
 
   if (!value.name) errors.push("name is required");
@@ -96,6 +100,9 @@ export function validateCreateCampaignInput(raw: unknown): { ok: true; value: Cr
   }
   if (!Number.isFinite(value.approvalCapPct!) || value.approvalCapPct! <= 0 || value.approvalCapPct! > 0.5) {
     errors.push("approvalCapPct must be between 0 and 0.5");
+  }
+  if (value.templateIds !== undefined && value.templateIds.length > 12) {
+    errors.push("templateIds may include at most 12 templates per campaign");
   }
 
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value };
