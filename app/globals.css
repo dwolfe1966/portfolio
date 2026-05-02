@@ -194,6 +194,13 @@ button {
   line-height: 1;
   font-weight: 700;
 }
+.caseStudyArtifacts .card .btn {
+  border-radius: 8px;
+}
+.guardrailRow {
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+}
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   h1 { font-size: 42px; }

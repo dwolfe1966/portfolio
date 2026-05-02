@@ -157,7 +157,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 
 ### To do
 - ✅ D6. Add 2–3 new project case studies beyond lifecycle/acquisition.
-- 🟡 D7. Add richer visual artifacts in case studies (architecture diagrams, screenshots, KPI callouts).
+- ✅ D7. Add richer visual artifacts in case studies (artifact panels with outcome strips, decision frames, evidence links, and guardrails).
 - ✅ D8. Add contact form delivery path with spam mitigation and success/error UX.
 - ✅ D9. Perform metadata/OG pass on all key pages.
 - ✅ D10. Add responsive mobile hamburger behavior to top nav while preserving 5-item IA.
@@ -200,7 +200,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 
 ### Sprint S9 (content, conversion, and polish)
 - ✅ D6, D8, D9, D12
-- 🟡 D7
+- ✅ D7
 - ✅ B13, B14
 - ✅ B7, E7, E8
 - ✅ A6

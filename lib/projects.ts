@@ -10,6 +10,12 @@ export type ProjectEntry = {
   whatIBuilt: string;
   appHref?: string;
   status?: "live" | "in-progress";
+  artifacts: {
+    outcomeStrip: Array<{ label: string; value: string; note: string }>;
+    decisionFrame: Array<{ label: string; detail: string }>;
+    evidenceLinks: Array<{ label: string; href: string; detail: string }>;
+    guardrails: Array<{ label: string; detail: string }>;
+  };
 };
 
 export const projects: ProjectEntry[] = [
@@ -39,7 +45,29 @@ export const projects: ProjectEntry[] = [
     whatIBuilt:
       "I specified, designed, implemented, and evolved the data model, simulation layer, prioritization logic, AI generation layer, working dashboard, and public portfolio presentation.",
     appHref: "/lifecycle",
-    status: "live"
+    status: "live",
+    artifacts: {
+      outcomeStrip: [
+        { label: "Signal volume", value: "45+", note: "Seeded deltas used to exercise prioritization and generation flows." },
+        { label: "Opportunity score", value: "0-1", note: "Explainable priority score from interest, recency, segment, and change type." },
+        { label: "Revenue view", value: "$/run", note: "Estimated revenue stored with each campaign run for trend comparison." }
+      ],
+      decisionFrame: [
+        { label: "Input", detail: "Users, tracked entities, interest relations, and entity-level change events." },
+        { label: "Decision", detail: "Rank candidate opportunities and select the highest-value records for generation." },
+        { label: "Output", detail: "Campaign run, generated message assets, and modeled revenue outcomes." }
+      ],
+      evidenceLinks: [
+        { label: "Lifecycle overview", href: "/lifecycle/overview", detail: "Shows signal flow, graph context, and operating model." },
+        { label: "Lifecycle outputs", href: "/lifecycle/outputs", detail: "Shows runs, trend charts, segment breakdown, and generated messages." },
+        { label: "Campaign opportunities", href: "/lifecycle/campaigns", detail: "Shows candidate filtering and scoring evidence." }
+      ],
+      guardrails: [
+        { label: "Schema fallback", detail: "Pages and APIs degrade with compatibility messaging when demo tables are missing." },
+        { label: "Mutation gating", detail: "Seed and simulation endpoints are controlled by environment flags." },
+        { label: "Auditability", detail: "Run details connect assumptions, candidates, score components, and generated messages." }
+      ]
+    }
   },
   {
     slug: "agent-acquisition",
@@ -66,7 +94,29 @@ export const projects: ProjectEntry[] = [
     whatIBuilt:
       "I specified, designed, implemented, and evolved a working acquisition workspace with campaign bootstrap, orchestrator iterations, insights panels, and schema support for audit-ready optimization loops.",
     appHref: "/acquisition",
-    status: "in-progress"
+    status: "in-progress",
+    artifacts: {
+      outcomeStrip: [
+        { label: "Test cells", value: "creative x audience", note: "Campaign variants are evaluated as measurable cells." },
+        { label: "Guardrail loop", value: "24h", note: "Cooldown and shift constraints shape automated budget movement." },
+        { label: "Economics", value: "CAC/LTV", note: "Insights compare CPA, ROAS, and LTV/CAC against campaign targets." }
+      ],
+      decisionFrame: [
+        { label: "Input", detail: "Campaign objective, budget, channels, creative variants, and audience segments." },
+        { label: "Decision", detail: "Score test cells, identify winners/losers, and apply budget-shift policy." },
+        { label: "Output", detail: "Insights panel, trend comparison, budget timeline, and audit logs." }
+      ],
+      evidenceLinks: [
+        { label: "Acquisition overview", href: "/acquisition/overview", detail: "Shows architecture, readiness counts, and operating sequence." },
+        { label: "Campaign workspace", href: "/acquisition/campaigns", detail: "Lists campaigns, states, cells, and budget actions." },
+        { label: "Acquisition outputs", href: "/acquisition/outputs", detail: "Shows economics, creative/audience trends, and budget timeline." }
+      ],
+      guardrails: [
+        { label: "Budget locks", detail: "Operators can lock or revert budget overrides with audit records." },
+        { label: "Max shift policy", detail: "Campaign guardrails cap how much budget moves per iteration." },
+        { label: "Target economics", detail: "CAC and LTV thresholds inform scoring and scale/pause decisions." }
+      ]
+    }
   },
   {
     slug: "pricing-experimentation-control-tower",
@@ -92,7 +142,28 @@ export const projects: ProjectEntry[] = [
       "Improves pricing learning velocity while protecting gross margin and net revenue retention through explicit experiment governance.",
     whatIBuilt:
       "I specified, designed, implemented, and evolved an end-to-end blueprint spanning test design templates, cohort instrumentation contracts, decision policy rules, and operator reporting views.",
-    status: "in-progress"
+    status: "in-progress",
+    artifacts: {
+      outcomeStrip: [
+        { label: "ARPU", value: "+9%", note: "Illustrative lift tracked against control cohorts." },
+        { label: "Margin floor", value: "72%", note: "Rollout guardrail blocks treatments below margin threshold." },
+        { label: "Cycle time", value: "-35%", note: "Unified reporting shortens pricing decision loops." }
+      ],
+      decisionFrame: [
+        { label: "Input", detail: "Hypothesis, segment eligibility, price/packaging variants, and holdout rules." },
+        { label: "Decision", detail: "Evaluate ARPU, churn, margin, support load, and confidence thresholds." },
+        { label: "Output", detail: "Promote, extend, or roll back experiment with full decision history." }
+      ],
+      evidenceLinks: [
+        { label: "Experiment registry", href: "/projects/pricing-experimentation-control-tower", detail: "Case-study artifact for hypothesis and cohort governance." },
+        { label: "Policy engine", href: "/projects/pricing-experimentation-control-tower", detail: "Guardrail model for promotion and rollback decisions." }
+      ],
+      guardrails: [
+        { label: "Holdout protection", detail: "Control groups remain intact for clean measurement." },
+        { label: "Stop-loss rules", detail: "Treatments are paused when churn or margin thresholds degrade." },
+        { label: "Owner approval", detail: "Promotion requires explicit accountable decision ownership." }
+      ]
+    }
   },
   {
     slug: "retention-risk-command-center",
@@ -118,7 +189,28 @@ export const projects: ProjectEntry[] = [
       "Shifts retention from reactive triage to proactive revenue protection, improving net retention and reducing avoidable churn cost.",
     whatIBuilt:
       "I specified, designed, implemented, and evolved a practical operating design with risk taxonomy, intervention playbook matrix, KPI definitions, and implementation sequencing guidance.",
-    status: "in-progress"
+    status: "in-progress",
+    artifacts: {
+      outcomeStrip: [
+        { label: "Churn risk", value: "-12%", note: "Reduction in preventable churn for high-risk cohorts." },
+        { label: "Save-rate", value: "+18%", note: "Improvement in renewal-window intervention outcomes." },
+        { label: "Ops latency", value: "-46%", note: "Faster response through one command queue." }
+      ],
+      decisionFrame: [
+        { label: "Input", detail: "Usage, billing, support, renewal, and product-health signals." },
+        { label: "Decision", detail: "Prioritize risk drivers and choose the next-best intervention playbook." },
+        { label: "Output", detail: "Assigned intervention, SLA, save-rate outcome, and residual risk reading." }
+      ],
+      evidenceLinks: [
+        { label: "Risk taxonomy", href: "/projects/retention-risk-command-center", detail: "Case-study artifact for interpreting churn signals." },
+        { label: "Playbook matrix", href: "/projects/retention-risk-command-center", detail: "Maps risk drivers to intervention choices." }
+      ],
+      guardrails: [
+        { label: "SLA routing", detail: "High-risk accounts require owner and response window assignment." },
+        { label: "Offer discipline", detail: "Discount/save offers are constrained by payback and margin rules." },
+        { label: "Residual risk", detail: "Closed interventions remain monitored for repeated risk signals." }
+      ]
+    }
   },
   {
     slug: "vickrey-auction-closed-ads-ecosystem",
@@ -144,7 +236,28 @@ export const projects: ProjectEntry[] = [
       "Creates healthier long-term marketplace economics by reducing overpayment risk, improving bidder confidence, and maintaining predictable platform yield.",
     whatIBuilt:
       "I specified, designed, implemented, and evolved an auction policy blueprint with ranking/clearing math, simulation scenarios, guardrails for reserve/pacing, and operator dashboards for pricing diagnostics.",
-    status: "in-progress"
+    status: "in-progress",
+    artifacts: {
+      outcomeStrip: [
+        { label: "Trust proxy", value: "+22%", note: "Repeat spend increases when pricing mechanics are easier to explain." },
+        { label: "Fill quality", value: "+11%", note: "Quality-weighted ranking improves relevance of served placements." },
+        { label: "Stability", value: "+8%", note: "Marketplace revenue volatility declines with reserve and pacing controls." }
+      ],
+      decisionFrame: [
+        { label: "Input", detail: "Bid, quality score, campaign constraints, pacing state, and reserve price." },
+        { label: "Decision", detail: "Rank bids by quality-adjusted score and clear at a second-price equivalent." },
+        { label: "Output", detail: "Winning placement, charged price, pacing update, and marketplace diagnostic event." }
+      ],
+      evidenceLinks: [
+        { label: "Auction model artifact", href: "/projects/vickrey-auction-closed-ads-ecosystem", detail: "Shows ranking and second-price clearing logic." },
+        { label: "Marketplace guardrails", href: "/projects/vickrey-auction-closed-ads-ecosystem", detail: "Reserve and pacing constraints for yield stability." }
+      ],
+      guardrails: [
+        { label: "Reserve price", detail: "Placements do not clear below marketplace floor pricing." },
+        { label: "Quality weighting", detail: "Bids must compete on relevance, not just maximum price." },
+        { label: "Pacing control", detail: "Spend delivery is smoothed to avoid early exhaustion and volatility." }
+      ]
+    }
   }
 ];
 

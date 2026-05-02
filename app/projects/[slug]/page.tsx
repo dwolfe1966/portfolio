@@ -8,6 +8,7 @@ import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlow
 import { buildMetadata } from "@/lib/seo";
 import { VickreyAuctionDiagram } from "@/components/projects/VickreyAuctionDiagram";
 import { ProjectFlowTimeline } from "@/components/projects/ProjectFlowTimeline";
+import { CaseStudyArtifacts } from "@/components/projects/CaseStudyArtifacts";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -60,6 +61,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         ) : (
           <ProjectFlowTimeline steps={project.architecture} />
         )}
+      </Section>
+      <Section title="Case-study artifacts">
+        <CaseStudyArtifacts artifacts={project.artifacts} />
       </Section>
       <Section title="System architecture">
         <div className="grid grid-2">
