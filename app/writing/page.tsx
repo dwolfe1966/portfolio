@@ -24,6 +24,21 @@ const essays = [
     slug: "product-discovery-ai-loops",
     title: "Product discovery in AI operating loops",
     preview: "Discovery patterns for AI-native products that need measurable operator outcomes."
+  },
+  {
+    slug: "acquisition-guardrails",
+    title: "Acquisition agents need guardrails before autonomy",
+    preview: "Why CAC/LTV policy, budget caps, cooldowns, and audit logs matter before campaign automation scales."
+  },
+  {
+    slug: "lifecycle-signal-quality",
+    title: "Lifecycle signal quality beats message volume",
+    preview: "A practical note on why signal selection, interest relations, and timing drive lifecycle performance."
+  },
+  {
+    slug: "pricing-experiments-operating-system",
+    title: "Pricing experiments should be operating systems",
+    preview: "How pricing tests become safer and faster when hypotheses, cohorts, guardrails, and decisions live together."
   }
 ];
 

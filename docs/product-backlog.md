@@ -152,8 +152,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ D3. Projects index + dynamic project pages implemented.
 - ✅ D4. Writing index route exists.
 
-### In progress
-- 🟡 D5. Expand writing inventory with additional essays/previews.
+### Completed
+- ✅ D5. Expand writing inventory with additional essays/previews.
 
 ### To do
 - ✅ D6. Add 2–3 new project case studies beyond lifecycle/acquisition.
