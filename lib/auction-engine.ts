@@ -184,6 +184,129 @@ export function runAuction(inputs: AuctionInputs): AuctionResult {
   };
 }
 
+// ----- Validation helpers -----
+
+export type AdvertiserInput = {
+  name: string;
+  qualityScore: number;
+  dailyBudgetCents: number;
+  smoothingFactor: number;
+  behaviorMode: BehaviorMode;
+  targetCacCents: number | null;
+};
+
+export type SlotInput = {
+  name: string;
+  reservePriceCents: number;
+  expectedDailyVolume: number;
+};
+
+export type BidInput = {
+  advertiserId: string;
+  slotId: string;
+  bidCents: number;
+};
+
+const BEHAVIOR_MODES: readonly BehaviorMode[] = ["truthful", "shaded", "auto_bid"];
+
+export function validateAdvertiserInput(
+  raw: unknown
+): { ok: true; value: AdvertiserInput } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as { [key: string]: unknown };
+  const errors: string[] = [];
+
+  const name = String(body.name ?? "").trim();
+  const qualityScore = Number(body.qualityScore);
+  const dailyBudgetCents = Math.round(Number(body.dailyBudgetCents));
+  const smoothingFactor = Number(body.smoothingFactor ?? 0.5);
+  const behaviorRaw = String(body.behaviorMode ?? "truthful");
+  const targetCacRaw = body.targetCacCents;
+
+  if (!name) errors.push("name is required");
+  if (name.length > 80) errors.push("name must be 80 characters or fewer");
+  if (!Number.isFinite(qualityScore) || qualityScore <= 0 || qualityScore > 1) {
+    errors.push("qualityScore must be between 0 and 1 (exclusive of 0)");
+  }
+  if (!Number.isFinite(dailyBudgetCents) || dailyBudgetCents < 0 || dailyBudgetCents > 10_000_000) {
+    errors.push("dailyBudgetCents must be between 0 and 10000000");
+  }
+  if (!Number.isFinite(smoothingFactor) || smoothingFactor < 0.01 || smoothingFactor > 1) {
+    errors.push("smoothingFactor must be between 0.01 and 1");
+  }
+  if (!BEHAVIOR_MODES.includes(behaviorRaw as BehaviorMode)) {
+    errors.push(`behaviorMode must be one of: ${BEHAVIOR_MODES.join(", ")}`);
+  }
+
+  let targetCacCents: number | null = null;
+  if (targetCacRaw !== undefined && targetCacRaw !== null && targetCacRaw !== "") {
+    const parsed = Math.round(Number(targetCacRaw));
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1_000_000) {
+      errors.push("targetCacCents must be between 0 and 1000000 when supplied");
+    } else {
+      targetCacCents = parsed;
+    }
+  }
+  if (behaviorRaw === "auto_bid" && targetCacCents == null) {
+    errors.push("targetCacCents is required when behaviorMode is auto_bid");
+  }
+
+  if (errors.length > 0) return { ok: false, errors };
+  return {
+    ok: true,
+    value: {
+      name,
+      qualityScore,
+      dailyBudgetCents,
+      smoothingFactor,
+      behaviorMode: behaviorRaw as BehaviorMode,
+      targetCacCents
+    }
+  };
+}
+
+export function validateSlotInput(
+  raw: unknown
+): { ok: true; value: SlotInput } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as { [key: string]: unknown };
+  const errors: string[] = [];
+
+  const name = String(body.name ?? "").trim();
+  const reservePriceCents = Math.round(Number(body.reservePriceCents));
+  const expectedDailyVolume = Math.round(Number(body.expectedDailyVolume ?? 100));
+
+  if (!name) errors.push("name is required");
+  if (name.length > 80) errors.push("name must be 80 characters or fewer");
+  if (!Number.isFinite(reservePriceCents) || reservePriceCents < 0 || reservePriceCents > 1_000_000) {
+    errors.push("reservePriceCents must be between 0 and 1000000");
+  }
+  if (!Number.isFinite(expectedDailyVolume) || expectedDailyVolume < 1 || expectedDailyVolume > 100_000) {
+    errors.push("expectedDailyVolume must be between 1 and 100000");
+  }
+
+  if (errors.length > 0) return { ok: false, errors };
+  return { ok: true, value: { name, reservePriceCents, expectedDailyVolume } };
+}
+
+export function validateBidInput(
+  raw: unknown
+): { ok: true; value: BidInput } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as { [key: string]: unknown };
+  const errors: string[] = [];
+
+  const advertiserId = String(body.advertiserId ?? "").trim();
+  const slotId = String(body.slotId ?? "").trim();
+  const bidCents = Math.round(Number(body.bidCents));
+
+  if (!advertiserId) errors.push("advertiserId is required");
+  if (!slotId) errors.push("slotId is required");
+  if (!Number.isFinite(bidCents) || bidCents < 0 || bidCents > 1_000_000) {
+    errors.push("bidCents must be between 0 and 1000000");
+  }
+
+  if (errors.length > 0) return { ok: false, errors };
+  return { ok: true, value: { advertiserId, slotId, bidCents } };
+}
+
 // ----- Run-level types and KPIs -----
 
 export type RunKpis = {
@@ -320,6 +443,161 @@ export function suggestReserve(args: {
     expectedRevenueLift: Number(lift.toFixed(4)),
     sampleSize: prices.length
   };
+}
+
+// ----- Run orchestrator -----
+
+export type AdvertiserSnapshot = {
+  id: string;
+  qualityScore: number;
+  dailyBudgetCents: number;
+  smoothingFactor: number;
+  behaviorMode: BehaviorMode;
+  targetCacCents: number | null;
+};
+
+export type SlotSnapshot = {
+  id: string;
+  reservePriceCents: number;
+  expectedDailyVolume: number;
+};
+
+export type BidSnapshot = {
+  advertiserId: string;
+  slotId: string;
+  bidCents: number;
+};
+
+export type RunOptions = {
+  totalAuctions: number;
+  bidNoiseFraction?: number; // ±X fraction added to each bid per iteration; default 0.05
+  qualityNoiseFraction?: number; // ±X fraction on quality score; default 0.02
+  random?: () => number; // injectable RNG for deterministic tests
+};
+
+export type RunOutput = {
+  results: Array<AuctionResult & { iterationIndex: number; reservePriceCents: number }>;
+  spendByAdvertiser: Map<string, number>;
+  kpis: RunKpis;
+  rollups: AdvertiserRollup[];
+};
+
+function clampQuality(value: number): number {
+  if (!Number.isFinite(value)) return 0.0001;
+  return Math.min(Math.max(value, 0.0001), 1);
+}
+
+/**
+ * Run a full N-auction round against snapshots of advertisers, slots, and bids.
+ * Pure function — no DB. The route layer wraps this in a transaction and
+ * persists the returned results.
+ *
+ * Slots are cycled in input order weighted by expectedDailyVolume so high-volume
+ * inventory dominates the run, matching real marketplaces.
+ */
+export function runAuctionRound(
+  advertisers: AdvertiserSnapshot[],
+  slots: SlotSnapshot[],
+  bids: BidSnapshot[],
+  options: RunOptions
+): RunOutput {
+  const random = options.random ?? Math.random;
+  const bidNoise = options.bidNoiseFraction ?? 0.05;
+  const qualityNoise = options.qualityNoiseFraction ?? 0.02;
+  const total = Math.max(1, Math.min(options.totalAuctions, 500));
+
+  if (advertisers.length === 0 || slots.length === 0 || bids.length === 0) {
+    return {
+      results: [],
+      spendByAdvertiser: new Map(),
+      kpis: computeRunKpis([], new Map()),
+      rollups: []
+    };
+  }
+
+  const advertiserById = new Map(advertisers.map((a) => [a.id, a]));
+  const bidsBySlot = new Map<string, BidSnapshot[]>();
+  for (const bid of bids) {
+    const list = bidsBySlot.get(bid.slotId) ?? [];
+    list.push(bid);
+    bidsBySlot.set(bid.slotId, list);
+  }
+
+  // Build a slot-volume-weighted iteration plan so high-volume slots get more auctions.
+  const totalVolume = slots.reduce((acc, s) => acc + Math.max(s.expectedDailyVolume, 1), 0);
+  const plan: SlotSnapshot[] = [];
+  for (const slot of slots) {
+    const share = Math.max(slot.expectedDailyVolume, 1) / totalVolume;
+    const auctionsForSlot = Math.max(1, Math.round(total * share));
+    for (let i = 0; i < auctionsForSlot; i++) plan.push(slot);
+  }
+  // Shuffle the plan a bit so slots are interleaved rather than batched.
+  for (let i = plan.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [plan[i], plan[j]] = [plan[j], plan[i]];
+  }
+  // Trim or pad to exactly `total`.
+  while (plan.length > total) plan.pop();
+  while (plan.length < total && plan.length > 0) plan.push(plan[plan.length - 1]);
+
+  const spendByAdvertiser = new Map<string, number>();
+  const results: Array<AuctionResult & { iterationIndex: number; reservePriceCents: number }> = [];
+  const winnerLookup = new Map<string, { qualityScore: number; bidCents: number }>();
+
+  let iterationIndex = 0;
+  for (const slot of plan) {
+    const slotBids = bidsBySlot.get(slot.id) ?? [];
+    const expectedRemaining = Math.max(total - iterationIndex, 1);
+
+    const auctionBids: AuctionBidInput[] = [];
+    for (const bid of slotBids) {
+      const advertiser = advertiserById.get(bid.advertiserId);
+      if (!advertiser) continue;
+
+      const noisyBid = Math.max(0, Math.round(bid.bidCents * (1 + (random() * 2 - 1) * bidNoise)));
+      const noisyQuality = clampQuality(
+        advertiser.qualityScore * (1 + (random() * 2 - 1) * qualityNoise)
+      );
+
+      auctionBids.push({
+        advertiserId: advertiser.id,
+        bidCents: noisyBid,
+        qualityScore: noisyQuality,
+        behaviorMode: advertiser.behaviorMode,
+        targetCacCents: advertiser.targetCacCents,
+        spentCentsToday: spendByAdvertiser.get(advertiser.id) ?? 0,
+        dailyBudgetCents: advertiser.dailyBudgetCents,
+        smoothingFactor: advertiser.smoothingFactor,
+        expectedRemainingAuctionsToday: expectedRemaining
+      });
+    }
+
+    const result = runAuction({
+      slotId: slot.id,
+      reservePriceCents: slot.reservePriceCents,
+      bids: auctionBids
+    });
+
+    if (result.filled && result.winnerAdvertiserId && result.clearingPriceCents != null) {
+      const prior = spendByAdvertiser.get(result.winnerAdvertiserId) ?? 0;
+      spendByAdvertiser.set(result.winnerAdvertiserId, prior + result.clearingPriceCents);
+      const winnerInput = auctionBids.find((b) => b.advertiserId === result.winnerAdvertiserId);
+      if (winnerInput) {
+        winnerLookup.set(result.winnerAdvertiserId, {
+          qualityScore: winnerInput.qualityScore,
+          bidCents: winnerInput.bidCents
+        });
+      }
+    }
+
+    results.push({ ...result, iterationIndex, reservePriceCents: slot.reservePriceCents });
+    iterationIndex++;
+  }
+
+  const kpis = computeRunKpis(results, winnerLookup);
+  const rollups = computeAdvertiserRollups(results);
+
+  return { results, spendByAdvertiser, kpis, rollups };
 }
 
 // ----- Marketplace health -----
