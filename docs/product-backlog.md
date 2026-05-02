@@ -132,6 +132,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ C10. Add scenario save/load presets for repeatable acquisition experiments.
 
 ### To do (spec-driven expansions)
+- ⏳ C21. Add audience test-cell management area (define + view audiences as a first-class library, decoupled from the auto-generated `buildAudienceSegments` defaults). Should support audience CRUD, targeting JSON editing, and reuse across campaigns. Complements the C12 matrix viewer, which only renders existing cells.
 - 🚧 C11. Add ad-connector abstraction layer (stub + pluggable provider interfaces for Google/Meta).
 - ✅ C12. Add multivariate cell management (creative × audience/keyword matrix explorer with significance hints).
 - ✅ C13. Add CAC-vs-LTV policy engine controls (target ratio bands + auto-pause thresholds + approval cap).
@@ -166,6 +167,17 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ D12. Copy de-duplication pass across Home/About/Projects/Demo pages to remove repeated phrasing.
 - ✅ D13. Run visual design review for Home/About/Lifecycle/Acquisition and apply hierarchy, focus-state, card, status, and infographic polish.
 - ✅ D14. Enrich About section with LinkedIn profile context (career highlights, credibility signals, and profile linkage).
+
+---
+
+## F) Demo app design system
+
+Cross-cutting UX/IA workstream covering both lifecycle and acquisition demo apps. Goal: make the demo experience visually and structurally distinct from the portfolio site (which today only differs by background color).
+
+### To do
+- ⏳ F1. Replace the top-of-page workspace nav cards with a persistent **left vertical navigation rail** for both `/lifecycle/*` and `/acquisition/*` routes. Should anchor each demo app, expose all stages (Overview/Inputs/Simulations/Outputs/etc.) without scrolling, and remain visible during deep navigation (campaign detail, audit page).
+- ⏳ F2. Define a **visual differentiation system** for demo apps vs. portfolio web pages. Includes: distinct accent palette, denser type scale, "operator console" framing (compact cards, monospace metric chips), an app-level header with environment indicator, and information-architecture cues (e.g., breadcrumbs anchored to current campaign run / scenario context). Brainstorm pass first, then a design spec, then phased rollout. Touches `components/site/AppWorkspaceShellNav.tsx`, lifecycle/acquisition layout shells, and shared section/card primitives.
+- ⏳ F3. Audit the existing portfolio↔demo app transition (header, footer, breadcrumbs) and define an explicit "you are now in the demo app" entry/exit treatment so visitors orient quickly.
 
 ---
 
