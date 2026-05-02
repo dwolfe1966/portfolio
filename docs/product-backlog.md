@@ -120,12 +120,12 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ C3. Overview includes architecture modules and data-flow framing.
 - ✅ C4. Outputs page includes empty/schema-guidance behavior.
 
-### In progress
-- 🟡 C5. Add higher-fidelity insights metrics in outputs panel (initial summary expansion).
+### Completed
+- ✅ C5. Add higher-fidelity insights metrics in outputs panel (CTR, conversion rate, LTV/CAC, budget utilization, target comparison).
 
 ### To do (core maturity)
-- ⏳ C6. Add creative-level and audience-level trend comparisons over iterations.
-- ⏳ C7. Add budget activity timeline chart (with reason + before/after deltas).
+- ✅ C6. Add creative-level and audience-level trend comparisons over iterations.
+- ✅ C7. Add budget activity timeline chart (with reason + source/destination cells).
 - ✅ C8. Add configurable guardrails UI (approval threshold, max shift policy, cooldown window).
 - ✅ C9. Add manual override controls and persist override actions to audit log.
 - ✅ C10. Add scenario save/load presets for repeatable acquisition experiments.

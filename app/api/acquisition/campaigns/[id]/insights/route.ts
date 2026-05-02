@@ -20,10 +20,19 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
         include: { creative: true, audience: true },
         orderBy: { score: "desc" }
       }),
-      db.budgetActivity.findMany({ where: { campaignId: id }, orderBy: { createdAt: "desc" }, take: 20 }),
+      db.budgetActivity.findMany({
+        where: { campaignId: id },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: {
+          fromTestCell: { include: { creative: true, audience: true } },
+          toTestCell: { include: { creative: true, audience: true } }
+        }
+      }),
       db.acquisitionAuditLog.findMany({ where: { campaignId: id }, orderBy: { createdAt: "desc" }, take: 20 }),
       db.adPerformance.findMany({
         where: { testCell: { campaignId: id } },
+        include: { testCell: { include: { creative: true, audience: true } } },
         orderBy: { recordedAt: "asc" },
         take: 50
       })
@@ -32,25 +41,132 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const spendCents = cells.reduce((sum, cell) => sum + cell.spendCents, 0);
     const conversions = cells.reduce((sum, cell) => sum + cell.conversions, 0);
     const revenueCents = cells.reduce((sum, cell) => sum + cell.revenueCents, 0);
+    const impressions = cells.reduce((sum, cell) => sum + cell.impressions, 0);
+    const clicks = cells.reduce((sum, cell) => sum + cell.clicks, 0);
+    const activeBudgetCents = cells.reduce((sum, cell) => sum + cell.budgetCents, 0);
     const averageScore = cells.length ? cells.reduce((sum, cell) => sum + cell.score, 0) / cells.length : 0;
+    const cpaCents = conversions ? Math.round(spendCents / conversions) : 0;
+    const roas = spendCents > 0 ? Number((revenueCents / spendCents).toFixed(4)) : 0;
+
+    const creativeMap = new Map<string, {
+      id: string;
+      label: string;
+      channel: string;
+      impressions: number;
+      clicks: number;
+      conversions: number;
+      spendCents: number;
+      revenueCents: number;
+    }>();
+    const audienceMap = new Map<string, {
+      id: string;
+      label: string;
+      audienceType: string;
+      impressions: number;
+      clicks: number;
+      conversions: number;
+      spendCents: number;
+      revenueCents: number;
+    }>();
+
+    for (const point of performanceSeries) {
+      const creative = point.testCell.creative;
+      const audience = point.testCell.audience;
+      const creativeRow = creativeMap.get(creative.id) ?? {
+        id: creative.id,
+        label: creative.headline,
+        channel: creative.channel,
+        impressions: 0,
+        clicks: 0,
+        conversions: 0,
+        spendCents: 0,
+        revenueCents: 0
+      };
+      creativeRow.impressions += point.impressions;
+      creativeRow.clicks += point.clicks;
+      creativeRow.conversions += point.conversions;
+      creativeRow.spendCents += point.spendCents;
+      creativeRow.revenueCents += point.revenueCents;
+      creativeMap.set(creative.id, creativeRow);
+
+      const audienceRow = audienceMap.get(audience.id) ?? {
+        id: audience.id,
+        label: audience.name,
+        audienceType: audience.audienceType,
+        impressions: 0,
+        clicks: 0,
+        conversions: 0,
+        spendCents: 0,
+        revenueCents: 0
+      };
+      audienceRow.impressions += point.impressions;
+      audienceRow.clicks += point.clicks;
+      audienceRow.conversions += point.conversions;
+      audienceRow.spendCents += point.spendCents;
+      audienceRow.revenueCents += point.revenueCents;
+      audienceMap.set(audience.id, audienceRow);
+    }
+
+    const withDerivedMetrics = <T extends {
+      impressions: number;
+      clicks: number;
+      conversions: number;
+      spendCents: number;
+      revenueCents: number;
+    }>(row: T) => ({
+      ...row,
+      ctr: row.impressions ? Number((row.clicks / row.impressions).toFixed(4)) : 0,
+      conversionRate: row.clicks ? Number((row.conversions / row.clicks).toFixed(4)) : 0,
+      cpaCents: row.conversions ? Math.round(row.spendCents / row.conversions) : 0,
+      roas: row.spendCents ? Number((row.revenueCents / row.spendCents).toFixed(4)) : 0
+    });
 
     return apiOk({
       campaign,
       summary: {
         totalCells: cells.length,
+        impressions,
+        clicks,
         spendCents,
         conversions,
         revenueCents,
-        cpaCents: conversions ? Math.round(spendCents / conversions) : 0,
-        roas: spendCents > 0 ? Number((revenueCents / spendCents).toFixed(4)) : 0,
+        activeBudgetCents,
+        cpaCents,
+        roas,
+        ctr: impressions ? Number((clicks / impressions).toFixed(4)) : 0,
+        conversionRate: clicks ? Number((conversions / clicks).toFixed(4)) : 0,
+        revenuePerConversionCents: conversions ? Math.round(revenueCents / conversions) : 0,
+        targetCacCents: campaign.targetCacCents,
+        targetLtvCents: campaign.targetLtvCents,
+        cacToTargetPct: campaign.targetCacCents ? Number((cpaCents / campaign.targetCacCents).toFixed(4)) : 0,
+        ltvCacRatio: cpaCents ? Number((campaign.targetLtvCents / cpaCents).toFixed(2)) : 0,
+        budgetUtilizationPct: activeBudgetCents ? Number((spendCents / activeBudgetCents).toFixed(4)) : 0,
         averageScore: Number(averageScore.toFixed(4)),
         budgetActivityCount: activities.length
       },
       topCells: cells.slice(0, 10),
+      creativeTrends: [...creativeMap.values()].map(withDerivedMetrics).sort((a, b) => b.roas - a.roas),
+      audienceTrends: [...audienceMap.values()].map(withDerivedMetrics).sort((a, b) => b.roas - a.roas),
+      budgetTimeline: activities.map((activity) => ({
+        id: activity.id,
+        createdAt: activity.createdAt,
+        amountCents: activity.amountCents,
+        reason: activity.reason,
+        fromLabel: activity.fromTestCell
+          ? `${activity.fromTestCell.creative.headline} / ${activity.fromTestCell.audience.name}`
+          : "New budget",
+        toLabel: activity.toTestCell
+          ? `${activity.toTestCell.creative.headline} / ${activity.toTestCell.audience.name}`
+          : "Unassigned"
+      })),
       budgetActivities: activities,
       auditLogs: logs,
       performanceSeries: performanceSeries.map((point) => ({
         recordedAt: point.recordedAt,
+        creativeId: point.testCell.creativeId,
+        creativeLabel: point.testCell.creative.headline,
+        audienceId: point.testCell.audienceId,
+        audienceLabel: point.testCell.audience.name,
         impressions: point.impressions,
         clicks: point.clicks,
         conversions: point.conversions,

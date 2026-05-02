@@ -6,11 +6,22 @@ type Campaign = { id: string; name: string; state: string };
 
 type InsightSummary = {
   totalCells: number;
+  impressions: number;
+  clicks: number;
   spendCents: number;
   conversions: number;
   revenueCents: number;
+  activeBudgetCents: number;
   cpaCents: number;
   roas: number;
+  ctr: number;
+  conversionRate: number;
+  revenuePerConversionCents: number;
+  targetCacCents: number;
+  targetLtvCents: number;
+  cacToTargetPct: number;
+  ltvCacRatio: number;
+  budgetUtilizationPct: number;
   averageScore: number;
   budgetActivityCount: number;
 };
@@ -24,11 +35,39 @@ type TopCell = {
   audience: { name: string };
 };
 
+type TrendRow = {
+  id: string;
+  label: string;
+  channel?: string;
+  audienceType?: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  spendCents: number;
+  revenueCents: number;
+  ctr: number;
+  conversionRate: number;
+  cpaCents: number;
+  roas: number;
+};
+
+type BudgetTimelineItem = {
+  id: string;
+  createdAt: string;
+  amountCents: number;
+  reason: string;
+  fromLabel: string;
+  toLabel: string;
+};
+
 export function AcquisitionInsightsPanel() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignId, setCampaignId] = useState("");
   const [summary, setSummary] = useState<InsightSummary | null>(null);
   const [cells, setCells] = useState<TopCell[]>([]);
+  const [creativeTrends, setCreativeTrends] = useState<TrendRow[]>([]);
+  const [audienceTrends, setAudienceTrends] = useState<TrendRow[]>([]);
+  const [budgetTimeline, setBudgetTimeline] = useState<BudgetTimelineItem[]>([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -42,6 +81,9 @@ export function AcquisitionInsightsPanel() {
         setMessage(json.error ?? "Unable to load campaign insights");
         setSummary(null);
         setCells([]);
+        setCreativeTrends([]);
+        setAudienceTrends([]);
+        setBudgetTimeline([]);
         return;
       }
       if (json.compatibilityMode) {
@@ -51,10 +93,16 @@ export function AcquisitionInsightsPanel() {
       }
       setSummary(json.summary);
       setCells(json.topCells ?? []);
+      setCreativeTrends(json.creativeTrends ?? []);
+      setAudienceTrends(json.audienceTrends ?? []);
+      setBudgetTimeline(json.budgetTimeline ?? []);
     } catch {
       setMessage("Network error while loading insights.");
       setSummary(null);
       setCells([]);
+      setCreativeTrends([]);
+      setAudienceTrends([]);
+      setBudgetTimeline([]);
     } finally {
       setLoading(false);
     }
@@ -127,6 +175,12 @@ export function AcquisitionInsightsPanel() {
             <div className="card"><div className="kpi">{summary.averageScore.toFixed(3)}</div><p>Avg score</p></div>
             <div className="card"><div className="kpi">{summary.budgetActivityCount}</div><p>Budget actions</p></div>
           </div>
+          <div className="grid grid-4" style={{ marginTop: 12 }}>
+            <div className="card"><div className="kpi">{(summary.ctr * 100).toFixed(1)}%</div><p>CTR</p></div>
+            <div className="card"><div className="kpi">{(summary.conversionRate * 100).toFixed(1)}%</div><p>Click → conversion</p></div>
+            <div className="card"><div className="kpi">{summary.ltvCacRatio.toFixed(2)}x</div><p>LTV/CAC ratio</p></div>
+            <div className="card"><div className="kpi">{(summary.budgetUtilizationPct * 100).toFixed(0)}%</div><p>Budget utilized</p></div>
+          </div>
 
           <div style={{ marginTop: 16 }}>
             {funnel.map((item) => (
@@ -140,6 +194,72 @@ export function AcquisitionInsightsPanel() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="grid grid-2" style={{ marginTop: 14 }}>
+            <div className="card">
+              <h3>Creative trend comparison</h3>
+              {creativeTrends.length === 0 ? (
+                <p className="small">Run iterations to populate creative-level trends.</p>
+              ) : (
+                <table className="table">
+                  <thead><tr><th>Creative</th><th>Channel</th><th>Conv.</th><th>CPA</th><th>ROAS</th></tr></thead>
+                  <tbody>
+                    {creativeTrends.slice(0, 6).map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.label}</td>
+                        <td>{row.channel ?? "—"}</td>
+                        <td>{row.conversions}</td>
+                        <td>${(row.cpaCents / 100).toFixed(0)}</td>
+                        <td>{row.roas.toFixed(2)}x</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="card">
+              <h3>Audience trend comparison</h3>
+              {audienceTrends.length === 0 ? (
+                <p className="small">Run iterations to populate audience-level trends.</p>
+              ) : (
+                <table className="table">
+                  <thead><tr><th>Audience</th><th>Type</th><th>Conv.</th><th>CPA</th><th>ROAS</th></tr></thead>
+                  <tbody>
+                    {audienceTrends.slice(0, 6).map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.label}</td>
+                        <td>{row.audienceType ?? "—"}</td>
+                        <td>{row.conversions}</td>
+                        <td>${(row.cpaCents / 100).toFixed(0)}</td>
+                        <td>{row.roas.toFixed(2)}x</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+          <div className="card" style={{ marginTop: 14 }}>
+            <h3>Budget activity timeline</h3>
+            {budgetTimeline.length === 0 ? (
+              <p className="small">No budget moves recorded yet.</p>
+            ) : (
+              <div className="budgetTimeline">
+                {budgetTimeline.map((item) => (
+                  <div className="budgetTimelineItem" key={item.id}>
+                    <div className="budgetTimelineAmount">${(item.amountCents / 100).toFixed(0)}</div>
+                    <div>
+                      <p className="small">{new Date(item.createdAt).toLocaleString()}</p>
+                      <h3>{item.reason}</h3>
+                      <p className="small">From: {item.fromLabel}</p>
+                      <p className="small">To: {item.toLabel}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <table className="table" style={{ marginTop: 14 }}>
