@@ -24,6 +24,7 @@ const LIFECYCLE_LINKS: NavLink[] = [
 const ACQUISITION_LINKS: NavLink[] = [
   { href: "/acquisition/overview", label: "Overview", group: "primary" },
   { href: "/acquisition/inputs", label: "Inputs", group: "primary" },
+  { href: "/acquisition/audiences", label: "Audiences", group: "primary" },
   { href: "/acquisition/create", label: "Create", group: "primary" },
   { href: "/acquisition/campaigns", label: "Campaigns", group: "primary" },
   { href: "/acquisition/simulations", label: "Simulations", group: "primary" },

@@ -101,6 +101,69 @@ export function validateCreateCampaignInput(raw: unknown): { ok: true; value: Cr
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value };
 }
 
+export type AudienceTemplateInput = {
+  name: string;
+  audienceType: string;
+  targetingJson: Prisma.InputJsonValue;
+  predictedCpcCents: number;
+  predictedCacCents: number;
+  description?: string | null;
+};
+
+export function validateAudienceTemplateInput(
+  raw: unknown
+): { ok: true; value: AudienceTemplateInput } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as { [key: string]: unknown };
+  const errors: string[] = [];
+
+  const name = String(body.name ?? "").trim();
+  const audienceType = String(body.audienceType ?? "").trim();
+  const predictedCpcCents = Number(body.predictedCpcCents);
+  const predictedCacCents = Number(body.predictedCacCents);
+  const description =
+    typeof body.description === "string" && body.description.trim().length > 0
+      ? body.description.trim().slice(0, 500)
+      : null;
+
+  let targetingJson: Prisma.InputJsonValue = {};
+  if (body.targetingJson === undefined || body.targetingJson === null) {
+    targetingJson = {};
+  } else if (typeof body.targetingJson === "string") {
+    try {
+      targetingJson = JSON.parse(body.targetingJson) as Prisma.InputJsonValue;
+    } catch {
+      errors.push("targetingJson must be valid JSON");
+    }
+  } else {
+    targetingJson = body.targetingJson as Prisma.InputJsonValue;
+  }
+
+  if (!name) errors.push("name is required");
+  if (name.length > 80) errors.push("name must be 80 characters or fewer");
+  if (!audienceType) errors.push("audienceType is required");
+  if (audienceType.length > 40) errors.push("audienceType must be 40 characters or fewer");
+  if (!Number.isFinite(predictedCpcCents) || predictedCpcCents < 0 || predictedCpcCents > 50000) {
+    errors.push("predictedCpcCents must be between 0 and 50000");
+  }
+  if (!Number.isFinite(predictedCacCents) || predictedCacCents < 0 || predictedCacCents > 500000) {
+    errors.push("predictedCacCents must be between 0 and 500000");
+  }
+
+  if (errors.length > 0) return { ok: false, errors };
+
+  return {
+    ok: true,
+    value: {
+      name,
+      audienceType,
+      targetingJson,
+      predictedCpcCents: Math.round(predictedCpcCents),
+      predictedCacCents: Math.round(predictedCacCents),
+      description
+    }
+  };
+}
+
 export function buildCreativeVariants(channels: AcquisitionChannel[]) {
   const base = [
     { headline: "Catch change signals before your competitors", description: "Turn external entity updates into revenue-ready outreach.", callToAction: "Book a walkthrough" },

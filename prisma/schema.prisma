@@ -105,6 +105,7 @@ model AdCreative {
 model AudienceSegment {
   id                String              @id @default(cuid())
   campaignId        String
+  templateId        String?
   name              String
   audienceType      String
   targetingJson     Json
@@ -112,10 +113,28 @@ model AudienceSegment {
   predictedCacCents Int
   createdAt         DateTime            @default(now())
   campaign          AcquisitionCampaign @relation(fields: [campaignId], references: [id])
+  template          AudienceTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
   testCells         TestCell[]
 
   @@index([campaignId, audienceType])
   @@index([campaignId, createdAt])
+  @@index([templateId])
+}
+
+model AudienceTemplate {
+  id                String            @id @default(cuid())
+  name              String
+  audienceType      String
+  targetingJson     Json
+  predictedCpcCents Int
+  predictedCacCents Int
+  description       String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  segments          AudienceSegment[]
+
+  @@index([audienceType])
+  @@index([createdAt])
 }
 
 model TestCell {
