@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { AuctionLiveTicker } from "@/components/auction/AuctionLiveTicker";
+import { AuctionBidVisualizer } from "@/components/auction/AuctionBidVisualizer";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,10 @@ export default async function AuctionRunDetailPage({ params }: PageProps) {
           <div className="ctaRow">
             <Link className="btn" href="/auction/outputs">All runs</Link>
           </div>
+        </Section>
+
+        <Section title="Live auction visualization">
+          <AuctionBidVisualizer runId={run.id} />
         </Section>
 
         <Section title="Live ticker">
