@@ -121,6 +121,130 @@ model AudienceSegment {
   @@index([templateId])
 }
 
+model AuctionAdvertiser {
+  id                String                    @id @default(cuid())
+  name              String
+  qualityScore      Float
+  dailyBudgetCents  Int
+  smoothingFactor   Float                     @default(0.5)
+  behaviorMode      String                    @default("truthful")
+  targetCacCents    Int?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  bids              AuctionBid[]
+  results           AuctionResultRow[]
+  spends            AuctionAdvertiserSpend[]
+
+  @@index([behaviorMode])
+}
+
+model AuctionSlot {
+  id                  String          @id @default(cuid())
+  name                String
+  reservePriceCents   Int
+  expectedDailyVolume Int             @default(100)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  bids                AuctionBid[]
+  results             AuctionResult[]
+
+  @@index([createdAt])
+}
+
+model AuctionBid {
+  id           String            @id @default(cuid())
+  advertiserId String
+  slotId       String
+  bidCents     Int
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  advertiser   AuctionAdvertiser @relation(fields: [advertiserId], references: [id], onDelete: Cascade)
+  slot         AuctionSlot       @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@unique([advertiserId, slotId])
+  @@index([slotId])
+}
+
+model AuctionRun {
+  id                   String                   @id @default(cuid())
+  totalAuctions        Int
+  totalRevenueCents    Int
+  fillRate             Float
+  fillQuality          Float
+  revenueStability     Float
+  bidderTrustProxy     Float
+  notes                String?
+  createdAt            DateTime                 @default(now())
+  results              AuctionResult[]
+  spendSnapshots       AuctionAdvertiserSpend[]
+  auditLogs            AuctionAuditLog[]
+
+  @@index([createdAt])
+}
+
+model AuctionResult {
+  id                 String             @id @default(cuid())
+  runId              String
+  slotId             String
+  iterationIndex     Int
+  filled             Boolean
+  winnerAdvertiserId String?
+  clearingPriceCents Int?
+  reservePriceCents  Int
+  createdAt          DateTime           @default(now())
+  run                AuctionRun         @relation(fields: [runId], references: [id], onDelete: Cascade)
+  slot               AuctionSlot        @relation(fields: [slotId], references: [id])
+  rankedBids         AuctionResultRow[]
+
+  @@index([runId, iterationIndex])
+  @@index([slotId, createdAt])
+}
+
+model AuctionResultRow {
+  id                  String            @id @default(cuid())
+  resultId            String
+  advertiserId        String
+  bidCents            Int
+  effectiveBidCents   Int
+  qualityScore        Float
+  adjustedScore       Float
+  eligible            Boolean
+  ineligibilityReason String?
+  rank                Int
+  result              AuctionResult     @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  advertiser          AuctionAdvertiser @relation(fields: [advertiserId], references: [id])
+
+  @@index([resultId, rank])
+}
+
+model AuctionAdvertiserSpend {
+  id                   String            @id @default(cuid())
+  runId                String
+  advertiserId         String
+  totalSpendCents      Int
+  totalWins            Int
+  averageClearingCents Int
+  fillShare            Float
+  run                  AuctionRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+  advertiser           AuctionAdvertiser @relation(fields: [advertiserId], references: [id])
+
+  @@unique([runId, advertiserId])
+  @@index([advertiserId])
+}
+
+model AuctionAuditLog {
+  id        String      @id @default(cuid())
+  runId     String?
+  actor     String
+  action    String
+  metadata  Json
+  createdAt DateTime    @default(now())
+  run       AuctionRun? @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, createdAt])
+  @@index([action, createdAt])
+}
+
 model AdAccountConnection {
   id                  String   @id @default(cuid())
   provider            String
