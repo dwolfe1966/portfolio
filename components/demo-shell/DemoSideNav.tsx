@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type DemoApp = "lifecycle" | "acquisition";
+export type DemoApp = "lifecycle" | "acquisition" | "auction";
 
 type NavLink = {
   href: string;
@@ -19,6 +19,15 @@ const LIFECYCLE_LINKS: NavLink[] = [
   { href: "/lifecycle/campaigns", label: "Campaigns", group: "primary" },
   { href: "/lifecycle/dashboard", label: "Dashboard", group: "operations" },
   { href: "/lifecycle/documentation", label: "Docs", group: "operations" }
+];
+
+const AUCTION_LINKS: NavLink[] = [
+  { href: "/auction/overview", label: "Overview", group: "primary" },
+  { href: "/auction/inputs", label: "Inputs", group: "primary" },
+  { href: "/auction/simulations", label: "Simulations", group: "primary" },
+  { href: "/auction/outputs", label: "Outputs", group: "primary" },
+  { href: "/auction/health", label: "Health", group: "primary" },
+  { href: "/auction/audit", label: "Audit", group: "operations" }
 ];
 
 const ACQUISITION_LINKS: NavLink[] = [
@@ -40,7 +49,8 @@ function isActive(pathname: string, href: string): boolean {
 
 export function DemoSideNav({ app }: { app: DemoApp }) {
   const pathname = usePathname();
-  const links = app === "lifecycle" ? LIFECYCLE_LINKS : ACQUISITION_LINKS;
+  const links =
+    app === "lifecycle" ? LIFECYCLE_LINKS : app === "acquisition" ? ACQUISITION_LINKS : AUCTION_LINKS;
   const primary = links.filter((link) => link.group !== "operations");
   const operations = links.filter((link) => link.group === "operations");
 
@@ -49,7 +59,11 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
       <div className="demoSideNavBrand">
         <span className="demoSideNavEnv">DEMO</span>
         <span className="demoSideNavApp">
-          {app === "lifecycle" ? "Lifecycle Engine" : "Acquisition Agent"}
+          {app === "lifecycle"
+            ? "Lifecycle Engine"
+            : app === "acquisition"
+              ? "Acquisition Agent"
+              : "Auction Desk"}
         </span>
       </div>
 

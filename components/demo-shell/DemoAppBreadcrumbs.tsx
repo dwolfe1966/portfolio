@@ -6,7 +6,8 @@ import type { DemoApp } from "./DemoSideNav";
 
 const APP_LABEL: Record<DemoApp, string> = {
   lifecycle: "Lifecycle",
-  acquisition: "Acquisition"
+  acquisition: "Acquisition",
+  auction: "Auction"
 };
 
 const SEGMENT_LABEL: Record<string, string> = {
@@ -19,6 +20,8 @@ const SEGMENT_LABEL: Record<string, string> = {
   audit: "Audit",
   audiences: "Audiences",
   connections: "Connections",
+  health: "Health",
+  runs: "Runs",
   dashboard: "Dashboard",
   documentation: "Docs",
   candidates: "Candidates",

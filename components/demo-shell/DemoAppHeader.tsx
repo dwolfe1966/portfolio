@@ -5,7 +5,8 @@ import type { DemoApp } from "./DemoSideNav";
 
 const APP_LABEL: Record<DemoApp, string> = {
   lifecycle: "Lifecycle Engine",
-  acquisition: "Acquisition Agent"
+  acquisition: "Acquisition Agent",
+  auction: "Auction Desk"
 };
 
 const BAND_TEXT: Record<StatusBand, string> = {

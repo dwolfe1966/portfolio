@@ -136,6 +136,9 @@ button {
 .demoAppShell-acquisition {
   background: linear-gradient(180deg, #eef8f3 0%, #f8fcfa 100%);
 }
+.demoAppShell-auction {
+  background: linear-gradient(180deg, #fdf6ec 0%, #fffaf2 100%);
+}
 
 /* Demo content typography — denser than portfolio. */
 .demoAppShellContent {
