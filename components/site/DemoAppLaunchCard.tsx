@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export type DemoAppLaunchTarget = "lifecycle" | "acquisition";
+export type DemoAppLaunchTarget = "lifecycle" | "acquisition" | "auction";
 
 const APP_COPY: Record<DemoAppLaunchTarget, {
   name: string;
@@ -16,6 +16,11 @@ const APP_COPY: Record<DemoAppLaunchTarget, {
     name: "Acquisition Agent",
     tagline: "Run paid campaigns under explicit policy with auto-pause and approval gates.",
     surface: "Campaigns · Policy engine · Cell matrix · Audit feed"
+  },
+  auction: {
+    name: "Auction Desk",
+    tagline: "Quality-adjusted second-price auctions with reserve, pacing, and a live clearing ticker.",
+    surface: "Inputs · Simulations · Live ticker · Outputs · Health"
   }
 };
 

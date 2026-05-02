@@ -13,6 +13,12 @@ import { DemoAppLaunchCard, type DemoAppLaunchTarget } from "@/components/site/D
 
 type PageProps = { params: Promise<{ slug: string }> };
 
+function resolveLaunchTarget(slug: string): DemoAppLaunchTarget {
+  if (slug === "agent-acquisition") return "acquisition";
+  if (slug === "vickrey-auction-closed-ads-ecosystem") return "auction";
+  return "lifecycle";
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const project = getProjectBySlug(slug);
@@ -48,7 +54,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         {project.appHref ? (
           <div style={{ maxWidth: 520, marginTop: 16 }}>
             <DemoAppLaunchCard
-              app={(project.slug === "agent-acquisition" ? "acquisition" : "lifecycle") as DemoAppLaunchTarget}
+              app={resolveLaunchTarget(project.slug)}
               href={project.appHref}
             />
           </div>

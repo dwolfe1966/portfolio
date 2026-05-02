@@ -236,7 +236,8 @@ export const projects: ProjectEntry[] = [
       "Creates healthier long-term marketplace economics by reducing overpayment risk, improving bidder confidence, and maintaining predictable platform yield.",
     whatIBuilt:
       "I specified, designed, implemented, and evolved an auction policy blueprint with ranking/clearing math, simulation scenarios, guardrails for reserve/pacing, and operator dashboards for pricing diagnostics.",
-    status: "in-progress",
+    appHref: "/auction/overview",
+    status: "live",
     artifacts: {
       outcomeStrip: [
         { label: "Trust proxy", value: "+22%", note: "Repeat spend increases when pricing mechanics are easier to explain." },
@@ -249,8 +250,9 @@ export const projects: ProjectEntry[] = [
         { label: "Output", detail: "Winning placement, charged price, pacing update, and marketplace diagnostic event." }
       ],
       evidenceLinks: [
-        { label: "Auction model artifact", href: "/projects/vickrey-auction-closed-ads-ecosystem", detail: "Shows ranking and second-price clearing logic." },
-        { label: "Marketplace guardrails", href: "/projects/vickrey-auction-closed-ads-ecosystem", detail: "Reserve and pacing constraints for yield stability." }
+        { label: "Run a marketplace round", href: "/auction/simulations", detail: "Trigger N quality-adjusted second-price auctions with a live ticker." },
+        { label: "Define inventory + advertisers", href: "/auction/inputs", detail: "CRUD editors for slots, advertisers (with behavior modes), and bid matrix." },
+        { label: "Run history + economics", href: "/auction/outputs", detail: "KPI rollups, revenue stability, advertiser-level fill share." }
       ],
       guardrails: [
         { label: "Reserve price", detail: "Placements do not clear below marketplace floor pricing." },

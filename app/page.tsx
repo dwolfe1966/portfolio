@@ -55,6 +55,14 @@ const featuredProjects: FeaturedProject[] = [
     href: "/projects/agent-acquisition",
     appHref: "/acquisition/overview",
     demoApp: "acquisition"
+  },
+  {
+    title: "Auction Desk · Closed Ad Marketplace",
+    detail: "Quality-adjusted second-price auctions with reserve, pacing, behavior-mode bidders, and a live clearing ticker.",
+    impact: "Why it matters: a transparent Vickrey-style clearing model improves bidder trust and revenue stability vs. opaque max-charge auctions.",
+    href: "/projects/vickrey-auction-closed-ads-ecosystem",
+    appHref: "/auction/overview",
+    demoApp: "auction"
   }
 ];
 
