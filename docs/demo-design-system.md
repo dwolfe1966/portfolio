@@ -169,7 +169,7 @@ This is the cleanest separation. Migrating existing routes into a `(demo)` group
 
 ## Phased rollout
 
-### Phase 1 — F1: Structural
+### Phase 1 — F1: Structural ✅ Shipped (commit 73a8954)
 
 Goal: persistent left rail, demo shell wrapping, marketing chrome removed inside demo routes. **No visual overhaul yet.**
 
