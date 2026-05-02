@@ -1,4 +1,5 @@
 import { computeCellSignificance, type SignificanceHint } from "@/lib/acquisition";
+import type { StatusBand } from "@/components/demo-shell/StatusDot";
 
 type Cell = {
   id: string;
@@ -24,13 +25,13 @@ const HINT_LABEL: Record<SignificanceHint, string> = {
   insufficient: "Need data"
 };
 
-const HINT_COLOR: Record<SignificanceHint, string> = {
-  significant_high: "#0f6b3b",
-  trending_high: "#3a7a3a",
-  neutral: "#555",
-  trending_low: "#a05a00",
-  significant_low: "#a02020",
-  insufficient: "#888"
+const HINT_BAND: Record<SignificanceHint, StatusBand> = {
+  significant_high: "healthy",
+  trending_high: "healthy",
+  neutral: "neutral",
+  trending_low: "watch",
+  significant_low: "unhealthy",
+  insufficient: "insufficient"
 };
 
 export function CellMatrixExplorer({
@@ -101,7 +102,7 @@ export function CellMatrixExplorer({
                       <div className="small">
                         Score {cell.score.toFixed(2)} · CAC ${(cell.cacCents / 100).toFixed(0)} · ROAS {cell.roas.toFixed(2)}x
                       </div>
-                      <div className="small" style={{ color: HINT_COLOR[sig.hint] }}>
+                      <div className={`small bandText--${HINT_BAND[sig.hint]}`}>
                         {HINT_LABEL[sig.hint]}
                         {sig.hint !== "insufficient" && sig.hint !== "neutral"
                           ? ` (z=${sig.zScore.toFixed(2)}, n=${sig.sampleSize})`

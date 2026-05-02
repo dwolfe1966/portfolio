@@ -6,6 +6,7 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { AcquisitionOperatorControls } from "@/components/acquisition/AcquisitionOperatorControls";
 import { CampaignStateControls } from "@/components/acquisition/CampaignStateControls";
 import { CellMatrixExplorer } from "@/components/acquisition/CellMatrixExplorer";
+import { StatusDot, type StatusBand } from "@/components/demo-shell/StatusDot";
 import { evaluateCampaignPolicy, type AcquisitionCampaignState } from "@/lib/acquisition";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +54,7 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
       watch: "Watch",
       unhealthy: "Unhealthy"
     };
+    const policyBand: StatusBand = policy.band;
     const pendingApprovalCount = campaign.auditLogs.filter(
       (log) => log.action === "budget_shift_pending_approval"
     ).length;
@@ -91,7 +93,9 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
         <Section title="Policy engine status">
           <div className="grid grid-4">
             <div className="card">
-              <div className="kpi">{bandLabel[policy.band]}</div>
+              <div className={`kpi bandText--${policyBand}`}>
+                <StatusDot band={policyBand} /> {bandLabel[policy.band]}
+              </div>
               <p>LTV : CAC band</p>
             </div>
             <div className="card">

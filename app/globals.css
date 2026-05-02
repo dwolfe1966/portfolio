@@ -104,14 +104,31 @@ button {
 .stack.change { background: #f59e0b; }
 
 .demoAppShell {
+  /* Mission Control design tokens — scoped here so the portfolio site is unaffected. */
+  --band-healthy: #0f6b3b;
+  --band-watch: #a05a00;
+  --band-unhealthy: #a02020;
+  --band-neutral: #555555;
+  --band-insufficient: #888888;
+  --demo-accent: #1e6ddc;
+  --demo-surface: #ffffff;
+  --demo-surface-2: #f5f5f1;
+  --demo-divider: #dcdcd6;
+  --demo-text: #0e1218;
+  --demo-text-muted: #5a6371;
+  --demo-mono: 'JetBrains Mono', 'IBM Plex Mono', 'Menlo', 'Monaco', monospace;
+  --demo-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 0;
   margin-top: 12px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 12px;
   overflow: hidden;
   min-height: 600px;
+  font-family: var(--demo-font);
+  color: var(--demo-text);
 }
 .demoAppShell-lifecycle {
   background: linear-gradient(180deg, #eef4ff 0%, #f7fbff 100%);
@@ -119,6 +136,121 @@ button {
 .demoAppShell-acquisition {
   background: linear-gradient(180deg, #eef8f3 0%, #f8fcfa 100%);
 }
+
+/* Demo content typography — denser than portfolio. */
+.demoAppShellContent {
+  font-size: 14px;
+  line-height: 1.45;
+}
+.demoAppShellContent h1 { font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 14px; }
+.demoAppShellContent h2 { font-size: 20px; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 12px; }
+.demoAppShellContent h3 { font-size: 16px; margin: 0 0 8px; }
+.demoAppShellContent h4 { font-size: 14px; margin: 0 0 6px; font-weight: 600; }
+.demoAppShellContent p { font-size: 14px; line-height: 1.55; color: var(--demo-text-muted); margin: 0 0 12px; }
+.demoAppShellContent section { padding: 20px 0; border-bottom: 1px solid var(--demo-divider); }
+.demoAppShellContent .card {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-divider);
+  border-radius: 6px;
+  padding: 12px;
+}
+.demoAppShellContent .card.compact { padding: 10px; }
+.demoAppShellContent .grid { gap: 12px; }
+
+/* KPI numbers are tabular monospace inside the demo shell. */
+.demoAppShellContent .kpi {
+  font-family: var(--demo-mono);
+  font-feature-settings: 'tnum' on, 'lnum' on;
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+  color: var(--demo-text);
+}
+
+/* Tables: denser, hairlines instead of zebra. */
+.demoAppShellContent .table {
+  font-size: 13px;
+  border-collapse: collapse;
+  width: 100%;
+}
+.demoAppShellContent .table th,
+.demoAppShellContent .table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--demo-divider);
+  text-align: left;
+}
+.demoAppShellContent .table th {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--demo-text-muted);
+  background: transparent;
+}
+.demoAppShellContent code,
+.demoAppShellContent .small code {
+  font-family: var(--demo-mono);
+  font-size: 12px;
+}
+
+/* Status band primitives. */
+.statusDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--band-neutral);
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.statusDot--healthy { background: var(--band-healthy); }
+.statusDot--watch { background: var(--band-watch); }
+.statusDot--unhealthy { background: var(--band-unhealthy); }
+.statusDot--neutral { background: var(--band-neutral); }
+.statusDot--insufficient { background: var(--band-insufficient); }
+
+.bandText--healthy { color: var(--band-healthy); }
+.bandText--watch { color: var(--band-watch); }
+.bandText--unhealthy { color: var(--band-unhealthy); }
+.bandText--neutral { color: var(--band-neutral); }
+.bandText--insufficient { color: var(--band-insufficient); }
+
+.metricChip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--demo-mono);
+  font-size: 12px;
+  font-feature-settings: 'tnum' on, 'lnum' on;
+  color: var(--demo-text);
+}
+.metricChip__label {
+  color: var(--demo-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--demo-font);
+}
+.metricChipRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: baseline;
+}
+
+/* Breadcrumbs in the demo header. */
+.demoBreadcrumbs {
+  font-size: 12px;
+  color: var(--demo-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.demoBreadcrumbs a:hover { color: var(--demo-text); }
+.demoBreadcrumbs__sep { color: var(--demo-divider); }
+.demoBreadcrumbs__current { color: var(--demo-text); font-weight: 500; }
 .demoAppShellMain {
   display: flex;
   flex-direction: column;
@@ -134,56 +266,40 @@ button {
 .demoSideNav {
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.7);
-  border-right: 1px solid var(--line);
+  background: var(--demo-surface-2);
+  border-right: 1px solid var(--demo-divider);
   padding: 14px 10px;
   gap: 10px;
   min-height: 100%;
+  font-family: var(--demo-font);
 }
 .demoSideNavBrand {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   padding: 4px 8px 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--demo-divider);
 }
 .demoSideNavEnv {
+  font-family: var(--demo-mono);
   font-size: 10px;
-  letter-spacing: 0.2em;
-  font-weight: 700;
-  color: var(--muted);
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  color: var(--demo-accent);
 }
 .demoSideNavApp {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text);
-}
-.demoSideNavSwitcher {
-  display: flex;
-  gap: 4px;
-}
-.demoSideNavSwitchItem {
-  flex: 1;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--muted);
-}
-.demoSideNavSwitchItem.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+  color: var(--demo-text);
+  letter-spacing: -0.01em;
 }
 .demoSideNavGroupLabel {
+  font-family: var(--demo-mono);
   font-size: 10px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--muted);
-  padding: 8px 8px 4px;
+  color: var(--demo-text-muted);
+  padding: 10px 8px 4px;
   margin-top: 2px;
 }
 .demoSideNavList {
@@ -195,65 +311,78 @@ button {
   gap: 1px;
 }
 .demoSideNavLink {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 7px 10px 7px 9px;
-  border-radius: 4px;
+  border-radius: 3px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text);
+  color: var(--demo-text);
   border-left: 3px solid transparent;
 }
 .demoSideNavLink:hover {
-  background: rgba(15, 23, 42, 0.04);
+  background: rgba(15, 23, 42, 0.05);
 }
 .demoSideNavLink.active {
-  border-left-color: var(--accent);
-  background: rgba(15, 23, 42, 0.06);
+  border-left-color: var(--demo-accent);
+  background: var(--demo-surface);
   font-weight: 600;
+  color: var(--demo-text);
 }
 .demoSideNavFooter {
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--demo-divider);
 }
 .demoSideNavReturn {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--demo-text-muted);
   display: block;
   padding: 6px 8px;
 }
 .demoSideNavReturn:hover {
-  color: var(--text);
+  color: var(--demo-text);
 }
 .demoAppHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 20px;
-  border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.55);
+  border-bottom: 1px solid var(--demo-divider);
+  background: var(--demo-surface);
   min-height: 44px;
+  font-family: var(--demo-font);
 }
 .demoAppHeaderLeft {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+}
+.demoAppHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--demo-text-muted);
 }
 .demoAppHeaderAppName {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--demo-text);
+  letter-spacing: -0.01em;
 }
 .demoEnvChip {
   display: inline-block;
+  font-family: var(--demo-mono);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.18em;
-  padding: 3px 8px;
-  border: 1px solid var(--muted);
-  border-radius: 4px;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.8);
+  padding: 3px 7px;
+  border: 1px solid var(--demo-accent);
+  border-radius: 3px;
+  color: var(--demo-accent);
+  background: rgba(30, 109, 220, 0.06);
 }
 .infoTooltip {
   position: relative;

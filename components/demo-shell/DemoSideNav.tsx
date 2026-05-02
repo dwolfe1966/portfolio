@@ -51,21 +51,6 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
         </span>
       </div>
 
-      <div className="demoSideNavSwitcher">
-        <Link
-          href="/lifecycle/overview"
-          className={`demoSideNavSwitchItem ${app === "lifecycle" ? "active" : ""}`}
-        >
-          Lifecycle
-        </Link>
-        <Link
-          href="/acquisition/overview"
-          className={`demoSideNavSwitchItem ${app === "acquisition" ? "active" : ""}`}
-        >
-          Acquisition
-        </Link>
-      </div>
-
       <ul className="demoSideNavList">
         {primary.map((link) => (
           <li key={link.href}>
