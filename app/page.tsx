@@ -157,11 +157,13 @@ export default function HomePage() {
         </p>
         <div className="grid grid-3">
           {featuredProjects.map((project) => (
-            <div className="card accentCard" key={project.title}>
-              <h3>{project.title}</h3>
-              <p>{project.detail}</p>
-              <p className="small"><em>{project.impact}</em></p>
-              <div style={{ marginTop: 12 }}>
+            <div className="card accentCard featuredProjectCard" key={project.title}>
+              <div className="featuredProjectCopy">
+                <h3>{project.title}</h3>
+                <p>{project.detail}</p>
+                <p className="small"><em>{project.impact}</em></p>
+              </div>
+              <div className="featuredProjectDemo">
                 <DemoAppLaunchCard app={project.demoApp} href={project.appHref} />
               </div>
               <div className="ctaRow">

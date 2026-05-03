@@ -21,36 +21,42 @@ const competencies = [
 const experienceHighlights = [
   {
     company: "Goldbelly",
+    logo: "Goldbelly",
     role: "Head of Growth and Chief Product Officer",
     context: "National food ecommerce marketplace",
     evidence: "Growth, product, marketplace, and customer-acquisition work in a consumer commerce business with supply, demand, and operational complexity."
   },
   {
     company: "Napster",
+    logo: "napster",
     role: "Chief Technology Officer",
     context: "Subscription media and music technology",
     evidence: "Product and technology leadership across web, mobile, API, and product-development operating model during the Best Buy acquisition period."
   },
   {
     company: "MyLife / Reunion.com",
+    logo: "MyLife",
     role: "Product and technology executive",
     context: "Consumer identity, social graph, and subscription product",
     evidence: "Roadmap, product, and technology leadership in a high-scale consumer subscription environment."
   },
   {
     company: "BuyWithMe",
+    logo: "BuyWithMe",
     role: "Chief Product Officer / COO",
     context: "Local commerce and marketplace operations",
     evidence: "Led product, marketing, design, and engineering functions in a daily-deal marketplace operating environment."
   },
   {
     company: "Interactive One / Radio One",
+    logo: "Interactive One",
     role: "Chief Product and Operating Officer",
     context: "Digital media, community, and advertising platform",
     evidence: "Product and operations leadership across media sites, community products, advertising systems, and broadcast-linked digital properties."
   },
   {
     company: "Propel Media",
+    logo: "Propel Media",
     role: "Product, technology, and growth leadership",
     context: "Computational advertising and marketplace systems",
     evidence: "Marketplace design, machine-learning, product, and growth work in paid media and performance advertising."
@@ -115,6 +121,9 @@ export default function AboutPage() {
           {experienceHighlights.map((item) => (
             <div className="experienceCard" key={item.company}>
               <div>
+                <div className="experienceLogo" aria-label={`${item.company} logo`}>
+                  {item.logo}
+                </div>
                 <p className="small">{item.context}</p>
                 <h3>{item.company}</h3>
                 <strong>{item.role}</strong>
