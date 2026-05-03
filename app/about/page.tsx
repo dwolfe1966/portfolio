@@ -80,7 +80,7 @@ const operatingProof = [
 export default function AboutPage() {
   return (
     <>
-      <Section eyebrow="About" title="AI practitioner building systems that turn decisions into revenue">
+      <Section eyebrow="About" title="AI practitioner - product | growth career trajectory">
         <div className="aboutIntroGrid">
           <div>
             <p>
