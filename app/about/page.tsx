@@ -26,7 +26,7 @@ const experienceHighlights = [
     logoSrc: "https://www.google.com/s2/favicons?domain=goldbelly.com&sz=128",
     role: "Head of Growth and Chief Product Officer",
     context: "National food ecommerce marketplace",
-    evidence: "Growth, product, marketplace, and customer-acquisition work in a consumer commerce business with supply, demand, and operational complexity."
+    evidence: "Led growth and product work in a marketplace where national demand generation had to connect with merchant supply, gifting occasions, logistics, and repeat purchase behavior."
   },
   {
     company: "Napster",
@@ -34,7 +34,7 @@ const experienceHighlights = [
     logoSrc: "https://www.google.com/s2/favicons?domain=napster.com&sz=128",
     role: "Chief Technology Officer",
     context: "Subscription media and music technology",
-    evidence: "Product and technology leadership across web, mobile, API, and product-development operating model during the Best Buy acquisition period."
+    evidence: "Led product and technology across subscription music, web, mobile, APIs, and engineering operations during the Best Buy acquisition period."
   },
   {
     company: "MyLife / Reunion.com",
@@ -42,7 +42,7 @@ const experienceHighlights = [
     logoSrc: "https://www.google.com/s2/favicons?domain=mylife.com&sz=128",
     role: "Product and technology executive",
     context: "Consumer identity, social graph, and subscription product",
-    evidence: "Roadmap, product, and technology leadership in a high-scale consumer subscription environment."
+    evidence: "Led roadmap, product, and technology work for a high-scale consumer identity and social-graph subscription business."
   },
   {
     company: "BuyWithMe",
@@ -50,7 +50,7 @@ const experienceHighlights = [
     logoSrc: "https://www.google.com/s2/favicons?domain=buywithme.com&sz=128",
     role: "Chief Product Officer / COO",
     context: "Local commerce and marketplace operations",
-    evidence: "Led product, marketing, design, and engineering functions in a daily-deal marketplace operating environment."
+    evidence: "Led product, marketing, design, and engineering in a local commerce marketplace where merchant supply, consumer demand, and city-level execution all had to work together."
   },
   {
     company: "Interactive One / Radio One",
@@ -58,7 +58,7 @@ const experienceHighlights = [
     logoSrc: "https://www.google.com/s2/favicons?domain=interactiveone.com&sz=128",
     role: "Chief Product and Operating Officer",
     context: "Digital media, community, and advertising platform",
-    evidence: "Product and operations leadership across media sites, community products, advertising systems, and broadcast-linked digital properties."
+    evidence: "Led product and operations across digital media properties, community products, advertising systems, and broadcast-linked audience platforms."
   },
   {
     company: "Propel Media",
@@ -66,7 +66,7 @@ const experienceHighlights = [
     logoSrc: "https://www.google.com/s2/favicons?domain=propelmedia.com&sz=128",
     role: "Product, technology, and growth leadership",
     context: "Computational advertising and marketplace systems",
-    evidence: "Marketplace design, machine-learning, product, and growth work in paid media and performance advertising."
+    evidence: "Built product, marketplace, machine-learning, and growth systems for performance advertising where CAC, quality, pacing, and monetization were tightly coupled."
   }
 ];
 
@@ -122,7 +122,7 @@ export default function AboutPage() {
         </div>
       </Section>
 
-      <Section title="Experience with product and operating specificity">
+      <Section title="Where Product Strategy Became Operating Systems">
         <div className="experienceGrid">
           {experienceHighlights.map((item) => (
             <div className="experienceCard" key={item.company}>
