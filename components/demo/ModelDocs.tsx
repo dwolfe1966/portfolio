@@ -9,7 +9,13 @@ type VariableRow = {
   usedBy: string;
 };
 
-const DOCS: Record<DemoDocApp, { title: string; summary: string; rows: VariableRow[] }> = {
+type FormulaRow = {
+  name: string;
+  formula: string;
+  decision: string;
+};
+
+const DOCS: Record<DemoDocApp, { title: string; summary: string; rows: VariableRow[]; formulas: FormulaRow[] }> = {
   lifecycle: {
     title: "Lifecycle Engine Docs",
     summary: "Variables used to match users to tracked entities, score campaign opportunities, and model funnel outcomes.",
@@ -22,6 +28,11 @@ const DOCS: Record<DemoDocApp, { title: string; summary: string; rows: VariableR
       { variable: "openRate/clickRate/engageRate/purchaseRate", type: "float", range: "0-1", usedBy: "Outcome simulation" },
       { variable: "avgOrderValue", type: "currency", range: "$0+", usedBy: "Estimated revenue" },
       { variable: "topN/deltaCount", type: "integer", range: "1-100 / 1-200", usedBy: "Simulation volume controls" }
+    ],
+    formulas: [
+      { name: "Priority score", formula: "interestContribution + recencyContribution + segmentContribution + changeTypeContribution", decision: "Candidates below minPriorityScore are filtered out." },
+      { name: "High-priority flag", formula: "priorityScore >= highPriorityThreshold", decision: "High-priority candidates drive campaign generation and revenue projection." },
+      { name: "Projected revenue", formula: "purchases * avgOrderValue, with purchase rate adjusted by highPriorityLift", decision: "Used to compare scenario assumptions across campaign runs." }
     ]
   },
   acquisition: {
@@ -36,6 +47,11 @@ const DOCS: Record<DemoDocApp, { title: string; summary: string; rows: VariableR
       { variable: "minConfidence", type: "float", range: "0.5-0.95", usedBy: "Iteration decision threshold" },
       { variable: "runCount", type: "integer", range: "1+", usedBy: "Monte Carlo scenario lab" },
       { variable: "spendVariance/conversionVariance", type: "float", range: "0+", usedBy: "Scenario spread assumptions" }
+    ],
+    formulas: [
+      { name: "Cell score", formula: "weighted blend of ROAS, conversion efficiency, CAC-to-target, and confidence", decision: "Highest cells receive budget; weak cells lose budget or require approval." },
+      { name: "Observed CAC", formula: "spend / conversions", decision: "If CAC exceeds cacAutoPausePctOfTarget * targetCAC, policy flags unhealthy." },
+      { name: "LTV:CAC", formula: "observed or target LTV / observed CAC", decision: "Below minLtvCacRatio triggers watch/unhealthy policy state." }
     ]
   },
   auction: {
@@ -50,6 +66,11 @@ const DOCS: Record<DemoDocApp, { title: string; summary: string; rows: VariableR
       { variable: "expectedDailyVolume", type: "integer", range: "1+", usedBy: "Slot weighting" },
       { variable: "totalAuctions", type: "integer", range: "1-500", usedBy: "Simulation loop count" },
       { variable: "smoothingFactor", type: "float", range: "0.01-1", usedBy: "Pacing throttle" }
+    ],
+    formulas: [
+      { name: "Effective bid", formula: "bid * qualityScore, optionally capped by auto_bid targetCAC", decision: "Rank order for each auction." },
+      { name: "Clearing price", formula: "max(reservePrice, secondAdjustedScore / winnerQualityScore + $0.01)", decision: "Winner pays the quality-adjusted second price." },
+      { name: "Marketplace health", formula: "fill rate, fill quality, revenue stability, bidder trust, and HHI", decision: "Reserve suggestions and health alerts use these diagnostics." }
     ]
   },
   pricing: {
@@ -64,6 +85,11 @@ const DOCS: Record<DemoDocApp, { title: string; summary: string; rows: VariableR
       { variable: "conversionLiftPercent", type: "percent", range: "any practical numeric", usedBy: "Simulation scenario" },
       { variable: "churnSensitivityPercent", type: "percent", range: "any practical numeric", usedBy: "Guardrail stress test" },
       { variable: "demandElasticity", type: "float", range: "0+", usedBy: "Price response modeling" }
+    ],
+    formulas: [
+      { name: "Conversion rate", formula: "baselineConversionRate * (1 + conversionLift - priceDelta * demandElasticity)", decision: "Feeds segment-level treatment revenue." },
+      { name: "Net revenue lift", formula: "treatmentNet - controlNet - churnCost", decision: "Primary economic output for promotion decisions." },
+      { name: "Recommendation", formula: "rollback on unhealthy holdout/margin/churn, pause on support overload, extend on low sample/confidence, otherwise promote", decision: "Controls decision queue state." }
     ]
   },
   retention: {
@@ -78,6 +104,11 @@ const DOCS: Record<DemoDocApp, { title: string; summary: string; rows: VariableR
       { variable: "saveRateLift", type: "float", range: "0-1", usedBy: "Playbook economics" },
       { variable: "maxDiscountPct", type: "float", range: "0-1", usedBy: "Intervention guardrail" },
       { variable: "minPaybackRatio", type: "float", range: "0+", usedBy: "Portfolio recommendation" }
+    ],
+    formulas: [
+      { name: "Risk score", formula: "usage risk + support risk + NPS risk + renewal timing + payment risk + relationship coverage + trend", decision: "Classifies low/medium/high risk." },
+      { name: "Expected saved revenue", formula: "preventable churn * selected playbook saveRateLift", decision: "Used to prioritize interventions." },
+      { name: "Payback ratio", formula: "expectedSavedRevenue / interventionCost", decision: "Below minPaybackRatio weakens portfolio recommendation." }
     ]
   },
   expansion: {
@@ -92,6 +123,11 @@ const DOCS: Record<DemoDocApp, { title: string; summary: string; rows: VariableR
       { variable: "trend", type: "enum", range: "accelerating, steady, softening", usedBy: "Readiness lift/penalty" },
       { variable: "expectedLiftPercent/marginPercent", type: "float", range: "0-1", usedBy: "Offer economics" },
       { variable: "minPaybackRatio/maxSlaDays", type: "float/integer", range: "0+ / 1+", usedBy: "Pursue/nurture/defer decision" }
+    ],
+    formulas: [
+      { name: "Readiness score", formula: "seat utilization + usage growth + PQS + support health + renewal timing + sponsor + signals + trend lift", decision: "Classifies low/medium/high expansion readiness." },
+      { name: "Expected expansion ARR", formula: "currentARR * offerExpectedLift * clamp(readinessScore + 0.18, 0.2, 1)", decision: "Ranks expansion opportunities by economic value." },
+      { name: "Decision", formula: "defer if margin/payback fail; pursue if high readiness and SLA fits; otherwise nurture", decision: "Determines account-level next action." }
     ]
   }
 };
@@ -115,6 +151,22 @@ export function ModelDocs({ app }: { app: DemoDocApp }) {
                 <td>{row.type}</td>
                 <td>{row.range}</td>
                 <td>{row.usedBy}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+      <Section title="Formulas and recommendation rules">
+        <table className="table">
+          <thead>
+            <tr><th>Model step</th><th>Formula</th><th>Decision rule</th></tr>
+          </thead>
+          <tbody>
+            {doc.formulas.map((row) => (
+              <tr key={row.name}>
+                <td>{row.name}</td>
+                <td><code className="small">{row.formula}</code></td>
+                <td>{row.decision}</td>
               </tr>
             ))}
           </tbody>

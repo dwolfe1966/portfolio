@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { RetentionInterventionForm } from "@/components/retention/RetentionInterventionForm";
+import { RetentionInterventionEditor } from "@/components/retention/RetentionInterventionEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -47,13 +48,12 @@ export default async function RetentionInterventionsPage() {
         {interventions.length ? (
           <div className="grid grid-2">
             {interventions.map((intervention) => (
-              <div className="card" key={intervention.id}>
-                <p className="eyebrow">{intervention.status} · {intervention.owner}</p>
-                <h3>{intervention.account.name}</h3>
-                <p className="small">{intervention.playbook.name}</p>
-                <p className="small">Due: {intervention.dueAt?.toLocaleString() ?? "No SLA"} · Saved revenue: {money(intervention.savedRevenueCents)}</p>
-                <p className="small"><em>{intervention.rationale}</em></p>
-              </div>
+              <RetentionInterventionEditor
+                key={intervention.id}
+                intervention={intervention}
+                accounts={accounts.map((account) => ({ id: account.id, name: account.name }))}
+                playbooks={playbooks.map((playbook) => ({ id: playbook.id, name: playbook.name }))}
+              />
             ))}
           </div>
         ) : (

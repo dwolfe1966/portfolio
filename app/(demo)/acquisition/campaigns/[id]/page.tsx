@@ -6,6 +6,9 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { AcquisitionOperatorControls } from "@/components/acquisition/AcquisitionOperatorControls";
 import { CampaignStateControls } from "@/components/acquisition/CampaignStateControls";
 import { CellMatrixExplorer } from "@/components/acquisition/CellMatrixExplorer";
+import { AcquisitionCampaignEditor } from "@/components/acquisition/AcquisitionCampaignEditor";
+import { AcquisitionCreativeEditor } from "@/components/acquisition/AcquisitionCreativeEditor";
+import { AcquisitionTestCellEditor } from "@/components/acquisition/AcquisitionTestCellEditor";
 import { StatusDot, type StatusBand } from "@/components/demo-shell/StatusDot";
 import { evaluateCampaignPolicy, type AcquisitionCampaignState } from "@/lib/acquisition";
 
@@ -89,6 +92,9 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
           </div>
         </Section>
 
+        <Section title="Campaign input editor">
+          <AcquisitionCampaignEditor campaign={campaign} />
+        </Section>
 
         <Section title="Policy engine status">
           <div className="grid grid-4">
@@ -184,19 +190,20 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
           />
         </Section>
 
-        <Section title="Top test cells">
+        <Section title="Creative inputs">
+          <div className="grid grid-2">
+            {campaign.creatives.map((creative) => (
+              <AcquisitionCreativeEditor creative={creative} key={creative.id} />
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Editable test cells">
           <table className="table">
-            <thead><tr><th>Creative</th><th>Audience</th><th>Score</th><th>Spend</th><th>Conversions</th><th>ROAS</th></tr></thead>
+            <thead><tr><th>Cell</th><th>Budget $</th><th>Impr.</th><th>Clicks</th><th>Conv.</th><th>Spend $</th><th>Revenue $</th><th>Score</th><th>Action</th></tr></thead>
             <tbody>
               {campaign.testCells.slice(0, 15).map((cell) => (
-                <tr key={cell.id}>
-                  <td>{cell.creative.headline}</td>
-                  <td>{cell.audience.name}</td>
-                  <td>{cell.score.toFixed(3)}</td>
-                  <td>${(cell.spendCents / 100).toFixed(0)}</td>
-                  <td>{cell.conversions}</td>
-                  <td>{cell.roas.toFixed(2)}x</td>
-                </tr>
+                <AcquisitionTestCellEditor cell={cell} key={cell.id} />
               ))}
             </tbody>
           </table>

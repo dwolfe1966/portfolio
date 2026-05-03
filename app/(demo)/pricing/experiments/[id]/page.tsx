@@ -2,20 +2,25 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { PricingSimulationButton } from "@/components/pricing/PricingSimulationButton";
+import { PricingExperimentBuilder } from "@/components/pricing/PricingExperimentBuilder";
 
 export const dynamic = "force-dynamic";
 
 export default async function PricingExperimentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const experiment = await db.pricingExperiment.findUnique({
-    where: { id },
-    include: {
-      segments: { include: { segment: true } },
-      variants: { include: { variant: true } },
-      runs: { orderBy: { createdAt: "desc" }, include: { segmentResults: { include: { segment: true, variant: true } } } },
-      decisions: { orderBy: { createdAt: "desc" } }
-    }
-  });
+  const [experiment, segments, variants] = await Promise.all([
+    db.pricingExperiment.findUnique({
+      where: { id },
+      include: {
+        segments: { include: { segment: true } },
+        variants: { include: { variant: true } },
+        runs: { orderBy: { createdAt: "desc" }, include: { segmentResults: { include: { segment: true, variant: true } } } },
+        decisions: { orderBy: { createdAt: "desc" } }
+      }
+    }),
+    db.pricingSegment.findMany({ orderBy: { name: "asc" } }),
+    db.pricingVariant.findMany({ orderBy: { createdAt: "asc" } })
+  ]);
   if (!experiment) notFound();
 
   return (
@@ -24,6 +29,9 @@ export default async function PricingExperimentDetailPage({ params }: { params: 
         <p>{experiment.hypothesis}</p>
         <p className="small">{experiment.state} · owner {experiment.owner} · holdout {(experiment.holdoutPercent * 100).toFixed(0)}%</p>
         <PricingSimulationButton experimentId={experiment.id} />
+      </Section>
+      <Section title="Editable experiment inputs">
+        <PricingExperimentBuilder experiment={experiment} segments={segments} variants={variants} />
       </Section>
       <Section title="Segments and variants">
         <div className="grid grid-2">
