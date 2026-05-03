@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { RunAuctionsButton } from "@/components/auction/RunAuctionsButton";
+import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,10 @@ export default async function AuctionSimulationsPage() {
           engine N times with small per-iteration noise. Results are persisted and can be
           replayed as a live ticker.
         </p>
+      </Section>
+
+      <Section title="Clearing motion">
+        <DemoAppMotionVisual app="auction" />
       </Section>
 
       <Section title="Run trigger">

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
 import { RetentionRunButton } from "@/components/retention/RetentionRunButton";
+import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,9 @@ export default async function RetentionSimulationsPage() {
     <>
       <Section eyebrow="Simulations" title="Run the retention portfolio risk model">
         <p>The simulation scores every account, assigns a driver-specific playbook, and persists save-rate economics.</p>
+      </Section>
+      <Section title="Intervention motion">
+        <DemoAppMotionVisual app="retention" />
       </Section>
       <Section title="Simulation control">
         {ready ? (

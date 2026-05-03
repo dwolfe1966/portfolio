@@ -2,6 +2,7 @@ import { Section } from "@/components/site/Section";
 import { RunGeneratorCard } from "@/components/demo/RunGeneratorCard";
 import { ScenarioLabCard } from "@/components/demo/ScenarioLabCard";
 import { InfoTooltip } from "@/components/site/InfoTooltip";
+import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,9 @@ export default function DemoSimulationsPage() {
             </p>
           </div>
         </div>
+      </Section>
+      <Section title="Signal motion">
+        <DemoAppMotionVisual app="lifecycle" />
       </Section>
       <Section title="Quick generation">
         <RunGeneratorCard />

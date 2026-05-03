@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { AcquisitionSimulationPanel } from "@/components/acquisition/AcquisitionSimulationPanel";
+import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
 export default function AcquisitionSimulationsPage() {
   return (
@@ -26,6 +27,10 @@ export default function AcquisitionSimulationsPage() {
             <Link className="btn" href="/acquisition/outputs">Open outputs</Link>
           </div>
         </div>
+      </Section>
+
+      <Section title="Optimization motion">
+        <DemoAppMotionVisual app="acquisition" />
       </Section>
 
       <Section title="Interactive iteration panel">

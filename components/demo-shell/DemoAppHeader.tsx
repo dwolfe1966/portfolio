@@ -2,6 +2,7 @@ import { EnvironmentChip } from "./EnvironmentChip";
 import { StatusDot, type StatusBand } from "./StatusDot";
 import { DemoAppBreadcrumbs } from "./DemoAppBreadcrumbs";
 import type { DemoApp } from "./DemoSideNav";
+import type { DemoTheme } from "./DemoAppShell";
 
 const APP_LABEL: Record<DemoApp, string> = {
   lifecycle: "Lifecycle Engine",
@@ -22,10 +23,14 @@ const BAND_TEXT: Record<StatusBand, string> = {
 
 export function DemoAppHeader({
   app,
-  globalStatus
+  globalStatus,
+  theme,
+  onToggleTheme
 }: {
   app: DemoApp;
   globalStatus?: { band: StatusBand; detail?: string };
+  theme: DemoTheme;
+  onToggleTheme: () => void;
 }) {
   return (
     <header className="demoAppHeader" aria-label={`${app} demo header`}>
@@ -34,12 +39,23 @@ export function DemoAppHeader({
         <span className="demoAppHeaderAppName">{APP_LABEL[app]}</span>
         <DemoAppBreadcrumbs app={app} />
       </div>
-      {globalStatus ? (
-        <div className="demoAppHeaderRight">
-          <StatusDot band={globalStatus.band} />
-          <span>{globalStatus.detail ?? BAND_TEXT[globalStatus.band]}</span>
-        </div>
-      ) : null}
+      <div className="demoAppHeaderRight">
+        {globalStatus ? (
+          <span className="demoAppHeaderStatus">
+            <StatusDot band={globalStatus.band} />
+            <span>{globalStatus.detail ?? BAND_TEXT[globalStatus.band]}</span>
+          </span>
+        ) : null}
+        <button
+          type="button"
+          className="demoThemeToggle"
+          aria-label={`Switch demo app to ${theme === "dark" ? "light" : "dark"} mode`}
+          onClick={onToggleTheme}
+        >
+          <span>{theme === "dark" ? "Dark" : "Light"}</span>
+          <i aria-hidden />
+        </button>
+      </div>
     </header>
   );
 }

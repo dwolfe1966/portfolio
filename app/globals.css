@@ -442,6 +442,18 @@ button {
 .demoAppShell-expansion {
   --demo-accent: #f472b6;
 }
+.demoAppShell-light {
+  --band-healthy: #0f6b3b;
+  --band-watch: #a05a00;
+  --band-unhealthy: #a02020;
+  --demo-bg: #f7f8fb;
+  --demo-bg-2: #eef2f7;
+  --demo-surface: rgba(255, 255, 255, 0.94);
+  --demo-surface-2: rgba(241, 245, 249, 0.96);
+  --demo-divider: rgba(71, 85, 105, 0.2);
+  --demo-text: #0e1218;
+  --demo-text-muted: #5a6371;
+}
 
 /* Demo content typography — denser than portfolio. */
 .demoAppShellContent {
@@ -494,6 +506,22 @@ button {
 }
 .demoAppShellContent .eyebrow {
   color: var(--demo-accent);
+}
+.demoAppShell-light .demoAppShellContent input,
+.demoAppShell-light .demoAppShellContent select,
+.demoAppShell-light .demoAppShellContent textarea {
+  background: #ffffff;
+  color: var(--demo-text);
+}
+.demoAppShell-light .demoAppShellContent button,
+.demoAppShell-light .demoAppShellContent .btn {
+  background: #ffffff;
+  color: var(--demo-text);
+}
+.demoAppShell-light .demoAppShellContent .code,
+.demoAppShell-light .demoAppShellContent .weightFormula {
+  background: #f8fafc;
+  color: var(--demo-text);
 }
 .demoAppShellContent .code,
 .demoAppShellContent .weightFormula {
@@ -687,6 +715,165 @@ button {
   border-radius: 999px;
   background: linear-gradient(90deg, transparent, var(--graph-accent), transparent);
   animation: graphFlow 1.9s linear infinite;
+}
+.demoThemeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--demo-divider);
+  background: rgba(2, 6, 23, 0.54);
+  color: var(--demo-text);
+  padding: 5px 7px 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.demoThemeToggle i {
+  display: block;
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--demo-accent) 32%, rgba(148, 163, 184, 0.4));
+  position: relative;
+}
+.demoThemeToggle i::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  top: 2px;
+  right: 2px;
+  border-radius: 999px;
+  background: #ffffff;
+  transition: transform 120ms ease;
+}
+.demoAppShell-light .demoThemeToggle {
+  background: #ffffff;
+}
+.demoAppShell-light .demoThemeToggle i::after {
+  transform: translateX(-12px);
+}
+.demoAppHeaderStatus {
+  display: inline-flex;
+  align-items: center;
+}
+.demoMotionVisual {
+  border: 1px solid var(--demo-divider);
+  border-radius: 10px;
+  padding: 14px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--demo-accent) 16%, transparent), transparent 44%),
+    rgba(2, 6, 23, 0.62);
+  overflow: hidden;
+}
+.demoAppShell-light .demoMotionVisual {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--demo-accent) 14%, transparent), transparent 44%),
+    rgba(255, 255, 255, 0.8);
+}
+.demoMotionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.demoMotionHeader span {
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--demo-accent);
+}
+.demoMotionHeader strong {
+  color: var(--demo-text);
+}
+.demoMotionStage {
+  min-height: 220px;
+  position: relative;
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(2, 6, 23, 0.58);
+}
+.demoAppShell-light .demoMotionStage {
+  background: rgba(241, 245, 249, 0.74);
+}
+.demoMotionGrid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  opacity: 0.22;
+}
+.demoMotionGrid i {
+  border-right: 1px solid var(--demo-divider);
+  border-bottom: 1px solid var(--demo-divider);
+}
+.demoMotionNodes {
+  position: absolute;
+  inset: 24px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  align-items: center;
+}
+.demoMotionNode {
+  min-height: 110px;
+  border: 1px solid color-mix(in srgb, var(--demo-accent) 38%, var(--demo-divider));
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.86);
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  animation: demoNodeFloat 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--node-index) * 130ms);
+}
+.demoAppShell-light .demoMotionNode {
+  background: rgba(255, 255, 255, 0.88);
+}
+.demoMotionNode b {
+  font-size: 13px;
+  color: var(--demo-text);
+}
+.demoMotionNode span {
+  width: 42px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--demo-accent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--demo-accent) 80%, transparent);
+}
+.demoMotionTrace {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.demoMotionTrace i {
+  position: absolute;
+  left: -15%;
+  width: 15%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--demo-accent), transparent);
+  animation: demoTraceMove 2.4s linear infinite;
+}
+.demoMotionTrace i:first-child { top: 34%; }
+.demoMotionTrace i:nth-child(2) { top: 50%; animation-delay: 420ms; }
+.demoMotionTrace i:nth-child(3) { top: 66%; animation-delay: 840ms; }
+.demoMotionVisual-acquisition .demoMotionTrace i { animation-duration: 1.8s; }
+.demoMotionVisual-auction .demoMotionNode { transform: skewX(-2deg); }
+.demoMotionVisual-pricing .demoMotionStage { background-image: linear-gradient(90deg, transparent 49%, color-mix(in srgb, var(--demo-accent) 24%, transparent) 50%, transparent 51%); }
+.demoMotionVisual-retention .demoMotionNode span { width: 22px; height: 22px; border-radius: 999px; }
+.demoMotionVisual-expansion .demoMotionNodes { align-items: stretch; }
+@keyframes demoTraceMove {
+  from { transform: translateX(0); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  to { transform: translateX(780%); opacity: 0; }
+}
+@keyframes demoNodeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 @keyframes graphFlow {
   from { transform: translateX(-110%); }

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { PricingSimulationButton } from "@/components/pricing/PricingSimulationButton";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,9 @@ export default async function PricingSimulationsPage() {
     <>
       <Section eyebrow="Simulations" title="Run pricing experiment scenarios">
         <p>Run the latest seeded experiment through the pricing engine with default scenario assumptions.</p>
+      </Section>
+      <Section title="Cohort motion">
+        <DemoAppMotionVisual app="pricing" />
       </Section>
       <Section title="Simulation control">
         {experiment ? (

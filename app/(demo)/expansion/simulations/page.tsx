@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
 import { ExpansionRunButton } from "@/components/expansion/ExpansionRunButton";
+import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,9 @@ export default async function ExpansionSimulationsPage() {
     <>
       <Section eyebrow="Simulations" title="Run the expansion revenue model">
         <p>The simulation scores account readiness, selects an expansion motion, and persists expected ARR, margin, and payback.</p>
+      </Section>
+      <Section title="Expansion motion">
+        <DemoAppMotionVisual app="expansion" />
       </Section>
       <Section title="Simulation control">
         {ready ? (
