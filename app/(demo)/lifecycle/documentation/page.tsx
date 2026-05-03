@@ -1,5 +1,6 @@
 import { Section } from "@/components/site/Section";
 import { VariableDefinitions } from "@/components/demo/VariableDefinitions";
+import { ModelDocs } from "@/components/demo/ModelDocs";
 
 export default function DemoDocumentationPage() {
   return (
@@ -13,6 +14,7 @@ export default function DemoDocumentationPage() {
       <Section title="Data dictionary">
         <VariableDefinitions />
       </Section>
+      <ModelDocs app="lifecycle" />
     </>
   );
 }

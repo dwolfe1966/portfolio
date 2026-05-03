@@ -5,7 +5,7 @@ const links = [
   { href: "/lifecycle/inputs", label: "Inputs" },
   { href: "/lifecycle/simulations", label: "Simulations" },
   { href: "/lifecycle/outputs", label: "Outputs" },
-  { href: "/lifecycle/documentation", label: "Documentation" }
+  { href: "/lifecycle/docs", label: "Docs" }
 ];
 
 export function DemoWorkspaceNav() {

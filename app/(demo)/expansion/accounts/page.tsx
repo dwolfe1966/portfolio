@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
 import { scoreExpansionReadiness, type ExpansionSignalTrend } from "@/lib/expansion-engine";
+import { ExpansionAccountEditor } from "@/components/expansion/ExpansionAccountEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -33,15 +34,18 @@ export default async function ExpansionAccountsPage() {
               ? scoreExpansionReadiness({ ...account, trend: account.trend as ExpansionSignalTrend }, policy)
               : null;
             return (
-              <div className="card" key={account.id}>
-                <p className="eyebrow">{account.segment} · {score?.readinessBand ?? "unscored"} readiness</p>
-                <h3>{account.name}</h3>
-                <div className="grid grid-3">
-                  <p className="small"><strong>ARR</strong><br />{money(account.currentArrCents)}</p>
-                  <p className="small"><strong>Readiness</strong><br />{score ? `${Math.round(score.readinessScore * 100)}%` : "No policy"}</p>
-                  <p className="small"><strong>Seats</strong><br />{account.seatsActive}/{account.seatsPurchased}</p>
+              <div key={account.id}>
+                <div className="card" style={{ marginBottom: 12 }}>
+                  <p className="eyebrow">{account.segment} · {score?.readinessBand ?? "unscored"} readiness</p>
+                  <h3>{account.name}</h3>
+                  <div className="grid grid-3">
+                    <p className="small"><strong>ARR</strong><br />{money(account.currentArrCents)}</p>
+                    <p className="small"><strong>Readiness</strong><br />{score ? `${Math.round(score.readinessScore * 100)}%` : "No policy"}</p>
+                    <p className="small"><strong>Seats</strong><br />{account.seatsActive}/{account.seatsPurchased}</p>
+                  </div>
+                  <p className="small">Motion: {score?.primaryMotion ?? "n/a"} · Usage growth: {Math.round(account.usageGrowthRate * 100)}% · PQS: {Math.round(account.productQualifiedScore * 100)}%</p>
                 </div>
-                <p className="small">Motion: {score?.primaryMotion ?? "n/a"} · Usage growth: {Math.round(account.usageGrowthRate * 100)}% · PQS: {Math.round(account.productQualifiedScore * 100)}%</p>
+                <ExpansionAccountEditor account={account} />
               </div>
             );
           })}

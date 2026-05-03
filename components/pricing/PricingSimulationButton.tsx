@@ -26,7 +26,7 @@ export function PricingSimulationButton({ experimentId }: { experimentId: string
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error?.message ?? "Simulation failed");
-      setMessage(`Recommendation: ${payload.data.simulation.recommendation}`);
+      setMessage(`Recommendation: ${payload.simulation.recommendation}`);
       window.location.reload();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Simulation failed");

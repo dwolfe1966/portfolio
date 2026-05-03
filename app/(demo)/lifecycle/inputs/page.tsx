@@ -4,6 +4,11 @@ import { AssumptionEditorCard } from "@/components/demo/AssumptionEditorCard";
 import { LifecycleScoringSettings } from "@/components/demo/LifecycleScoringSettings";
 import { VariableDefinitions } from "@/components/demo/VariableDefinitions";
 import { InfoTooltip } from "@/components/site/InfoTooltip";
+import {
+  LifecycleEntityEditor,
+  LifecycleInterestEdgeEditor,
+  LifecycleUserEditor
+} from "@/components/demo/LifecycleTableEditors";
 
 export const dynamic = "force-dynamic";
 
@@ -102,29 +107,17 @@ export default async function DemoInputsPage() {
       </Section>
       <Section title="Sample users">
         <table className="table">
-          <thead><tr><th>User</th><th>Segment</th><th>Status</th></tr></thead>
+          <thead><tr><th>User</th><th>Email</th><th>Segment</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td>{user.fullName}</td>
-                <td>{user.segment}</td>
-                <td>{user.subscriptionStatus}</td>
-              </tr>
-            ))}
+            {users.map((user) => <LifecycleUserEditor user={user} key={user.id} />)}
           </tbody>
         </table>
       </Section>
       <Section title="Sample entities">
         <table className="table">
-          <thead><tr><th>Entity</th><th>Type</th><th>Location</th></tr></thead>
+          <thead><tr><th>Entity</th><th>Type</th><th>City</th><th>State</th><th>Action</th></tr></thead>
           <tbody>
-            {entities.map((entity) => (
-              <tr key={entity.id}>
-                <td>{entity.name}</td>
-                <td>{entity.entityType}</td>
-                <td>{[entity.city, entity.state].filter(Boolean).join(", ") || "—"}</td>
-              </tr>
-            ))}
+            {entities.map((entity) => <LifecycleEntityEditor entity={entity} key={entity.id} />)}
           </tbody>
         </table>
       </Section>
@@ -148,17 +141,11 @@ export default async function DemoInputsPage() {
                 <th>Entity</th>
                 <th>Interest score</th>
                 <th>Source</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {interestEdges.map((edge) => (
-                <tr key={edge.id}>
-                  <td>{edge.user.fullName}</td>
-                  <td>{edge.entity.name}</td>
-                  <td>{edge.interestScore.toFixed(2)}</td>
-                  <td>{edge.source}</td>
-                </tr>
-              ))}
+              {interestEdges.map((edge) => <LifecycleInterestEdgeEditor edge={edge} key={edge.id} />)}
             </tbody>
           </table>
         )}

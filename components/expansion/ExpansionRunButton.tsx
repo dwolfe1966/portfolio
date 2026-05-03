@@ -13,7 +13,7 @@ export function ExpansionRunButton() {
       const response = await fetch("/api/expansion/runs", { method: "POST" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error?.message ?? "Expansion run failed");
-      setMessage(`Recommendation: ${payload.data.simulation.recommendation}`);
+      setMessage(`Recommendation: ${payload.simulation.recommendation}`);
       window.location.reload();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Expansion run failed");

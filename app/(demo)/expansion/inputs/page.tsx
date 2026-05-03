@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
+import { ExpansionOfferEditor } from "@/components/expansion/ExpansionOfferEditor";
+import { ExpansionPolicyEditor } from "@/components/expansion/ExpansionPolicyEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -27,26 +29,24 @@ export default async function ExpansionInputsPage() {
       </Section>
       <Section title="Policy">
         {policy ? (
-          <div className="grid grid-4">
-            <div className="card"><p className="small">High readiness</p><div className="kpi">{pct(policy.highReadinessThreshold)}</div></div>
-            <div className="card"><p className="small">Medium readiness</p><div className="kpi">{pct(policy.mediumReadinessThreshold)}</div></div>
-            <div className="card"><p className="small">Min margin</p><div className="kpi">{pct(policy.minMarginPercent)}</div></div>
-            <div className="card"><p className="small">Min payback</p><div className="kpi">{policy.minPaybackRatio.toFixed(1)}x</div></div>
-          </div>
+          <>
+            <div className="grid grid-4">
+              <div className="card"><p className="small">High readiness</p><div className="kpi">{pct(policy.highReadinessThreshold)}</div></div>
+              <div className="card"><p className="small">Medium readiness</p><div className="kpi">{pct(policy.mediumReadinessThreshold)}</div></div>
+              <div className="card"><p className="small">Min margin</p><div className="kpi">{pct(policy.minMarginPercent)}</div></div>
+              <div className="card"><p className="small">Min payback</p><div className="kpi">{policy.minPaybackRatio.toFixed(1)}x</div></div>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <ExpansionPolicyEditor policy={policy} />
+            </div>
+          </>
         ) : (
           <div className="card"><p>No expansion policy found. Reset demo data from Overview.</p></div>
         )}
       </Section>
       <Section title="Offers">
         <div className="grid grid-2">
-          {offers.map((offer) => (
-            <div className="card" key={offer.id}>
-              <p className="eyebrow">{offer.motion} · {offer.targetSegment}</p>
-              <h3>{offer.name}</h3>
-              <p className="small">Expected lift: {pct(offer.expectedLiftPercent)} · Margin: {pct(offer.marginPercent)} · SLA: {offer.slaDays}d</p>
-              <p className="small">Pursuit cost: ${(offer.costCents / 100).toLocaleString()}</p>
-            </div>
-          ))}
+          {offers.map((offer) => <ExpansionOfferEditor offer={offer} key={offer.id} />)}
         </div>
       </Section>
     </>

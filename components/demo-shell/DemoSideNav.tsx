@@ -19,7 +19,7 @@ const LIFECYCLE_LINKS: NavLink[] = [
   { href: "/lifecycle/outputs", label: "Outputs", group: "primary" },
   { href: "/lifecycle/campaigns", label: "Campaigns", group: "primary" },
   { href: "/lifecycle/dashboard", label: "Dashboard", group: "operations" },
-  { href: "/lifecycle/documentation", label: "Docs", group: "operations" }
+  { href: "/lifecycle/docs", label: "Docs", group: "operations" }
 ];
 
 const AUCTION_LINKS: NavLink[] = [
@@ -28,6 +28,7 @@ const AUCTION_LINKS: NavLink[] = [
   { href: "/auction/simulations", label: "Simulations", group: "primary" },
   { href: "/auction/outputs", label: "Outputs", group: "primary" },
   { href: "/auction/health", label: "Health", group: "primary" },
+  { href: "/auction/docs", label: "Docs", group: "operations" },
   { href: "/auction/audit", label: "Audit", group: "operations" }
 ];
 
@@ -38,6 +39,7 @@ const PRICING_LINKS: NavLink[] = [
   { href: "/pricing/simulations", label: "Simulations", group: "primary" },
   { href: "/pricing/outputs", label: "Outputs", group: "primary" },
   { href: "/pricing/decisions", label: "Decisions", group: "operations" },
+  { href: "/pricing/docs", label: "Docs", group: "operations" },
   { href: "/pricing/audit", label: "Audit", group: "operations" }
 ];
 
@@ -48,6 +50,7 @@ const RETENTION_LINKS: NavLink[] = [
   { href: "/retention/simulations", label: "Simulations", group: "primary" },
   { href: "/retention/outputs", label: "Outputs", group: "primary" },
   { href: "/retention/interventions", label: "Interventions", group: "operations" },
+  { href: "/retention/docs", label: "Docs", group: "operations" },
   { href: "/retention/audit", label: "Audit", group: "operations" }
 ];
 
@@ -57,6 +60,7 @@ const EXPANSION_LINKS: NavLink[] = [
   { href: "/expansion/accounts", label: "Accounts", group: "primary" },
   { href: "/expansion/simulations", label: "Simulations", group: "primary" },
   { href: "/expansion/outputs", label: "Outputs", group: "primary" },
+  { href: "/expansion/docs", label: "Docs", group: "operations" },
   { href: "/expansion/audit", label: "Audit", group: "operations" }
 ];
 
@@ -69,6 +73,7 @@ const ACQUISITION_LINKS: NavLink[] = [
   { href: "/acquisition/simulations", label: "Simulations", group: "primary" },
   { href: "/acquisition/outputs", label: "Outputs", group: "primary" },
   { href: "/acquisition/connections", label: "Connections", group: "operations" },
+  { href: "/acquisition/docs", label: "Docs", group: "operations" },
   { href: "/acquisition/audit", label: "Audit", group: "operations" }
 ];
 
