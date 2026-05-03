@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { PricingVariantEditor } from "@/components/pricing/PricingVariantEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -36,12 +37,7 @@ export default async function PricingInputsPage() {
       <Section title="Variants">
         <div className="grid grid-3">
           {variants.map((variant) => (
-            <div className="card" key={variant.id}>
-              <h3>{variant.name}</h3>
-              <p className="kpi">${(variant.monthlyPriceCents / 100).toFixed(0)}</p>
-              <p>{variant.packagingChange}</p>
-              <p className="small">Margin impact {(variant.marginImpactPercent * 100).toFixed(1)}% · support delta {variant.expectedSupportLoadDelta.toFixed(2)}</p>
-            </div>
+            <PricingVariantEditor key={variant.id} variant={variant} />
           ))}
         </div>
       </Section>

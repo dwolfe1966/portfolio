@@ -262,3 +262,112 @@ export function validatePricingScenarioInput(raw: unknown): Partial<PricingScena
     demandElasticity: Number.isFinite(Number(body.demandElasticity)) ? clamp(Number(body.demandElasticity), 0, 3) : undefined
   };
 }
+
+export function validatePricingVariantInput(raw: unknown): { ok: true; value: {
+  name: string;
+  monthlyPriceCents: number;
+  annualPriceCents: number | null;
+  packagingChange: string;
+  marginImpactPercent: number;
+  expectedSupportLoadDelta: number;
+} } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as Record<string, unknown>;
+  const errors: string[] = [];
+  const name = String(body.name ?? "").trim();
+  const packagingChange = String(body.packagingChange ?? "").trim();
+  const monthlyPriceCents = Math.round(Number(body.monthlyPriceCents));
+  const annualRaw = body.annualPriceCents;
+  const annualPriceCents = annualRaw === null || annualRaw === undefined || annualRaw === ""
+    ? null
+    : Math.round(Number(annualRaw));
+  const marginImpactPercent = Number(body.marginImpactPercent);
+  const expectedSupportLoadDelta = Number(body.expectedSupportLoadDelta);
+
+  if (!name) errors.push("name is required");
+  if (name.length > 100) errors.push("name must be 100 characters or fewer");
+  if (!packagingChange) errors.push("packagingChange is required");
+  if (!Number.isFinite(monthlyPriceCents) || monthlyPriceCents < 0 || monthlyPriceCents > 1_000_000) {
+    errors.push("monthlyPriceCents must be between 0 and 1000000");
+  }
+  if (annualPriceCents !== null && (!Number.isFinite(annualPriceCents) || annualPriceCents < 0 || annualPriceCents > 10_000_000)) {
+    errors.push("annualPriceCents must be between 0 and 10000000");
+  }
+  if (!Number.isFinite(marginImpactPercent) || marginImpactPercent < -0.5 || marginImpactPercent > 0.5) {
+    errors.push("marginImpactPercent must be between -0.5 and 0.5");
+  }
+  if (!Number.isFinite(expectedSupportLoadDelta) || expectedSupportLoadDelta < -1 || expectedSupportLoadDelta > 2) {
+    errors.push("expectedSupportLoadDelta must be between -1 and 2");
+  }
+
+  if (errors.length) return { ok: false, errors };
+  return {
+    ok: true,
+    value: {
+      name,
+      monthlyPriceCents,
+      annualPriceCents,
+      packagingChange: packagingChange.slice(0, 500),
+      marginImpactPercent,
+      expectedSupportLoadDelta
+    }
+  };
+}
+
+export function validatePricingSegmentInput(raw: unknown): { ok: true; value: {
+  name: string;
+  eligibilityRule: string;
+  baselineConversionRate: number;
+  baselineChurnRate: number;
+  baselineArpuCents: number;
+  grossMarginPercent: number;
+  monthlyVolume: number;
+  riskBand: PricingRiskBand;
+} } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as Record<string, unknown>;
+  const errors: string[] = [];
+  const name = String(body.name ?? "").trim();
+  const eligibilityRule = String(body.eligibilityRule ?? "").trim();
+  const baselineConversionRate = Number(body.baselineConversionRate);
+  const baselineChurnRate = Number(body.baselineChurnRate);
+  const baselineArpuCents = Math.round(Number(body.baselineArpuCents));
+  const grossMarginPercent = Number(body.grossMarginPercent);
+  const monthlyVolume = Math.round(Number(body.monthlyVolume));
+  const riskBand = String(body.riskBand ?? "");
+  const riskBands: PricingRiskBand[] = ["low", "medium", "high"];
+
+  if (!name) errors.push("name is required");
+  if (!eligibilityRule) errors.push("eligibilityRule is required");
+  if (!Number.isFinite(baselineConversionRate) || baselineConversionRate < 0 || baselineConversionRate > 1) {
+    errors.push("baselineConversionRate must be between 0 and 1");
+  }
+  if (!Number.isFinite(baselineChurnRate) || baselineChurnRate < 0 || baselineChurnRate > 1) {
+    errors.push("baselineChurnRate must be between 0 and 1");
+  }
+  if (!Number.isFinite(baselineArpuCents) || baselineArpuCents < 0 || baselineArpuCents > 1_000_000) {
+    errors.push("baselineArpuCents must be between 0 and 1000000");
+  }
+  if (!Number.isFinite(grossMarginPercent) || grossMarginPercent < 0 || grossMarginPercent > 1) {
+    errors.push("grossMarginPercent must be between 0 and 1");
+  }
+  if (!Number.isFinite(monthlyVolume) || monthlyVolume < 0 || monthlyVolume > 10_000_000) {
+    errors.push("monthlyVolume must be between 0 and 10000000");
+  }
+  if (!riskBands.includes(riskBand as PricingRiskBand)) {
+    errors.push("riskBand must be low, medium, or high");
+  }
+
+  if (errors.length) return { ok: false, errors };
+  return {
+    ok: true,
+    value: {
+      name: name.slice(0, 100),
+      eligibilityRule: eligibilityRule.slice(0, 500),
+      baselineConversionRate,
+      baselineChurnRate,
+      baselineArpuCents,
+      grossMarginPercent,
+      monthlyVolume,
+      riskBand: riskBand as PricingRiskBand
+    }
+  };
+}
