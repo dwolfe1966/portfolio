@@ -79,8 +79,7 @@ export default function AboutPage() {
             <p>
               I build operating systems that connect product strategy, data science, and go-to-market
               execution. The work is direct: I write the schema, ship the app, and own the operating
-              cadence around it. The portfolio you&apos;re browsing is itself an example: every case
-              study points at running software, not screenshots.
+              cadence around it.
             </p>
             <p>
               I work as an AI practitioner, not just an AI strategist: translating model capabilities
