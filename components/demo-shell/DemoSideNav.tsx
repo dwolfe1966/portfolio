@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export type DemoApp = "lifecycle" | "acquisition" | "auction";
+export type DemoApp = "lifecycle" | "acquisition" | "auction" | "pricing";
 
 type NavLink = {
   href: string;
@@ -31,6 +31,16 @@ const AUCTION_LINKS: NavLink[] = [
   { href: "/auction/audit", label: "Audit", group: "operations" }
 ];
 
+const PRICING_LINKS: NavLink[] = [
+  { href: "/pricing/overview", label: "Overview", group: "primary" },
+  { href: "/pricing/inputs", label: "Inputs", group: "primary" },
+  { href: "/pricing/segments", label: "Segments", group: "primary" },
+  { href: "/pricing/simulations", label: "Simulations", group: "primary" },
+  { href: "/pricing/outputs", label: "Outputs", group: "primary" },
+  { href: "/pricing/decisions", label: "Decisions", group: "operations" },
+  { href: "/pricing/audit", label: "Audit", group: "operations" }
+];
+
 const ACQUISITION_LINKS: NavLink[] = [
   { href: "/acquisition/overview", label: "Overview", group: "primary" },
   { href: "/acquisition/inputs", label: "Inputs", group: "primary" },
@@ -52,7 +62,13 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const links =
-    app === "lifecycle" ? LIFECYCLE_LINKS : app === "acquisition" ? ACQUISITION_LINKS : AUCTION_LINKS;
+    app === "lifecycle"
+      ? LIFECYCLE_LINKS
+      : app === "acquisition"
+        ? ACQUISITION_LINKS
+        : app === "auction"
+          ? AUCTION_LINKS
+          : PRICING_LINKS;
   const primary = links.filter((link) => link.group !== "operations");
   const operations = links.filter((link) => link.group === "operations");
   const navBodyId = `${app}-demo-navigation-links`;
@@ -71,7 +87,9 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
               ? "Lifecycle Engine"
               : app === "acquisition"
                 ? "Acquisition Agent"
-                : "Auction Desk"}
+                : app === "auction"
+                  ? "Auction Desk"
+                  : "Pricing Control Tower"}
           </span>
         </div>
         <button

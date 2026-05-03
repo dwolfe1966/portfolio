@@ -142,7 +142,8 @@ export const projects: ProjectEntry[] = [
       "Improves pricing learning velocity while protecting gross margin and net revenue retention through explicit experiment governance.",
     whatIBuilt:
       "I specified, designed, implemented, and evolved an end-to-end blueprint spanning test design templates, cohort instrumentation contracts, decision policy rules, and operator reporting views.",
-    status: "in-progress",
+    appHref: "/pricing/overview",
+    status: "live",
     artifacts: {
       outcomeStrip: [
         { label: "ARPU", value: "+9%", note: "Illustrative lift tracked against control cohorts." },

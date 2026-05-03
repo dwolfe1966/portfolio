@@ -407,6 +407,9 @@ button {
 .demoAppShell-auction {
   background: linear-gradient(180deg, #fdf6ec 0%, #fffaf2 100%);
 }
+.demoAppShell-pricing {
+  background: linear-gradient(180deg, #f1f7f4 0%, #fbfdfb 100%);
+}
 
 /* Demo content typography — denser than portfolio. */
 .demoAppShellContent {

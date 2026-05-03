@@ -245,6 +245,154 @@ model AuctionAuditLog {
   @@index([action, createdAt])
 }
 
+model PricingSegment {
+  id                     String                     @id @default(cuid())
+  name                   String
+  eligibilityRule        String
+  baselineConversionRate Float
+  baselineChurnRate      Float
+  baselineArpuCents      Int
+  grossMarginPercent     Float
+  monthlyVolume          Int
+  riskBand               String
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  experimentSegments     PricingExperimentSegment[]
+  segmentResults         PricingSegmentResult[]
+
+  @@index([riskBand])
+}
+
+model PricingVariant {
+  id                       String                     @id @default(cuid())
+  name                     String
+  monthlyPriceCents        Int
+  annualPriceCents         Int?
+  packagingChange          String
+  marginImpactPercent      Float
+  expectedSupportLoadDelta Float
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  experimentVariants       PricingExperimentVariant[]
+  segmentResults           PricingSegmentResult[]
+}
+
+model PricingExperiment {
+  id                    String                     @id @default(cuid())
+  name                  String
+  hypothesis            String
+  owner                 String
+  state                 String                     @default("DRAFT")
+  holdoutPercent        Float
+  minimumSampleSize     Int
+  minGrossMarginPercent Float
+  maxChurnDeltaPercent  Float
+  maxSupportLoadDelta   Float
+  minConfidence         Float
+  startedAt             DateTime?
+  decisionDueAt         DateTime?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  segments              PricingExperimentSegment[]
+  variants              PricingExperimentVariant[]
+  runs                  PricingExperimentRun[]
+  decisions             PricingDecision[]
+  auditLogs             PricingAuditLog[]
+
+  @@index([state, createdAt])
+}
+
+model PricingExperimentSegment {
+  id           String            @id @default(cuid())
+  experimentId String
+  segmentId    String
+  experiment   PricingExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  segment      PricingSegment    @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, segmentId])
+  @@index([segmentId])
+}
+
+model PricingExperimentVariant {
+  id           String            @id @default(cuid())
+  experimentId String
+  variantId    String
+  role         String
+  experiment   PricingExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant      PricingVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, variantId])
+  @@index([variantId])
+}
+
+model PricingExperimentRun {
+  id                     String                 @id @default(cuid())
+  experimentId            String
+  arpuLiftPercent         Float
+  conversionDeltaPercent  Float
+  churnDeltaPercent       Float
+  grossMarginPercent      Float
+  netRevenueLiftCents     Int
+  supportLoadDelta        Float
+  confidence              Float
+  holdoutHealth           String
+  recommendation          String
+  createdAt               DateTime               @default(now())
+  experiment              PricingExperiment      @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  segmentResults          PricingSegmentResult[]
+
+  @@index([experimentId, createdAt])
+  @@index([recommendation, createdAt])
+}
+
+model PricingSegmentResult {
+  id                    String               @id @default(cuid())
+  runId                 String
+  segmentId             String
+  variantId             String
+  sampleSize            Int
+  conversionRate        Float
+  churnRate             Float
+  arpuCents             Int
+  grossMarginPercent    Float
+  netRevenueLiftCents   Int
+  guardrailBand         String
+  run                   PricingExperimentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  segment               PricingSegment       @relation(fields: [segmentId], references: [id])
+  variant               PricingVariant       @relation(fields: [variantId], references: [id])
+
+  @@index([runId])
+  @@index([segmentId])
+  @@index([variantId])
+}
+
+model PricingDecision {
+  id           String            @id @default(cuid())
+  experimentId String
+  decision     String
+  rationale    String
+  actor        String
+  createdAt    DateTime          @default(now())
+  experiment   PricingExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, createdAt])
+  @@index([decision, createdAt])
+}
+
+model PricingAuditLog {
+  id           String             @id @default(cuid())
+  experimentId String?
+  action       String
+  actor        String
+  detail       String
+  metadata     Json?
+  createdAt    DateTime           @default(now())
+  experiment   PricingExperiment? @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, createdAt])
+  @@index([action, createdAt])
+}
+
 model AdAccountConnection {
   id                  String   @id @default(cuid())
   provider            String

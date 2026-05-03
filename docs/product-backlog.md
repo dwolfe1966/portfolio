@@ -184,6 +184,19 @@ Third demo app — interactive Vickrey-style auction simulator for a closed adve
 
 ---
 
+## H) Pricing Experimentation Control Tower demo
+
+Fourth demo app — pricing experiment operating system for segmented price/packaging tests with margin, churn, support-load, and holdout guardrails. Spec at [`docs/pricing-demo-spec.md`](./pricing-demo-spec.md).
+
+### Completed
+- ✅ H1. Phase A — pure pricing experiment engine + schema + validation/tests.
+- ✅ H2. Phase B — pricing inputs, segment/variant libraries, experiment CRUD, and side-nav shell wiring.
+- ✅ H3. Phase C — simulation runs, KPI outputs, segment-level results, and guardrail bands.
+- ✅ H4. Phase D — decision queue, promote/extend/pause/rollback workflow, rationale capture, and audit feed.
+- ✅ H5. Phase E — project/home integration, launch card support, empty/schema-fallback states, and visual polish.
+
+---
+
 ## F) Demo app design system
 
 Cross-cutting UX/IA workstream covering both lifecycle and acquisition demo apps. Goal: make the demo experience visually and structurally distinct from the portfolio site (which today only differs by background color).

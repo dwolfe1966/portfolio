@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export type DemoAppLaunchTarget = "lifecycle" | "acquisition" | "auction";
+export type DemoAppLaunchTarget = "lifecycle" | "acquisition" | "auction" | "pricing";
 
 const APP_COPY: Record<DemoAppLaunchTarget, {
   name: string;
@@ -21,6 +21,11 @@ const APP_COPY: Record<DemoAppLaunchTarget, {
     name: "Auction Desk",
     tagline: "Quality-adjusted second-price auctions with reserve, pacing, and a live clearing ticker.",
     surface: "Inputs · Simulations · Live ticker · Outputs · Health"
+  },
+  pricing: {
+    name: "Pricing Control Tower",
+    tagline: "Run segmented price and packaging tests with margin, churn, and holdout guardrails.",
+    surface: "Segments · Variants · Simulations · Decisions · Audit"
   }
 };
 

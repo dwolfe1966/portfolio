@@ -89,6 +89,142 @@ async function clearAuctionData() {
   await db.auctionSlot.deleteMany();
 }
 
+async function clearPricingData() {
+  await db.pricingAuditLog.deleteMany();
+  await db.pricingDecision.deleteMany();
+  await db.pricingSegmentResult.deleteMany();
+  await db.pricingExperimentRun.deleteMany();
+  await db.pricingExperimentVariant.deleteMany();
+  await db.pricingExperimentSegment.deleteMany();
+  await db.pricingExperiment.deleteMany();
+  await db.pricingVariant.deleteMany();
+  await db.pricingSegment.deleteMany();
+}
+
+async function seedPricingDemo() {
+  const segments = await Promise.all([
+    db.pricingSegment.create({
+      data: {
+        name: "SMB monthly subscribers",
+        eligibilityRule: "plan=monthly AND employees<100",
+        baselineConversionRate: 0.082,
+        baselineChurnRate: 0.038,
+        baselineArpuCents: 7900,
+        grossMarginPercent: 0.74,
+        monthlyVolume: 4200,
+        riskBand: "medium"
+      }
+    }),
+    db.pricingSegment.create({
+      data: {
+        name: "Mid-market annual subscribers",
+        eligibilityRule: "plan=annual AND employees BETWEEN 100 AND 1000",
+        baselineConversionRate: 0.118,
+        baselineChurnRate: 0.021,
+        baselineArpuCents: 18900,
+        grossMarginPercent: 0.78,
+        monthlyVolume: 1800,
+        riskBand: "low"
+      }
+    }),
+    db.pricingSegment.create({
+      data: {
+        name: "High-usage power users",
+        eligibilityRule: "usage_p95=true AND support_tickets<3",
+        baselineConversionRate: 0.142,
+        baselineChurnRate: 0.018,
+        baselineArpuCents: 24900,
+        grossMarginPercent: 0.8,
+        monthlyVolume: 950,
+        riskBand: "low"
+      }
+    }),
+    db.pricingSegment.create({
+      data: {
+        name: "Discount-sensitive lapsed accounts",
+        eligibilityRule: "status=lapsed AND prior_discount=true",
+        baselineConversionRate: 0.044,
+        baselineChurnRate: 0.064,
+        baselineArpuCents: 6900,
+        grossMarginPercent: 0.68,
+        monthlyVolume: 2600,
+        riskBand: "high"
+      }
+    })
+  ]);
+
+  const variants = await Promise.all([
+    db.pricingVariant.create({
+      data: {
+        name: "Control: current monthly plan",
+        monthlyPriceCents: 7900,
+        annualPriceCents: 79000,
+        packagingChange: "Current packaging and support entitlements",
+        marginImpactPercent: 0,
+        expectedSupportLoadDelta: 0
+      }
+    }),
+    db.pricingVariant.create({
+      data: {
+        name: "Treatment A: 8% price increase",
+        monthlyPriceCents: 8500,
+        annualPriceCents: 85000,
+        packagingChange: "No packaging change",
+        marginImpactPercent: 0.025,
+        expectedSupportLoadDelta: 0.04
+      }
+    }),
+    db.pricingVariant.create({
+      data: {
+        name: "Treatment B: premium support bundle",
+        monthlyPriceCents: 9900,
+        annualPriceCents: 99000,
+        packagingChange: "Adds premium support bundle and faster SLA",
+        marginImpactPercent: -0.015,
+        expectedSupportLoadDelta: 0.18
+      }
+    })
+  ]);
+
+  const experiment = await db.pricingExperiment.create({
+    data: {
+      name: "Premium support bundle for high-usage accounts",
+      hypothesis: "High-usage accounts will accept a premium bundle if SLA value is explicit and margin remains above floor.",
+      owner: "pricing-operator",
+      state: "RUNNING",
+      holdoutPercent: 0.15,
+      minimumSampleSize: 1200,
+      minGrossMarginPercent: 0.72,
+      maxChurnDeltaPercent: 1.5,
+      maxSupportLoadDelta: 0.25,
+      minConfidence: 0.7,
+      startedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+      decisionDueAt: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000)
+    }
+  });
+
+  await Promise.all(segments.slice(1, 3).map((segment) =>
+    db.pricingExperimentSegment.create({
+      data: { experimentId: experiment.id, segmentId: segment.id }
+    })
+  ));
+  await db.pricingExperimentVariant.create({
+    data: { experimentId: experiment.id, variantId: variants[0].id, role: "control" }
+  });
+  await db.pricingExperimentVariant.create({
+    data: { experimentId: experiment.id, variantId: variants[2].id, role: "treatment" }
+  });
+  await db.pricingAuditLog.create({
+    data: {
+      experimentId: experiment.id,
+      actor: "system",
+      action: "SEED_INIT",
+      detail: "Seeded pricing experiment control tower demo.",
+      metadata: { segments: 2, variants: 2 } as Prisma.InputJsonValue
+    }
+  });
+}
+
 async function seedAuctionDemo() {
   const advertisers = await Promise.all([
     db.auctionAdvertiser.create({
@@ -373,11 +509,18 @@ export async function reseedAuctionOnly() {
   await seedAuctionDemo();
 }
 
+export async function reseedPricingOnly() {
+  await clearPricingData();
+  await seedPricingDemo();
+}
+
 export async function reseed() {
   await clearLifecycleData();
   await clearAcquisitionData();
   await clearAuctionData();
+  await clearPricingData();
   await seedLifecycleDemo();
   await seedAcquisitionDemo();
   await seedAuctionDemo();
+  await seedPricingDemo();
 }

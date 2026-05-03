@@ -33,7 +33,7 @@ const differentiators = [
 const proofStats = [
   { label: "Operating range", value: "Product · Data · Growth · Engineering" },
   { label: "Public + venture-backed contexts", value: "Napster · Interactive One · Goldbelly · MyLife" },
-  { label: "Portfolio proof", value: "3 runnable AI revenue demo apps" }
+  { label: "Portfolio proof", value: "4 runnable AI revenue demo apps" }
 ];
 
 type FeaturedProject = {
@@ -61,6 +61,14 @@ const featuredProjects: FeaturedProject[] = [
     href: "/projects/agent-acquisition",
     appHref: "/acquisition/overview",
     demoApp: "acquisition"
+  },
+  {
+    title: "Pricing Experimentation Control Tower",
+    detail: "Plans segmented pricing tests, simulates ARPU/churn/margin impact, and records promote/extend/pause/rollback decisions.",
+    impact: "Turns pricing tests into controlled operating loops with explicit guardrails and decision history.",
+    href: "/projects/pricing-experimentation-control-tower",
+    appHref: "/pricing/overview",
+    demoApp: "pricing"
   },
   {
     title: "Closed-Marketplace Auction",
@@ -152,10 +160,10 @@ export default function HomePage() {
 
       <Section title="Featured projects">
         <p>
-          Three runnable demo apps backing the case studies — every page below clicks through to
+          Four runnable demo apps backing the case studies — every page below clicks through to
           live software, not screenshots.
         </p>
-        <div className="grid grid-3">
+        <div className="grid grid-4">
           {featuredProjects.map((project) => (
             <div className="card accentCard featuredProjectCard" key={project.title}>
               <div className="featuredProjectCopy">

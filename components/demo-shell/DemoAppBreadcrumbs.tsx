@@ -7,7 +7,8 @@ import type { DemoApp } from "./DemoSideNav";
 const APP_LABEL: Record<DemoApp, string> = {
   lifecycle: "Lifecycle",
   acquisition: "Acquisition",
-  auction: "Auction"
+  auction: "Auction",
+  pricing: "Pricing"
 };
 
 const SEGMENT_LABEL: Record<string, string> = {
@@ -25,7 +26,10 @@ const SEGMENT_LABEL: Record<string, string> = {
   dashboard: "Dashboard",
   documentation: "Docs",
   candidates: "Candidates",
-  users: "Users"
+  users: "Users",
+  segments: "Segments",
+  decisions: "Decisions",
+  experiments: "Experiments"
 };
 
 function humanize(segment: string): string {
