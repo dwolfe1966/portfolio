@@ -94,7 +94,7 @@ export const projects: ProjectEntry[] = [
     whatIBuilt:
       "I specified, designed, implemented, and evolved a working acquisition workspace with campaign bootstrap, orchestrator iterations, insights panels, and schema support for audit-ready optimization loops.",
     appHref: "/acquisition",
-    status: "in-progress",
+    status: "live",
     artifacts: {
       outcomeStrip: [
         { label: "Test cells", value: "creative x audience", note: "Campaign variants are evaluated as measurable cells." },
@@ -190,7 +190,8 @@ export const projects: ProjectEntry[] = [
       "Shifts retention from reactive triage to proactive revenue protection, improving net retention and reducing avoidable churn cost.",
     whatIBuilt:
       "I specified, designed, implemented, and evolved a practical operating design with risk taxonomy, intervention playbook matrix, KPI definitions, and implementation sequencing guidance.",
-    status: "in-progress",
+    status: "live",
+    appHref: "/retention/overview",
     artifacts: {
       outcomeStrip: [
         { label: "Churn risk", value: "-12%", note: "Reduction in preventable churn for high-risk cohorts." },
@@ -203,8 +204,9 @@ export const projects: ProjectEntry[] = [
         { label: "Output", detail: "Assigned intervention, SLA, save-rate outcome, and residual risk reading." }
       ],
       evidenceLinks: [
-        { label: "Risk taxonomy", href: "/projects/retention-risk-command-center", detail: "Case-study artifact for interpreting churn signals." },
-        { label: "Playbook matrix", href: "/projects/retention-risk-command-center", detail: "Maps risk drivers to intervention choices." }
+        { label: "Risk taxonomy", href: "/retention/accounts", detail: "Live account risk queue with interpretable churn drivers." },
+        { label: "Playbook matrix", href: "/retention/inputs", detail: "Maps risk drivers to SLA-aware intervention choices." },
+        { label: "Save-rate economics", href: "/retention/outputs", detail: "Run output for expected saved revenue, payback, and account recommendations." }
       ],
       guardrails: [
         { label: "SLA routing", detail: "High-risk accounts require owner and response window assignment." },

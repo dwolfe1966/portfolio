@@ -197,6 +197,18 @@ Fourth demo app — pricing experiment operating system for segmented price/pack
 
 ---
 
+## I) Retention Risk Command Center demo
+
+Fifth demo app — account retention risk operating system for churn prediction, intervention planning, SLA ownership, and save-rate economics. Spec at [`docs/retention-demo-spec.md`](./retention-demo-spec.md).
+
+### Completed
+- ✅ I1. Phase A — pure retention risk engine, schema, migration, seeded account/playbook/policy data, and unit tests.
+- ✅ I2. Phase B — run and intervention APIs with mutation guardrails, reset support, and demo health endpoint.
+- ✅ I3. Phase C — shell wiring plus overview, inputs, accounts, simulations, outputs, interventions, and audit pages.
+- ✅ I4. Phase D — portfolio project integration, home-page launch card, and evidence links to live demo surfaces.
+
+---
+
 ## F) Demo app design system
 
 Cross-cutting UX/IA workstream covering both lifecycle and acquisition demo apps. Goal: make the demo experience visually and structurally distinct from the portfolio site (which today only differs by background color).

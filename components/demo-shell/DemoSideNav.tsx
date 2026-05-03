@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export type DemoApp = "lifecycle" | "acquisition" | "auction" | "pricing";
+export type DemoApp = "lifecycle" | "acquisition" | "auction" | "pricing" | "retention";
 
 type NavLink = {
   href: string;
@@ -41,6 +41,16 @@ const PRICING_LINKS: NavLink[] = [
   { href: "/pricing/audit", label: "Audit", group: "operations" }
 ];
 
+const RETENTION_LINKS: NavLink[] = [
+  { href: "/retention/overview", label: "Overview", group: "primary" },
+  { href: "/retention/inputs", label: "Inputs", group: "primary" },
+  { href: "/retention/accounts", label: "Accounts", group: "primary" },
+  { href: "/retention/simulations", label: "Simulations", group: "primary" },
+  { href: "/retention/outputs", label: "Outputs", group: "primary" },
+  { href: "/retention/interventions", label: "Interventions", group: "operations" },
+  { href: "/retention/audit", label: "Audit", group: "operations" }
+];
+
 const ACQUISITION_LINKS: NavLink[] = [
   { href: "/acquisition/overview", label: "Overview", group: "primary" },
   { href: "/acquisition/inputs", label: "Inputs", group: "primary" },
@@ -68,7 +78,9 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
         ? ACQUISITION_LINKS
         : app === "auction"
           ? AUCTION_LINKS
-          : PRICING_LINKS;
+          : app === "pricing"
+            ? PRICING_LINKS
+            : RETENTION_LINKS;
   const primary = links.filter((link) => link.group !== "operations");
   const operations = links.filter((link) => link.group === "operations");
   const navBodyId = `${app}-demo-navigation-links`;
@@ -89,7 +101,9 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
                 ? "Acquisition Agent"
                 : app === "auction"
                   ? "Auction Desk"
-                  : "Pricing Control Tower"}
+                  : app === "pricing"
+                    ? "Pricing Control Tower"
+                    : "Retention Command Center"}
           </span>
         </div>
         <button

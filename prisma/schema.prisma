@@ -393,6 +393,135 @@ model PricingAuditLog {
   @@index([action, createdAt])
 }
 
+model RetentionAccount {
+  id                 String                  @id @default(cuid())
+  name               String
+  segment            String
+  mrrCents           Int
+  usageScore         Float
+  supportTicketCount Int
+  npsScore           Int
+  renewalDays        Int
+  paymentRiskScore   Float
+  executiveSponsor   Boolean                 @default(false)
+  lastTouchedDays    Int
+  healthTrend        String
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  runRows            RetentionRiskRunRow[]
+  interventions      RetentionIntervention[]
+
+  @@index([segment])
+  @@index([renewalDays])
+}
+
+model RetentionPlaybook {
+  id             String                  @id @default(cuid())
+  name           String
+  riskDriver     String
+  saveRateLift   Float
+  costCents      Int
+  maxDiscountPct Float
+  slaHours       Int
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  runRows        RetentionRiskRunRow[]
+  interventions  RetentionIntervention[]
+
+  @@index([riskDriver])
+}
+
+model RetentionPolicy {
+  id                  String             @id @default(cuid())
+  name                String
+  highRiskThreshold   Float
+  mediumRiskThreshold Float
+  maxDiscountPct      Float
+  minPaybackRatio     Float
+  slaHoursHighRisk    Int
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  runs                RetentionRiskRun[]
+}
+
+model RetentionRiskRun {
+  id                         String                @id @default(cuid())
+  policyId                   String
+  averageRiskScore           Float
+  highRiskAccounts           Int
+  preventableChurnCents      Int
+  expectedSavedRevenueCents  Int
+  saveRate                   Float
+  paybackRatio               Float
+  recommendation             String
+  createdAt                  DateTime              @default(now())
+  policy                     RetentionPolicy       @relation(fields: [policyId], references: [id])
+  rows                       RetentionRiskRunRow[]
+  auditLogs                  RetentionAuditLog[]
+
+  @@index([policyId, createdAt])
+  @@index([recommendation, createdAt])
+}
+
+model RetentionRiskRunRow {
+  id                         String             @id @default(cuid())
+  runId                      String
+  accountId                  String
+  playbookId                 String?
+  riskScore                  Float
+  riskBand                   String
+  primaryDriver              String
+  expectedSavedRevenueCents  Int
+  interventionCostCents      Int
+  paybackRatio               Float
+  slaHours                   Int
+  run                        RetentionRiskRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  account                    RetentionAccount   @relation(fields: [accountId], references: [id])
+  playbook                   RetentionPlaybook? @relation(fields: [playbookId], references: [id])
+
+  @@index([runId])
+  @@index([accountId])
+  @@index([playbookId])
+  @@index([riskBand, riskScore])
+}
+
+model RetentionIntervention {
+  id                String               @id @default(cuid())
+  accountId         String
+  playbookId        String
+  status            String               @default("queued")
+  owner             String
+  rationale         String
+  dueAt             DateTime?
+  savedRevenueCents Int?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  account           RetentionAccount     @relation(fields: [accountId], references: [id])
+  playbook          RetentionPlaybook    @relation(fields: [playbookId], references: [id])
+  auditLogs         RetentionAuditLog[]
+
+  @@index([accountId, createdAt])
+  @@index([playbookId])
+  @@index([status, createdAt])
+}
+
+model RetentionAuditLog {
+  id             String                 @id @default(cuid())
+  runId          String?
+  interventionId String?
+  actor          String
+  action         String
+  detail         String
+  metadata       Json?
+  createdAt      DateTime               @default(now())
+  run            RetentionRiskRun?      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  intervention   RetentionIntervention? @relation(fields: [interventionId], references: [id], onDelete: Cascade)
+
+  @@index([runId, createdAt])
+  @@index([interventionId, createdAt])
+  @@index([action, createdAt])
+}
+
 model AdAccountConnection {
   id                  String   @id @default(cuid())
   provider            String

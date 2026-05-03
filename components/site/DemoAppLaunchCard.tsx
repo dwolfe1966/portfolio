@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export type DemoAppLaunchTarget = "lifecycle" | "acquisition" | "auction" | "pricing";
+export type DemoAppLaunchTarget = "lifecycle" | "acquisition" | "auction" | "pricing" | "retention";
 
 const APP_COPY: Record<DemoAppLaunchTarget, {
   name: string;
@@ -26,6 +26,11 @@ const APP_COPY: Record<DemoAppLaunchTarget, {
     name: "Pricing Control Tower",
     tagline: "Run segmented price and packaging tests with margin, churn, and holdout guardrails.",
     surface: "Segments · Variants · Simulations · Decisions · Audit"
+  },
+  retention: {
+    name: "Retention Command Center",
+    tagline: "Score account risk, recommend save motions, and track payback on intervention work.",
+    surface: "Accounts · Playbooks · Simulations · Interventions · Audit"
   }
 };
 

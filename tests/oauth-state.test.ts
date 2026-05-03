@@ -58,9 +58,9 @@ test("verifyOAuthState rejects tampered signature", () => {
   withKey(randomBytes(32), () => {
     const state = createOAuthState("google_ads");
     const [payload, sig] = state.split(".");
-    // Flip the last char of the signature segment.
-    const tamperedChar = sig[sig.length - 1] === "A" ? "B" : "A";
-    const tampered = `${payload}.${sig.slice(0, -1)}${tamperedChar}`;
+    // Flip a non-padding signature character so base64url decoding cannot preserve the same bytes.
+    const tamperedChar = sig[0] === "A" ? "B" : "A";
+    const tampered = `${payload}.${tamperedChar}${sig.slice(1)}`;
     const result = verifyOAuthState(tampered, "google_ads");
     assert.equal(result.ok, false);
     if (!result.ok) assert.equal(result.reason, "bad_signature");

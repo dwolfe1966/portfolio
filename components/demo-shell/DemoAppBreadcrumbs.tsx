@@ -8,7 +8,8 @@ const APP_LABEL: Record<DemoApp, string> = {
   lifecycle: "Lifecycle",
   acquisition: "Acquisition",
   auction: "Auction",
-  pricing: "Pricing"
+  pricing: "Pricing",
+  retention: "Retention"
 };
 
 const SEGMENT_LABEL: Record<string, string> = {
@@ -29,7 +30,9 @@ const SEGMENT_LABEL: Record<string, string> = {
   users: "Users",
   segments: "Segments",
   decisions: "Decisions",
-  experiments: "Experiments"
+  experiments: "Experiments",
+  accounts: "Accounts",
+  interventions: "Interventions"
 };
 
 function humanize(segment: string): string {

@@ -410,6 +410,9 @@ button {
 .demoAppShell-pricing {
   background: linear-gradient(180deg, #f1f7f4 0%, #fbfdfb 100%);
 }
+.demoAppShell-retention {
+  background: linear-gradient(180deg, #eef6f8 0%, #fbfdfe 100%);
+}
 
 /* Demo content typography — denser than portfolio. */
 .demoAppShellContent {

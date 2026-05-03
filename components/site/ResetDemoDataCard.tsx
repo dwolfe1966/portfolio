@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 type ResetDemoDataCardProps = {
-  appLabel: "Lifecycle" | "Acquisition" | "Auction" | "Pricing";
-  scope?: "all" | "lifecycle" | "acquisition" | "auction" | "pricing";
+  appLabel: "Lifecycle" | "Acquisition" | "Auction" | "Pricing" | "Retention";
+  scope?: "all" | "lifecycle" | "acquisition" | "auction" | "pricing" | "retention";
 };
 
 export function ResetDemoDataCard({ appLabel, scope = "all" }: ResetDemoDataCardProps) {
@@ -39,7 +39,7 @@ export function ResetDemoDataCard({ appLabel, scope = "all" }: ResetDemoDataCard
   }
 
   const scopeCopy = scope === "all"
-    ? "Clears lifecycle, acquisition, auction, and pricing demo records, then reseeds representative baseline data for all demo apps."
+    ? "Clears lifecycle, acquisition, auction, pricing, and retention demo records, then reseeds representative baseline data for all demo apps."
     : `Clears ${appLabel.toLowerCase()} demo records, then reseeds representative ${appLabel.toLowerCase()} baseline data.`;
 
   return (

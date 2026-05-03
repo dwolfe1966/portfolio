@@ -7,7 +7,8 @@ const APP_LABEL: Record<DemoApp, string> = {
   lifecycle: "Lifecycle Engine",
   acquisition: "Acquisition Agent",
   auction: "Auction Desk",
-  pricing: "Pricing Control Tower"
+  pricing: "Pricing Control Tower",
+  retention: "Retention Command Center"
 };
 
 const BAND_TEXT: Record<StatusBand, string> = {

@@ -101,6 +101,169 @@ async function clearPricingData() {
   await db.pricingSegment.deleteMany();
 }
 
+async function clearRetentionData() {
+  await db.retentionAuditLog.deleteMany();
+  await db.retentionIntervention.deleteMany();
+  await db.retentionRiskRunRow.deleteMany();
+  await db.retentionRiskRun.deleteMany();
+  await db.retentionPolicy.deleteMany();
+  await db.retentionPlaybook.deleteMany();
+  await db.retentionAccount.deleteMany();
+}
+
+async function seedRetentionDemo() {
+  await Promise.all([
+    db.retentionAccount.create({
+      data: {
+        name: "Goldbelly Enterprise Gifts",
+        segment: "Enterprise",
+        mrrCents: 420000,
+        usageScore: 0.42,
+        supportTicketCount: 6,
+        npsScore: 4,
+        renewalDays: 38,
+        paymentRiskScore: 0.28,
+        executiveSponsor: false,
+        lastTouchedDays: 41,
+        healthTrend: "declining"
+      }
+    }),
+    db.retentionAccount.create({
+      data: {
+        name: "Napster Listener CRM",
+        segment: "Strategic",
+        mrrCents: 680000,
+        usageScore: 0.76,
+        supportTicketCount: 2,
+        npsScore: 31,
+        renewalDays: 72,
+        paymentRiskScore: 0.09,
+        executiveSponsor: true,
+        lastTouchedDays: 12,
+        healthTrend: "flat"
+      }
+    }),
+    db.retentionAccount.create({
+      data: {
+        name: "Interactive One Media Ops",
+        segment: "Mid-market",
+        mrrCents: 185000,
+        usageScore: 0.51,
+        supportTicketCount: 5,
+        npsScore: 12,
+        renewalDays: 24,
+        paymentRiskScore: 0.22,
+        executiveSponsor: false,
+        lastTouchedDays: 33,
+        healthTrend: "declining"
+      }
+    }),
+    db.retentionAccount.create({
+      data: {
+        name: "MyLife Identity Platform",
+        segment: "Enterprise",
+        mrrCents: 360000,
+        usageScore: 0.63,
+        supportTicketCount: 1,
+        npsScore: 45,
+        renewalDays: 116,
+        paymentRiskScore: 0.38,
+        executiveSponsor: true,
+        lastTouchedDays: 19,
+        healthTrend: "improving"
+      }
+    }),
+    db.retentionAccount.create({
+      data: {
+        name: "Northstar Subscription Ops",
+        segment: "SMB",
+        mrrCents: 74000,
+        usageScore: 0.36,
+        supportTicketCount: 3,
+        npsScore: -6,
+        renewalDays: 52,
+        paymentRiskScore: 0.18,
+        executiveSponsor: false,
+        lastTouchedDays: 55,
+        healthTrend: "declining"
+      }
+    })
+  ]);
+
+  await Promise.all([
+    db.retentionPlaybook.create({
+      data: {
+        name: "Usage recovery sprint",
+        riskDriver: "usage",
+        saveRateLift: 0.18,
+        costCents: 18000,
+        maxDiscountPct: 0.08,
+        slaHours: 48
+      }
+    }),
+    db.retentionPlaybook.create({
+      data: {
+        name: "Executive sponsor reset",
+        riskDriver: "relationship",
+        saveRateLift: 0.16,
+        costCents: 26000,
+        maxDiscountPct: 0.05,
+        slaHours: 24
+      }
+    }),
+    db.retentionPlaybook.create({
+      data: {
+        name: "Support escalation room",
+        riskDriver: "support",
+        saveRateLift: 0.14,
+        costCents: 22000,
+        maxDiscountPct: 0.04,
+        slaHours: 12
+      }
+    }),
+    db.retentionPlaybook.create({
+      data: {
+        name: "Commercial renewal redesign",
+        riskDriver: "commercial",
+        saveRateLift: 0.21,
+        costCents: 31000,
+        maxDiscountPct: 0.12,
+        slaHours: 24
+      }
+    }),
+    db.retentionPlaybook.create({
+      data: {
+        name: "Billing risk recovery",
+        riskDriver: "billing",
+        saveRateLift: 0.1,
+        costCents: 12000,
+        maxDiscountPct: 0.03,
+        slaHours: 36
+      }
+    })
+  ]);
+
+  const policy = await db.retentionPolicy.create({
+    data: {
+      name: "Default retention policy",
+      highRiskThreshold: 0.72,
+      mediumRiskThreshold: 0.46,
+      maxDiscountPct: 0.1,
+      minPaybackRatio: 2.5,
+      slaHoursHighRisk: 24
+    }
+  });
+
+  await db.retentionAuditLog.create({
+    data: {
+      actor: "system",
+      action: "SEED_INIT",
+      detail: "Seeded retention risk command center demo.",
+      metadata: { policyId: policy.id, accounts: 5, playbooks: 5 } as Prisma.InputJsonValue
+    }
+  });
+}
+
 async function seedPricingDemo() {
   const segments = await Promise.all([
     db.pricingSegment.create({
@@ -514,13 +677,20 @@ export async function reseedPricingOnly() {
   await seedPricingDemo();
 }
 
+export async function reseedRetentionOnly() {
+  await clearRetentionData();
+  await seedRetentionDemo();
+}
+
 export async function reseed() {
   await clearLifecycleData();
   await clearAcquisitionData();
   await clearAuctionData();
   await clearPricingData();
+  await clearRetentionData();
   await seedLifecycleDemo();
   await seedAcquisitionDemo();
   await seedAuctionDemo();
   await seedPricingDemo();
+  await seedRetentionDemo();
 }
