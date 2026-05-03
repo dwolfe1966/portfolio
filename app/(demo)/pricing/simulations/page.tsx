@@ -20,11 +20,14 @@ export default async function PricingSimulationsPage() {
       </Section>
       <Section title="Simulation control">
         {experiment ? (
-          <div className="card">
+          <>
+            <div className="card">
             <h3>{experiment.name}</h3>
             <p>{experiment.hypothesis}</p>
+            <p className="small">Adjust scenario assumptions, then run. Results persist to Outputs and Audit.</p>
+            </div>
             <PricingSimulationButton experimentId={experiment.id} />
-          </div>
+          </>
         ) : (
           <div className="card"><p>No pricing experiment found. Reset demo data from Overview.</p></div>
         )}

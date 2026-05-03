@@ -35,6 +35,14 @@ export default async function PricingOutputsPage() {
               <div className="card"><p className="small">Margin</p><div className="kpi">{(latest.grossMarginPercent * 100).toFixed(0)}%</div></div>
               <div className="card"><p className="small">Recommendation</p><div className="kpi">{latest.recommendation}</div></div>
             </div>
+            <div className="card" style={{ marginTop: 12 }}>
+              <h3>Decision posture</h3>
+              <p>
+                Net revenue lift is ${(latest.netRevenueLiftCents / 100).toLocaleString()} with
+                confidence {(latest.confidence * 100).toFixed(0)}%, support-load delta {latest.supportLoadDelta.toFixed(2)},
+                and holdout health <strong>{latest.holdoutHealth}</strong>.
+              </p>
+            </div>
           </Section>
           <Section title="Segment results">
             <table className="table">

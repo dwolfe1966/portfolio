@@ -1,17 +1,27 @@
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { PricingExperimentBuilder } from "@/components/pricing/PricingExperimentBuilder";
 import { PricingVariantEditor } from "@/components/pricing/PricingVariantEditor";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 export default async function PricingInputsPage() {
-  let experiments: Awaited<ReturnType<typeof db.pricingExperiment.findMany>> = [];
+  let experiments: Prisma.PricingExperimentGetPayload<{
+    include: { segments: true; variants: true };
+  }>[] = [];
   let variants: Awaited<ReturnType<typeof db.pricingVariant.findMany>> = [];
+  let segments: Awaited<ReturnType<typeof db.pricingSegment.findMany>> = [];
   try {
-    [experiments, variants] = await Promise.all([
-      db.pricingExperiment.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
-      db.pricingVariant.findMany({ orderBy: { createdAt: "asc" } })
+    [experiments, variants, segments] = await Promise.all([
+      db.pricingExperiment.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { segments: true, variants: true }
+      }),
+      db.pricingVariant.findMany({ orderBy: { createdAt: "asc" } }),
+      db.pricingSegment.findMany({ orderBy: { name: "asc" } })
     ]);
   } catch (error) {
     if (!isMissingDemoTableError(error)) throw error;
@@ -23,14 +33,15 @@ export default async function PricingInputsPage() {
         <p>Seeded inputs model the pieces a pricing operator needs before exposing any customers to a price or packaging change.</p>
       </Section>
       <Section title="Experiments">
-        <div className="grid">
+        <div className="grid grid-2">
+          <PricingExperimentBuilder segments={segments} variants={variants} />
           {experiments.map((experiment) => (
-            <div className="card" key={experiment.id}>
-              <p className="small">{experiment.state} · owner {experiment.owner}</p>
-              <h3>{experiment.name}</h3>
-              <p>{experiment.hypothesis}</p>
-              <p className="small">Holdout {(experiment.holdoutPercent * 100).toFixed(0)}% · min sample {experiment.minimumSampleSize} · confidence {(experiment.minConfidence * 100).toFixed(0)}%</p>
-            </div>
+            <PricingExperimentBuilder
+              key={experiment.id}
+              experiment={experiment}
+              segments={segments}
+              variants={variants}
+            />
           ))}
         </div>
       </Section>

@@ -371,3 +371,71 @@ export function validatePricingSegmentInput(raw: unknown): { ok: true; value: {
     }
   };
 }
+
+export function validatePricingExperimentInput(raw: unknown): { ok: true; value: {
+  name: string;
+  hypothesis: string;
+  owner: string;
+  state: PricingExperimentState;
+  holdoutPercent: number;
+  minimumSampleSize: number;
+  minGrossMarginPercent: number;
+  maxChurnDeltaPercent: number;
+  maxSupportLoadDelta: number;
+  minConfidence: number;
+  segmentIds: string[];
+  controlVariantId: string;
+  treatmentVariantIds: string[];
+} } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as Record<string, unknown>;
+  const errors: string[] = [];
+  const states: PricingExperimentState[] = ["DRAFT", "RUNNING", "PAUSED", "DECISION_READY", "PROMOTED", "ROLLED_BACK"];
+  const name = String(body.name ?? "").trim();
+  const hypothesis = String(body.hypothesis ?? "").trim();
+  const owner = String(body.owner ?? "pricing-operator").trim() || "pricing-operator";
+  const state = String(body.state ?? "DRAFT");
+  const holdoutPercent = Number(body.holdoutPercent);
+  const minimumSampleSize = Math.round(Number(body.minimumSampleSize));
+  const minGrossMarginPercent = Number(body.minGrossMarginPercent);
+  const maxChurnDeltaPercent = Number(body.maxChurnDeltaPercent);
+  const maxSupportLoadDelta = Number(body.maxSupportLoadDelta);
+  const minConfidence = Number(body.minConfidence);
+  const segmentIds = Array.isArray(body.segmentIds) ? body.segmentIds.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
+  const controlVariantId = String(body.controlVariantId ?? "");
+  const treatmentVariantIds = Array.isArray(body.treatmentVariantIds)
+    ? body.treatmentVariantIds.filter((id): id is string => typeof id === "string" && id.length > 0 && id !== controlVariantId)
+    : [];
+
+  if (!name) errors.push("name is required");
+  if (!hypothesis) errors.push("hypothesis is required");
+  if (!states.includes(state as PricingExperimentState)) errors.push("state is invalid");
+  if (!Number.isFinite(holdoutPercent) || holdoutPercent < 0.05 || holdoutPercent > 0.5) errors.push("holdoutPercent must be between 0.05 and 0.5");
+  if (!Number.isFinite(minimumSampleSize) || minimumSampleSize < 100 || minimumSampleSize > 1_000_000) errors.push("minimumSampleSize must be between 100 and 1000000");
+  if (!Number.isFinite(minGrossMarginPercent) || minGrossMarginPercent < 0 || minGrossMarginPercent > 1) errors.push("minGrossMarginPercent must be between 0 and 1");
+  if (!Number.isFinite(maxChurnDeltaPercent) || maxChurnDeltaPercent < 0 || maxChurnDeltaPercent > 20) errors.push("maxChurnDeltaPercent must be between 0 and 20");
+  if (!Number.isFinite(maxSupportLoadDelta) || maxSupportLoadDelta < 0 || maxSupportLoadDelta > 5) errors.push("maxSupportLoadDelta must be between 0 and 5");
+  if (!Number.isFinite(minConfidence) || minConfidence < 0 || minConfidence > 1) errors.push("minConfidence must be between 0 and 1");
+  if (segmentIds.length === 0) errors.push("at least one segment is required");
+  if (!controlVariantId) errors.push("controlVariantId is required");
+  if (treatmentVariantIds.length === 0) errors.push("at least one treatment variant is required");
+
+  if (errors.length) return { ok: false, errors };
+  return {
+    ok: true,
+    value: {
+      name: name.slice(0, 120),
+      hypothesis: hypothesis.slice(0, 700),
+      owner: owner.slice(0, 80),
+      state: state as PricingExperimentState,
+      holdoutPercent,
+      minimumSampleSize,
+      minGrossMarginPercent,
+      maxChurnDeltaPercent,
+      maxSupportLoadDelta,
+      minConfidence,
+      segmentIds,
+      controlVariantId,
+      treatmentVariantIds
+    }
+  };
+}
