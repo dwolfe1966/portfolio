@@ -1587,7 +1587,7 @@ button {
     grid-template-columns: 1fr;
     min-height: 0;
     overflow: visible;
-    padding-top: 52px;
+    padding-top: 100px;
   }
   .demoSideNav {
     position: fixed;
@@ -1603,6 +1603,16 @@ button {
   }
   .demoSideNavBrand { flex-direction: row; align-items: center; padding: 0; border-bottom: 0; }
   .demoSideNavToggle { display: inline-flex; }
+  .demoAppHeader {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    right: 0;
+    z-index: 110;
+    min-height: 48px;
+    padding: 8px 12px;
+    box-shadow: 0 16px 40px -32px rgba(2, 6, 23, 0.72);
+  }
   .demoSideNavBody {
     display: none;
     position: fixed;
