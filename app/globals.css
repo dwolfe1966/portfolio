@@ -393,17 +393,19 @@ button {
 
 .demoAppShell {
   /* Mission Control design tokens — scoped here so the portfolio site is unaffected. */
-  --band-healthy: #0f6b3b;
-  --band-watch: #a05a00;
-  --band-unhealthy: #a02020;
+  --band-healthy: #34d399;
+  --band-watch: #fbbf24;
+  --band-unhealthy: #fb7185;
   --band-neutral: #555555;
   --band-insufficient: #888888;
-  --demo-accent: #1e6ddc;
-  --demo-surface: #ffffff;
-  --demo-surface-2: #f5f5f1;
-  --demo-divider: #dcdcd6;
-  --demo-text: #0e1218;
-  --demo-text-muted: #5a6371;
+  --demo-accent: #60a5fa;
+  --demo-bg: #070b12;
+  --demo-bg-2: #0c1220;
+  --demo-surface: rgba(17, 24, 39, 0.86);
+  --demo-surface-2: rgba(9, 14, 25, 0.96);
+  --demo-divider: rgba(148, 163, 184, 0.22);
+  --demo-text: #f8fafc;
+  --demo-text-muted: #a7b0c0;
   --demo-mono: 'JetBrains Mono', 'IBM Plex Mono', 'Menlo', 'Monaco', monospace;
   --demo-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
@@ -417,24 +419,28 @@ button {
   min-height: 600px;
   font-family: var(--demo-font);
   color: var(--demo-text);
+  background:
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--demo-accent) 22%, transparent) 0, transparent 28%),
+    linear-gradient(180deg, var(--demo-bg-2) 0%, var(--demo-bg) 100%);
+  box-shadow: 0 28px 80px -56px rgba(2, 6, 23, 0.92);
 }
 .demoAppShell-lifecycle {
-  background: linear-gradient(180deg, #eef4ff 0%, #f7fbff 100%);
+  --demo-accent: #60a5fa;
 }
 .demoAppShell-acquisition {
-  background: linear-gradient(180deg, #eef8f3 0%, #f8fcfa 100%);
+  --demo-accent: #34d399;
 }
 .demoAppShell-auction {
-  background: linear-gradient(180deg, #fdf6ec 0%, #fffaf2 100%);
+  --demo-accent: #f59e0b;
 }
 .demoAppShell-pricing {
-  background: linear-gradient(180deg, #f1f7f4 0%, #fbfdfb 100%);
+  --demo-accent: #a78bfa;
 }
 .demoAppShell-retention {
-  background: linear-gradient(180deg, #eef6f8 0%, #fbfdfe 100%);
+  --demo-accent: #2dd4bf;
 }
 .demoAppShell-expansion {
-  background: linear-gradient(180deg, #f3f2fa 0%, #fcfbff 100%);
+  --demo-accent: #f472b6;
 }
 
 /* Demo content typography — denser than portfolio. */
@@ -453,6 +459,7 @@ button {
   border: 1px solid var(--demo-divider);
   border-radius: 6px;
   padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 .demoAppShellContent .card.compact { padding: 10px; }
 .demoAppShellContent .grid { gap: 12px; }
@@ -467,6 +474,49 @@ button {
   letter-spacing: -0.01em;
   margin-bottom: 4px;
   color: var(--demo-text);
+}
+.demoAppShellContent input,
+.demoAppShellContent select,
+.demoAppShellContent textarea {
+  background: rgba(2, 6, 23, 0.7);
+  border-color: var(--demo-divider);
+  color: var(--demo-text);
+}
+.demoAppShellContent button,
+.demoAppShellContent .btn {
+  background: rgba(2, 6, 23, 0.72);
+  border-color: color-mix(in srgb, var(--demo-accent) 72%, white 0%);
+  color: var(--demo-text);
+}
+.demoAppShellContent .btn.primary,
+.demoAppShellContent button:hover {
+  background: color-mix(in srgb, var(--demo-accent) 22%, rgba(2, 6, 23, 0.9));
+}
+.demoAppShellContent .eyebrow {
+  color: var(--demo-accent);
+}
+.demoAppShellContent .code,
+.demoAppShellContent .weightFormula {
+  background: rgba(2, 6, 23, 0.82);
+  border-color: var(--demo-divider);
+  color: var(--demo-text);
+}
+.demoAppShellContent .chartBar.secondary {
+  background: rgba(148, 163, 184, 0.72);
+}
+.demoAppShellContent .scoreStack {
+  border-color: var(--demo-divider);
+  background: rgba(2, 6, 23, 0.7);
+}
+.demoAppShellContent .introDialog,
+.demoAppShellContent .signalStep {
+  background: var(--demo-surface);
+  border-color: var(--demo-divider);
+  color: var(--demo-text);
+}
+.demoAppShellContent .guardrailRow,
+.demoAppShellContent .budgetTimelineItem {
+  border-left-color: var(--demo-accent);
 }
 
 /* Tables: denser, hairlines instead of zebra. */
@@ -551,6 +601,101 @@ button {
 .demoBreadcrumbs a:hover { color: var(--demo-text); }
 .demoBreadcrumbs__sep { color: var(--demo-divider); }
 .demoBreadcrumbs__current { color: var(--demo-text); font-weight: 500; }
+
+.demoSystemGraph {
+  --graph-accent: var(--demo-accent);
+  border: 1px solid var(--demo-divider);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--graph-accent) 14%, transparent), transparent 38%),
+    rgba(2, 6, 23, 0.72);
+  padding: 14px;
+  overflow: hidden;
+}
+.demoSystemGraphHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 18px;
+}
+.demoSystemGraphHeader span {
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--graph-accent);
+}
+.demoSystemGraphHeader strong {
+  font-size: 14px;
+  color: var(--demo-text);
+}
+.demoSystemGraphRail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  align-items: center;
+}
+.demoSystemGraphNodeWrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+}
+.demoSystemGraphNodeWrap:last-child {
+  grid-template-columns: minmax(0, 1fr);
+}
+.demoSystemGraphNode {
+  min-height: 92px;
+  display: grid;
+  align-content: center;
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--graph-accent) 34%, var(--demo-divider));
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  padding: 12px;
+  position: relative;
+}
+.demoSystemGraphNode::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid color-mix(in srgb, var(--graph-accent) 36%, transparent);
+  opacity: 0;
+  animation: graphPulse 3.6s ease-in-out infinite;
+}
+.demoSystemGraphNode i {
+  font-family: var(--demo-mono);
+  font-size: 11px;
+  color: var(--graph-accent);
+  font-style: normal;
+}
+.demoSystemGraphNode span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--demo-text);
+}
+.demoSystemGraphEdge {
+  height: 2px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+.demoSystemGraphEdge b {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--graph-accent), transparent);
+  animation: graphFlow 1.9s linear infinite;
+}
+@keyframes graphFlow {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(260%); }
+}
+@keyframes graphPulse {
+  0%, 70%, 100% { opacity: 0; transform: scale(1); }
+  35% { opacity: 0.75; transform: scale(1.025); }
+}
 
 /* Demo app launch card — used on portfolio pages to surface an explicit
    handoff into the demo apps. Sits inside portfolio chrome but borrows
@@ -646,7 +791,7 @@ button {
 .retentionBarTrack {
   height: 10px;
   border-radius: 999px;
-  background: #e5e7eb;
+  background: rgba(148, 163, 184, 0.2);
   overflow: hidden;
 }
 .retentionBarTrack i {
@@ -667,7 +812,7 @@ button {
   padding: 9px;
   border: 1px solid var(--demo-divider);
   border-radius: 6px;
-  background: #ffffff;
+  background: rgba(15, 23, 42, 0.78);
 }
 .retentionDriverItem span,
 .retentionDriverItem strong,
@@ -679,7 +824,7 @@ button {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   border: 1px solid var(--demo-divider);
-  background: #111827;
+  background: rgba(2, 6, 23, 0.82);
   color: #f8fafc;
 }
 .expansionProcessMap div {
@@ -713,7 +858,7 @@ button {
 .expansionLane {
   border: 1px solid var(--demo-divider);
   border-radius: 8px;
-  background: #f8fafc;
+  background: rgba(15, 23, 42, 0.72);
   overflow: hidden;
 }
 .expansionLaneHead {
@@ -722,7 +867,7 @@ button {
   gap: 10px;
   align-items: center;
   padding: 12px;
-  background: #111827;
+  background: rgba(2, 6, 23, 0.92);
   color: #f8fafc;
 }
 .expansionLaneHead span,
@@ -737,7 +882,7 @@ button {
 .expansionOpportunity {
   border: 1px solid #d6dde8;
   border-radius: 6px;
-  background: #ffffff;
+  background: rgba(2, 6, 23, 0.62);
   padding: 10px;
 }
 .expansionOpportunityMetrics {
@@ -856,7 +1001,7 @@ button {
   border-left: 3px solid transparent;
 }
 .demoSideNavLink:hover {
-  background: rgba(15, 23, 42, 0.05);
+  background: color-mix(in srgb, var(--demo-accent) 14%, transparent);
 }
 .demoSideNavLink.active {
   border-left-color: var(--demo-accent);
@@ -916,7 +1061,7 @@ button {
   border: 1px solid var(--demo-accent);
   border-radius: 3px;
   color: var(--demo-accent);
-  background: rgba(30, 109, 220, 0.06);
+  background: color-mix(in srgb, var(--demo-accent) 12%, transparent);
 }
 .infoTooltip {
   position: relative;

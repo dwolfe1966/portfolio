@@ -11,6 +11,7 @@ import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas
 import { GraphInfluencePaths } from "@/components/demo/GraphInfluencePaths";
 import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
 import { InfoTooltip } from "@/components/site/InfoTooltip";
+import { DemoSystemGraph } from "@/components/demo-shell/DemoSystemGraph";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
@@ -36,6 +37,9 @@ export default async function DemoOverviewPage() {
   return (
     <>
       <DemoHowItWorks />
+      <Section title="Live lifecycle flow">
+        <DemoSystemGraph title="Signal-to-message loop" nodes={["Entity delta", "Interest graph", "Priority score", "Generated copy"]} />
+      </Section>
       <Section
         title={
           <>

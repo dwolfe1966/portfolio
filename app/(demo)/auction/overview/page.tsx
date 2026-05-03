@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
+import { DemoSystemGraph } from "@/components/demo-shell/DemoSystemGraph";
 
 export const dynamic = "force-dynamic";
 
@@ -43,24 +44,7 @@ export default async function AuctionOverviewPage() {
       </Section>
 
       <Section title="Pipeline">
-        <div className="grid grid-4">
-          <div className="card">
-            <h3>1. Bid intake</h3>
-            <p>Validate campaign constraints, budgets, pacing, and placement eligibility before auction.</p>
-          </div>
-          <div className="card">
-            <h3>2. Quality-adjusted scoring</h3>
-            <p>Rank bids by <code className="small">bid × qualityScore</code> to reward relevance and user experience.</p>
-          </div>
-          <div className="card">
-            <h3>3. Second-price clearing</h3>
-            <p>Charge winner the next-best adjusted bid divided by their quality score, plus minimal increment.</p>
-          </div>
-          <div className="card">
-            <h3>4. Pacing + reserve</h3>
-            <p>Reserve floors and per-advertiser pacing smooth delivery and keep the marketplace stable.</p>
-          </div>
-        </div>
+        <DemoSystemGraph title="Auction clearing flow" nodes={["Bid intake", "Quality score", "Second price", "Pacing + reserve"]} />
       </Section>
 
       <Section title="Marketplace readiness">

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { DemoSystemGraph } from "@/components/demo-shell/DemoSystemGraph";
 
 export const dynamic = "force-dynamic";
 
@@ -37,12 +38,7 @@ export default async function PricingOverviewPage() {
       </Section>
 
       <Section title="Operating loop">
-        <div className="grid grid-4">
-          <div className="card"><h3>1. Hypothesis</h3><p>Define pricing, packaging, owner, and target commercial outcome.</p></div>
-          <div className="card"><h3>2. Cohorts</h3><p>Select eligible segments and preserve holdout health.</p></div>
-          <div className="card"><h3>3. Guardrails</h3><p>Track margin floor, churn ceiling, support load, and confidence.</p></div>
-          <div className="card"><h3>4. Decision</h3><p>Promote, extend, pause, or roll back with recorded rationale.</p></div>
-        </div>
+        <DemoSystemGraph title="Pricing decision loop" nodes={["Hypothesis", "Cohorts", "Guardrails", "Decision"]} />
       </Section>
 
       <Section title="Readiness">

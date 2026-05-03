@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
 import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
+import { DemoSystemGraph } from "@/components/demo-shell/DemoSystemGraph";
 
 export const dynamic = "force-dynamic";
 
@@ -37,12 +38,7 @@ export default async function RetentionOverviewPage() {
       </Section>
 
       <Section title="Operating loop">
-        <div className="grid grid-4">
-          <div className="card"><h3>1. Signals</h3><p>Combine usage, support, NPS, renewal, billing, and relationship signals.</p></div>
-          <div className="card"><h3>2. Risk score</h3><p>Classify account risk and identify the primary driver behind the exposure.</p></div>
-          <div className="card"><h3>3. Save motion</h3><p>Recommend playbooks with SLA, discount ceiling, cost, and expected saved revenue.</p></div>
-          <div className="card"><h3>4. Economics</h3><p>Track preventable churn, save rate, payback, and residual risk by run.</p></div>
-        </div>
+        <DemoSystemGraph title="Retention save loop" nodes={["Health signals", "Risk score", "Save motion", "Economics"]} />
       </Section>
 
       <Section title="Readiness">

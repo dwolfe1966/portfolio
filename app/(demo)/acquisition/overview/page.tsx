@@ -5,6 +5,7 @@ import { Section } from "@/components/site/Section";
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
 import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
+import { DemoSystemGraph } from "@/components/demo-shell/DemoSystemGraph";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
@@ -87,6 +88,10 @@ export default async function AcquisitionOverviewPage() {
           <div className="card"><div className="kpi">&lt; 1.0</div><p>Target CAC/LTV ratio threshold for sustained scaling.</p></div>
           <div className="card"><div className="kpi">100%</div><p>Budget-shift actions recorded for operator auditability.</p></div>
         </div>
+      </Section>
+
+      <Section title="Live acquisition flow">
+        <DemoSystemGraph title="Budget learning loop" nodes={["Objective", "Cells", "Performance", "Budget action"]} />
       </Section>
 
       <Section title="Acquisition data readiness">
