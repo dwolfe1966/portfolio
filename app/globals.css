@@ -1066,6 +1066,71 @@ button {
 .tableScroll {
   overflow-x: auto;
 }
+.pricingVizGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 12px;
+}
+.pricingVizPanel {
+  min-height: 260px;
+}
+.pricingGuardrailStack,
+.pricingSegmentLift {
+  display: grid;
+  gap: 10px;
+}
+.pricingGuardrailRow {
+  display: grid;
+  grid-template-columns: 104px minmax(120px, 1fr) 64px;
+  gap: 10px;
+  align-items: center;
+}
+.pricingGuardrailRow span,
+.pricingGuardrailRow strong {
+  font-size: 12px;
+}
+.pricingGuardrailRow strong {
+  text-align: right;
+  font-family: var(--demo-mono);
+}
+.pricingGuardrailTrack,
+.pricingSegmentLiftTrack {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+.pricingGuardrailTrack i,
+.pricingSegmentLiftTrack i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0ea5e9, var(--demo-accent));
+}
+.pricingSegmentLiftTrack i.negative {
+  background: linear-gradient(90deg, #f97316, #ef4444);
+}
+.pricingSegmentLiftRow {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.85fr) minmax(120px, 1fr) minmax(150px, 0.7fr);
+  gap: 10px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.62);
+}
+.pricingSegmentLiftRow strong,
+.pricingSegmentLiftRow span,
+.pricingSegmentLiftRow em {
+  display: block;
+  font-size: 12px;
+  font-style: normal;
+}
+.pricingSegmentLiftRow span,
+.pricingSegmentLiftRow em {
+  color: var(--demo-text-muted);
+}
 .retentionVizGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
@@ -1477,6 +1542,9 @@ button {
   .heroSystemGrid { grid-template-columns: 1fr; }
   .heroPanelLarge { grid-row: auto; }
   .signalStrip { grid-template-columns: 1fr; }
+  .pricingVizGrid,
+  .pricingGuardrailRow,
+  .pricingSegmentLiftRow,
   .retentionVizGrid,
   .retentionBarRow,
   .expansionProcessMap,

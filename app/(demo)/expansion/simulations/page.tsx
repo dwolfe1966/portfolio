@@ -1,8 +1,10 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
 import { ExpansionRunButton } from "@/components/expansion/ExpansionRunButton";
+import { ExpansionPipelineBoard } from "@/components/expansion/ExpansionPipelineBoard";
 import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +15,23 @@ function money(cents: number) {
 
 export default async function ExpansionSimulationsPage() {
   let ready = false;
-  let latestRun: Awaited<ReturnType<typeof db.expansionRun.findFirst>> = null;
+  let latestRun: Prisma.ExpansionRunGetPayload<{
+    include: { rows: { include: { account: true; offer: true } } };
+  }> | null = null;
   try {
     const [accounts, offers, policy, run] = await Promise.all([
       db.expansionAccount.count(),
       db.expansionOffer.count(),
       db.expansionPolicy.count(),
-      db.expansionRun.findFirst({ orderBy: { createdAt: "desc" } })
+      db.expansionRun.findFirst({
+        orderBy: { createdAt: "desc" },
+        include: {
+          rows: {
+            include: { account: true, offer: true },
+            orderBy: { readinessScore: "desc" }
+          }
+        }
+      })
     ]);
     ready = accounts > 0 && offers > 0 && policy > 0;
     latestRun = run;
@@ -61,6 +73,11 @@ export default async function ExpansionSimulationsPage() {
                 <div className="card"><p className="small">High-readiness accounts</p><div className="kpi">{latestRun.highReadinessAccounts}</div></div>
                 <div className="card"><p className="small">Expected ARR</p><div className="kpi">{money(latestRun.expectedExpansionArrCents)}</div></div>
                 <div className="card"><p className="small">Payback</p><div className="kpi">{latestRun.paybackRatio.toFixed(1)}x</div></div>
+              </div>
+            ) : null}
+            {latestRun?.rows.length ? (
+              <div style={{ marginTop: 14 }}>
+                <ExpansionPipelineBoard rows={latestRun.rows} />
               </div>
             ) : null}
           </>

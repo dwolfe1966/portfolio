@@ -1,7 +1,9 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { PricingSimulationButton } from "@/components/pricing/PricingSimulationButton";
+import { PricingSimulationVisuals } from "@/components/pricing/PricingSimulationVisuals";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
@@ -13,13 +15,21 @@ function money(cents: number) {
 
 export default async function PricingSimulationsPage() {
   let experiment = null as Awaited<ReturnType<typeof db.pricingExperiment.findFirst>>;
-  let latestRun = null as Awaited<ReturnType<typeof db.pricingExperimentRun.findFirst>>;
+  let latestRun: Prisma.PricingExperimentRunGetPayload<{
+    include: { segmentResults: { include: { segment: true; variant: true } } };
+  }> | null = null;
   try {
     experiment = await db.pricingExperiment.findFirst({ orderBy: { createdAt: "desc" } });
     if (experiment) {
       latestRun = await db.pricingExperimentRun.findFirst({
         where: { experimentId: experiment.id },
-        orderBy: { createdAt: "desc" }
+        orderBy: { createdAt: "desc" },
+        include: {
+          segmentResults: {
+            include: { segment: true, variant: true },
+            orderBy: { netRevenueLiftCents: "desc" }
+          }
+        }
       });
     }
   } catch (error) {
@@ -65,6 +75,11 @@ export default async function PricingSimulationsPage() {
                 <div className="card"><p className="small">Revenue lift</p><div className="kpi">{money(latestRun.netRevenueLiftCents)}</div></div>
                 <div className="card"><p className="small">Confidence</p><div className="kpi">{(latestRun.confidence * 100).toFixed(0)}%</div></div>
                 <div className="card"><p className="small">Holdout</p><div className="kpi">{latestRun.holdoutHealth}</div></div>
+              </div>
+            ) : null}
+            {latestRun?.segmentResults.length ? (
+              <div style={{ marginTop: 14 }}>
+                <PricingSimulationVisuals run={latestRun} />
               </div>
             ) : null}
           </>

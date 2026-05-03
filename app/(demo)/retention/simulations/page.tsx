@@ -1,8 +1,10 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
 import { RetentionRunButton } from "@/components/retention/RetentionRunButton";
+import { RetentionSimulationVisuals } from "@/components/retention/RetentionSimulationVisuals";
 import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +15,23 @@ function money(cents: number) {
 
 export default async function RetentionSimulationsPage() {
   let ready = false;
-  let latestRun: Awaited<ReturnType<typeof db.retentionRiskRun.findFirst>> = null;
+  let latestRun: Prisma.RetentionRiskRunGetPayload<{
+    include: { rows: { include: { account: true; playbook: true } } };
+  }> | null = null;
   try {
     const [accounts, playbooks, policy, run] = await Promise.all([
       db.retentionAccount.count(),
       db.retentionPlaybook.count(),
       db.retentionPolicy.count(),
-      db.retentionRiskRun.findFirst({ orderBy: { createdAt: "desc" } })
+      db.retentionRiskRun.findFirst({
+        orderBy: { createdAt: "desc" },
+        include: {
+          rows: {
+            include: { account: true, playbook: true },
+            orderBy: { riskScore: "desc" }
+          }
+        }
+      })
     ]);
     ready = accounts > 0 && playbooks > 0 && policy > 0;
     latestRun = run;
@@ -61,6 +73,11 @@ export default async function RetentionSimulationsPage() {
                 <div className="card"><p className="small">High-risk accounts</p><div className="kpi">{latestRun.highRiskAccounts}</div></div>
                 <div className="card"><p className="small">Expected saved</p><div className="kpi">{money(latestRun.expectedSavedRevenueCents)}</div></div>
                 <div className="card"><p className="small">Payback</p><div className="kpi">{latestRun.paybackRatio.toFixed(1)}x</div></div>
+              </div>
+            ) : null}
+            {latestRun?.rows.length ? (
+              <div style={{ marginTop: 14 }}>
+                <RetentionSimulationVisuals rows={latestRun.rows} />
               </div>
             ) : null}
           </>
