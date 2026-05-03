@@ -308,6 +308,7 @@ section { padding: 36px 0; border-bottom: 1px solid var(--line); }
 }
 .featuredProjectCard .ctaRow {
   margin-top: 14px;
+  align-self: end;
 }
 .kpi { font-size: 36px; line-height: 1; margin-bottom: 8px; }
 .ctaRow { display:flex; gap:12px; flex-wrap:wrap; margin-top: 18px; }
