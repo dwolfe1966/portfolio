@@ -44,7 +44,7 @@ export function AcquisitionOperatorControls({
   const [minLtvCacRatio, setMinLtvCacRatio] = useState(initialMinLtvCacRatio);
   const [approvalCapPct, setApprovalCapPct] = useState(initialApprovalCapPct);
   const [cellId, setCellId] = useState(cellOptions[0]?.id ?? "");
-  const [budgetCents, setBudgetCents] = useState(cellOptions[0]?.budgetCents ?? 0);
+  const [budgetDollars, setBudgetDollars] = useState((cellOptions[0]?.budgetCents ?? 0) / 100);
   const [status, setStatus] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
@@ -83,7 +83,11 @@ export function AcquisitionOperatorControls({
       const response = await fetch(`/api/acquisition/campaigns/${campaignId}/overrides`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "lock_cell_budget", testCellId: cellId, budgetCents })
+        body: JSON.stringify({
+          action: "lock_cell_budget",
+          testCellId: cellId,
+          budgetCents: Math.round(budgetDollars * 100)
+        })
       });
       const payload = await response.json();
       setStatus(payload.ok ? "Cell budget override applied." : readErrorMessage(payload, "Override failed."));
@@ -162,15 +166,22 @@ export function AcquisitionOperatorControls({
       <div className="grid grid-2">
         <label>
           Test cell
-          <select value={cellId} onChange={(e) => setCellId(e.target.value)}>
+          <select
+            value={cellId}
+            onChange={(e) => {
+              setCellId(e.target.value);
+              const selected = cellOptions.find((cell) => cell.id === e.target.value);
+              if (selected) setBudgetDollars(selected.budgetCents / 100);
+            }}
+          >
             {cellOptions.map((cell) => (
               <option key={cell.id} value={cell.id}>{cell.label}</option>
             ))}
           </select>
         </label>
         <label>
-          Override budget (cents)
-          <input type="number" min={0} value={budgetCents} onChange={(e) => setBudgetCents(Number(e.target.value || 0))} />
+          Override budget ($)
+          <input type="number" min={0} step={1} value={budgetDollars} onChange={(e) => setBudgetDollars(Number(e.target.value || 0))} />
         </label>
       </div>
 

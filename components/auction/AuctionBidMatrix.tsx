@@ -20,9 +20,9 @@ export function AuctionBidMatrix({
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Local snapshot of bids — keyed by `${advertiserId}:${slotId}`.
+  // Local snapshot of bid dollars keyed by `${advertiserId}:${slotId}`.
   const initial: Record<string, number> = {};
-  for (const b of bids) initial[`${b.advertiserId}:${b.slotId}`] = b.bidCents;
+  for (const b of bids) initial[`${b.advertiserId}:${b.slotId}`] = b.bidCents / 100;
   const [values, setValues] = useState<Record<string, number>>(initial);
 
   function key(advId: string, slotId: string) {
@@ -38,7 +38,7 @@ export function AuctionBidMatrix({
       const response = await fetch("/api/auction/bids", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ advertiserId: advId, slotId, bidCents: Math.round(value) })
+        body: JSON.stringify({ advertiserId: advId, slotId, bidCents: Math.round(value * 100) })
       });
       const json = await response.json();
       if (!json.ok) {
@@ -64,7 +64,7 @@ export function AuctionBidMatrix({
 
   return (
     <div className="card" style={{ overflowX: "auto" }}>
-      <h3>Bids (cents per impression)</h3>
+      <h3>Bids ($ per impression)</h3>
       <p className="small">
         Each cell is one advertiser&apos;s bid for one slot. Bids below a slot&apos;s reserve are
         automatically excluded at clearing time. Edit a value and tab away (or click another cell)
@@ -94,7 +94,7 @@ export function AuctionBidMatrix({
                     <input
                       type="number"
                       min={0}
-                      step={1}
+                      step={0.01}
                       value={value}
                       onChange={(e) =>
                         setValues((prev) => ({ ...prev, [k]: Number(e.target.value || 0) }))

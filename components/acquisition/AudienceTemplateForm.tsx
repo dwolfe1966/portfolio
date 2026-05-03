@@ -9,19 +9,39 @@ export type AudienceTemplateFormInitial = {
   name: string;
   audienceType: string;
   description: string;
-  predictedCpcCents: number;
-  predictedCacCents: number;
+  predictedCpcDollars?: number;
+  predictedCacDollars?: number;
+  predictedCpcCents?: number;
+  predictedCacCents?: number;
   targetingJsonString: string;
 };
 
-const BLANK: AudienceTemplateFormInitial = {
+type AudienceTemplateFormState = Omit<
+  AudienceTemplateFormInitial,
+  "predictedCpcDollars" | "predictedCacDollars" | "predictedCpcCents" | "predictedCacCents"
+> & {
+  predictedCpcDollars: number;
+  predictedCacDollars: number;
+};
+
+const BLANK: AudienceTemplateFormState = {
   name: "",
   audienceType: "lookalike",
   description: "",
-  predictedCpcCents: 300,
-  predictedCacCents: 14500,
+  predictedCpcDollars: 3,
+  predictedCacDollars: 145,
   targetingJsonString: '{\n  "seniority": ["director", "vp"],\n  "intent": "high"\n}'
 };
+
+function toDollarInitial(initial: AudienceTemplateFormInitial): AudienceTemplateFormState {
+  return {
+    ...initial,
+    predictedCpcDollars:
+      initial.predictedCpcDollars ?? ((initial.predictedCpcCents ?? 0) / 100),
+    predictedCacDollars:
+      initial.predictedCacDollars ?? ((initial.predictedCacCents ?? 0) / 100)
+  };
+}
 
 export function AudienceTemplateForm({
   initial = BLANK,
@@ -31,14 +51,14 @@ export function AudienceTemplateForm({
   mode: "create" | "edit";
 }) {
   const router = useRouter();
-  const [form, setForm] = useState(initial);
+  const [form, setForm] = useState(() => toDollarInitial(initial));
   const [status, setStatus] = useState<string>("");
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  function update<K extends keyof AudienceTemplateFormInitial>(
+  function update<K extends keyof AudienceTemplateFormState>(
     key: K,
-    value: AudienceTemplateFormInitial[K]
+    value: AudienceTemplateFormState[K]
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -53,8 +73,8 @@ export function AudienceTemplateForm({
       name: form.name,
       audienceType: form.audienceType,
       description: form.description,
-      predictedCpcCents: form.predictedCpcCents,
-      predictedCacCents: form.predictedCacCents,
+      predictedCpcCents: Math.round(form.predictedCpcDollars * 100),
+      predictedCacCents: Math.round(form.predictedCacDollars * 100),
       targetingJson: form.targetingJsonString
     };
 
@@ -136,23 +156,25 @@ export function AudienceTemplateForm({
           </select>
         </label>
         <label>
-          Predicted CPC (cents)
+          Predicted CPC ($)
           <input
             type="number"
             min={0}
-            max={50000}
-            value={form.predictedCpcCents}
-            onChange={(e) => update("predictedCpcCents", Number(e.target.value || 0))}
+            max={500}
+            step={0.01}
+            value={form.predictedCpcDollars}
+            onChange={(e) => update("predictedCpcDollars", Number(e.target.value || 0))}
           />
         </label>
         <label>
-          Predicted CAC (cents)
+          Predicted CAC ($)
           <input
             type="number"
             min={0}
-            max={500000}
-            value={form.predictedCacCents}
-            onChange={(e) => update("predictedCacCents", Number(e.target.value || 0))}
+            max={5000}
+            step={1}
+            value={form.predictedCacDollars}
+            onChange={(e) => update("predictedCacDollars", Number(e.target.value || 0))}
           />
         </label>
       </div>

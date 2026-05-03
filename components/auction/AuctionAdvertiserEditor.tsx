@@ -17,19 +17,19 @@ type Advertiser = {
 type FormState = {
   name: string;
   qualityScore: number;
-  dailyBudgetCents: number;
+  dailyBudgetDollars: number;
   smoothingFactor: number;
   behaviorMode: "truthful" | "shaded" | "auto_bid";
-  targetCacCents: number | null;
+  targetCacDollars: number | null;
 };
 
 const BLANK: FormState = {
   name: "",
   qualityScore: 0.7,
-  dailyBudgetCents: 50000,
+  dailyBudgetDollars: 500,
   smoothingFactor: 0.5,
   behaviorMode: "truthful",
-  targetCacCents: null
+  targetCacDollars: null
 };
 
 export function AuctionAdvertiserEditor({ advertisers }: { advertisers: Advertiser[] }) {
@@ -55,10 +55,10 @@ export function AuctionAdvertiserEditor({ advertisers }: { advertisers: Advertis
     setForm({
       name: adv.name,
       qualityScore: adv.qualityScore,
-      dailyBudgetCents: adv.dailyBudgetCents,
+      dailyBudgetDollars: adv.dailyBudgetCents / 100,
       smoothingFactor: adv.smoothingFactor,
       behaviorMode: adv.behaviorMode as FormState["behaviorMode"],
-      targetCacCents: adv.targetCacCents
+      targetCacDollars: adv.targetCacCents == null ? null : adv.targetCacCents / 100
     });
     setErrors([]);
   }
@@ -68,7 +68,15 @@ export function AuctionAdvertiserEditor({ advertisers }: { advertisers: Advertis
     setLoading(true);
     setStatus("");
     setErrors([]);
-    const payload = { ...form };
+    const payload = {
+      name: form.name,
+      qualityScore: form.qualityScore,
+      dailyBudgetCents: Math.round(form.dailyBudgetDollars * 100),
+      smoothingFactor: form.smoothingFactor,
+      behaviorMode: form.behaviorMode,
+      targetCacCents:
+        form.targetCacDollars == null ? null : Math.round(form.targetCacDollars * 100)
+    };
     try {
       const url = editingId
         ? `/api/auction/advertisers/${editingId}`
@@ -121,8 +129,8 @@ export function AuctionAdvertiserEditor({ advertisers }: { advertisers: Advertis
             <input type="number" min={0.01} max={1} step={0.01} value={form.qualityScore} onChange={(e) => update("qualityScore", Number(e.target.value || 0))} />
           </label>
           <label>
-            Daily budget (cents)
-            <input type="number" min={0} value={form.dailyBudgetCents} onChange={(e) => update("dailyBudgetCents", Number(e.target.value || 0))} />
+            Daily budget ($)
+            <input type="number" min={0} step={1} value={form.dailyBudgetDollars} onChange={(e) => update("dailyBudgetDollars", Number(e.target.value || 0))} />
           </label>
           <label>
             Pacing smoothing (0.01–1)
@@ -138,8 +146,8 @@ export function AuctionAdvertiserEditor({ advertisers }: { advertisers: Advertis
           </label>
           {form.behaviorMode === "auto_bid" ? (
             <label>
-              Target CAC (cents)
-              <input type="number" min={0} value={form.targetCacCents ?? 0} onChange={(e) => update("targetCacCents", Number(e.target.value || 0))} />
+              Target CAC ($)
+              <input type="number" min={0} step={1} value={form.targetCacDollars ?? 0} onChange={(e) => update("targetCacDollars", Number(e.target.value || 0))} />
             </label>
           ) : null}
         </div>

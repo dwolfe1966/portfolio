@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
@@ -22,6 +23,7 @@ const experienceHighlights = [
   {
     company: "Goldbelly",
     logo: "Goldbelly",
+    logoSrc: "https://www.google.com/s2/favicons?domain=goldbelly.com&sz=128",
     role: "Head of Growth and Chief Product Officer",
     context: "National food ecommerce marketplace",
     evidence: "Growth, product, marketplace, and customer-acquisition work in a consumer commerce business with supply, demand, and operational complexity."
@@ -29,6 +31,7 @@ const experienceHighlights = [
   {
     company: "Napster",
     logo: "napster",
+    logoSrc: "https://www.google.com/s2/favicons?domain=napster.com&sz=128",
     role: "Chief Technology Officer",
     context: "Subscription media and music technology",
     evidence: "Product and technology leadership across web, mobile, API, and product-development operating model during the Best Buy acquisition period."
@@ -36,6 +39,7 @@ const experienceHighlights = [
   {
     company: "MyLife / Reunion.com",
     logo: "MyLife",
+    logoSrc: "https://www.google.com/s2/favicons?domain=mylife.com&sz=128",
     role: "Product and technology executive",
     context: "Consumer identity, social graph, and subscription product",
     evidence: "Roadmap, product, and technology leadership in a high-scale consumer subscription environment."
@@ -43,6 +47,7 @@ const experienceHighlights = [
   {
     company: "BuyWithMe",
     logo: "BuyWithMe",
+    logoSrc: "https://www.google.com/s2/favicons?domain=buywithme.com&sz=128",
     role: "Chief Product Officer / COO",
     context: "Local commerce and marketplace operations",
     evidence: "Led product, marketing, design, and engineering functions in a daily-deal marketplace operating environment."
@@ -50,6 +55,7 @@ const experienceHighlights = [
   {
     company: "Interactive One / Radio One",
     logo: "Interactive One",
+    logoSrc: "https://www.google.com/s2/favicons?domain=interactiveone.com&sz=128",
     role: "Chief Product and Operating Officer",
     context: "Digital media, community, and advertising platform",
     evidence: "Product and operations leadership across media sites, community products, advertising systems, and broadcast-linked digital properties."
@@ -57,6 +63,7 @@ const experienceHighlights = [
   {
     company: "Propel Media",
     logo: "Propel Media",
+    logoSrc: "https://www.google.com/s2/favicons?domain=propelmedia.com&sz=128",
     role: "Product, technology, and growth leadership",
     context: "Computational advertising and marketplace systems",
     evidence: "Marketplace design, machine-learning, product, and growth work in paid media and performance advertising."
@@ -121,7 +128,13 @@ export default function AboutPage() {
             <div className="experienceCard" key={item.company}>
               <div>
                 <div className="experienceLogo" aria-label={`${item.company} logo`}>
-                  {item.logo}
+                  <Image
+                    src={item.logoSrc}
+                    alt={`${item.company} logo`}
+                    width={140}
+                    height={38}
+                    unoptimized
+                  />
                 </div>
                 <p className="small">{item.context}</p>
                 <h3>{item.company}</h3>

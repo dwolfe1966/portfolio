@@ -314,7 +314,7 @@ export function AuctionBidVisualizer({ runId }: { runId: string }) {
             })}
         </div>
         <div className="small" style={{ marginTop: 8, color: "var(--demo-text-muted, #5a6371)" }}>
-          Bar width = effective bid (cents). Dashed line = reserve. Solid white tick on winner = clearing price.
+          Bar width = effective bid. Dashed line = reserve. Solid white tick on winner = clearing price.
           Cumulative metrics tick up as auctions stream; winner bars pulse green on each clear.
         </div>
       </div>

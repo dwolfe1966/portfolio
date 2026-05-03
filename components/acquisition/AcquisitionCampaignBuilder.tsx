@@ -18,9 +18,9 @@ const DEFAULT_CHANNELS: Channel[] = ["SEARCH", "SOCIAL"];
 export function AcquisitionCampaignBuilder() {
   const [name, setName] = useState("May paid growth sprint");
   const [objective, setObjective] = useState("Increase qualified demo requests");
-  const [budgetCents, setBudgetCents] = useState(250000);
-  const [targetCacCents, setTargetCacCents] = useState(14500);
-  const [targetLtvCents, setTargetLtvCents] = useState(72000);
+  const [budgetDollars, setBudgetDollars] = useState(2500);
+  const [targetCacDollars, setTargetCacDollars] = useState(145);
+  const [targetLtvDollars, setTargetLtvDollars] = useState(720);
   const [maxBudgetShiftPct, setMaxBudgetShiftPct] = useState(0.2);
   const [minConfidence, setMinConfidence] = useState(0.65);
   const [cooldownHours, setCooldownHours] = useState(24);
@@ -91,12 +91,12 @@ export function AcquisitionCampaignBuilder() {
         body: JSON.stringify({
           name,
           objective,
-          budgetCents,
+          budgetCents: Math.round(budgetDollars * 100),
           startAt,
           endAt,
           channels,
-          targetCacCents,
-          targetLtvCents,
+          targetCacCents: Math.round(targetCacDollars * 100),
+          targetLtvCents: Math.round(targetLtvDollars * 100),
           maxBudgetShiftPct,
           minConfidence,
           cooldownHours,
@@ -135,16 +135,16 @@ export function AcquisitionCampaignBuilder() {
 
       <div className="grid grid-2">
         <label>
-          Budget (cents)
-          <input type="number" min={5000} value={budgetCents} onChange={(event) => setBudgetCents(Number(event.target.value))} />
+          Budget ($)
+          <input type="number" min={50} step={1} value={budgetDollars} onChange={(event) => setBudgetDollars(Number(event.target.value))} />
         </label>
         <label>
-          Target CAC (cents)
-          <input type="number" min={1000} value={targetCacCents} onChange={(event) => setTargetCacCents(Number(event.target.value))} />
+          Target CAC ($)
+          <input type="number" min={10} step={1} value={targetCacDollars} onChange={(event) => setTargetCacDollars(Number(event.target.value))} />
         </label>
         <label>
-          Target LTV (cents)
-          <input type="number" min={1000} value={targetLtvCents} onChange={(event) => setTargetLtvCents(Number(event.target.value))} />
+          Target LTV ($)
+          <input type="number" min={10} step={1} value={targetLtvDollars} onChange={(event) => setTargetLtvDollars(Number(event.target.value))} />
         </label>
         <label>
           Max budget shift %

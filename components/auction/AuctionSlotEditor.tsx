@@ -13,11 +13,11 @@ type Slot = {
 
 type FormState = {
   name: string;
-  reservePriceCents: number;
+  reservePriceDollars: number;
   expectedDailyVolume: number;
 };
 
-const BLANK: FormState = { name: "", reservePriceCents: 200, expectedDailyVolume: 100 };
+const BLANK: FormState = { name: "", reservePriceDollars: 2, expectedDailyVolume: 100 };
 
 export function AuctionSlotEditor({ slots }: { slots: Slot[] }) {
   const router = useRouter();
@@ -41,7 +41,7 @@ export function AuctionSlotEditor({ slots }: { slots: Slot[] }) {
     setEditingId(slot.id);
     setForm({
       name: slot.name,
-      reservePriceCents: slot.reservePriceCents,
+      reservePriceDollars: slot.reservePriceCents / 100,
       expectedDailyVolume: slot.expectedDailyVolume
     });
     setErrors([]);
@@ -55,10 +55,15 @@ export function AuctionSlotEditor({ slots }: { slots: Slot[] }) {
     try {
       const url = editingId ? `/api/auction/slots/${editingId}` : "/api/auction/slots";
       const method = editingId ? "PATCH" : "POST";
+      const payload = {
+        name: form.name,
+        reservePriceCents: Math.round(form.reservePriceDollars * 100),
+        expectedDailyVolume: form.expectedDailyVolume
+      };
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify(payload)
       });
       const json = await response.json();
       if (!json.ok) {
@@ -98,8 +103,8 @@ export function AuctionSlotEditor({ slots }: { slots: Slot[] }) {
             <input value={form.name} onChange={(e) => update("name", e.target.value)} maxLength={80} />
           </label>
           <label>
-            Reserve price (cents)
-            <input type="number" min={0} value={form.reservePriceCents} onChange={(e) => update("reservePriceCents", Number(e.target.value || 0))} />
+            Reserve price ($)
+            <input type="number" min={0} step={0.01} value={form.reservePriceDollars} onChange={(e) => update("reservePriceDollars", Number(e.target.value || 0))} />
           </label>
           <label>
             Expected daily volume

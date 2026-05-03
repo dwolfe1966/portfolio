@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { SiteLogo } from "@/components/site/SiteLogo";
 
 const links = [
   { href: "/", label: "Home" },
@@ -17,7 +18,7 @@ export function NavBar() {
   return (
     <nav className="siteNav" aria-label="Main navigation">
       <Link href="/" className="siteBrand" onClick={() => setOpen(false)}>
-        <strong>David Wolfe</strong>
+        <SiteLogo />
       </Link>
 
       <button
