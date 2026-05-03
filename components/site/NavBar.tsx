@@ -28,7 +28,9 @@ export function NavBar() {
         aria-label="Toggle navigation menu"
         onClick={() => setOpen((value) => !value)}
       >
-        ☰
+        <span />
+        <span />
+        <span />
       </button>
 
       <div id="primary-links" className={`links ${open ? "open" : ""}`}>
