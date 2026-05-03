@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { RetentionSimulationVisuals } from "@/components/retention/RetentionSimulationVisuals";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ export default async function RetentionOutputsPage() {
               <div className="card"><p className="small">Save rate</p><div className="kpi">{Math.round(run.saveRate * 100)}%</div></div>
               <div className="card"><p className="small">Payback</p><div className="kpi">{run.paybackRatio.toFixed(1)}x</div></div>
             </div>
+          </Section>
+          <Section title="Simulation visualization">
+            <RetentionSimulationVisuals rows={run.rows} />
           </Section>
           <Section title="Account recommendations">
             <div className="grid grid-2">

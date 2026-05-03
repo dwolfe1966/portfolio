@@ -35,12 +35,12 @@ export default async function ExpansionOverviewPage() {
         </div>
       </Section>
 
-      <Section title="Operating loop">
-        <div className="grid grid-4">
-          <div className="card"><h3>1. Signals</h3><p>Use seat utilization, usage growth, product qualification, renewal timing, and support health.</p></div>
-          <div className="card"><h3>2. Readiness</h3><p>Score account expansion readiness and classify pursue, nurture, or defer paths.</p></div>
-          <div className="card"><h3>3. Motion</h3><p>Recommend seat expansion, feature upgrade, usage commit, or services attach.</p></div>
-          <div className="card"><h3>4. Economics</h3><p>Track expected expansion ARR, gross margin, pursuit cost, and payback.</p></div>
+      <Section title="Whitespace planning loop">
+        <div className="expansionProcessMap">
+          <div><span>01</span><strong>Installed base</strong><p>Start from ARR, seat coverage, product adoption, renewal timing, and sponsor access.</p></div>
+          <div><span>02</span><strong>Whitespace map</strong><p>Identify whether the next dollar comes from seats, features, usage commits, or services.</p></div>
+          <div><span>03</span><strong>Commercial lane</strong><p>Route each account into pursue now, sequence next, or defer based on payback and margin.</p></div>
+          <div><span>04</span><strong>Expansion portfolio</strong><p>Roll up expected ARR, payback, and motion mix across the account base.</p></div>
         </div>
       </Section>
 

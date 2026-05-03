@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
+import { ExpansionPipelineBoard } from "@/components/expansion/ExpansionPipelineBoard";
 
 export const dynamic = "force-dynamic";
 
@@ -38,14 +39,18 @@ export default async function ExpansionOutputsPage() {
               <div className="card"><p className="small">Payback</p><div className="kpi">{run.paybackRatio.toFixed(1)}x</div></div>
             </div>
           </Section>
-          <Section title="Account recommendations">
-            <div className="grid grid-2">
-              {run.rows.map((row) => (
-                <div className="card" key={row.id}>
-                  <p className="eyebrow">{row.readinessBand} readiness · {row.decision}</p>
-                  <h3>{row.account.name}</h3>
-                  <p className="small">Motion: {row.primaryMotion} · Offer: {row.offer?.name ?? "No offer"}</p>
-                  <p className="small">Expected ARR: {money(row.expectedExpansionArrCents)} · Cost: {money(row.pursuitCostCents)} · Payback: {row.paybackRatio.toFixed(1)}x</p>
+          <Section title="Commercial lane board">
+            <ExpansionPipelineBoard rows={run.rows} />
+          </Section>
+          <Section title="Motion mix">
+            <div className="expansionMotionGrid">
+              {Object.entries(run.rows.reduce<Record<string, number>>((acc, row) => {
+                acc[row.primaryMotion] = (acc[row.primaryMotion] ?? 0) + row.expectedExpansionArrCents;
+                return acc;
+              }, {})).map(([motion, arr]) => (
+                <div className="card" key={motion}>
+                  <p className="eyebrow">{motion}</p>
+                  <div className="kpi">{money(arr)}</div>
                 </div>
               ))}
             </div>

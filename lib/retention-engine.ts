@@ -73,6 +73,16 @@ function round4(value: number) {
   return Math.round(value * 10000) / 10000;
 }
 
+function finiteNumber(value: unknown, fallback: number, min: number, max: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return clamp(parsed, min, max);
+}
+
+function finiteInteger(value: unknown, fallback: number, min: number, max: number) {
+  return Math.round(finiteNumber(value, fallback, min, max));
+}
+
 function classifyRiskBand(score: number, policy?: Pick<RetentionPolicyInput, "highRiskThreshold" | "mediumRiskThreshold">): RetentionRiskBand {
   const high = policy?.highRiskThreshold ?? 0.72;
   const medium = policy?.mediumRiskThreshold ?? 0.46;
@@ -204,4 +214,76 @@ export function validateRetentionInterventionInput(raw: unknown): { ok: true; va
   if (rationale.length < 6) errors.push("rationale must be at least 6 characters");
   if (errors.length) return { ok: false, errors };
   return { ok: true, value: { accountId, playbookId, status: status as RetentionInterventionStatus, owner: owner.slice(0, 80), rationale: rationale.slice(0, 500) } };
+}
+
+export function validateRetentionAccountInput(raw: unknown): { ok: true; value: Omit<RetentionAccountInput, "id"> } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as Record<string, unknown>;
+  const name = String(body.name ?? "").trim();
+  const segment = String(body.segment ?? "").trim();
+  const healthTrend = String(body.healthTrend ?? "flat");
+  const allowedTrends: RetentionHealthTrend[] = ["improving", "flat", "declining"];
+  const errors: string[] = [];
+  if (name.length < 2) errors.push("name must be at least 2 characters");
+  if (segment.length < 2) errors.push("segment must be at least 2 characters");
+  if (!allowedTrends.includes(healthTrend as RetentionHealthTrend)) errors.push("healthTrend must be improving, flat, or declining");
+  if (errors.length) return { ok: false, errors };
+  return {
+    ok: true,
+    value: {
+      name: name.slice(0, 120),
+      segment: segment.slice(0, 80),
+      mrrCents: finiteInteger(body.mrrCents, 0, 0, 5_000_000),
+      usageScore: round4(finiteNumber(body.usageScore, 0.5, 0, 1)),
+      supportTicketCount: finiteInteger(body.supportTicketCount, 0, 0, 50),
+      npsScore: finiteInteger(body.npsScore, 0, -100, 100),
+      renewalDays: finiteInteger(body.renewalDays, 90, 0, 730),
+      paymentRiskScore: round4(finiteNumber(body.paymentRiskScore, 0, 0, 1)),
+      executiveSponsor: Boolean(body.executiveSponsor),
+      lastTouchedDays: finiteInteger(body.lastTouchedDays, 30, 0, 365),
+      healthTrend: healthTrend as RetentionHealthTrend
+    }
+  };
+}
+
+export function validateRetentionPlaybookInput(raw: unknown): { ok: true; value: Omit<RetentionPlaybookInput, "id"> } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as Record<string, unknown>;
+  const name = String(body.name ?? "").trim();
+  const riskDriver = String(body.riskDriver ?? "usage");
+  const allowedDrivers: RetentionRiskDriver[] = ["usage", "support", "commercial", "relationship", "billing"];
+  const errors: string[] = [];
+  if (name.length < 2) errors.push("name must be at least 2 characters");
+  if (!allowedDrivers.includes(riskDriver as RetentionRiskDriver)) errors.push("riskDriver must be usage, support, commercial, relationship, or billing");
+  if (errors.length) return { ok: false, errors };
+  return {
+    ok: true,
+    value: {
+      name: name.slice(0, 120),
+      riskDriver: riskDriver as RetentionRiskDriver,
+      saveRateLift: round4(finiteNumber(body.saveRateLift, 0.1, 0, 0.8)),
+      costCents: finiteInteger(body.costCents, 0, 0, 1_000_000),
+      maxDiscountPct: round4(finiteNumber(body.maxDiscountPct, 0, 0, 0.5)),
+      slaHours: finiteInteger(body.slaHours, 24, 1, 720)
+    }
+  };
+}
+
+export function validateRetentionPolicyInput(raw: unknown): { ok: true; value: Omit<RetentionPolicyInput, "id"> & { name: string } } | { ok: false; errors: string[] } {
+  const body = (raw ?? {}) as Record<string, unknown>;
+  const name = String(body.name ?? "Retention policy").trim() || "Retention policy";
+  const highRiskThreshold = round4(finiteNumber(body.highRiskThreshold, 0.72, 0, 1));
+  const mediumRiskThreshold = round4(finiteNumber(body.mediumRiskThreshold, 0.46, 0, 1));
+  const errors: string[] = [];
+  if (mediumRiskThreshold >= highRiskThreshold) errors.push("mediumRiskThreshold must be below highRiskThreshold");
+  if (errors.length) return { ok: false, errors };
+  return {
+    ok: true,
+    value: {
+      name: name.slice(0, 120),
+      highRiskThreshold,
+      mediumRiskThreshold,
+      maxDiscountPct: round4(finiteNumber(body.maxDiscountPct, 0.1, 0, 0.5)),
+      minPaybackRatio: round4(finiteNumber(body.minPaybackRatio, 2.5, 0, 20)),
+      slaHoursHighRisk: finiteInteger(body.slaHoursHighRisk, 24, 1, 240)
+    }
+  };
 }

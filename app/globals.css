@@ -610,6 +610,149 @@ button {
   color: #9ca3af;
   margin: 0;
 }
+.retentionEditorCard {
+  display: grid;
+  gap: 10px;
+}
+.retentionVizGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  gap: 12px;
+}
+.retentionVizPanel {
+  min-height: 260px;
+}
+.retentionBarStack {
+  display: grid;
+  gap: 10px;
+}
+.retentionBarRow {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(120px, 1fr) 82px;
+  gap: 10px;
+  align-items: center;
+}
+.retentionBarRow strong,
+.retentionBarRow span,
+.retentionBarRow em {
+  display: block;
+  font-size: 12px;
+}
+.retentionBarRow span,
+.retentionBarRow em {
+  color: var(--demo-text-muted);
+  font-style: normal;
+}
+.retentionBarTrack {
+  height: 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+.retentionBarTrack i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f766e, #2563eb);
+}
+.retentionDriverList {
+  display: grid;
+  gap: 9px;
+}
+.retentionDriverItem {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 6px;
+  background: #ffffff;
+}
+.retentionDriverItem span,
+.retentionDriverItem strong,
+.retentionDriverItem em {
+  font-size: 12px;
+  font-style: normal;
+}
+.expansionProcessMap {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--demo-divider);
+  background: #111827;
+  color: #f8fafc;
+}
+.expansionProcessMap div {
+  min-height: 190px;
+  padding: 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+}
+.expansionProcessMap div:last-child {
+  border-right: 0;
+}
+.expansionProcessMap span {
+  display: block;
+  font-family: var(--demo-mono);
+  font-size: 11px;
+  color: #93c5fd;
+  margin-bottom: 34px;
+}
+.expansionProcessMap strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.expansionProcessMap p {
+  color: #cbd5e1;
+}
+.expansionBoard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.expansionLane {
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  background: #f8fafc;
+  overflow: hidden;
+}
+.expansionLaneHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: #111827;
+  color: #f8fafc;
+}
+.expansionLaneHead span,
+.expansionLaneHead strong {
+  font-size: 13px;
+}
+.expansionLaneStack {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+.expansionOpportunity {
+  border: 1px solid #d6dde8;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 10px;
+}
+.expansionOpportunityMetrics {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  font-family: var(--demo-mono);
+  font-size: 12px;
+}
+.expansionMotionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
 .demoAppShellMain {
   display: flex;
   flex-direction: column;
@@ -882,6 +1025,13 @@ button {
   .heroSystemGrid { grid-template-columns: 1fr; }
   .heroPanelLarge { grid-row: auto; }
   .signalStrip { grid-template-columns: 1fr; }
+  .retentionVizGrid,
+  .retentionBarRow,
+  .expansionProcessMap,
+  .expansionBoard,
+  .expansionMotionGrid { grid-template-columns: 1fr; }
+  .expansionProcessMap div { border-right: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
+  .expansionProcessMap div:last-child { border-bottom: 0; }
   h1 { font-size: 42px; }
   .siteHeader { z-index: 100; }
   .siteNav {

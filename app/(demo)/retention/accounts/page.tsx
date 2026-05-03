@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { scoreRetentionRisk, type RetentionHealthTrend } from "@/lib/retention-engine";
+import { RetentionAccountEditor } from "@/components/retention/RetentionAccountEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +25,9 @@ export default async function RetentionAccountsPage() {
   return (
     <>
       <Section eyebrow="Accounts" title="Account health signal table">
-        <p>Seeded accounts expose the raw inputs behind the risk score so the model remains inspectable.</p>
+        <p>Every account signal is editable, so changes to usage, support, NPS, billing, renewal timing, and relationship coverage flow into the next simulation run.</p>
       </Section>
-      <Section title="Risk queue">
+      <Section title="Live risk readout">
         <div className="grid grid-2">
           {accounts.map((account) => {
             const score = scoreRetentionRisk({ ...account, healthTrend: account.healthTrend as RetentionHealthTrend }, policy ?? undefined);
@@ -43,6 +44,13 @@ export default async function RetentionAccountsPage() {
               </div>
             );
           })}
+        </div>
+      </Section>
+      <Section title="Editable account inputs">
+        <div className="grid grid-2">
+          {accounts.map((account) => (
+            <RetentionAccountEditor key={account.id} account={account} />
+          ))}
         </div>
       </Section>
     </>

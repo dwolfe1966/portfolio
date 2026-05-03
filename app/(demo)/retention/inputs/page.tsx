@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { RetentionPlaybookEditor } from "@/components/retention/RetentionPlaybookEditor";
+import { RetentionPolicyEditor } from "@/components/retention/RetentionPolicyEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -23,33 +25,24 @@ export default async function RetentionInputsPage() {
   return (
     <>
       <Section eyebrow="Inputs" title="Risk policy and intervention playbooks">
-        <p>Inputs define how the operator classifies risk, controls discount exposure, and selects save motions by risk driver.</p>
+        <p>Inputs are editable so the operator can tune risk thresholds, save economics, discount exposure, and SLA expectations before running the simulation.</p>
       </Section>
 
-      <Section title="Policy">
+      <Section title="Editable policy">
         {policy ? (
-          <div className="grid grid-4">
-            <div className="card"><p className="small">High risk threshold</p><div className="kpi">{pct(policy.highRiskThreshold)}</div></div>
-            <div className="card"><p className="small">Medium risk threshold</p><div className="kpi">{pct(policy.mediumRiskThreshold)}</div></div>
-            <div className="card"><p className="small">Max discount</p><div className="kpi">{pct(policy.maxDiscountPct)}</div></div>
-            <div className="card"><p className="small">Min payback</p><div className="kpi">{policy.minPaybackRatio.toFixed(1)}x</div></div>
-          </div>
+          <RetentionPolicyEditor policy={policy} />
         ) : (
           <div className="card"><p>No retention policy found. Reset demo data from Overview.</p></div>
         )}
       </Section>
 
-      <Section title="Playbooks">
+      <Section title="Editable playbooks">
         <div className="grid grid-3">
           {playbooks.map((playbook) => (
-            <div className="card" key={playbook.id}>
-              <p className="eyebrow">{playbook.riskDriver}</p>
-              <h3>{playbook.name}</h3>
-              <p className="small">Save-rate lift: {pct(playbook.saveRateLift)} · Cost: ${(playbook.costCents / 100).toLocaleString()} · SLA: {playbook.slaHours}h</p>
-              <p className="small">Discount ceiling: {pct(playbook.maxDiscountPct)}</p>
-            </div>
+            <RetentionPlaybookEditor key={playbook.id} playbook={playbook} />
           ))}
         </div>
+        <p className="small">Current ranges: save-rate lift {playbooks.map((p) => pct(p.saveRateLift)).join(", ")}.</p>
       </Section>
     </>
   );
