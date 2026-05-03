@@ -161,8 +161,8 @@ export default function HomePage() {
               <div className="featuredProjectCopy">
                 <h3>{project.title}</h3>
                 <p>{project.detail}</p>
-                <p className="small"><em>{project.impact}</em></p>
               </div>
+              <p className="small featuredProjectImpact"><em>{project.impact}</em></p>
               <div className="featuredProjectDemo">
                 <DemoAppLaunchCard app={project.demoApp} href={project.appHref} />
               </div>
