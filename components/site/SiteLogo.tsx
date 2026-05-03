@@ -1,10 +1,16 @@
+import Image from "next/image";
+
 export function SiteLogo() {
   return (
     <span className="siteLogo" aria-label="David Wolfe">
-      <span className="siteLogoMark" aria-hidden="true">
-        <span>D</span>
-        <span>W</span>
-      </span>
+      <Image
+        className="siteLogoImage"
+        src="/logo/dwlogo.png"
+        alt=""
+        width={44}
+        height={44}
+        priority
+      />
       <span className="siteLogoWord">
         David Wolfe
       </span>
