@@ -1583,24 +1583,34 @@ button {
   }
   .siteNav .links a:hover { background: #f3f4f6; }
   .navCta { display: none; }
-  .demoAppShell { grid-template-columns: 1fr; min-height: 0; }
+  .demoAppShell {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    overflow: visible;
+    padding-top: 52px;
+  }
   .demoSideNav {
-    position: sticky;
+    position: fixed;
     top: 0;
-    z-index: 100;
+    left: 0;
+    right: 0;
+    z-index: 120;
     border-right: 0;
     border-bottom: 1px solid var(--demo-divider);
     padding: 8px 10px;
     min-height: 52px;
+    box-shadow: 0 16px 40px -30px rgba(2, 6, 23, 0.8);
   }
   .demoSideNavBrand { flex-direction: row; align-items: center; padding: 0; border-bottom: 0; }
   .demoSideNavToggle { display: inline-flex; }
   .demoSideNavBody {
     display: none;
-    position: absolute;
-    top: calc(100% + 8px);
+    position: fixed;
+    top: 60px;
     right: 10px;
     width: min(280px, calc(100vw - 20px));
+    max-height: calc(100vh - 72px);
+    overflow: auto;
     padding: 8px;
     border: 1px solid var(--demo-divider);
     border-radius: 8px;
