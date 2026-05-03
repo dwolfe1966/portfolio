@@ -7,6 +7,10 @@ import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual
 
 export const dynamic = "force-dynamic";
 
+function money(cents: number) {
+  return `$${Math.round(cents / 100).toLocaleString()}`;
+}
+
 export default async function RetentionSimulationsPage() {
   let ready = false;
   let latestRun: Awaited<ReturnType<typeof db.retentionRiskRun.findFirst>> = null;
@@ -27,6 +31,22 @@ export default async function RetentionSimulationsPage() {
     <>
       <Section eyebrow="Simulations" title="Run the retention portfolio risk model">
         <p>The simulation scores every account, assigns a driver-specific playbook, and persists save-rate economics.</p>
+        <div className="grid grid-3" style={{ marginTop: 14 }}>
+          <div className="card">
+            <h3>Inputs consumed</h3>
+            <p>Account health signals, MRR, renewal timing, payment risk, sponsor coverage, playbooks, policy thresholds, and payback floor.</p>
+            <Link className="btn" href="/retention/inputs">Review inputs</Link>
+          </div>
+          <div className="card">
+            <h3>Simulation logic</h3>
+            <p>Scores account risk, identifies the primary churn driver, chooses a playbook, and calculates save economics.</p>
+          </div>
+          <div className="card">
+            <h3>Outputs generated</h3>
+            <p>Portfolio risk run, account-level recommendations, preventable churn, expected saved revenue, and audit events.</p>
+            <Link className="btn" href="/retention/outputs">Open outputs</Link>
+          </div>
+        </div>
       </Section>
       <Section title="Intervention motion">
         <DemoAppMotionVisual app="retention" />
@@ -35,7 +55,14 @@ export default async function RetentionSimulationsPage() {
         {ready ? (
           <>
             <RetentionRunButton />
-            {latestRun ? <p className="small">Latest run: {latestRun.recommendation} · {latestRun.createdAt.toLocaleString()}</p> : null}
+            {latestRun ? (
+              <div className="grid grid-4" style={{ marginTop: 14 }}>
+                <div className="card"><p className="small">Latest recommendation</p><div className="kpi">{latestRun.recommendation}</div></div>
+                <div className="card"><p className="small">High-risk accounts</p><div className="kpi">{latestRun.highRiskAccounts}</div></div>
+                <div className="card"><p className="small">Expected saved</p><div className="kpi">{money(latestRun.expectedSavedRevenueCents)}</div></div>
+                <div className="card"><p className="small">Payback</p><div className="kpi">{latestRun.paybackRatio.toFixed(1)}x</div></div>
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="card"><p>No retention data found. Reset demo data from Overview.</p><Link className="btn" href="/retention/overview">Go to overview</Link></div>

@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function RetentionRunButton() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -14,7 +16,7 @@ export function RetentionRunButton() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error?.message ?? "Retention run failed");
       setMessage(`Recommendation: ${payload.simulation.recommendation}`);
-      window.location.reload();
+      router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Retention run failed");
     } finally {
@@ -23,13 +25,18 @@ export function RetentionRunButton() {
   }
 
   return (
-    <div className="card">
-      <h3>Risk scoring control</h3>
+    <div className="card editorCard">
+      <div className="editorHeader">
+        <h3>Risk scoring control</h3>
+        <p className="editorKicker">Portfolio run</p>
+      </div>
       <p className="small">Scores all seeded accounts, recommends playbooks, and persists portfolio economics to Outputs and Audit.</p>
-      <button type="button" onClick={runPortfolio} disabled={loading}>
-        {loading ? "Scoring..." : "Run retention risk model"}
-      </button>
-      {message ? <p className="small" style={{ marginTop: 8 }}>{message}</p> : null}
+      <div className="editorActions">
+        <button type="button" onClick={runPortfolio} disabled={loading}>
+          {loading ? "Scoring..." : "Run retention risk model"}
+        </button>
+        {message ? <p className="saveStatus">{message}</p> : null}
+      </div>
     </div>
   );
 }
