@@ -199,14 +199,16 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
         </Section>
 
         <Section title="Editable test cells">
-          <table className="table">
-            <thead><tr><th>Cell</th><th>Budget $</th><th>Impr.</th><th>Clicks</th><th>Conv.</th><th>Spend $</th><th>Revenue $</th><th>Score</th><th>Action</th></tr></thead>
-            <tbody>
-              {campaign.testCells.slice(0, 15).map((cell) => (
-                <AcquisitionTestCellEditor cell={cell} key={cell.id} />
-              ))}
-            </tbody>
-          </table>
+          <div className="tableScroll">
+            <table className="table editableTable">
+              <thead><tr><th>Cell</th><th>Budget $</th><th>Impr.</th><th>Clicks</th><th>Conv.</th><th>Spend $</th><th>Revenue $</th><th>Score</th><th>Action</th></tr></thead>
+              <tbody>
+                {campaign.testCells.slice(0, 15).map((cell) => (
+                  <AcquisitionTestCellEditor cell={cell} key={cell.id} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Section>
 
         <Section title="Recent budget activities">

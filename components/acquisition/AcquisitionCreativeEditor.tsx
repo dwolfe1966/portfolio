@@ -33,7 +33,11 @@ export function AcquisitionCreativeEditor({ creative }: { creative: Creative }) 
   }
 
   return (
-    <div className="card">
+    <div className="card editorCard">
+      <div className="editorHeader">
+        <h3>{creative.channel}</h3>
+        <p className="editorKicker">Creative</p>
+      </div>
       <label>Headline<input value={form.headline} onChange={(event) => setForm((current) => ({ ...current, headline: event.target.value }))} /></label>
       <label>Description<input value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></label>
       <div className="grid grid-2">
@@ -42,8 +46,10 @@ export function AcquisitionCreativeEditor({ creative }: { creative: Creative }) 
         <label>Predicted CTR<input type="number" min={0} max={1} step={0.001} value={form.predictedCtr} onChange={(event) => setForm((current) => ({ ...current, predictedCtr: Number(event.target.value || 0) }))} /></label>
         <label>Predicted conversion<input type="number" min={0} max={1} step={0.001} value={form.predictedConversion} onChange={(event) => setForm((current) => ({ ...current, predictedConversion: Number(event.target.value || 0) }))} /></label>
       </div>
-      <button type="button" onClick={save}>Save creative</button>
-      {status ? <p className="small" style={{ marginTop: 6 }}>{status}</p> : null}
+      <div className="editorActions">
+        <button type="button" onClick={save}>Save creative</button>
+        {status ? <p className="saveStatus">{status}</p> : null}
+      </div>
     </div>
   );
 }

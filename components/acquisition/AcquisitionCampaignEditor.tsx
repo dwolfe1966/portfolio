@@ -67,11 +67,14 @@ export function AcquisitionCampaignEditor({ campaign }: { campaign: Campaign }) 
   }
 
   return (
-    <div className="card">
-      <h3>Editable campaign inputs</h3>
+    <div className="card editorCard">
+      <div className="editorHeader">
+        <h3>Editable campaign inputs</h3>
+        <p className="editorKicker">Campaign economics</p>
+      </div>
       <label>Name<input value={form.name} onChange={(event) => update("name", event.target.value)} /></label>
       <label>Objective<textarea rows={3} value={form.objective} onChange={(event) => update("objective", event.target.value)} /></label>
-      <div className="grid grid-3">
+      <div className="editorGridCompact">
         <label>Budget ($)<input type="number" min={0} step={1} value={form.budgetDollars} onChange={(event) => update("budgetDollars", Number(event.target.value || 0))} /></label>
         <label>Target CAC ($)<input type="number" min={0} step={1} value={form.targetCacDollars} onChange={(event) => update("targetCacDollars", Number(event.target.value || 0))} /></label>
         <label>Target LTV ($)<input type="number" min={0} step={1} value={form.targetLtvDollars} onChange={(event) => update("targetLtvDollars", Number(event.target.value || 0))} /></label>
@@ -82,8 +85,10 @@ export function AcquisitionCampaignEditor({ campaign }: { campaign: Campaign }) 
         <label>Min LTV:CAC<input type="number" min={1} max={10} step={0.1} value={form.minLtvCacRatio} onChange={(event) => update("minLtvCacRatio", Number(event.target.value || 1))} /></label>
         <label>Approval cap<input type="number" min={0.01} max={0.5} step={0.01} value={form.approvalCapPct} onChange={(event) => update("approvalCapPct", Number(event.target.value || 0.01))} /></label>
       </div>
-      <button type="button" onClick={save} disabled={loading}>{loading ? "Saving..." : "Save campaign"}</button>
-      {status ? <p className="small" style={{ marginTop: 8 }}>{status}</p> : null}
+      <div className="editorActions">
+        <button type="button" onClick={save} disabled={loading}>{loading ? "Saving..." : "Save campaign"}</button>
+        {status ? <p className="saveStatus">{status}</p> : null}
+      </div>
     </div>
   );
 }

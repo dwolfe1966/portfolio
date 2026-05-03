@@ -32,7 +32,7 @@ type InterestEdgeRow = {
 };
 
 function SaveStatus({ value }: { value: string }) {
-  return value ? <p className="small" style={{ marginTop: 6 }}>{value}</p> : null;
+  return value ? <p className="saveStatus">{value}</p> : null;
 }
 
 export function LifecycleUserEditor({ user }: { user: UserRow }) {

@@ -106,20 +106,24 @@ export default async function DemoInputsPage() {
         </div>
       </Section>
       <Section title="Sample users">
-        <table className="table">
-          <thead><tr><th>User</th><th>Email</th><th>Segment</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            {users.map((user) => <LifecycleUserEditor user={user} key={user.id} />)}
-          </tbody>
-        </table>
+        <div className="tableScroll">
+          <table className="table editableTable">
+            <thead><tr><th>User</th><th>Email</th><th>Segment</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              {users.map((user) => <LifecycleUserEditor user={user} key={user.id} />)}
+            </tbody>
+          </table>
+        </div>
       </Section>
       <Section title="Sample entities">
-        <table className="table">
-          <thead><tr><th>Entity</th><th>Type</th><th>City</th><th>State</th><th>Action</th></tr></thead>
-          <tbody>
-            {entities.map((entity) => <LifecycleEntityEditor entity={entity} key={entity.id} />)}
-          </tbody>
-        </table>
+        <div className="tableScroll">
+          <table className="table editableTable">
+            <thead><tr><th>Entity</th><th>Type</th><th>City</th><th>State</th><th>Action</th></tr></thead>
+            <tbody>
+              {entities.map((entity) => <LifecycleEntityEditor entity={entity} key={entity.id} />)}
+            </tbody>
+          </table>
+        </div>
       </Section>
       <Section
         title="Sample interest relations"
@@ -134,7 +138,8 @@ export default async function DemoInputsPage() {
         {interestEdges.length === 0 ? (
           <p className="small">No interest edges yet — seed the demo data to populate this view.</p>
         ) : (
-          <table className="table">
+          <div className="tableScroll">
+          <table className="table editableTable">
             <thead>
               <tr>
                 <th>User</th>
@@ -148,6 +153,7 @@ export default async function DemoInputsPage() {
               {interestEdges.map((edge) => <LifecycleInterestEdgeEditor edge={edge} key={edge.id} />)}
             </tbody>
           </table>
+          </div>
         )}
       </Section>
     </>

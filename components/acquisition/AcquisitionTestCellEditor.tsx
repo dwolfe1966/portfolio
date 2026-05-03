@@ -62,7 +62,7 @@ export function AcquisitionTestCellEditor({ cell }: { cell: Cell }) {
       <td><input type="number" min={0} step={1} value={form.spendDollars} onChange={(event) => setForm((current) => ({ ...current, spendDollars: Number(event.target.value || 0) }))} /></td>
       <td><input type="number" min={0} step={1} value={form.revenueDollars} onChange={(event) => setForm((current) => ({ ...current, revenueDollars: Number(event.target.value || 0) }))} /></td>
       <td><input type="number" min={0} max={1} step={0.001} value={form.score} onChange={(event) => setForm((current) => ({ ...current, score: Number(event.target.value || 0) }))} /></td>
-      <td><button type="button" onClick={save}>Save</button>{message ? <p className="small">{message}</p> : null}</td>
+      <td><button type="button" onClick={save}>Save</button>{message ? <p className="saveStatus">{message}</p> : null}</td>
     </tr>
   );
 }

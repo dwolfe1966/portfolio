@@ -989,6 +989,83 @@ button {
   display: grid;
   gap: 10px;
 }
+.editorCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+.editorHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+.editorHeader h3,
+.editorCard h3 {
+  font-size: 17px;
+  line-height: 1.25;
+  margin-bottom: 0;
+}
+.editorKicker {
+  margin: 0;
+  font-size: 11px;
+  color: var(--demo-text-muted, var(--muted));
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.editorGridCompact {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.editorGridCompact label,
+.editorCard label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--demo-text-muted, #475569);
+}
+.editorGridCompact input,
+.editorGridCompact select,
+.editorCard input,
+.editorCard select,
+.editorCard textarea {
+  margin-top: 4px;
+}
+.editorActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.saveStatus {
+  margin: 0;
+  font-size: 12px;
+  color: var(--demo-text-muted, var(--muted));
+}
+.editableTable {
+  min-width: 980px;
+}
+.editableTable th {
+  white-space: nowrap;
+}
+.editableTable td {
+  vertical-align: top;
+}
+.editableTable input,
+.editableTable select {
+  min-width: 0;
+  width: 100%;
+  padding: 7px 8px;
+  font-size: 12px;
+}
+.editableTable button {
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+.tableScroll {
+  overflow-x: auto;
+}
 .retentionVizGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);

@@ -58,9 +58,11 @@ export function RetentionInterventionEditor({
   }
 
   return (
-    <div className="card">
-      <p className="eyebrow">{intervention.status} · {intervention.owner}</p>
-      <h3>{intervention.account.name}</h3>
+    <div className="card editorCard">
+      <div className="editorHeader">
+        <h3>{intervention.account.name}</h3>
+        <p className="editorKicker">{intervention.status} · {intervention.owner}</p>
+      </div>
       <div className="grid grid-2">
         <label>Account<select value={form.accountId} onChange={(event) => setForm((current) => ({ ...current, accountId: event.target.value }))}>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
         <label>Playbook<select value={form.playbookId} onChange={(event) => setForm((current) => ({ ...current, playbookId: event.target.value }))}>{playbooks.map((playbook) => <option key={playbook.id} value={playbook.id}>{playbook.name}</option>)}</select></label>
@@ -70,8 +72,10 @@ export function RetentionInterventionEditor({
         <label>Saved revenue ($)<input type="number" min={0} value={form.savedRevenueDollars} onChange={(event) => setForm((current) => ({ ...current, savedRevenueDollars: event.target.value }))} /></label>
       </div>
       <label>Rationale<textarea rows={3} value={form.rationale} onChange={(event) => setForm((current) => ({ ...current, rationale: event.target.value }))} /></label>
-      <button type="button" onClick={save}>Save intervention</button>
-      {message ? <p className="small" style={{ marginTop: 8 }}>{message}</p> : null}
+      <div className="editorActions">
+        <button type="button" onClick={save}>Save intervention</button>
+        {message ? <p className="saveStatus">{message}</p> : null}
+      </div>
     </div>
   );
 }
