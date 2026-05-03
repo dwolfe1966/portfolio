@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export type DemoApp = "lifecycle" | "acquisition" | "auction";
 
@@ -49,59 +50,81 @@ function isActive(pathname: string, href: string): boolean {
 
 export function DemoSideNav({ app }: { app: DemoApp }) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
   const links =
     app === "lifecycle" ? LIFECYCLE_LINKS : app === "acquisition" ? ACQUISITION_LINKS : AUCTION_LINKS;
   const primary = links.filter((link) => link.group !== "operations");
   const operations = links.filter((link) => link.group === "operations");
+  const navBodyId = `${app}-demo-navigation-links`;
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
     <nav className="demoSideNav" aria-label={`${app} demo navigation`}>
       <div className="demoSideNavBrand">
-        <span className="demoSideNavEnv">DEMO</span>
-        <span className="demoSideNavApp">
-          {app === "lifecycle"
-            ? "Lifecycle Engine"
-            : app === "acquisition"
-              ? "Acquisition Agent"
-              : "Auction Desk"}
-        </span>
+        <div className="demoSideNavBrandText">
+          <span className="demoSideNavEnv">DEMO</span>
+          <span className="demoSideNavApp">
+            {app === "lifecycle"
+              ? "Lifecycle Engine"
+              : app === "acquisition"
+                ? "Acquisition Agent"
+                : "Auction Desk"}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="demoSideNavToggle"
+          aria-expanded={open}
+          aria-controls={navBodyId}
+          aria-label="Toggle demo navigation menu"
+          onClick={() => setOpen((value) => !value)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
       </div>
 
-      <ul className="demoSideNavList">
-        {primary.map((link) => (
-          <li key={link.href}>
-            <Link
-              href={link.href}
-              className={`demoSideNavLink ${isActive(pathname, link.href) ? "active" : ""}`}
-            >
-              {link.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <div id={navBodyId} className={`demoSideNavBody ${open ? "open" : ""}`}>
+        <ul className="demoSideNavList">
+          {primary.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                className={`demoSideNavLink ${isActive(pathname, link.href) ? "active" : ""}`}
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
 
-      {operations.length > 0 ? (
-        <>
-          <div className="demoSideNavGroupLabel">Operations</div>
-          <ul className="demoSideNavList">
-            {operations.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className={`demoSideNavLink ${isActive(pathname, link.href) ? "active" : ""}`}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : null}
+        {operations.length > 0 ? (
+          <>
+            <div className="demoSideNavGroupLabel">Operations</div>
+            <ul className="demoSideNavList">
+              {operations.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className={`demoSideNavLink ${isActive(pathname, link.href) ? "active" : ""}`}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
 
-      <div className="demoSideNavFooter">
-        <Link href="/" className="demoSideNavReturn">
-          ← Return to portfolio
-        </Link>
+        <div className="demoSideNavFooter">
+          <Link href="/" className="demoSideNavReturn">
+            ← Return to portfolio
+          </Link>
+        </div>
       </div>
     </nav>
   );

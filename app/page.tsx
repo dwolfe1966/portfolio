@@ -30,6 +30,12 @@ const differentiators = [
   }
 ];
 
+const proofStats = [
+  { label: "Operating range", value: "Product · Data · Growth · Engineering" },
+  { label: "Public + venture-backed contexts", value: "Napster · Interactive One · Goldbelly · MyLife" },
+  { label: "Portfolio proof", value: "3 runnable AI revenue demo apps" }
+];
+
 type FeaturedProject = {
   title: string;
   detail: string;
@@ -69,55 +75,80 @@ const featuredProjects: FeaturedProject[] = [
 export default function HomePage() {
   return (
     <>
-      <Section title="AI-powered product, growth, and operations leader">
-        <div className="grid grid-2" style={{ alignItems: "center" }}>
-          <div>
-            <p>
-              I build AI-native systems across product management, engineering, machine learning, growth marketing,
-              operations, and executive leadership to drive measurable revenue outcomes.
-            </p>
-            <div className="signalStrip" aria-label="Revenue system operating model">
-              <div className="signalStep">
-                <strong>Signal</strong>
-                <p className="small">Detect meaningful user, market, and campaign changes.</p>
+      <section className="homeHero">
+        <div className="homeHeroCopy">
+          <p className="eyebrow">AI revenue systems · Product leadership · Operator-builder</p>
+          <h1>Product, growth, and AI systems leadership with working software behind it.</h1>
+          <p className="heroLead">
+            I build AI-native operating systems that connect product strategy, data science,
+            growth marketing, and engineering execution to measurable commercial outcomes.
+          </p>
+          <div className="proofStrip" aria-label="Experience and portfolio proof">
+            {proofStats.map((item) => (
+              <div className="proofItem" key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
               </div>
-              <div className="signalStep">
-                <strong>Decision</strong>
-                <p className="small">Rank opportunities with economics-aware logic.</p>
-              </div>
-              <div className="signalStep">
-                <strong>Revenue</strong>
-                <p className="small">Generate actions, measure outcomes, and iterate.</p>
-              </div>
-            </div>
-            <div className="ctaRow" style={{ marginTop: 12 }}>
-              <Link className="btn primary" href="/projects">Explore my AI revenue systems</Link>
-              <Link className="btn" href="/about">See leadership profile</Link>
-            </div>
+            ))}
           </div>
-          <div className="card" aria-hidden="true" style={{ minHeight: 200 }}>
-            <div
-              style={{
-                height: 180,
-                borderRadius: 14,
-                background:
-                  "radial-gradient(circle at 20% 20%, rgba(0, 180, 216, 0.22), transparent 45%), radial-gradient(circle at 80% 30%, rgba(52, 87, 213, 0.24), transparent 42%), linear-gradient(135deg, rgba(20, 25, 45, 0.82), rgba(10, 14, 28, 0.92))"
-              }}
-            />
+          <div className="ctaRow">
+            <Link className="btn primary" href="/projects">Explore runnable systems</Link>
+            <Link className="btn" href="/about">See leadership profile</Link>
           </div>
         </div>
-      </Section>
 
-      <Section title="Value proposition">
-        <div className="grid grid-4">
-          {differentiators.map((item) => (
-            <div className="card" key={item.title}>
-              <h3>{item.title}</h3>
-              <p>{item.detail}</p>
+        <div className="heroSystemVisual" aria-label="Preview of lifecycle, acquisition, and auction demo systems">
+          <div className="heroSystemTopbar">
+            <span />
+            <span />
+            <span />
+            <strong>Revenue Systems Console</strong>
+          </div>
+          <div className="heroSystemGrid">
+            <div className="heroPanel heroPanelLarge">
+              <div className="heroPanelHeader">
+                <span>Lifecycle Engine</span>
+                <strong>+28%</strong>
+              </div>
+              <div className="heroFlow">
+                <span>Signal</span>
+                <span>Score</span>
+                <span>Generate</span>
+                <span>Revenue</span>
+              </div>
+              <div className="heroBars" aria-hidden="true">
+                <i style={{ height: "46%" }} />
+                <i style={{ height: "72%" }} />
+                <i style={{ height: "58%" }} />
+                <i style={{ height: "88%" }} />
+                <i style={{ height: "64%" }} />
+              </div>
             </div>
-          ))}
+            <div className="heroPanel">
+              <div className="heroPanelHeader">
+                <span>Acquisition Agent</span>
+                <strong>CAC</strong>
+              </div>
+              <div className="heroMetricRows">
+                <span><b />Audience cells</span>
+                <span><b />Budget policy</span>
+                <span><b />Audit trail</span>
+              </div>
+            </div>
+            <div className="heroPanel dark">
+              <div className="heroPanelHeader">
+                <span>Auction Desk</span>
+                <strong>LIVE</strong>
+              </div>
+              <div className="heroTicker">
+                <span>bid accepted</span>
+                <span>reserve tuned</span>
+                <span>winner cleared</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </Section>
+      </section>
 
       <Section title="Featured projects">
         <p>
@@ -136,6 +167,17 @@ export default function HomePage() {
               <div className="ctaRow">
                 <Link className="btn" href={project.href}>Read case study</Link>
               </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Value proposition">
+        <div className="grid grid-4">
+          {differentiators.map((item) => (
+            <div className="card" key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.detail}</p>
             </div>
           ))}
         </div>

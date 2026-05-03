@@ -12,91 +12,117 @@ export const metadata: Metadata = buildMetadata({
 const competencies = [
   { title: "Product discovery & design", detail: "Translate ambiguous demand signals into concrete hypotheses and shipped product loops." },
   { title: "Machine learning & data science", detail: "Build practical scoring and simulation systems that improve decision quality, not just analytics dashboards." },
+  { title: "Agentic AI implementation", detail: "Design and ship agent workflows with explicit policies, audit trails, operator controls, and measurable business feedback loops." },
   { title: "Growth marketing & monetization", detail: "Optimize CAC, retention, and LTV with clear measurement and explicit budget discipline." },
   { title: "Engineering & operations", detail: "Turn strategy into reliable workflows, instrumentation, and repeatable team execution." },
   { title: "Executive leadership", detail: "Align product, data, marketing, and finance around shared commercial outcomes and operating cadence." }
 ];
 
-const milestones = [
+const experienceHighlights = [
   {
-    period: "Today",
-    role: "Independent operator-builder",
-    impact: "Specify, design, implement, and evolve AI-powered lifecycle and acquisition systems with direct ownership of product, data, and delivery quality."
+    company: "Goldbelly",
+    role: "Head of Growth and Chief Product Officer",
+    context: "National food ecommerce marketplace",
+    evidence: "Growth, product, marketplace, and customer-acquisition work in a consumer commerce business with supply, demand, and operational complexity."
   },
   {
-    period: "2018–2024",
-    role: "Product + growth leadership",
-    impact: "Owned growth and monetization roadmaps across subscription/SaaS contexts, pairing experimentation discipline with cross-functional execution."
+    company: "Napster",
+    role: "Chief Technology Officer",
+    context: "Subscription media and music technology",
+    evidence: "Product and technology leadership across web, mobile, API, and product-development operating model during the Best Buy acquisition period."
   },
   {
-    period: "2010–2018",
-    role: "Software engineer + data platform product roles",
-    impact: "Built analytics-backed product capabilities and production workflows as a hands-on engineer before moving into broader product leadership."
+    company: "MyLife / Reunion.com",
+    role: "Product and technology executive",
+    context: "Consumer identity, social graph, and subscription product",
+    evidence: "Roadmap, product, and technology leadership in a high-scale consumer subscription environment."
+  },
+  {
+    company: "BuyWithMe",
+    role: "Chief Product Officer / COO",
+    context: "Local commerce and marketplace operations",
+    evidence: "Led product, marketing, design, and engineering functions in a daily-deal marketplace operating environment."
+  },
+  {
+    company: "Interactive One / Radio One",
+    role: "Chief Product and Operating Officer",
+    context: "Digital media, community, and advertising platform",
+    evidence: "Product and operations leadership across media sites, community products, advertising systems, and broadcast-linked digital properties."
+  },
+  {
+    company: "Propel Media",
+    role: "Product, technology, and growth leadership",
+    context: "Computational advertising and marketplace systems",
+    evidence: "Marketplace design, machine-learning, product, and growth work in paid media and performance advertising."
   }
 ];
 
-const competencyTimeline = [
-  {
-    period: "2010–2014",
-    focus: "Engineering foundation",
-    competencies: "Software engineering, data modeling, production instrumentation",
-    evidence: "Shipped data-platform and workflow systems that improved activation and reporting reliability."
-  },
-  {
-    period: "2014–2018",
-    focus: "Product + data integration",
-    competencies: "Product discovery, analytics, experimentation, ML collaboration",
-    evidence: "Connected user behavior signals to product decisions and repeatable optimization loops."
-  },
-  {
-    period: "2018–2024",
-    focus: "Growth and monetization leadership",
-    competencies: "Lifecycle strategy, CAC/LTV economics, operating cadence",
-    evidence: "Led pricing, retention, and growth execution while aligning product/marketing/data teams."
-  },
-  {
-    period: "Today",
-    focus: "Operator-builder",
-    competencies: "AI systems implementation, cross-functional execution, executive decision support",
-    evidence: "Applies AI practitioner methods to build and run revenue systems end to end with measurable commercial impact."
-  }
+const operatingProof = [
+  "Subscription and consumer media",
+  "Marketplace design and ecommerce",
+  "Performance advertising and CAC/LTV economics",
+  "Product, engineering, data, growth, and operations leadership"
 ];
 
 export default function AboutPage() {
   return (
     <>
       <Section eyebrow="About" title="AI practitioner building systems that turn decisions into revenue">
-        <p>
-          I build operating systems that connect product strategy, data science, and go-to-market
-          execution. The work is direct — I write the schema, ship the app, and own the operating
-          cadence around it. The portfolio you&apos;re browsing is itself an example: every case
-          study points at running software, not screenshots.
-        </p>
-        <div className="signalStrip" aria-label="Operator profile summary">
-          <div className="signalStep">
-            <strong>Builder</strong>
-            <p className="small">Hands-on implementation across app, data, and workflow layers.</p>
+        <div className="aboutIntroGrid">
+          <div>
+            <p>
+              I build operating systems that connect product strategy, data science, and go-to-market
+              execution. The work is direct: I write the schema, ship the app, and own the operating
+              cadence around it. The portfolio you&apos;re browsing is itself an example: every case
+              study points at running software, not screenshots.
+            </p>
+            <p>
+              I work as an AI practitioner, not just an AI strategist: translating model capabilities
+              into agentic workflows, decision policies, simulations, and operator-facing software.
+            </p>
+            {process.env.NEXT_PUBLIC_LINKEDIN_URL ? (
+              <p className="small" style={{ marginTop: 12 }}>
+                More context on{" "}
+                <a href={process.env.NEXT_PUBLIC_LINKEDIN_URL} target="_blank" rel="noreferrer noopener">
+                  LinkedIn
+                </a>
+                {process.env.NEXT_PUBLIC_LINKEDIN_HEADLINE
+                  ? ` — ${process.env.NEXT_PUBLIC_LINKEDIN_HEADLINE}.`
+                  : "."}
+              </p>
+            ) : null}
           </div>
-          <div className="signalStep">
-            <strong>Operator</strong>
-            <p className="small">Commercial cadence, decision quality, and execution accountability.</p>
-          </div>
-          <div className="signalStep">
-            <strong>Leader</strong>
-            <p className="small">Cross-functional alignment around product, growth, and finance outcomes.</p>
+          <div className="profileProofCard" aria-label="Selected operating contexts">
+            <p className="small">Selected operating contexts</p>
+            <div className="companyChipGrid">
+              <span>Napster</span>
+              <span>Goldbelly</span>
+              <span>MyLife</span>
+              <span>BuyWithMe</span>
+              <span>Interactive One</span>
+              <span>Propel Media</span>
+            </div>
+            <div className="profileRule" />
+            {operatingProof.map((item) => (
+              <p className="small proofLine" key={item}>{item}</p>
+            ))}
           </div>
         </div>
-        {process.env.NEXT_PUBLIC_LINKEDIN_URL ? (
-          <p className="small" style={{ marginTop: 12 }}>
-            More context on{" "}
-            <a href={process.env.NEXT_PUBLIC_LINKEDIN_URL} target="_blank" rel="noreferrer noopener">
-              LinkedIn
-            </a>
-            {process.env.NEXT_PUBLIC_LINKEDIN_HEADLINE
-              ? ` — ${process.env.NEXT_PUBLIC_LINKEDIN_HEADLINE}.`
-              : "."}
-          </p>
-        ) : null}
+      </Section>
+
+      <Section title="Experience with product and operating specificity">
+        <div className="experienceGrid">
+          {experienceHighlights.map((item) => (
+            <div className="experienceCard" key={item.company}>
+              <div>
+                <p className="small">{item.context}</p>
+                <h3>{item.company}</h3>
+                <strong>{item.role}</strong>
+              </div>
+              <p>{item.evidence}</p>
+            </div>
+          ))}
+        </div>
       </Section>
 
       <Section title="Core competencies">
@@ -105,30 +131,6 @@ export default function AboutPage() {
             <div className="card" key={item.title}>
               <h3>{item.title}</h3>
               <p>{item.detail}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Experience and milestones">
-        <div className="grid">
-          {milestones.map((item) => (
-            <div className="card" key={item.period}>
-              <p className="small" style={{ marginBottom: 6 }}>{item.period}</p>
-              <h3>{item.role}</h3>
-              <p>{item.impact}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Competencies mapped to experience timeline">
-        <div className="grid">
-          {competencyTimeline.map((item) => (
-            <div className="card" key={item.period}>
-              <p className="small" style={{ marginBottom: 6 }}>{item.period} · {item.focus}</p>
-              <p><strong>Competencies:</strong> {item.competencies}</p>
-              <p className="small">{item.evidence}</p>
             </div>
           ))}
         </div>
