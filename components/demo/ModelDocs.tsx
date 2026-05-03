@@ -140,7 +140,7 @@ export function ModelDocs({ app }: { app: DemoDocApp }) {
         <p>{doc.summary}</p>
       </Section>
       <Section title="Model variables and ranges">
-        <table className="table">
+        <table className="table modelDocsTable">
           <thead>
             <tr><th>Variable</th><th>Type</th><th>Range</th><th>Used by</th></tr>
           </thead>
@@ -157,7 +157,7 @@ export function ModelDocs({ app }: { app: DemoDocApp }) {
         </table>
       </Section>
       <Section title="Formulas and recommendation rules">
-        <table className="table">
+        <table className="table modelDocsTable">
           <thead>
             <tr><th>Model step</th><th>Formula</th><th>Decision rule</th></tr>
           </thead>

@@ -615,6 +615,19 @@ button {
   font-family: var(--demo-mono);
   font-size: 12px;
 }
+.demoAppShellContent .modelDocsTable {
+  table-layout: fixed;
+}
+.demoAppShellContent .modelDocsTable th,
+.demoAppShellContent .modelDocsTable td {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  vertical-align: top;
+}
+.demoAppShellContent .modelDocsTable code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 
 /* Status band primitives. */
 .statusDot {
