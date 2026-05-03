@@ -209,6 +209,18 @@ Fifth demo app — account retention risk operating system for churn prediction,
 
 ---
 
+## J) Expansion Revenue Intelligence demo
+
+Sixth demo app — installed-base revenue intelligence system for expansion readiness, upsell motion selection, ARR economics, and auditability. Spec at [`docs/expansion-demo-spec.md`](./expansion-demo-spec.md).
+
+### Completed
+- ✅ J1. Phase A — pure expansion engine, schema, migration, seeded account/offer/policy data, and unit tests.
+- ✅ J2. Phase B — run API, reset support, and demo health endpoint.
+- ✅ J3. Phase C — shell wiring plus overview, inputs, accounts, simulations, outputs, and audit pages.
+- ✅ J4. Phase D — portfolio project integration, home-page launch card, and evidence links to live demo surfaces.
+
+---
+
 ## F) Demo app design system
 
 Cross-cutting UX/IA workstream covering both lifecycle and acquisition demo apps. Goal: make the demo experience visually and structurally distinct from the portfolio site (which today only differs by background color).

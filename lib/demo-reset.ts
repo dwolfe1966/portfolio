@@ -1,4 +1,4 @@
-export type DemoResetScope = "all" | "lifecycle" | "acquisition" | "auction" | "pricing" | "retention";
+export type DemoResetScope = "all" | "lifecycle" | "acquisition" | "auction" | "pricing" | "retention" | "expansion";
 
 export type DemoResetResolution =
   | { ok: true; scope: DemoResetScope }
@@ -21,6 +21,7 @@ export function resolveDemoResetRequest(body: unknown): DemoResetResolution {
     rawScope === "auction" ||
     rawScope === "pricing" ||
     rawScope === "retention" ||
+    rawScope === "expansion" ||
     rawScope === "all"
       ? rawScope
       : "all";

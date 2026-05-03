@@ -8,7 +8,8 @@ const APP_LABEL: Record<DemoApp, string> = {
   acquisition: "Acquisition Agent",
   auction: "Auction Desk",
   pricing: "Pricing Control Tower",
-  retention: "Retention Command Center"
+  retention: "Retention Command Center",
+  expansion: "Expansion Command Center"
 };
 
 const BAND_TEXT: Record<StatusBand, string> = {

@@ -413,6 +413,9 @@ button {
 .demoAppShell-retention {
   background: linear-gradient(180deg, #eef6f8 0%, #fbfdfe 100%);
 }
+.demoAppShell-expansion {
+  background: linear-gradient(180deg, #f3f2fa 0%, #fcfbff 100%);
+}
 
 /* Demo content typography — denser than portfolio. */
 .demoAppShellContent {

@@ -522,6 +522,116 @@ model RetentionAuditLog {
   @@index([action, createdAt])
 }
 
+model ExpansionAccount {
+  id                   String                    @id @default(cuid())
+  name                 String
+  segment              String
+  currentArrCents      Int
+  seatsPurchased       Int
+  seatsActive          Int
+  usageGrowthRate      Float
+  productQualifiedScore Float
+  supportHealthScore   Float
+  renewalDays          Int
+  executiveSponsor     Boolean                   @default(false)
+  openExpansionSignals Int
+  trend                String
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  runRows              ExpansionRunRow[]
+
+  @@index([segment])
+  @@index([renewalDays])
+}
+
+model ExpansionOffer {
+  id                  String            @id @default(cuid())
+  name                String
+  motion              String
+  targetSegment       String
+  expectedLiftPercent Float
+  costCents           Int
+  marginPercent       Float
+  slaDays             Int
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  runRows             ExpansionRunRow[]
+
+  @@index([motion])
+  @@index([targetSegment])
+}
+
+model ExpansionPolicy {
+  id                       String         @id @default(cuid())
+  name                     String
+  highReadinessThreshold   Float
+  mediumReadinessThreshold Float
+  minMarginPercent         Float
+  minPaybackRatio          Float
+  maxSlaDays               Int
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+  runs                     ExpansionRun[]
+}
+
+model ExpansionRun {
+  id                        String             @id @default(cuid())
+  policyId                  String
+  averageReadinessScore     Float
+  highReadinessAccounts     Int
+  pipelineArrCents          Int
+  expectedExpansionArrCents Int
+  averageMarginPercent      Float
+  paybackRatio              Float
+  recommendation            String
+  createdAt                 DateTime           @default(now())
+  policy                    ExpansionPolicy    @relation(fields: [policyId], references: [id])
+  rows                      ExpansionRunRow[]
+  auditLogs                 ExpansionAuditLog[]
+
+  @@index([policyId, createdAt])
+  @@index([recommendation, createdAt])
+}
+
+model ExpansionRunRow {
+  id                        String           @id @default(cuid())
+  runId                     String
+  accountId                 String
+  offerId                   String?
+  readinessScore            Float
+  readinessBand             String
+  primaryMotion             String
+  expectedExpansionArrCents Int
+  pursuitCostCents          Int
+  paybackRatio              Float
+  marginPercent             Float
+  slaDays                   Int
+  decision                  String
+  run                       ExpansionRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  account                   ExpansionAccount @relation(fields: [accountId], references: [id])
+  offer                     ExpansionOffer?  @relation(fields: [offerId], references: [id])
+
+  @@index([runId])
+  @@index([accountId])
+  @@index([offerId])
+  @@index([readinessBand, readinessScore])
+  @@index([decision])
+}
+
+model ExpansionAuditLog {
+  id        String        @id @default(cuid())
+  runId     String?
+  actor     String
+  action    String
+  detail    String
+  metadata  Json?
+  createdAt DateTime      @default(now())
+  run       ExpansionRun? @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, createdAt])
+  @@index([action, createdAt])
+}
+
 model AdAccountConnection {
   id                  String   @id @default(cuid())
   provider            String

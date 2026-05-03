@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export type DemoAppLaunchTarget = "lifecycle" | "acquisition" | "auction" | "pricing" | "retention";
+export type DemoAppLaunchTarget = "lifecycle" | "acquisition" | "auction" | "pricing" | "retention" | "expansion";
 
 const APP_COPY: Record<DemoAppLaunchTarget, {
   name: string;
@@ -31,6 +31,11 @@ const APP_COPY: Record<DemoAppLaunchTarget, {
     name: "Retention Command Center",
     tagline: "Score account risk, recommend save motions, and track payback on intervention work.",
     surface: "Accounts · Playbooks · Simulations · Interventions · Audit"
+  },
+  expansion: {
+    name: "Expansion Command Center",
+    tagline: "Score expansion readiness, recommend upsell motions, and track expected ARR.",
+    surface: "Accounts · Offers · Simulations · Outputs · Audit"
   }
 };
 

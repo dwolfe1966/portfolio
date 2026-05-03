@@ -1,4 +1,4 @@
-import { reseed, reseedAcquisitionOnly, reseedAuctionOnly, reseedLifecycleOnly, reseedPricingOnly, reseedRetentionOnly } from "@/lib/seed";
+import { reseed, reseedAcquisitionOnly, reseedAuctionOnly, reseedExpansionOnly, reseedLifecycleOnly, reseedPricingOnly, reseedRetentionOnly } from "@/lib/seed";
 import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -35,6 +35,8 @@ export async function POST(request: Request) {
       await reseedPricingOnly();
     } else if (resolved.scope === "retention") {
       await reseedRetentionOnly();
+    } else if (resolved.scope === "expansion") {
+      await reseedExpansionOnly();
     } else {
       await reseed();
     }

@@ -216,6 +216,55 @@ export const projects: ProjectEntry[] = [
     }
   },
   {
+    slug: "expansion-revenue-intelligence",
+    title: "Expansion Revenue Intelligence Command Center",
+    summary:
+      "An account-base growth system that scores expansion readiness, recommends upsell motions, and tracks expected ARR, margin, and payback.",
+    problem:
+      "Expansion revenue is often trapped in scattered CSM notes, usage dashboards, and renewal cadences, making it hard to identify which accounts are actually ready for commercial action.",
+    thesis:
+      "When usage, seat utilization, product-qualified signals, support health, and renewal timing are unified into an operator-facing decision loop, teams can pursue expansion with higher precision and cleaner economics.",
+    architecture: [
+      { title: "1. Account signal layer", detail: "Normalize seats, usage growth, product qualification, support health, renewal timing, and sponsor signals." },
+      { title: "2. Readiness scorer", detail: "Classify accounts into pursue, nurture, or defer paths based on expansion readiness and economics." },
+      { title: "3. Offer recommender", detail: "Map the strongest signal pattern to seat expansion, feature upgrade, usage commit, or services attach." },
+      { title: "4. ARR economics", detail: "Measure expected expansion ARR, margin, pursuit cost, payback, and audit trail by run." }
+    ],
+    kpiCallouts: [
+      { label: "Expansion ARR", value: "+16%", detail: "Illustrative lift from high-readiness account motions." },
+      { label: "Payback", value: "3.0x+", detail: "Policy requires gross-profit payback before pursue recommendations." },
+      { label: "Cycle time", value: "-32%", detail: "Faster prioritization from one account-base scoring queue." }
+    ],
+    commercialFraming:
+      "Completes the revenue loop by turning installed-base signals into accountable expansion pipeline and economics-aware next-best actions.",
+    whatIBuilt:
+      "I specified, designed, implemented, and evolved a runnable expansion command center with account scoring, offer recommendations, persisted run output, policy guardrails, and audit-ready reporting.",
+    status: "live",
+    appHref: "/expansion/overview",
+    artifacts: {
+      outcomeStrip: [
+        { label: "Expected ARR", value: "+16%", note: "Expansion motions are modeled as incremental ARR by account." },
+        { label: "Readiness", value: "0-1", note: "Signals combine into inspectable expansion readiness scores." },
+        { label: "Payback", value: "3.0x+", note: "Pursuit decisions respect margin and payback policy." }
+      ],
+      decisionFrame: [
+        { label: "Input", detail: "Seats, usage growth, product qualification, support health, renewal timing, and sponsor status." },
+        { label: "Decision", detail: "Score readiness and select seat expansion, feature upgrade, usage commit, or services attach." },
+        { label: "Output", detail: "Expected ARR, margin, pursuit cost, payback, decision band, and audit event." }
+      ],
+      evidenceLinks: [
+        { label: "Expansion accounts", href: "/expansion/accounts", detail: "Live account-base signal table with readiness scores." },
+        { label: "Offer library", href: "/expansion/inputs", detail: "Policy and offer inputs for economics-aware expansion motions." },
+        { label: "ARR output", href: "/expansion/outputs", detail: "Run output for expected ARR, margin, payback, and recommendations." }
+      ],
+      guardrails: [
+        { label: "Margin floor", detail: "Offers below policy margin are deferred." },
+        { label: "Payback floor", detail: "Pursuit recommendations require gross-profit payback above threshold." },
+        { label: "SLA discipline", detail: "High-readiness opportunities must fit the pursuit SLA window." }
+      ]
+    }
+  },
+  {
     slug: "vickrey-auction-closed-ads-ecosystem",
     title: "Vickrey Auction Model for Closed Advertising Ecosystem",
     summary:

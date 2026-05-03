@@ -111,6 +111,167 @@ async function clearRetentionData() {
   await db.retentionAccount.deleteMany();
 }
 
+async function clearExpansionData() {
+  await db.expansionAuditLog.deleteMany();
+  await db.expansionRunRow.deleteMany();
+  await db.expansionRun.deleteMany();
+  await db.expansionPolicy.deleteMany();
+  await db.expansionOffer.deleteMany();
+  await db.expansionAccount.deleteMany();
+}
+
+async function seedExpansionDemo() {
+  await Promise.all([
+    db.expansionAccount.create({
+      data: {
+        name: "Napster Fan Analytics",
+        segment: "Strategic",
+        currentArrCents: 12600000,
+        seatsPurchased: 80,
+        seatsActive: 76,
+        usageGrowthRate: 0.24,
+        productQualifiedScore: 0.82,
+        supportHealthScore: 0.88,
+        renewalDays: 108,
+        executiveSponsor: true,
+        openExpansionSignals: 5,
+        trend: "accelerating"
+      }
+    }),
+    db.expansionAccount.create({
+      data: {
+        name: "Goldbelly Marketplace Ops",
+        segment: "Enterprise",
+        currentArrCents: 8400000,
+        seatsPurchased: 55,
+        seatsActive: 48,
+        usageGrowthRate: 0.18,
+        productQualifiedScore: 0.74,
+        supportHealthScore: 0.76,
+        renewalDays: 74,
+        executiveSponsor: true,
+        openExpansionSignals: 4,
+        trend: "accelerating"
+      }
+    }),
+    db.expansionAccount.create({
+      data: {
+        name: "Interactive One Revenue Desk",
+        segment: "Mid-market",
+        currentArrCents: 3900000,
+        seatsPurchased: 34,
+        seatsActive: 24,
+        usageGrowthRate: 0.09,
+        productQualifiedScore: 0.61,
+        supportHealthScore: 0.81,
+        renewalDays: 145,
+        executiveSponsor: false,
+        openExpansionSignals: 2,
+        trend: "steady"
+      }
+    }),
+    db.expansionAccount.create({
+      data: {
+        name: "MyLife Identity Growth",
+        segment: "Enterprise",
+        currentArrCents: 7200000,
+        seatsPurchased: 60,
+        seatsActive: 38,
+        usageGrowthRate: 0.05,
+        productQualifiedScore: 0.55,
+        supportHealthScore: 0.68,
+        renewalDays: 51,
+        executiveSponsor: false,
+        openExpansionSignals: 1,
+        trend: "softening"
+      }
+    }),
+    db.expansionAccount.create({
+      data: {
+        name: "Northstar Customer Ops",
+        segment: "SMB",
+        currentArrCents: 960000,
+        seatsPurchased: 18,
+        seatsActive: 17,
+        usageGrowthRate: 0.31,
+        productQualifiedScore: 0.7,
+        supportHealthScore: 0.9,
+        renewalDays: 88,
+        executiveSponsor: true,
+        openExpansionSignals: 3,
+        trend: "accelerating"
+      }
+    })
+  ]);
+
+  await Promise.all([
+    db.expansionOffer.create({
+      data: {
+        name: "Seat expansion package",
+        motion: "seat_expansion",
+        targetSegment: "Enterprise",
+        expectedLiftPercent: 0.22,
+        costCents: 42000,
+        marginPercent: 0.78,
+        slaDays: 14
+      }
+    }),
+    db.expansionOffer.create({
+      data: {
+        name: "Strategic feature upgrade",
+        motion: "feature_upgrade",
+        targetSegment: "Strategic",
+        expectedLiftPercent: 0.28,
+        costCents: 68000,
+        marginPercent: 0.74,
+        slaDays: 21
+      }
+    }),
+    db.expansionOffer.create({
+      data: {
+        name: "Usage commit conversion",
+        motion: "usage_commit",
+        targetSegment: "Mid-market",
+        expectedLiftPercent: 0.18,
+        costCents: 26000,
+        marginPercent: 0.82,
+        slaDays: 10
+      }
+    }),
+    db.expansionOffer.create({
+      data: {
+        name: "Services attach launch plan",
+        motion: "services_attach",
+        targetSegment: "Enterprise",
+        expectedLiftPercent: 0.14,
+        costCents: 52000,
+        marginPercent: 0.66,
+        slaDays: 28
+      }
+    })
+  ]);
+
+  const policy = await db.expansionPolicy.create({
+    data: {
+      name: "Default expansion policy",
+      highReadinessThreshold: 0.72,
+      mediumReadinessThreshold: 0.48,
+      minMarginPercent: 0.65,
+      minPaybackRatio: 3,
+      maxSlaDays: 21
+    }
+  });
+
+  await db.expansionAuditLog.create({
+    data: {
+      actor: "system",
+      action: "SEED_INIT",
+      detail: "Seeded expansion revenue intelligence demo.",
+      metadata: { policyId: policy.id, accounts: 5, offers: 4 } as Prisma.InputJsonValue
+    }
+  });
+}
+
 async function seedRetentionDemo() {
   await Promise.all([
     db.retentionAccount.create({
@@ -682,15 +843,22 @@ export async function reseedRetentionOnly() {
   await seedRetentionDemo();
 }
 
+export async function reseedExpansionOnly() {
+  await clearExpansionData();
+  await seedExpansionDemo();
+}
+
 export async function reseed() {
   await clearLifecycleData();
   await clearAcquisitionData();
   await clearAuctionData();
   await clearPricingData();
   await clearRetentionData();
+  await clearExpansionData();
   await seedLifecycleDemo();
   await seedAcquisitionDemo();
   await seedAuctionDemo();
   await seedPricingDemo();
   await seedRetentionDemo();
+  await seedExpansionDemo();
 }

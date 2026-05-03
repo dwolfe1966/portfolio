@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export type DemoApp = "lifecycle" | "acquisition" | "auction" | "pricing" | "retention";
+export type DemoApp = "lifecycle" | "acquisition" | "auction" | "pricing" | "retention" | "expansion";
 
 type NavLink = {
   href: string;
@@ -51,6 +51,15 @@ const RETENTION_LINKS: NavLink[] = [
   { href: "/retention/audit", label: "Audit", group: "operations" }
 ];
 
+const EXPANSION_LINKS: NavLink[] = [
+  { href: "/expansion/overview", label: "Overview", group: "primary" },
+  { href: "/expansion/inputs", label: "Inputs", group: "primary" },
+  { href: "/expansion/accounts", label: "Accounts", group: "primary" },
+  { href: "/expansion/simulations", label: "Simulations", group: "primary" },
+  { href: "/expansion/outputs", label: "Outputs", group: "primary" },
+  { href: "/expansion/audit", label: "Audit", group: "operations" }
+];
+
 const ACQUISITION_LINKS: NavLink[] = [
   { href: "/acquisition/overview", label: "Overview", group: "primary" },
   { href: "/acquisition/inputs", label: "Inputs", group: "primary" },
@@ -80,7 +89,9 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
           ? AUCTION_LINKS
           : app === "pricing"
             ? PRICING_LINKS
-            : RETENTION_LINKS;
+            : app === "retention"
+              ? RETENTION_LINKS
+              : EXPANSION_LINKS;
   const primary = links.filter((link) => link.group !== "operations");
   const operations = links.filter((link) => link.group === "operations");
   const navBodyId = `${app}-demo-navigation-links`;
@@ -103,7 +114,9 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
                   ? "Auction Desk"
                   : app === "pricing"
                     ? "Pricing Control Tower"
-                    : "Retention Command Center"}
+                    : app === "retention"
+                      ? "Retention Command Center"
+                      : "Expansion Command Center"}
           </span>
         </div>
         <button

@@ -9,7 +9,8 @@ const APP_LABEL: Record<DemoApp, string> = {
   acquisition: "Acquisition",
   auction: "Auction",
   pricing: "Pricing",
-  retention: "Retention"
+  retention: "Retention",
+  expansion: "Expansion"
 };
 
 const SEGMENT_LABEL: Record<string, string> = {

@@ -33,7 +33,7 @@ const differentiators = [
 const proofStats = [
   { label: "Operating range", value: "Product · Data · Growth · Engineering" },
   { label: "Public + venture-backed contexts", value: "Napster · Interactive One · Goldbelly · MyLife" },
-  { label: "Portfolio proof", value: "5 runnable AI revenue demo apps" }
+  { label: "Portfolio proof", value: "6 runnable AI revenue demo apps" }
 ];
 
 type FeaturedProject = {
@@ -77,6 +77,14 @@ const featuredProjects: FeaturedProject[] = [
     href: "/projects/retention-risk-command-center",
     appHref: "/retention/overview",
     demoApp: "retention"
+  },
+  {
+    title: "Expansion Revenue Intelligence",
+    detail: "Scores expansion readiness, recommends upsell motions, and tracks expected ARR, margin, and payback by account.",
+    impact: "Turns account-base growth into an explicit operating loop for pursue, nurture, and defer decisions.",
+    href: "/projects/expansion-revenue-intelligence",
+    appHref: "/expansion/overview",
+    demoApp: "expansion"
   },
   {
     title: "Closed-Marketplace Auction",
@@ -168,7 +176,7 @@ export default function HomePage() {
 
       <Section title="Featured projects">
         <p>
-          Five runnable demo apps backing the case studies — every page below clicks through to
+          Six runnable demo apps backing the case studies — every page below clicks through to
           live software, not screenshots.
         </p>
         <div className="grid grid-3">

@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { NavBar } from "./NavBar";
 
-const DEMO_PREFIXES = ["/lifecycle", "/acquisition", "/auction", "/pricing", "/retention"];
+const DEMO_PREFIXES = ["/lifecycle", "/acquisition", "/auction", "/pricing", "/retention", "/expansion"];
 
 export function SiteHeader() {
   const pathname = usePathname();
