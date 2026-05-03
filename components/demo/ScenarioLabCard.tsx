@@ -165,8 +165,8 @@ export function ScenarioLabCard() {
 
   return (
     <div className="card">
-      <h3>Interactive scenario lab</h3>
-      <p>Edit assumptions, run generation, and simulate downstream outcomes. Use recommended defaults first, then change one variable at a time.</p>
+      <h3>Lifecycle simulation</h3>
+      <p>Run the scenario from signal creation through campaign generation and modeled revenue. Start with defaults, then change one variable at a time.</p>
 
       <div className="grid grid-3" style={{ marginTop: 12, gap: 12 }}>
         <label>
