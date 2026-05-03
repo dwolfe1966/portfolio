@@ -13,32 +13,32 @@ const essays = [
   {
     slug: "generic-lifecycle-marketing-is-dying",
     title: "Generic lifecycle marketing is dying",
-    preview: "Why event-driven relevance is replacing static lifecycle calendars and broad segmentation."
+    preview: "Why calendar-based campaigns are giving way to signal logic, opportunity scoring, and AI-assisted relevance."
   },
   {
     slug: "ai-revenue-systems",
     title: "AI Revenue Systems",
-    preview: "How AI moves from content assistance to revenue operating layer."
+    preview: "How AI moves from content assistance into policy-bound operating loops for revenue decisions."
   },
   {
     slug: "product-discovery-ai-loops",
     title: "Product discovery in AI operating loops",
-    preview: "Discovery patterns for AI-native products that need measurable operator outcomes."
+    preview: "Discovery patterns for AI products that participate in decisions, not just generate answers."
   },
   {
     slug: "acquisition-guardrails",
     title: "Acquisition agents need guardrails before autonomy",
-    preview: "Why CAC/LTV policy, budget caps, cooldowns, and audit logs matter before campaign automation scales."
+    preview: "Why paid-growth agents need CAC/LTV policy, budget limits, cooldowns, and audit trails before autonomy."
   },
   {
     slug: "lifecycle-signal-quality",
     title: "Lifecycle signal quality beats message volume",
-    preview: "A practical note on why signal selection, interest relations, and timing drive lifecycle performance."
+    preview: "Why the best lifecycle systems prioritize signal quality, customer relationship, timing, and measurable action."
   },
   {
     slug: "pricing-experiments-operating-system",
     title: "Pricing experiments should be operating systems",
-    preview: "How pricing tests become safer and faster when hypotheses, cohorts, guardrails, and decisions live together."
+    preview: "How pricing tests become safer when hypotheses, cohorts, simulations, guardrails, and decisions live together."
   }
 ];
 
