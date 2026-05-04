@@ -33,7 +33,7 @@ const differentiators = [
 const proofStats = [
   { label: "Operating range", value: "Product · Data · Growth · Engineering" },
   { label: "Public + venture-backed contexts", value: "Napster · Interactive One · Goldbelly · MyLife" },
-  { label: "Portfolio proof", value: "6 runnable AI revenue Wolfe Apps" }
+  { label: "Portfolio proof", value: "6 runnable AI revenue Tools" }
 ];
 
 type FeaturedProject = {
@@ -112,7 +112,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="heroSystemVisual" aria-label="Preview of lifecycle, acquisition, and auction Wolfe Apps">
+        <div className="heroSystemVisual" aria-label="Preview of lifecycle, acquisition, and auction Tools">
           <div className="heroSystemTopbar">
             <span />
             <span />
@@ -178,7 +178,7 @@ export default function HomePage() {
 
       <Section title="Featured projects">
         <p>
-          Six runnable Wolfe Apps backing the case studies — every page below clicks through to
+          Six runnable Tools backing the case studies — every page below clicks through to
           live software, not screenshots.
         </p>
         <div className="grid grid-3">

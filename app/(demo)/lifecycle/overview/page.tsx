@@ -80,7 +80,7 @@ export default async function DemoOverviewPage() {
       </Section>
 
 
-      <Section title="Demo data operations">
+      <Section title="Workspace data operations">
         <ResetDemoDataCard appLabel="Lifecycle" scope="lifecycle" />
       </Section>
 

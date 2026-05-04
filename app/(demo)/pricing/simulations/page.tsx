@@ -84,7 +84,7 @@ export default async function PricingSimulationsPage() {
             ) : null}
           </>
         ) : (
-          <div className="card"><p>No pricing experiment found. Reset demo data from Overview.</p></div>
+          <div className="card"><p>No pricing experiment found. Reset workspace data from Overview.</p></div>
         )}
       </Section>
     </>

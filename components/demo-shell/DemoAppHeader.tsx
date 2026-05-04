@@ -49,7 +49,7 @@ export function DemoAppHeader({
         <button
           type="button"
           className="demoThemeToggle"
-          aria-label={`Switch Wolfe App to ${theme === "dark" ? "light" : "dark"} mode`}
+          aria-label={`Switch Tool to ${theme === "dark" ? "light" : "dark"} mode`}
           onClick={onToggleTheme}
         >
           <span>{theme === "dark" ? "Dark" : "Light"}</span>

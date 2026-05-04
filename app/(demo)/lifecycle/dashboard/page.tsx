@@ -66,7 +66,7 @@ export default async function DashboardPage() {
     return (
       <>
           <DemoHowItWorks />
-        <Section eyebrow="Demo" title="Lifecycle Revenue Engine Dashboard">
+        <Section eyebrow="Tools" title="Lifecycle Revenue Engine Dashboard">
           <LifecycleFunnelKpiStrip
             users={usersCount}
             entities={entitiesCount}

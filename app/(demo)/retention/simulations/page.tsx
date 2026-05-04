@@ -82,7 +82,7 @@ export default async function RetentionSimulationsPage() {
             ) : null}
           </>
         ) : (
-          <div className="card"><p>No retention data found. Reset demo data from Overview.</p><Link className="btn" href="/retention/overview">Go to overview</Link></div>
+          <div className="card"><p>No retention data found. Reset workspace data from Overview.</p><Link className="btn" href="/retention/overview">Go to overview</Link></div>
         )}
       </Section>
     </>

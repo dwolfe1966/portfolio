@@ -157,7 +157,7 @@ export default async function DemoInputsPage({ searchParams }: PageProps) {
           <code>interestContribution</code> channel of priority scoring.
         </p>
         {interestEdges.length === 0 ? (
-          <p className="small">No interest edges yet — seed the demo data to populate this view.</p>
+          <p className="small">No interest edges yet — seed the workspace data to populate this view.</p>
         ) : (
           <div className="tableScroll">
           <table className="table editableTable">

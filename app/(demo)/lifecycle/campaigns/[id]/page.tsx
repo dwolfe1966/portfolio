@@ -41,7 +41,7 @@ export default async function CampaignRunPage({ params }: PageProps) {
 
     return (
       <>
-        <Section eyebrow="Demo" title={run.runName}>
+        <Section eyebrow="Tools" title={run.runName}>
           <div className="grid grid-2">
             <div className="card">
               <div className="kpi">{run.totalDeltas}</div>

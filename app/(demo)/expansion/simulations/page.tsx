@@ -82,7 +82,7 @@ export default async function ExpansionSimulationsPage() {
             ) : null}
           </>
         ) : (
-          <div className="card"><p>No expansion data found. Reset demo data from Overview.</p><Link className="btn" href="/expansion/overview">Go to overview</Link></div>
+          <div className="card"><p>No expansion data found. Reset workspace data from Overview.</p><Link className="btn" href="/expansion/overview">Go to overview</Link></div>
         )}
       </Section>
     </>

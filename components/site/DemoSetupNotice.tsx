@@ -6,11 +6,11 @@ type DemoSetupNoticeProps = {
 };
 
 export function DemoSetupNotice({
-  title = "Demo database is not initialized",
+  title = "Workspace database is not initialized",
   detail = "Run Prisma schema setup and seed commands against your production database, then redeploy."
 }: DemoSetupNoticeProps) {
   return (
-    <Section eyebrow="Demo" title={title}>
+    <Section eyebrow="Tools" title={title}>
       <p>{detail}</p>
       <pre className="card" style={{ whiteSpace: "pre-wrap" }}>
         npm run db:generate{"\n"}

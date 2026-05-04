@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const sourceModes = [
   {
-    title: "Demo data",
+    title: "Sample data",
     status: "Available now",
     detail: "Use the seeded lifecycle dataset: users, entities, interest edges, and change events. Best for exploring the workflow before connecting external data.",
     action: "Active default",
@@ -87,8 +87,8 @@ export default async function LifecycleConnectionsPage() {
     <>
       <Section eyebrow="Operations" title="Use your own data">
         <p>
-          Lifecycle should support both the built-in demo dataset and user-owned data.
-          This page defines the connection surface: start with demo data, then move toward spreadsheet uploads,
+          Lifecycle should support both the built-in sample dataset and user-owned data.
+          This page defines the connection surface: start with sample data, then move toward spreadsheet uploads,
           live sheets, and direct datasource connectors.
         </p>
         <div className="ctaRow">
@@ -179,7 +179,7 @@ export default async function LifecycleConnectionsPage() {
       <Section title="Direct data source connector targets">
         <div className="card">
           <p>
-            The direct connector is the bridge from Wolfe App to operating tool: pull current lifecycle data from an existing
+            The direct connector is the bridge from Tool to operating tool: pull current lifecycle data from an existing
             API, warehouse, relational database, CRM, or event stream.
           </p>
           <div className="connectorChipGrid" aria-label="Direct datasource connector targets">

@@ -1,11 +1,19 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { buildMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Tools Datasets | David Wolfe",
+  description: "Dataset inventory for Tools saved mappings, imports, and recent model runs.",
+  path: "/demo/datasets"
+});
 
 async function loadDatasetInventory() {
   try {
@@ -50,7 +58,7 @@ function importedRows(log: Awaited<ReturnType<typeof loadDatasetInventory>>["imp
 export default async function DemoDatasetsPage() {
   const inventory = await loadDatasetInventory();
   const totalRows = inventory.imports.reduce((sum, log) => sum + importedRows(log), 0);
-  const activeWorkspace = inventory.presets[0]?.workspace?.name ?? "Default Demo Workspace";
+  const activeWorkspace = inventory.presets[0]?.workspace?.name ?? "Default Workspace";
 
   return (
     <>
@@ -58,7 +66,7 @@ export default async function DemoDatasetsPage() {
       <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Datasets and presets">
         <p>
-          This page inventories the reusable data assets behind Wolfe Apps: field mapping presets, imported datasets,
+          This page inventories the reusable data assets behind Tools: field mapping presets, imported datasets,
           and model runs that can become saved workspace history as the apps mature into tools.
         </p>
         <div className="ctaRow">

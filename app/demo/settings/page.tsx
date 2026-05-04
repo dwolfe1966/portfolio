@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -11,8 +12,15 @@ import {
   isValidDemoAccessToken
 } from "@/lib/demo-access";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { buildMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Tools Settings | David Wolfe",
+  description: "Workspace identity, access, session, and saved configuration settings for Tools.",
+  path: "/demo/settings"
+});
 
 async function loadWorkspaceSettings() {
   try {
@@ -71,7 +79,7 @@ export default async function DemoSettingsPage() {
       <DemoWorkspaceQuickActions />
       <Section eyebrow="Account" title="Workspace settings">
         <p>
-          This is the first shared settings surface for Wolfe Apps: workspace identity, saved configuration,
+          This is the first shared settings surface for Tools: workspace identity, saved configuration,
           connector state, and the account capabilities that will later sit behind login.
         </p>
         <div className="ctaRow">
@@ -84,7 +92,7 @@ export default async function DemoSettingsPage() {
         <div className="grid grid-4">
           <div className="card">
             <p className="small">Workspace</p>
-            <div className="workspaceSettingValue">{settings.workspace?.name ?? "Default Demo Workspace"}</div>
+            <div className="workspaceSettingValue">{settings.workspace?.name ?? "Default Workspace"}</div>
           </div>
           <div className="card">
             <p className="small">Slug</p>
@@ -109,7 +117,7 @@ export default async function DemoSettingsPage() {
           <div className="card">
             <p className="small">Access mode</p>
             <div className="workspaceSettingValue">{accessConfigured ? "Protected" : "Open"}</div>
-            <p>{accessConfigured ? "A shared Wolfe Apps password is configured." : "No shared password is configured for this environment."}</p>
+            <p>{accessConfigured ? "A shared Tools password is configured." : "No shared password is configured for this environment."}</p>
           </div>
           <div className="card">
             <p className="small">Current session</p>
@@ -141,7 +149,7 @@ export default async function DemoSettingsPage() {
           <div className="card">
             <p className="small">Lifecycle activity</p>
             <div className="kpi">{(settings.imports + settings.lifecycleRuns).toLocaleString()}</div>
-            <p>Imports and campaign runs attached to the current demo data layer.</p>
+            <p>Imports and campaign runs attached to the current workspace data layer.</p>
           </div>
         </div>
       </Section>

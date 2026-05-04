@@ -15,7 +15,7 @@ type GenerateResponse = {
 
 export function RunGeneratorCard() {
   const [topN, setTopN] = useState(10);
-  const [runName, setRunName] = useState("Manual Demo Run");
+  const [runName, setRunName] = useState("Manual Workspace Run");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [aiProgressStep, setAiProgressStep] = useState(0);
@@ -91,7 +91,7 @@ export function RunGeneratorCard() {
           <input
             value={runName}
             onChange={(e) => setRunName(e.target.value)}
-            placeholder="Manual Demo Run"
+            placeholder="Manual Workspace Run"
           />
         </label>
         <label>

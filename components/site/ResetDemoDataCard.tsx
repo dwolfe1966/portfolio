@@ -29,7 +29,7 @@ export function ResetDemoDataCard({ appLabel, scope = "all" }: ResetDemoDataCard
         return;
       }
       const scopeLabel = scope === "all" ? `${appLabel} + shared` : appLabel;
-      setStatus(`${scopeLabel} demo data reset and reseeded.`);
+      setStatus(`${scopeLabel} workspace data reset and reseeded.`);
       router.refresh();
     } catch {
       setStatus("Reset failed due to network/server error.");
@@ -39,12 +39,12 @@ export function ResetDemoDataCard({ appLabel, scope = "all" }: ResetDemoDataCard
   }
 
   const scopeCopy = scope === "all"
-    ? "Clears lifecycle, acquisition, auction, pricing, retention, and expansion records, then reseeds representative baseline data for all Wolfe Apps."
-    : `Clears ${appLabel.toLowerCase()} demo records, then reseeds representative ${appLabel.toLowerCase()} baseline data.`;
+    ? "Clears lifecycle, acquisition, auction, pricing, retention, and expansion records, then reseeds representative baseline data for all Tools."
+    : `Clears ${appLabel.toLowerCase()} workspace records, then reseeds representative ${appLabel.toLowerCase()} baseline data.`;
 
   return (
     <div className="card">
-      <h3>Reset demo data</h3>
+      <h3>Reset workspace data</h3>
       <p className="small">{scopeCopy}</p>
       <label className="small" style={{ display: "block", marginBottom: 8 }}>
         <input
@@ -53,10 +53,10 @@ export function ResetDemoDataCard({ appLabel, scope = "all" }: ResetDemoDataCard
           onChange={(event) => setConfirm(event.target.checked)}
           style={{ marginRight: 6 }}
         />
-        I understand this will delete current demo rows and reseed selected workspace data.
+        I understand this will delete current workspace rows and reseed selected workspace data.
       </label>
       <button type="button" onClick={resetAndReseed} disabled={loading || !confirm}>
-        {loading ? "Resetting..." : "Reset DB + reseed demo"}
+        {loading ? "Resetting..." : "Reset DB + reseed workspace"}
       </button>
       {status && <p className="small" style={{ marginTop: 8 }}>{status}</p>}
     </div>

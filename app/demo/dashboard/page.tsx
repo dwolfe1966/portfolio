@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import { DemoAppLaunchCard, type DemoAppLaunchTarget } from "@/components/site/DemoAppLaunchCard";
 import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
@@ -5,16 +6,23 @@ import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { buildMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = buildMetadata({
+  title: "Tools | David Wolfe",
+  description: "Workspace dashboard for Tools: AI revenue tools, datasets, connections, activity, and settings.",
+  path: "/demo/dashboard"
+});
+
 const apps: Array<{ app: DemoAppLaunchTarget; href: string; status: string }> = [
   { app: "lifecycle", href: "/lifecycle/workspace", status: "Workspace-enabled" },
-  { app: "acquisition", href: "/acquisition/overview", status: "Wolfe App" },
-  { app: "pricing", href: "/pricing/overview", status: "Wolfe App" },
-  { app: "retention", href: "/retention/overview", status: "Wolfe App" },
-  { app: "expansion", href: "/expansion/overview", status: "Wolfe App" },
-  { app: "auction", href: "/auction/overview", status: "Wolfe App" }
+  { app: "acquisition", href: "/acquisition/overview", status: "Tool" },
+  { app: "pricing", href: "/pricing/overview", status: "Tool" },
+  { app: "retention", href: "/retention/overview", status: "Tool" },
+  { app: "expansion", href: "/expansion/overview", status: "Tool" },
+  { app: "auction", href: "/auction/overview", status: "Tool" }
 ];
 
 const toolReadiness = [
@@ -36,7 +44,7 @@ const toolReadiness = [
   },
   {
     name: "Pricing Control Tower",
-    readiness: "Wolfe App",
+    readiness: "Tool",
     data: "Editable variants, segments, experiments, guardrails",
     workflow: "/pricing/inputs",
     simulate: "/pricing/simulations",
@@ -44,7 +52,7 @@ const toolReadiness = [
   },
   {
     name: "Retention Command Center",
-    readiness: "Wolfe App",
+    readiness: "Tool",
     data: "Editable accounts, playbooks, interventions, policy settings",
     workflow: "/retention/accounts",
     simulate: "/retention/simulations",
@@ -52,7 +60,7 @@ const toolReadiness = [
   },
   {
     name: "Expansion Command Center",
-    readiness: "Wolfe App",
+    readiness: "Tool",
     data: "Editable accounts, offers, expansion policy settings",
     workflow: "/expansion/accounts",
     simulate: "/expansion/simulations",
@@ -60,7 +68,7 @@ const toolReadiness = [
   },
   {
     name: "Auction Desk",
-    readiness: "Wolfe App",
+    readiness: "Tool",
     data: "Editable advertisers, slots, bids, reserve settings",
     workflow: "/auction/inputs",
     simulate: "/auction/simulations",
@@ -79,7 +87,7 @@ const workspaceModules = [
     href: "/demo/connections",
     label: "Connections",
     title: "Bring your own data",
-    detail: "CSV, spreadsheet, OAuth, and planned live datasource paths into Wolfe Apps."
+    detail: "CSV, spreadsheet, OAuth, and planned live datasource paths into Tools."
   },
   {
     href: "/demo/datasets",
@@ -120,10 +128,10 @@ export default async function DemoDashboardPage() {
     <>
       <DemoWorkspaceTabs />
       <DemoWorkspaceQuickActions />
-      <Section eyebrow="Wolfe Apps" title="Revenue systems workspace">
+      <Section eyebrow="Tools" title="Revenue systems workspace">
         <p>
-          This dashboard is the early account surface for Wolfe Apps: one place to launch tools, inspect saved
-          configuration, and move from demo workflows toward reusable operating systems.
+          This dashboard is the early account surface for Tools: one place to launch tools, inspect saved
+          configuration, and move from tool workflows toward reusable operating systems.
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/lifecycle/workspace">Open lifecycle workspace</Link>
@@ -165,7 +173,7 @@ export default async function DemoDashboardPage() {
           {toolReadiness.map((tool) => (
             <div className="toolReadinessRow" key={tool.name}>
               <div>
-                <p className={`statusPill ${tool.readiness === "Wolfe App" ? "progress" : "live"}`}>{tool.readiness}</p>
+                <p className={`statusPill ${tool.readiness === "Tool" ? "progress" : "live"}`}>{tool.readiness}</p>
                 <h3>{tool.name}</h3>
                 <p>{tool.data}</p>
               </div>

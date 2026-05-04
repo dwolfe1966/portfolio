@@ -41,7 +41,7 @@ export default async function ExpansionInputsPage() {
             </div>
           </>
         ) : (
-          <div className="card"><p>No expansion policy found. Reset demo data from Overview.</p></div>
+          <div className="card"><p>No expansion policy found. Reset workspace data from Overview.</p></div>
         )}
       </Section>
       <Section title="Offers">

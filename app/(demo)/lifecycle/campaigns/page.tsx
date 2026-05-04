@@ -60,7 +60,7 @@ export default async function CampaignsPage({ searchParams }: PageProps) {
     ]);
 
     return (
-      <Section eyebrow="Demo" title="Campaign opportunities">
+      <Section eyebrow="Tools" title="Campaign opportunities">
         <LifecycleMessageMetricsStrip
           assumptions={activeAssumptions}
           caption="Keep core funnel metrics prominent while filtering and prioritizing campaign opportunities."

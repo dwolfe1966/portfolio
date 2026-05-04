@@ -57,7 +57,7 @@ export default async function PricingOverviewPage() {
         )}
       </Section>
 
-      <Section title="Demo data operations">
+      <Section title="Workspace data operations">
         <ResetDemoDataCard appLabel="Pricing" scope="pricing" />
       </Section>
     </>

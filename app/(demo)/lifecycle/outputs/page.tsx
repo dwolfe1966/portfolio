@@ -274,7 +274,7 @@ export default async function DemoOutputsPage({ searchParams }: PageProps) {
     if (isMissingDemoTableError(error)) {
       return (
         <DemoSetupNotice
-          title="Demo schema is out of date"
+          title="Workspace schema is out of date"
           detail="The database schema is missing required demo tables or columns. Run migrations and seed, then reload this page."
         />
       );

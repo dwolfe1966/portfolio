@@ -215,7 +215,7 @@ export function LifecycleCsvUploadScaffold() {
   const [mappingPresets, setMappingPresets] = useState<MappingPreset[]>([]);
   const [importStatus, setImportStatus] = useState<ImportStatus>({
     state: "idle",
-    message: "Validate all four lifecycle objects before importing rows into the demo database."
+    message: "Validate all four lifecycle objects before importing rows into the workspace database."
   });
   const [csvByObject, setCsvByObject] = useState<Record<CsvObjectKey, string>>({
     users: "",
@@ -391,7 +391,7 @@ export function LifecycleCsvUploadScaffold() {
         </div>
         <p>
           Paste CSV text or load sample rows for each lifecycle object. This validates and previews data locally;
-          ready data can now be imported into the lifecycle demo database.
+          ready data can now be imported into the lifecycle workspace database.
         </p>
         <label>
           Dataset name

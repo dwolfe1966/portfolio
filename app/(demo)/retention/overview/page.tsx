@@ -57,7 +57,7 @@ export default async function RetentionOverviewPage() {
         )}
       </Section>
 
-      <Section title="Demo data operations">
+      <Section title="Workspace data operations">
         <ResetDemoDataCard appLabel="Retention" scope="retention" />
       </Section>
     </>

@@ -114,7 +114,7 @@ export default async function AcquisitionOverviewPage() {
       </Section>
 
 
-      <Section title="Demo data operations">
+      <Section title="Workspace data operations">
         <ResetDemoDataCard appLabel="Acquisition" scope="acquisition" />
       </Section>
 

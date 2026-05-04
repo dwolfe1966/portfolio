@@ -1,7 +1,15 @@
+import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { DEMO_ACCESS_COOKIE, getDemoAccessToken, isDemoAccessConfigured } from "@/lib/demo-access";
 import { Section } from "@/components/site/Section";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Tools Access | David Wolfe",
+  description: "Access page for the Tools workspace.",
+  path: "/demo/login"
+});
 
 type SearchParams = { error?: string; next?: string };
 
@@ -49,11 +57,11 @@ export default async function DemoLoginPage({
 
   return (
     <>
-      <Section eyebrow="Demo" title="Demo access">
+      <Section eyebrow="Tools" title="Workspace access">
         <p>
           {protectedMode
-            ? "Enter the shared Wolfe Apps password to open the workspace."
-            : "Wolfe Apps access is open in this environment. Set DEMO_PASSWORD to enable the shared-password gate."}
+            ? "Enter the shared Tools password to open the workspace."
+            : "Tools access is open in this environment. Set DEMO_PASSWORD to enable the shared-password gate."}
         </p>
       </Section>
 

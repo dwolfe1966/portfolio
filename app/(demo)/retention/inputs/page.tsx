@@ -32,7 +32,7 @@ export default async function RetentionInputsPage() {
         {policy ? (
           <RetentionPolicyEditor policy={policy} />
         ) : (
-          <div className="card"><p>No retention policy found. Reset demo data from Overview.</p></div>
+          <div className="card"><p>No retention policy found. Reset workspace data from Overview.</p></div>
         )}
       </Section>
 

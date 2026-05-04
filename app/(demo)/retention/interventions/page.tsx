@@ -41,7 +41,7 @@ export default async function RetentionInterventionsPage() {
             playbooks={playbooks.map((playbook) => ({ id: playbook.id, name: playbook.name }))}
           />
         ) : (
-          <div className="card"><p>No account or playbook data found. Reset demo data from Overview.</p></div>
+          <div className="card"><p>No account or playbook data found. Reset workspace data from Overview.</p></div>
         )}
       </Section>
       <Section title="Intervention queue">

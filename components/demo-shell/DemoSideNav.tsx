@@ -112,7 +112,7 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
     <nav className="demoSideNav" aria-label={`${app} demo navigation`}>
       <div className="demoSideNavBrand">
         <div className="demoSideNavBrandText">
-          <span className="demoSideNavEnv">WOLFE APP</span>
+          <span className="demoSideNavEnv">TOOL</span>
           <span className="demoSideNavApp">
             {app === "lifecycle"
               ? "Lifecycle Engine"
@@ -175,7 +175,7 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
 
         <div className="demoSideNavFooter">
           <Link href="/demo/dashboard" className="demoSideNavReturn demoSideNavToolset">
-            Wolfe Apps dashboard
+            Tools dashboard
           </Link>
           <Link href="/demo/activity" className="demoSideNavReturn">
             Activity

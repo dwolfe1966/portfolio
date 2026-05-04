@@ -21,7 +21,7 @@ export default async function UserPage({ params }: PageProps) {
 
     return (
       <>
-        <Section eyebrow="Demo" title={user.fullName}>
+        <Section eyebrow="Tools" title={user.fullName}>
           <p>Segment: {user.segment}</p>
           <p>Subscription status: {user.subscriptionStatus}</p>
         </Section>

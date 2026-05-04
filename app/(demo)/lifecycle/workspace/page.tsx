@@ -53,7 +53,7 @@ export default async function LifecycleWorkspacePage() {
 
   return (
     <>
-      <Section eyebrow="Workspace" title={summary.workspace?.name ?? "Default Demo Workspace"}>
+      <Section eyebrow="Workspace" title={summary.workspace?.name ?? "Default Workspace"}>
         <p>
           This is the early workspace layer for saved lifecycle configuration: imports, mapping presets, datasets, and model runs.
           Full account ownership can attach to this structure later.

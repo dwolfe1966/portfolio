@@ -21,7 +21,7 @@ export default async function LandingPage({ params }: PageProps) {
 
     return (
       <>
-        <Section eyebrow="Demo" title={message.landingHeadline}>
+        <Section eyebrow="Tools" title={message.landingHeadline}>
           <p>{message.landingBody}</p>
         </Section>
         <Section title="Preview data">

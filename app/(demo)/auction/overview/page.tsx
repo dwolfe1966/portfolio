@@ -92,7 +92,7 @@ export default async function AuctionOverviewPage() {
         </div>
       </Section>
 
-      <Section title="Demo data operations">
+      <Section title="Workspace data operations">
         <ResetDemoDataCard appLabel="Auction" scope="auction" />
       </Section>
     </>

@@ -56,7 +56,7 @@ export default async function ExpansionOverviewPage() {
         )}
       </Section>
 
-      <Section title="Demo data operations">
+      <Section title="Workspace data operations">
         <ResetDemoDataCard appLabel="Expansion" scope="expansion" />
       </Section>
     </>

@@ -1,11 +1,19 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { buildMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Tools Activity | David Wolfe",
+  description: "Workspace activity feed for Tools imports, model runs, connector events, and audit logs.",
+  path: "/demo/activity"
+});
 
 type ActivityItem = {
   id: string;
@@ -163,11 +171,11 @@ export default async function DemoActivityPage() {
       <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Activity feed">
         <p>
-          A shared operating history for Wolfe Apps: imports, model runs, connector events, and app audit logs
+          A shared operating history for Tools: imports, model runs, connector events, and app audit logs
           gathered into one workspace-level view.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/demo/dashboard">Wolfe Apps dashboard</Link>
+          <Link className="btn primary" href="/demo/dashboard">Tools dashboard</Link>
           <Link className="btn" href="/demo/datasets">Datasets</Link>
           <Link className="btn" href="/demo/connections">Connections</Link>
         </div>

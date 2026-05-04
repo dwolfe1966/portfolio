@@ -1,11 +1,19 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { buildMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Tools Connections | David Wolfe",
+  description: "Connection hub for bringing CSV, spreadsheet, OAuth, and live datasource data into Tools.",
+  path: "/demo/connections"
+});
 
 const connectionModes = [
   {
@@ -76,7 +84,7 @@ export default async function DemoConnectionsPage() {
       <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Connections hub">
         <p>
-          This is the shared entry point for turning Wolfe Apps into operating tools: bring your own data, map it into the app model,
+          This is the shared entry point for turning Tools into operating tools: bring your own data, map it into the app model,
           save the configuration, and run simulations against an owned operating context.
         </p>
         <div className="ctaRow">

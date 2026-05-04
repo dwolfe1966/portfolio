@@ -133,7 +133,7 @@ export default async function LifecycleAuditPage() {
       return (
         <Section title="Lifecycle audit">
           <div className="card">
-            <p>Lifecycle campaign tables are missing. Run database migrations and seed the demo data.</p>
+            <p>Lifecycle campaign tables are missing. Run database migrations and seed the workspace data.</p>
           </div>
         </Section>
       );
