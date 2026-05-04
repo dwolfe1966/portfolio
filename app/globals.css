@@ -687,6 +687,66 @@ button {
   background: linear-gradient(90deg, var(--demo-accent), #38bdf8);
   transition: width 320ms ease;
 }
+.demoAppShellContent .smallBtn {
+  width: auto;
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.demoAppShellContent .modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.72);
+}
+.demoAppShellContent .messagePreviewModal {
+  width: min(1040px, 100%);
+  max-height: min(760px, calc(100vh - 40px));
+  overflow: auto;
+  border: 1px solid var(--demo-divider);
+  border-radius: 10px;
+  background: var(--demo-bg);
+  color: var(--demo-text);
+  padding: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+.demoAppShellContent .modalHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.demoAppShellContent .landingPreviewSurface {
+  border: 1px solid color-mix(in oklab, var(--demo-accent) 38%, var(--demo-divider));
+  border-radius: 8px;
+  padding: 20px;
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(16, 185, 129, 0.08)),
+    var(--demo-surface);
+}
+.demoAppShellContent .landingPreviewSurface h2 {
+  margin: 6px 0 10px;
+}
+.demoAppShellContent .landingPreviewFacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.demoAppShellContent .landingPreviewFacts > div {
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(2, 6, 23, 0.36);
+}
+.demoAppShellContent .landingPreviewFacts span,
+.demoAppShellContent .landingPreviewFacts strong {
+  display: block;
+}
 
 /* Status band primitives. */
 .statusDot {

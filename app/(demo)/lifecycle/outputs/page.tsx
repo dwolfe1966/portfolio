@@ -5,6 +5,7 @@ import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { LifecycleFunnelKpiStrip } from "@/components/demo/LifecycleFunnelKpiStrip";
+import { LifecycleMessagePreviewTable } from "@/components/demo/LifecycleMessagePreviewTable";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +98,7 @@ export default async function DemoOutputsPage({ searchParams }: PageProps) {
       db.generatedMessage.findMany({
         orderBy: { createdAt: "desc" },
         take: 10,
-        include: { campaignCandidate: { include: { user: true, entity: true } } }
+        include: { campaignCandidate: { include: { user: true, entity: true, entityDelta: true } } }
       }),
       db.assumptionSet.findFirst({
         where: { isActive: true },
@@ -249,19 +250,23 @@ export default async function DemoOutputsPage({ searchParams }: PageProps) {
           </table>
         </Section>
         <div id="recent-generated-messages"><Section title="Recent generated messages">
-          <table className="table">
-            <thead><tr><th>User</th><th>Entity</th><th>Subject</th><th>Model</th></tr></thead>
-            <tbody>
-              {messages.map((message) => (
-                <tr key={message.id}>
-                  <td>{message.campaignCandidate.user.fullName}</td>
-                  <td>{message.campaignCandidate.entity.name}</td>
-                  <td>{message.subjectLine}</td>
-                  <td>{message.modelName}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <LifecycleMessagePreviewTable
+            messages={messages.map((message) => ({
+              id: message.id,
+              userName: message.campaignCandidate.user.fullName,
+              entityName: message.campaignCandidate.entity.name,
+              entityType: message.campaignCandidate.entity.entityType,
+              changeType: message.campaignCandidate.entityDelta.changeType,
+              deltaSummary: message.campaignCandidate.entityDelta.deltaSummary,
+              subjectLine: message.subjectLine,
+              previewText: message.previewText,
+              emailBody: message.emailBody,
+              landingHeadline: message.landingHeadline,
+              landingBody: message.landingBody,
+              ctaText: message.ctaText,
+              modelName: message.modelName
+            }))}
+          />
         </Section></div>
       </>
     );
