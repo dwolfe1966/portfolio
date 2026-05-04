@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -159,6 +160,7 @@ export default async function DemoActivityPage() {
   return (
     <>
       <DemoWorkspaceTabs />
+      <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Activity feed">
         <p>
           A shared operating history for the demo toolset: imports, model runs, connector events, and app audit logs

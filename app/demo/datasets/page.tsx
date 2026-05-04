@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -54,6 +55,7 @@ export default async function DemoDatasetsPage() {
   return (
     <>
       <DemoWorkspaceTabs />
+      <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Datasets and presets">
         <p>
           This page inventories the reusable data assets behind the toolset: field mapping presets, imported datasets,

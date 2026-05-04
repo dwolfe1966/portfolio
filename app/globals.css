@@ -1168,6 +1168,32 @@ button {
   border-color: var(--accent);
   color: #ffffff;
 }
+.demoWorkspaceQuickActions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.demoWorkspaceQuickAction {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in oklab, #ffffff 88%, var(--bg) 12%);
+  padding: 12px;
+}
+.demoWorkspaceQuickAction:hover {
+  border-color: color-mix(in oklab, var(--blue) 42%, var(--line));
+}
+.demoWorkspaceQuickAction strong {
+  color: var(--text);
+  font-size: 13px;
+}
+.demoWorkspaceQuickAction span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
 .workspaceModuleCard {
   display: grid;
   gap: 10px;
@@ -1967,6 +1993,9 @@ button {
   }
   .siteNav .links a:hover { background: #f3f4f6; }
   .navCta { display: none; }
+  .demoWorkspaceQuickActions {
+    grid-template-columns: 1fr;
+  }
   .activityFeedItem {
     grid-template-columns: 1fr;
     gap: 10px;

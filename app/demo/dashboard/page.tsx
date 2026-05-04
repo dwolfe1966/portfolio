@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DemoAppLaunchCard, type DemoAppLaunchTarget } from "@/components/site/DemoAppLaunchCard";
+import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -67,6 +68,7 @@ export default async function DemoDashboardPage() {
   return (
     <>
       <DemoWorkspaceTabs />
+      <DemoWorkspaceQuickActions />
       <Section eyebrow="Toolset" title="Revenue systems workspace">
         <p>
           This dashboard is the early account surface for the demo apps: one place to launch tools, inspect saved

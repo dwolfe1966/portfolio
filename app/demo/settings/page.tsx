@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -49,6 +50,7 @@ export default async function DemoSettingsPage() {
   return (
     <>
       <DemoWorkspaceTabs />
+      <DemoWorkspaceQuickActions />
       <Section eyebrow="Account" title="Workspace settings">
         <p>
           This is the first shared settings surface for the demo toolset: workspace identity, saved configuration,
