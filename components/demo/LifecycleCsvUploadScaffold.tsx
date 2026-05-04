@@ -18,6 +18,12 @@ type ParsedCsv = {
   errors: string[];
 };
 
+type ImportStatus =
+  | { state: "idle"; message: string }
+  | { state: "loading"; message: string }
+  | { state: "success"; message: string }
+  | { state: "error"; message: string };
+
 const configs: CsvConfig[] = [
   {
     key: "users",
@@ -115,6 +121,10 @@ function parseCsv(text: string, config: CsvConfig): ParsedCsv {
 }
 
 export function LifecycleCsvUploadScaffold() {
+  const [importStatus, setImportStatus] = useState<ImportStatus>({
+    state: "idle",
+    message: "Validate all four lifecycle objects before importing rows into the demo database."
+  });
   const [csvByObject, setCsvByObject] = useState<Record<CsvObjectKey, string>>({
     users: "",
     entities: "",
@@ -140,6 +150,40 @@ export function LifecycleCsvUploadScaffold() {
     updateCsv(key, await file.text());
   }
 
+  async function importDataset() {
+    if (!importReady || importStatus.state === "loading") return;
+    setImportStatus({ state: "loading", message: "Importing users, entities, interest edges, and change events into the lifecycle model..." });
+
+    try {
+      const response = await fetch("/api/lifecycle/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          users: parsedByObject.users.rows,
+          entities: parsedByObject.entities.rows,
+          interestEdges: parsedByObject.interestEdges.rows,
+          changeEvents: parsedByObject.changeEvents.rows
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const serverErrors = payload?.error?.details?.errors;
+        const detail = Array.isArray(serverErrors) && serverErrors.length > 0 ? ` ${serverErrors.slice(0, 3).join(" ")}` : "";
+        throw new Error(`${payload?.error?.message ?? "Import failed."}${detail}`);
+      }
+      const imported = payload.import ?? {};
+      setImportStatus({
+        state: "success",
+        message: `Imported ${imported.usersImported ?? 0} users, ${imported.entitiesImported ?? 0} entities, ${imported.interestEdgesImported ?? 0} interest edges, and ${imported.changeEventsImported ?? 0} change events.`
+      });
+    } catch (error) {
+      setImportStatus({
+        state: "error",
+        message: error instanceof Error ? error.message : "Import failed."
+      });
+    }
+  }
+
   return (
     <div className="lifecycleCsvScaffold">
       <div className="card">
@@ -152,10 +196,13 @@ export function LifecycleCsvUploadScaffold() {
         </div>
         <p>
           Paste CSV text or load sample rows for each lifecycle object. This validates and previews data locally;
-          database import will be the next backend step.
+          ready data can now be imported into the lifecycle demo database.
         </p>
         <p className="small">Rows parsed: {totalRows} · validation issues: {totalErrors}</p>
-        <button type="button" disabled={!importReady}>Import dataset (coming next)</button>
+        <button type="button" disabled={!importReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
+          {importStatus.state === "loading" ? "Importing dataset..." : "Import dataset"}
+        </button>
+        <p className={`small lifecycleImportStatus lifecycleImportStatus--${importStatus.state}`}>{importStatus.message}</p>
       </div>
 
       <div className="grid grid-2">
