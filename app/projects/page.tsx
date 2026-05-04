@@ -16,10 +16,10 @@ export default function ProjectsIndexPage() {
       <p>Selected product and growth systems with clear commercial framing and practical implementation detail.</p>
       <div className="grid grid-2" style={{ marginTop: 18 }}>
         {projects.map((project) => (
-          <div key={project.slug} className="card">
+          <div key={project.slug} className="card caseStudyCard">
             <p className={`statusPill ${project.status === "live" ? "live" : "progress"}`}>{project.status === "live" ? "Live demo" : "In progress"}</p>
-            <h3>{project.title}</h3>
-            <p>{project.summary}</p>
+            <h3 className="caseStudyCardTitle">{project.title}</h3>
+            <p className="caseStudyBody">{project.summary}</p>
             <div className="ctaRow">
               <Link className="btn" href={`/projects/${project.slug}`}>View Project</Link>
               {project.appHref && <Link className="btn primary" href={project.appHref}>Open app</Link>}

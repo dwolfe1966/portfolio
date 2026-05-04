@@ -66,8 +66,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           <Link className="btn" href="/projects">Back to projects</Link>
         </div>
       </Section>
-      <Section title="The problem"><p>{project.problem}</p></Section>
-      <Section title="The thesis"><p>{project.thesis}</p></Section>
+      <Section title="The problem"><p className="caseStudyNarrative">{project.problem}</p></Section>
+      <Section title="The thesis"><p className="caseStudyNarrative">{project.thesis}</p></Section>
       <Section title="System flow">
         {project.slug === "agent-acquisition" ? (
           <AcquisitionFlowDiagram />
@@ -83,7 +83,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       <Section title="System architecture">
         <div className="grid grid-2">
           {project.architecture.map((item) => (
-            <div key={item.title} className="card"><h3>{item.title}</h3><p>{item.detail}</p></div>
+            <div key={item.title} className="card caseStudyCard">
+              <h3 className="caseStudyCardTitle">{item.title}</h3>
+              <p className="caseStudyBody">{item.detail}</p>
+            </div>
           ))}
         </div>
       </Section>
@@ -95,16 +98,16 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       <Section title="KPI callouts">
         <div className="grid grid-3">
           {project.kpiCallouts.map((item) => (
-            <div key={item.label} className="card">
-              <p className="small">{item.label}</p>
-              <div className="kpi">{item.value}</div>
-              <p>{item.detail}</p>
+            <div key={item.label} className="card caseStudyCard caseStudyMetricCard">
+              <p className="small caseStudyLabel">{item.label}</p>
+              <div className="kpi caseStudyKpi">{item.value}</div>
+              <p className="caseStudyBody">{item.detail}</p>
             </div>
           ))}
         </div>
       </Section>
-      <Section title="Commercial framing"><p>{project.commercialFraming}</p></Section>
-      <Section title="What I built"><p>{project.whatIBuilt}</p></Section>
+      <Section title="Commercial framing"><p className="caseStudyNarrative">{project.commercialFraming}</p></Section>
+      <Section title="What I built"><p className="caseStudyNarrative">{project.whatIBuilt}</p></Section>
       <Section title="Browse projects">
         <div className="ctaRow">
           {prev ? <Link className="btn" href={`/projects/${prev.slug}`}>← {prev.title}</Link> : <span className="small">No previous project</span>}
