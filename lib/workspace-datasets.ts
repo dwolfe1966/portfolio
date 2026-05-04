@@ -30,7 +30,7 @@ export const WORKSPACE_DATASET_SCHEMAS: WorkspaceDatasetSchema[] = [
   {
     app: "lifecycle",
     label: "Lifecycle",
-    importPath: "/lifecycle/connections/csv",
+    importPath: "/workspace/connections/csv?tool=lifecycle",
     primaryAction: "Import lifecycle CSV",
     objects: [
       { key: "users", label: "Users", required: true },
@@ -42,8 +42,8 @@ export const WORKSPACE_DATASET_SCHEMAS: WorkspaceDatasetSchema[] = [
   {
     app: "acquisition",
     label: "Acquisition",
-    importPath: "/acquisition/connections",
-    primaryAction: "Connect ad data",
+    importPath: "/workspace/connections/csv?tool=acquisition",
+    primaryAction: "Map acquisition CSV",
     objects: [
       { key: "campaigns", label: "Campaigns", required: true },
       { key: "audiences", label: "Audiences", required: true },
@@ -54,8 +54,8 @@ export const WORKSPACE_DATASET_SCHEMAS: WorkspaceDatasetSchema[] = [
   {
     app: "pricing",
     label: "Pricing",
-    importPath: "/pricing/inputs",
-    primaryAction: "Prepare pricing data",
+    importPath: "/workspace/connections/csv?tool=pricing",
+    primaryAction: "Map pricing CSV",
     objects: [
       { key: "segments", label: "Segments", required: true },
       { key: "variants", label: "Variants", required: true },
@@ -66,8 +66,8 @@ export const WORKSPACE_DATASET_SCHEMAS: WorkspaceDatasetSchema[] = [
   {
     app: "retention",
     label: "Retention",
-    importPath: "/retention/inputs",
-    primaryAction: "Prepare retention data",
+    importPath: "/workspace/connections/csv?tool=retention",
+    primaryAction: "Map retention CSV",
     objects: [
       { key: "accounts", label: "Accounts", required: true },
       { key: "playbooks", label: "Playbooks", required: true },
@@ -78,8 +78,8 @@ export const WORKSPACE_DATASET_SCHEMAS: WorkspaceDatasetSchema[] = [
   {
     app: "expansion",
     label: "Expansion",
-    importPath: "/expansion/inputs",
-    primaryAction: "Prepare expansion data",
+    importPath: "/workspace/connections/csv?tool=expansion",
+    primaryAction: "Map expansion CSV",
     objects: [
       { key: "accounts", label: "Accounts", required: true },
       { key: "offers", label: "Offers", required: true },
@@ -89,8 +89,8 @@ export const WORKSPACE_DATASET_SCHEMAS: WorkspaceDatasetSchema[] = [
   {
     app: "auction",
     label: "Auction",
-    importPath: "/auction/inputs",
-    primaryAction: "Prepare auction data",
+    importPath: "/workspace/connections/csv?tool=auction",
+    primaryAction: "Map auction CSV",
     objects: [
       { key: "advertisers", label: "Advertisers", required: true },
       { key: "slots", label: "Slots", required: true },

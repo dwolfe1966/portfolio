@@ -18,9 +18,9 @@ const connectionModes = [
   {
     title: "CSV / spreadsheet upload",
     status: "Available now",
-    detail: "Upload files, map source columns to app entities, validate rows, save presets, and run simulations against imported data.",
-    tools: "Lifecycle now; other tools next",
-    href: "/lifecycle/connections/csv",
+    detail: "Upload files, map source columns to app entities, validate rows, and prepare tool-ready datasets.",
+    tools: "All tools; lifecycle import wired now",
+    href: "/workspace/connections/csv",
     action: "Open CSV flow"
   },
   {
