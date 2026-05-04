@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
   title: "Tools Connections | David Wolfe",
   description: "Connection hub for bringing CSV, spreadsheet, OAuth, and live datasource data into Tools.",
-  path: "/demo/connections"
+  path: "/workspace/connections"
 });
 
 const connectionModes = [
@@ -45,7 +45,7 @@ const connectionModes = [
     status: "Planned",
     detail: "Connect APIs, relational databases, warehouses, CRMs, and event streams into the same mapping and validation pipeline.",
     tools: "All tools",
-    href: "/demo/settings",
+    href: "/workspace/settings",
     action: "View account layer"
   }
 ];
@@ -89,9 +89,9 @@ export default async function DemoConnectionsPage() {
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/lifecycle/connections/csv">Connect CSV data</Link>
-          <Link className="btn" href="/demo/datasets">View datasets</Link>
+          <Link className="btn" href="/workspace/datasets">View datasets</Link>
           <Link className="btn" href="/acquisition/connections">Connect ad platform</Link>
-          <Link className="btn" href="/demo/settings">Workspace settings</Link>
+          <Link className="btn" href="/workspace/settings">Workspace settings</Link>
         </div>
       </Section>
 

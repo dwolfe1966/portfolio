@@ -7,17 +7,17 @@ const actions = [
     detail: "Run the most complete workspace-enabled tool."
   },
   {
-    href: "/demo/connections",
+    href: "/workspace/connections",
     label: "Connect data",
     detail: "Start CSV, OAuth, spreadsheet, or datasource setup."
   },
   {
-    href: "/demo/datasets",
+    href: "/workspace/datasets",
     label: "Review datasets",
     detail: "Inspect imports, saved mappings, and recent runs."
   },
   {
-    href: "/demo/activity",
+    href: "/workspace/activity",
     label: "Inspect activity",
     detail: "See recent imports, connector events, and audit logs."
   }

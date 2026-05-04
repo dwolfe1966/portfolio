@@ -106,7 +106,7 @@ export function LifecycleMessagePreviewTable({ messages }: { messages: Lifecycle
                   </div>
                 </div>
                 <p className="small" style={{ marginTop: 12 }}>{selected.deltaSummary}</p>
-                <a className="btn primary" href={`/demo/landing/${selected.id}`}>{selected.ctaText}</a>
+                <a className="btn primary" href={`/workspace/landing/${selected.id}`}>{selected.ctaText}</a>
               </div>
             </div>
           </div>

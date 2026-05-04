@@ -174,19 +174,19 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
         ) : null}
 
         <div className="demoSideNavFooter">
-          <Link href="/demo/dashboard" className="demoSideNavReturn demoSideNavToolset">
+          <Link href="/workspace/dashboard" className="demoSideNavReturn demoSideNavToolset">
             Tools dashboard
           </Link>
-          <Link href="/demo/activity" className="demoSideNavReturn">
+          <Link href="/workspace/activity" className="demoSideNavReturn">
             Activity
           </Link>
-          <Link href="/demo/connections" className="demoSideNavReturn">
+          <Link href="/workspace/connections" className="demoSideNavReturn">
             Connections hub
           </Link>
-          <Link href="/demo/datasets" className="demoSideNavReturn">
+          <Link href="/workspace/datasets" className="demoSideNavReturn">
             Datasets
           </Link>
-          <Link href="/demo/settings" className="demoSideNavReturn">
+          <Link href="/workspace/settings" className="demoSideNavReturn">
             Workspace settings
           </Link>
           <Link href="/" className="demoSideNavReturn">

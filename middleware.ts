@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { DEMO_ACCESS_COOKIE, isDemoAccessConfigured, isValidDemoAccessToken } from "@/lib/demo-access";
 
 const PROTECTED_PREFIXES = [
+  "/workspace/dashboard",
+  "/workspace/activity",
+  "/workspace/connections",
+  "/workspace/datasets",
+  "/workspace/settings",
   "/demo/dashboard",
   "/demo/activity",
   "/demo/connections",
@@ -29,7 +34,7 @@ export async function middleware(request: NextRequest) {
   if (await isValidDemoAccessToken(token)) return NextResponse.next();
 
   const loginUrl = request.nextUrl.clone();
-  loginUrl.pathname = "/demo/login";
+  loginUrl.pathname = "/workspace/login";
   loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
   return NextResponse.redirect(loginUrl);
 }
@@ -41,6 +46,11 @@ export const config = {
     "/demo/connections/:path*",
     "/demo/datasets/:path*",
     "/demo/settings/:path*",
+    "/workspace/dashboard/:path*",
+    "/workspace/activity/:path*",
+    "/workspace/connections/:path*",
+    "/workspace/datasets/:path*",
+    "/workspace/settings/:path*",
     "/lifecycle/:path*",
     "/acquisition/:path*",
     "/auction/:path*",

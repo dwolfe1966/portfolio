@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
   title: "Tools Datasets | David Wolfe",
   description: "Dataset inventory for Tools saved mappings, imports, and recent model runs.",
-  path: "/demo/datasets"
+  path: "/workspace/datasets"
 });
 
 async function loadDatasetInventory() {
@@ -70,9 +70,9 @@ export default async function DemoDatasetsPage() {
           and model runs that can become saved workspace history as the apps mature into tools.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/demo/connections">Connect data</Link>
+          <Link className="btn primary" href="/workspace/connections">Connect data</Link>
           <Link className="btn" href="/lifecycle/connections/csv">Import lifecycle CSV</Link>
-          <Link className="btn" href="/demo/settings">Workspace settings</Link>
+          <Link className="btn" href="/workspace/settings">Workspace settings</Link>
         </div>
       </Section>
 

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
   title: "Tools Activity | David Wolfe",
   description: "Workspace activity feed for Tools imports, model runs, connector events, and audit logs.",
-  path: "/demo/activity"
+  path: "/workspace/activity"
 });
 
 type ActivityItem = {
@@ -56,7 +56,7 @@ async function loadActivity() {
         title: log.sourceName,
         detail: `${log.usersImported + log.entitiesImported + log.interestEdgesImported + log.changeEventsImported} rows imported · ${log.validationErrors} validation issues`,
         actor: log.sourceType.toUpperCase(),
-        href: "/demo/datasets",
+        href: "/workspace/datasets",
         createdAt: log.createdAt
       })),
       ...lifecycleRuns.map((run) => ({
@@ -175,9 +175,9 @@ export default async function DemoActivityPage() {
           gathered into one workspace-level view.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/demo/dashboard">Tools dashboard</Link>
-          <Link className="btn" href="/demo/datasets">Datasets</Link>
-          <Link className="btn" href="/demo/connections">Connections</Link>
+          <Link className="btn primary" href="/workspace/dashboard">Tools dashboard</Link>
+          <Link className="btn" href="/workspace/datasets">Datasets</Link>
+          <Link className="btn" href="/workspace/connections">Connections</Link>
         </div>
       </Section>
 

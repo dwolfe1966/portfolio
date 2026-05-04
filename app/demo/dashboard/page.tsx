@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
   title: "Tools | David Wolfe",
   description: "Workspace dashboard for Tools: AI revenue tools, datasets, connections, activity, and settings.",
-  path: "/demo/dashboard"
+  path: "/workspace/dashboard"
 });
 
 const apps: Array<{ app: DemoAppLaunchTarget; href: string; status: string }> = [
@@ -78,25 +78,25 @@ const toolReadiness = [
 
 const workspaceModules = [
   {
-    href: "/demo/activity",
+    href: "/workspace/activity",
     label: "Activity",
     title: "Workspace operating history",
     detail: "Recent imports, model runs, connector events, and app audit logs in one shared feed."
   },
   {
-    href: "/demo/connections",
+    href: "/workspace/connections",
     label: "Connections",
     title: "Bring your own data",
     detail: "CSV, spreadsheet, OAuth, and planned live datasource paths into Tools."
   },
   {
-    href: "/demo/datasets",
+    href: "/workspace/datasets",
     label: "Datasets",
     title: "Reusable data assets",
     detail: "Saved mappings, imported datasets, and recent model runs attached to the workspace."
   },
   {
-    href: "/demo/settings",
+    href: "/workspace/settings",
     label: "Settings",
     title: "Account and workspace layer",
     detail: "Workspace identity, persistence state, and the next account-management surface."
@@ -135,10 +135,10 @@ export default async function DemoDashboardPage() {
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/lifecycle/workspace">Open lifecycle workspace</Link>
-          <Link className="btn" href="/demo/activity">Activity</Link>
-          <Link className="btn" href="/demo/connections">Connect data</Link>
-          <Link className="btn" href="/demo/datasets">Datasets</Link>
-          <Link className="btn" href="/demo/settings">Workspace settings</Link>
+          <Link className="btn" href="/workspace/activity">Activity</Link>
+          <Link className="btn" href="/workspace/connections">Connect data</Link>
+          <Link className="btn" href="/workspace/datasets">Datasets</Link>
+          <Link className="btn" href="/workspace/settings">Workspace settings</Link>
           <Link className="btn" href="/lifecycle/connections/csv">Import lifecycle data</Link>
         </div>
       </Section>

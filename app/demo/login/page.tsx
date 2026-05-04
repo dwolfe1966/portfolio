@@ -8,13 +8,13 @@ import { buildMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata({
   title: "Tools Access | David Wolfe",
   description: "Access page for the Tools workspace.",
-  path: "/demo/login"
+  path: "/workspace/login"
 });
 
 type SearchParams = { error?: string; next?: string };
 
 function sanitizeNext(value: string | undefined) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/demo/dashboard";
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/workspace/dashboard";
   return value;
 }
 
@@ -28,7 +28,7 @@ async function enterDemo(formData: FormData) {
   if (!expectedPassword) redirect(next);
 
   if (password !== expectedPassword) {
-    redirect(`/demo/login?error=1&next=${encodeURIComponent(next)}`);
+    redirect(`/workspace/login?error=1&next=${encodeURIComponent(next)}`);
   }
 
   const token = await getDemoAccessToken();

@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = buildMetadata({
   title: "Tools Settings | David Wolfe",
   description: "Workspace identity, access, session, and saved configuration settings for Tools.",
-  path: "/demo/settings"
+  path: "/workspace/settings"
 });
 
 async function loadWorkspaceSettings() {
@@ -62,7 +62,7 @@ async function leaveDemoWorkspace() {
 
   const cookieStore = await cookies();
   cookieStore.delete(DEMO_ACCESS_COOKIE);
-  redirect("/demo/login");
+  redirect("/workspace/login");
 }
 
 export default async function DemoSettingsPage() {
@@ -83,7 +83,7 @@ export default async function DemoSettingsPage() {
           connector state, and the account capabilities that will later sit behind login.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/demo/dashboard">Back to tools dashboard</Link>
+          <Link className="btn primary" href="/workspace/dashboard">Back to tools dashboard</Link>
           <Link className="btn" href="/lifecycle/connections/csv">Manage lifecycle CSV mapping</Link>
         </div>
       </Section>
@@ -129,7 +129,7 @@ export default async function DemoSettingsPage() {
             <form action={leaveDemoWorkspace}>
               <button className="btn" type="submit">Leave workspace</button>
             </form>
-            <Link className="btn smallBtn" href="/demo/login">Open login page</Link>
+            <Link className="btn smallBtn" href="/workspace/login">Open login page</Link>
           </div>
         </div>
       </Section>
