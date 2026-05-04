@@ -554,6 +554,7 @@ button {
 .demoAppShellContent {
   font-size: 14px;
   line-height: 1.45;
+  min-width: 0;
 }
 .demoAppShellContent h1 { font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 14px; }
 .demoAppShellContent h2 { font-size: 20px; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 12px; }
@@ -567,6 +568,7 @@ button {
   border-radius: 6px;
   padding: 12px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  min-width: 0;
 }
 .demoAppShellContent .card.compact { padding: 10px; }
 .demoAppShellContent .grid { gap: 12px; }
@@ -647,12 +649,16 @@ button {
   font-size: 13px;
   border-collapse: collapse;
   width: 100%;
+  max-width: 100%;
 }
 .demoAppShellContent .table th,
 .demoAppShellContent .table td {
   padding: 8px 10px;
   border-bottom: 1px solid var(--demo-divider);
   text-align: left;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  min-width: 0;
 }
 .demoAppShellContent .table th {
   font-weight: 600;
@@ -666,6 +672,8 @@ button {
 .demoAppShellContent .small code {
   font-family: var(--demo-mono);
   font-size: 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .demoAppShellContent .modelDocsTable {
   table-layout: fixed;
@@ -1204,6 +1212,8 @@ button {
 }
 .tableScroll {
   overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 .pricingVizGrid {
   display: grid;
@@ -1772,4 +1782,25 @@ button {
   .demoSideNavLink.active { border-left-color: var(--demo-accent); border-bottom: 0; background: var(--demo-surface-2); }
   .demoSideNavGroupLabel { padding: 10px 8px 4px; }
   .demoSideNavFooter { margin-top: 8px; padding-top: 8px; }
+  .demoAppShellContent .table:not(.modelDocsTable) {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .demoAppShellContent .table:not(.modelDocsTable) thead,
+  .demoAppShellContent .table:not(.modelDocsTable) tbody,
+  .demoAppShellContent .table:not(.modelDocsTable) tr {
+    width: 100%;
+  }
+  .demoAppShellContent .table:not(.modelDocsTable) th,
+  .demoAppShellContent .table:not(.modelDocsTable) td {
+    min-width: 108px;
+    max-width: 260px;
+  }
+  .demoAppShellContent .table:not(.modelDocsTable) th:first-child,
+  .demoAppShellContent .table:not(.modelDocsTable) td:first-child {
+    min-width: 132px;
+  }
 }
