@@ -1710,6 +1710,19 @@ button {
   font-family: var(--demo-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   font-size: 12px;
 }
+.csvMappingPanel {
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 92%, var(--demo-accent, #2563eb) 8%);
+}
+.csvMappingGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 10px;
+}
 .lifecycleImportStatus {
   border-radius: 8px;
   padding: 8px 10px;
@@ -1758,6 +1771,7 @@ button {
 }
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .csvMappingGrid { grid-template-columns: 1fr; }
   .homeHero, .aboutIntroGrid, .experienceGrid { grid-template-columns: 1fr; }
   .homeHero { padding-top: 36px; }
   .proofStrip { grid-template-columns: 1fr; }
