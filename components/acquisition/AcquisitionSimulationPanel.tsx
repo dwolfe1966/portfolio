@@ -34,18 +34,75 @@ type InsightsPayload = {
 };
 
 type ScenarioPreset = {
+  id?: string;
   name: string;
   runCount: number;
   spendVariance: number;
   conversionVariance: number;
   savedAt: string;
+  source?: "server" | "local";
 };
 
 const PRESET_STORAGE_KEY = "acq_scenario_presets_v1";
+const WORKSPACE_PRESET_URL = "/api/workspace/presets?app=acquisition&presetType=scenario";
 
 function randomFactor(variance: number) {
   const delta = (Math.random() * 2 - 1) * variance;
   return Math.max(0.01, 1 + delta);
+}
+
+function readErrorMessage(payload: unknown, fallback: string) {
+  if (!payload || typeof payload !== "object") return fallback;
+  const error = (payload as { error?: unknown }).error;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  return fallback;
+}
+
+function normalizePreset(item: Partial<ScenarioPreset> & { values?: unknown; updatedAt?: string }): ScenarioPreset | null {
+  if (typeof item.name !== "string") return null;
+  const values = item.values && typeof item.values === "object" ? item.values as Partial<ScenarioPreset> : item;
+
+  return {
+    id: typeof item.id === "string" ? item.id : undefined,
+    name: item.name,
+    runCount: Number(values.runCount ?? 50),
+    spendVariance: Number(values.spendVariance ?? 0.15),
+    conversionVariance: Number(values.conversionVariance ?? 0.2),
+    savedAt: typeof item.updatedAt === "string"
+      ? item.updatedAt
+      : typeof item.savedAt === "string"
+        ? item.savedAt
+        : new Date().toISOString(),
+    source: item.source
+  };
+}
+
+function readLocalPresets() {
+  const stored = localStorage.getItem(PRESET_STORAGE_KEY);
+  if (!stored) return [];
+
+  try {
+    const parsed = JSON.parse(stored) as Array<Partial<ScenarioPreset>>;
+    return parsed
+      .map((item) => normalizePreset({ ...item, source: "local" }))
+      .filter((item): item is ScenarioPreset => Boolean(item));
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalPresets(presets: ScenarioPreset[]) {
+  localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(presets.map((preset) => ({
+    name: preset.name,
+    runCount: preset.runCount,
+    spendVariance: preset.spendVariance,
+    conversionVariance: preset.conversionVariance,
+    savedAt: preset.savedAt
+  }))));
 }
 
 export function AcquisitionSimulationPanel() {
@@ -60,6 +117,7 @@ export function AcquisitionSimulationPanel() {
   const [conversionVariance, setConversionVariance] = useState(0.2);
   const [presetName, setPresetName] = useState("Default scenario");
   const [presets, setPresets] = useState<ScenarioPreset[]>([]);
+  const [presetStorage, setPresetStorage] = useState<"server" | "local">("local");
   const [monteCarloRevenues, setMonteCarloRevenues] = useState<number[]>([]);
 
   const refreshCampaigns = useCallback(async function refreshCampaigns() {
@@ -142,21 +200,62 @@ export function AcquisitionSimulationPanel() {
     setMonteCarloRevenues(runs);
   }
 
-  function savePreset() {
+  async function loadPresets() {
+    try {
+      const res = await fetch(WORKSPACE_PRESET_URL, { cache: "no-store" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(readErrorMessage(json, "Workspace presets unavailable."));
+
+      const normalized = (json.presets ?? [])
+        .map((item: Partial<ScenarioPreset> & { values?: unknown; updatedAt?: string }) => normalizePreset({ ...item, source: "server" }))
+        .filter((item: ScenarioPreset | null): item is ScenarioPreset => Boolean(item));
+      setPresets(normalized);
+      setPresetStorage("server");
+    } catch {
+      setPresets(readLocalPresets());
+      setPresetStorage("local");
+    }
+  }
+
+  async function savePreset() {
     const trimmed = presetName.trim();
     if (!trimmed) {
       setMessage("Preset name is required.");
       return;
     }
 
-    const next: ScenarioPreset[] = [
-      ...presets.filter((preset) => preset.name !== trimmed),
-      { name: trimmed, runCount, spendVariance, conversionVariance, savedAt: new Date().toISOString() }
-    ];
-    setPresets(next);
-    localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(next));
-    setPresetName(trimmed);
-    setMessage(`Saved scenario preset: ${trimmed}`);
+    const savedAt = new Date().toISOString();
+
+    try {
+      const res = await fetch("/api/workspace/presets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          app: "acquisition",
+          presetType: "scenario",
+          name: trimmed,
+          values: { runCount, spendVariance, conversionVariance },
+          metadata: { source: "acquisition-simulation-panel" }
+        })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(readErrorMessage(json, "Unable to save workspace preset."));
+
+      setPresetName(trimmed);
+      setPresetStorage("server");
+      await loadPresets();
+      setMessage(`Saved workspace scenario preset: ${trimmed}`);
+    } catch (error) {
+      const next: ScenarioPreset[] = [
+        ...presets.filter((preset) => preset.name !== trimmed),
+        { name: trimmed, runCount, spendVariance, conversionVariance, savedAt, source: "local" }
+      ];
+      setPresets(next);
+      writeLocalPresets(next);
+      setPresetName(trimmed);
+      setPresetStorage("local");
+      setMessage(error instanceof Error ? `${error.message} Saved locally instead.` : `Saved local scenario preset: ${trimmed}`);
+    }
   }
 
   function applyPreset(name: string) {
@@ -169,10 +268,29 @@ export function AcquisitionSimulationPanel() {
     setMessage(`Loaded scenario preset: ${preset.name}`);
   }
 
-  function deletePreset(name: string) {
+  async function deletePreset(preset: ScenarioPreset) {
+    if (preset.id && preset.source === "server") {
+      try {
+        const res = await fetch("/api/workspace/presets", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: preset.id })
+        });
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(readErrorMessage(json, "Unable to delete workspace preset."));
+        await loadPresets();
+        setMessage(`Deleted scenario preset: ${preset.name}`);
+        return;
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Unable to delete workspace preset.");
+        return;
+      }
+    }
+
+    const name = preset.name;
     const next = presets.filter((item) => item.name !== name);
     setPresets(next);
-    localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(next));
+    writeLocalPresets(next);
     if (presetName === name) {
       setPresetName(next[0]?.name ?? "");
     }
@@ -188,24 +306,7 @@ export function AcquisitionSimulationPanel() {
   }, [selectedCampaignId, loadInsights]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(PRESET_STORAGE_KEY);
-    if (!stored) return;
-
-    try {
-      const parsed = JSON.parse(stored) as Array<Partial<ScenarioPreset>>;
-      const normalized: ScenarioPreset[] = parsed
-        .filter((item) => typeof item.name === "string")
-        .map((item) => ({
-          name: String(item.name),
-          runCount: Number(item.runCount ?? 50),
-          spendVariance: Number(item.spendVariance ?? 0.15),
-          conversionVariance: Number(item.conversionVariance ?? 0.2),
-          savedAt: typeof item.savedAt === "string" ? item.savedAt : new Date().toISOString()
-        }));
-      setPresets(normalized);
-    } catch {
-      // ignore parse errors
-    }
+    void loadPresets();
   }, []);
 
   const chartMax = useMemo(() => {
@@ -373,19 +474,21 @@ export function AcquisitionSimulationPanel() {
             {presets.length > 0 && (
               <div className="card" style={{ marginTop: 12 }}>
                 <h3>Scenario presets</h3>
+                <p className="small">Storage: {presetStorage === "server" ? "Workspace database" : "Local browser fallback"}</p>
                 <table className="table">
-                  <thead><tr><th>Name</th><th>Runs</th><th>Variance</th><th>Saved</th><th>Action</th></tr></thead>
+                  <thead><tr><th>Name</th><th>Runs</th><th>Variance</th><th>Storage</th><th>Saved</th><th>Action</th></tr></thead>
                   <tbody>
                     {presets.map((preset) => (
                       <tr key={preset.name}>
                         <td>{preset.name}</td>
                         <td>{preset.runCount}</td>
                         <td>S {preset.spendVariance.toFixed(2)} / C {preset.conversionVariance.toFixed(2)}</td>
+                        <td>{preset.source === "server" ? "Workspace" : "Local"}</td>
                         <td>{new Date(preset.savedAt).toLocaleString()}</td>
                         <td>
                           <div className="ctaRow" style={{ marginTop: 0 }}>
                             <button type="button" onClick={() => applyPreset(preset.name)}>Load</button>
-                            <button type="button" onClick={() => deletePreset(preset.name)}>Delete</button>
+                            <button type="button" onClick={() => deletePreset(preset)}>Delete</button>
                           </div>
                         </td>
                       </tr>

@@ -15,6 +15,7 @@ model Workspace {
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
   mappingPresets LifecycleMappingPreset[]
+  presets        WorkspacePreset[]
 }
 
 enum UserSegment {
@@ -907,4 +908,20 @@ model LifecycleMappingPreset {
 
   @@index([workspaceId, app, sourceType, updatedAt])
   @@unique([workspaceId, app, sourceType, name])
+}
+
+model WorkspacePreset {
+  id          String    @id @default(cuid())
+  workspaceId String
+  app         String
+  presetType  String
+  name        String
+  values      Json
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, app, presetType, updatedAt])
+  @@unique([workspaceId, app, presetType, name])
 }

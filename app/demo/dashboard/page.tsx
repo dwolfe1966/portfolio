@@ -105,17 +105,18 @@ const workspaceModules = [
 
 async function loadToolsetSummary() {
   try {
-    const [workspace, presets, imports, lifecycleRuns] = await Promise.all([
+    const [workspace, presets, workspacePresets, imports, lifecycleRuns] = await Promise.all([
       db.workspace.findUnique({ where: { slug: "default-demo-workspace" } }),
       db.lifecycleMappingPreset.count({ where: { app: "lifecycle", sourceType: "csv" } }),
+      db.workspacePreset.count(),
       db.lifecycleImportLog.count(),
       db.campaignRun.count()
     ]);
 
-    return { workspace, presets, imports, lifecycleRuns, compatibilityMode: false };
+    return { workspace, presets, workspacePresets, imports, lifecycleRuns, compatibilityMode: false };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return { workspace: null, presets: 0, imports: 0, lifecycleRuns: 0, compatibilityMode: true };
+      return { workspace: null, presets: 0, workspacePresets: 0, imports: 0, lifecycleRuns: 0, compatibilityMode: true };
     }
     throw error;
   }
@@ -147,7 +148,7 @@ export default async function DemoDashboardPage() {
         <div className="grid grid-4">
           <div className="card"><p className="small">Workspace</p><div className="kpi">{summary.workspace ? "Active" : "Setup"}</div></div>
           <div className="card"><p className="small">Mapping presets</p><div className="kpi">{summary.presets.toLocaleString()}</div></div>
-          <div className="card"><p className="small">Lifecycle imports</p><div className="kpi">{summary.imports.toLocaleString()}</div></div>
+          <div className="card"><p className="small">Tool presets</p><div className="kpi">{summary.workspacePresets.toLocaleString()}</div></div>
           <div className="card"><p className="small">Lifecycle runs</p><div className="kpi">{summary.lifecycleRuns.toLocaleString()}</div></div>
         </div>
         {summary.compatibilityMode ? (

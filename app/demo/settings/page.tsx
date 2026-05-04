@@ -40,15 +40,16 @@ async function loadWorkspaceSettings() {
         }
       }
     });
-    const [imports, lifecycleRuns] = await Promise.all([
+    const [imports, lifecycleRuns, workspacePresets] = await Promise.all([
       db.lifecycleImportLog.count(),
-      db.campaignRun.count()
+      db.campaignRun.count(),
+      db.workspacePreset.count()
     ]);
 
-    return { workspace, imports, lifecycleRuns, compatibilityMode: false };
+    return { workspace, imports, lifecycleRuns, workspacePresets, compatibilityMode: false };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return { workspace: null, imports: 0, lifecycleRuns: 0, compatibilityMode: true };
+      return { workspace: null, imports: 0, lifecycleRuns: 0, workspacePresets: 0, compatibilityMode: true };
     }
     throw error;
   }
@@ -194,13 +195,13 @@ export default async function DemoSettingsPage({
           </div>
           <div className="card">
             <p className="small">Configured apps</p>
-            <div className="kpi">{uniqueApps.size.toLocaleString()}</div>
-            <p>Apps with at least one workspace-scoped saved configuration.</p>
+            <div className="kpi">{(uniqueApps.size + (settings.workspacePresets > 0 ? 1 : 0)).toLocaleString()}</div>
+            <p>Tools with at least one workspace-scoped saved configuration.</p>
           </div>
           <div className="card">
-            <p className="small">Lifecycle activity</p>
-            <div className="kpi">{(settings.imports + settings.lifecycleRuns).toLocaleString()}</div>
-            <p>Imports and campaign runs attached to the current workspace data layer.</p>
+            <p className="small">Tool presets</p>
+            <div className="kpi">{settings.workspacePresets.toLocaleString()}</div>
+            <p>Reusable scenario and configuration presets saved to the workspace.</p>
           </div>
         </div>
       </Section>
