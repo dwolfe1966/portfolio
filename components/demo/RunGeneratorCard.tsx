@@ -31,6 +31,17 @@ export function RunGeneratorCard() {
     ];
   }, [topN]);
 
+  const generateButtonLabels = useMemo(() => {
+    const targetCount = Math.max(1, Number(topN || 1));
+    return [
+      "Scoring candidates...",
+      `Selecting top ${targetCount}...`,
+      "Calling OpenAI...",
+      "Writing AI subject lines...",
+      "Writing AI message copy..."
+    ];
+  }, [topN]);
+
   useEffect(() => {
     if (!loading) {
       setAiProgressStep(0);
@@ -94,7 +105,7 @@ export function RunGeneratorCard() {
           />
         </label>
         <button type="button" onClick={onGenerate} disabled={loading}>
-          {loading ? "Running..." : "Generate Campaign Run"}
+          {loading ? generateButtonLabels[aiProgressStep] : "Generate Campaign Run"}
         </button>
       </div>
       {loading && (

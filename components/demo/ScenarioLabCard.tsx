@@ -69,6 +69,19 @@ export function ScenarioLabCard() {
     ];
   }, [topN]);
 
+  const generateButtonLabels = useMemo(() => {
+    const targetCount = Math.max(1, Number(topN || 1));
+    return [
+      "Matching signals...",
+      `Ranking top ${targetCount}...`,
+      "Calling OpenAI...",
+      "Writing AI subject lines...",
+      "Writing AI message copy...",
+      "Saving generated messages...",
+      "Finalizing campaign run..."
+    ];
+  }, [topN]);
+
   const timeline = useMemo(() => {
     if (!outcomeResult?.counts) return [];
     return [
@@ -221,7 +234,9 @@ export function ScenarioLabCard() {
       <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
         <button type="button" onClick={loadSavedAssumptions} disabled={loadingAction !== null}>Load Active Assumptions</button>
         <button type="button" onClick={injectEvents} disabled={loadingAction !== null}>{loadingAction === "inject" ? "Injecting..." : "1) Inject Events"}</button>
-        <button type="button" onClick={generate} disabled={loadingAction !== null}>{loadingAction === "generate" ? "Generating..." : "2) Generate Campaigns"}</button>
+        <button type="button" onClick={generate} disabled={loadingAction !== null}>
+          {loadingAction === "generate" ? generateButtonLabels[aiProgressStep] : "2) Generate Campaigns"}
+        </button>
         <button type="button" onClick={simulateOutcomes} disabled={loadingAction !== null}>{loadingAction === "simulate" ? "Simulating..." : "3) Simulate Outcomes"}</button>
         <button type="button" onClick={runMonteCarlo} disabled={loadingAction !== null}>Run Monte Carlo {monteCarloRunCount > 0 ? `(run ${monteCarloRunCount})` : ""}</button>
       </div>
