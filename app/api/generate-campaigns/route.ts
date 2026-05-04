@@ -108,16 +108,34 @@ export async function POST(req: NextRequest) {
         include: { user: true, entity: true, entityDelta: true }
       });
       if (!candidate) continue;
+      const interestEdge = await db.interestEdge.findFirst({
+        where: {
+          userId: candidate.userId,
+          entityId: candidate.entityId
+        },
+        orderBy: { interestScore: "desc" }
+      });
+      const entityLocation = [candidate.entity.city, candidate.entity.state].filter(Boolean).join(", ");
+      const recipientFirstName = candidate.user.fullName.split(" ")[0] || candidate.user.fullName;
       const copy = await generateLifecycleCopy({
+        recipientName: candidate.user.fullName,
+        recipientFirstName,
+        recipientEmail: candidate.user.email,
         segment: candidate.segmentAtGeneration,
         subscriptionStatus: candidate.user.subscriptionStatus,
+        lastActiveAt: candidate.user.lastActiveAt?.toISOString() ?? null,
         entityName: candidate.entity.name,
-        interestSource: "search_history",
-        interestScore: candidate.priorityScore.toFixed(2),
+        entityType: candidate.entity.entityType,
+        entityLocation,
+        interestSource: interestEdge?.source ?? "unknown",
+        interestScore: interestEdge?.interestScore.toFixed(2) ?? null,
+        priorityScore: candidate.priorityScore.toFixed(2),
+        priorityBreakdown: `interest ${candidate.interestContribution.toFixed(2)}, recency ${candidate.recencyContribution.toFixed(2)}, segment ${candidate.segmentContribution.toFixed(2)}, change type ${candidate.changeTypeContribution.toFixed(2)}`,
         changeType: candidate.entityDelta.changeType,
         oldValue: candidate.entityDelta.oldValue,
         newValue: candidate.entityDelta.newValue,
         deltaSummary: candidate.entityDelta.deltaSummary,
+        detectedAt: candidate.entityDelta.detectedAt.toISOString(),
         offerFraming: "Unlock the latest update with a paid subscription."
       });
       await db.generatedMessage.create({
@@ -129,7 +147,7 @@ export async function POST(req: NextRequest) {
           landingHeadline: copy.landingHeadline,
           landingBody: copy.landingBody,
           ctaText: copy.ctaText,
-          modelName: process.env.OPENAI_API_KEY ? "responses-api" : "fallback-template"
+          modelName: copy.modelName
         }
       });
       await db.campaignCandidate.update({
