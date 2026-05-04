@@ -1133,6 +1133,13 @@ button {
   color: #9ca3af;
   margin: 0;
 }
+.demoToolCard {
+  display: grid;
+  gap: 10px;
+}
+.demoToolCard .statusPill {
+  justify-self: start;
+}
 .retentionEditorCard {
   display: grid;
   gap: 10px;
