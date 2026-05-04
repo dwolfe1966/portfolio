@@ -17,6 +17,57 @@ const apps: Array<{ app: DemoAppLaunchTarget; href: string; status: string }> = 
   { app: "auction", href: "/auction/overview", status: "Demo app" }
 ];
 
+const toolReadiness = [
+  {
+    name: "Lifecycle Engine",
+    readiness: "Workspace-enabled",
+    data: "CSV import, mapping presets, editable lifecycle data",
+    workflow: "/lifecycle/workspace",
+    simulate: "/lifecycle/simulations",
+    docs: "/lifecycle/docs"
+  },
+  {
+    name: "Acquisition Agent",
+    readiness: "Connected-data ready",
+    data: "Google Ads OAuth, simulated accounts, campaign policy data",
+    workflow: "/acquisition/campaigns",
+    simulate: "/acquisition/simulations",
+    docs: "/acquisition/docs"
+  },
+  {
+    name: "Pricing Control Tower",
+    readiness: "Demo tool",
+    data: "Editable variants, segments, experiments, guardrails",
+    workflow: "/pricing/inputs",
+    simulate: "/pricing/simulations",
+    docs: "/pricing/docs"
+  },
+  {
+    name: "Retention Command Center",
+    readiness: "Demo tool",
+    data: "Editable accounts, playbooks, interventions, policy settings",
+    workflow: "/retention/accounts",
+    simulate: "/retention/simulations",
+    docs: "/retention/docs"
+  },
+  {
+    name: "Expansion Command Center",
+    readiness: "Demo tool",
+    data: "Editable accounts, offers, expansion policy settings",
+    workflow: "/expansion/accounts",
+    simulate: "/expansion/simulations",
+    docs: "/expansion/docs"
+  },
+  {
+    name: "Auction Desk",
+    readiness: "Demo tool",
+    data: "Editable advertisers, slots, bids, reserve settings",
+    workflow: "/auction/inputs",
+    simulate: "/auction/simulations",
+    docs: "/auction/docs"
+  }
+];
+
 const workspaceModules = [
   {
     href: "/demo/activity",
@@ -105,6 +156,25 @@ export default async function DemoDashboardPage() {
               <p>{module.detail}</p>
               <span>Open {module.label.toLowerCase()}</span>
             </Link>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Tool readiness">
+        <div className="toolReadinessList">
+          {toolReadiness.map((tool) => (
+            <div className="toolReadinessRow" key={tool.name}>
+              <div>
+                <p className={`statusPill ${tool.readiness === "Demo tool" ? "progress" : "live"}`}>{tool.readiness}</p>
+                <h3>{tool.name}</h3>
+                <p>{tool.data}</p>
+              </div>
+              <div className="toolReadinessActions">
+                <Link className="btn smallBtn primary" href={tool.workflow}>Open</Link>
+                <Link className="btn smallBtn" href={tool.simulate}>Simulate</Link>
+                <Link className="btn smallBtn" href={tool.docs}>Docs</Link>
+              </div>
+            </div>
           ))}
         </div>
       </Section>

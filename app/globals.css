@@ -1218,6 +1218,33 @@ button {
   font-size: 13px;
   font-weight: 800;
 }
+.toolReadinessList {
+  display: grid;
+  gap: 10px;
+}
+.toolReadinessRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  padding: 14px;
+}
+.toolReadinessRow h3,
+.toolReadinessRow p {
+  margin-bottom: 0;
+}
+.toolReadinessRow .statusPill {
+  margin-bottom: 8px;
+}
+.toolReadinessActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .demoLoginCard {
   max-width: 460px;
 }
@@ -1995,6 +2022,12 @@ button {
   .navCta { display: none; }
   .demoWorkspaceQuickActions {
     grid-template-columns: 1fr;
+  }
+  .toolReadinessRow {
+    grid-template-columns: 1fr;
+  }
+  .toolReadinessActions {
+    justify-content: flex-start;
   }
   .activityFeedItem {
     grid-template-columns: 1fr;
