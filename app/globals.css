@@ -1701,6 +1701,14 @@ button {
   font-size: 12px;
   font-weight: 700;
 }
+.lifecycleCsvScaffold {
+  display: grid;
+  gap: 14px;
+}
+.lifecycleCsvScaffold textarea {
+  font-family: var(--demo-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-size: 12px;
+}
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .homeHero, .aboutIntroGrid, .experienceGrid { grid-template-columns: 1fr; }

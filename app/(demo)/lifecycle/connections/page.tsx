@@ -1,4 +1,5 @@
 import { Section } from "@/components/site/Section";
+import { LifecycleCsvUploadScaffold } from "@/components/demo/LifecycleCsvUploadScaffold";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,10 @@ export default function LifecycleConnectionsPage() {
             ))}
           </tbody>
         </table>
+      </Section>
+
+      <Section title="CSV / spreadsheet upload scaffold">
+        <LifecycleCsvUploadScaffold />
       </Section>
 
       <Section title="Direct data source connector targets">
