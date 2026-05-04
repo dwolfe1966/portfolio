@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { generateLifecycleCopy, LifecycleCopyGenerationError } from "@/lib/ai";
-import { renderUserPrompt } from "@/lib/prompts";
+import { renderUserPrompt, SYSTEM_PROMPT } from "@/lib/prompts";
 
 test("generateLifecycleCopy requires an OpenAI key", async () => {
   const originalKey = process.env.OPENAI_API_KEY;
@@ -45,4 +45,9 @@ test("renderUserPrompt preserves candidate-specific lifecycle context", () => {
   assert.match(prompt, /search_history/);
   assert.match(prompt, /interest 0.45/);
   assert.match(prompt, /A new filing was added/);
+});
+
+test("SYSTEM_PROMPT requires OpenAI to generate the subject line", () => {
+  assert.match(SYSTEM_PROMPT, /subjectLine/);
+  assert.match(SYSTEM_PROMPT, /Keep subjectLine under 70 characters/);
 });

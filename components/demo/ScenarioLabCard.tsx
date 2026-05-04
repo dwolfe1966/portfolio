@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DEMO_ASSUMPTION_DEFAULTS } from "@/lib/demo-assumptions";
 import { SimulationCharts } from "@/components/demo/SimulationCharts";
 
@@ -9,7 +9,7 @@ type GenerateResult = {
   campaignRunId?: string;
   generated?: number;
   estimatedRevenue?: number;
-  error?: string;
+  error?: string | { message?: string };
 };
 
 type OutcomeCounts = {
@@ -54,6 +54,20 @@ export function ScenarioLabCard() {
   const [monteCarlo, setMonteCarlo] = useState<number[]>([]);
   const [monteCarloRunCount, setMonteCarloRunCount] = useState(0);
   const [monteCarloLastRunAt, setMonteCarloLastRunAt] = useState<string | null>(null);
+  const [aiProgressStep, setAiProgressStep] = useState(0);
+
+  const aiProgressMessages = useMemo(() => {
+    const targetCount = Math.max(1, Number(topN || 1));
+    return [
+      "Matching fresh entity changes to user interest edges.",
+      `Ranking candidates and selecting the top ${targetCount} opportunities.`,
+      "Starting OpenAI generation for each selected user.",
+      `Generating custom AI subject lines, email bodies, landing copy, and CTAs for up to ${targetCount} recipients.`,
+      "Validating OpenAI JSON output before saving message assets.",
+      "Saving generated messages and campaign run metadata.",
+      "Finalizing revenue estimates and audit records."
+    ];
+  }, [topN]);
 
   const timeline = useMemo(() => {
     if (!outcomeResult?.counts) return [];
@@ -64,6 +78,25 @@ export function ScenarioLabCard() {
       `$${Number(outcomeResult.revenue ?? 0).toFixed(2)} projected revenue`
     ];
   }, [deltaCount, topN, outcomeResult]);
+
+  useEffect(() => {
+    if (loadingAction !== "generate") {
+      setAiProgressStep(0);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setAiProgressStep((step) => Math.min(step + 1, aiProgressMessages.length - 1));
+    }, 2200);
+
+    return () => window.clearInterval(timer);
+  }, [aiProgressMessages.length, loadingAction]);
+
+  function readGenerateError(payload: GenerateResult) {
+    if (typeof payload.error === "string") return payload.error;
+    if (payload.error?.message) return payload.error.message;
+    return "Generation failed.";
+  }
 
   async function loadSavedAssumptions() {
     try {
@@ -192,6 +225,23 @@ export function ScenarioLabCard() {
         <button type="button" onClick={simulateOutcomes} disabled={loadingAction !== null}>{loadingAction === "simulate" ? "Simulating..." : "3) Simulate Outcomes"}</button>
         <button type="button" onClick={runMonteCarlo} disabled={loadingAction !== null}>Run Monte Carlo {monteCarloRunCount > 0 ? `(run ${monteCarloRunCount})` : ""}</button>
       </div>
+      {loadingAction === "generate" && (
+        <div className="card" style={{ marginTop: 12, borderColor: "#3b82f6" }} aria-live="polite">
+          <p className="small" style={{ marginBottom: 6 }}>OpenAI lifecycle generation in progress</p>
+          <p style={{ marginBottom: 8 }}>
+            {aiProgressMessages[aiProgressStep]} This can take longer because the app is calling OpenAI for personalized subject lines and message copy, not reusing templates.
+          </p>
+          <div className="progressTrack" aria-hidden="true">
+            <div
+              className="progressFill"
+              style={{ width: `${Math.max(14, ((aiProgressStep + 1) / aiProgressMessages.length) * 100)}%` }}
+            />
+          </div>
+          <p className="small" style={{ marginTop: 8 }}>
+            Step {aiProgressStep + 1} of {aiProgressMessages.length}. Keep this page open while messages are generated.
+          </p>
+        </div>
+      )}
       {monteCarloRunCount > 0 && (
         <p className="small" style={{ marginTop: 8 }}>
           Monte Carlo refreshed {monteCarloRunCount}x{monteCarloLastRunAt ? ` · last run at ${monteCarloLastRunAt}` : ""}.
@@ -216,10 +266,16 @@ export function ScenarioLabCard() {
       {generateResult && (
         <div style={{ marginTop: 14 }}>
           <h3>Generation result</h3>
-          <p>Run ID: <code>{generateResult.campaignRunId ?? "n/a"}</code></p>
-          <p>Assumption set: <code>{assumptionSetId || "default-inline"}</code></p>
-          <p>Generated: {generateResult.generated ?? 0}</p>
-          <p>Estimated revenue: ${Number(generateResult.estimatedRevenue ?? 0).toFixed(2)}</p>
+          {generateResult.ok ? (
+            <>
+              <p>Run ID: <code>{generateResult.campaignRunId ?? "n/a"}</code></p>
+              <p>Assumption set: <code>{assumptionSetId || "default-inline"}</code></p>
+              <p>Generated with OpenAI: {generateResult.generated ?? 0}</p>
+              <p>Estimated revenue: ${Number(generateResult.estimatedRevenue ?? 0).toFixed(2)}</p>
+            </>
+          ) : (
+            <p style={{ color: "#b42318" }}><strong>Error:</strong> {readGenerateError(generateResult)}</p>
+          )}
         </div>
       )}
 

@@ -673,6 +673,20 @@ button {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+.demoAppShellContent .progressTrack {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--demo-accent) 14%, var(--demo-surface));
+  border: 1px solid var(--demo-divider);
+}
+.demoAppShellContent .progressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--demo-accent), #38bdf8);
+  transition: width 320ms ease;
+}
 
 /* Status band primitives. */
 .statusDot {
