@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
-import { LifecycleCsvUploadScaffold } from "@/components/demo/LifecycleCsvUploadScaffold";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
@@ -19,7 +18,7 @@ const sourceModes = [
     status: "Available now",
     detail: "Upload users, entities, interest edges, and change events from CSV, validate rows, import them into the lifecycle model, and run simulations against the imported dataset.",
     action: "Import enabled",
-    href: "#csv-upload"
+    href: "/lifecycle/connections/csv"
   },
   {
     title: "Google Sheets",
@@ -34,29 +33,6 @@ const sourceModes = [
     detail: "Connect live data through an API, warehouse, or relational database standard. Map source fields into the lifecycle model and run simulations on current operating data.",
     action: "Design target",
     href: null
-  }
-];
-
-const schemaGroups = [
-  {
-    object: "Users",
-    fields: "fullName, email, segment, subscriptionStatus, lastActiveAt",
-    purpose: "Defines who can receive lifecycle messages and which commercial posture applies."
-  },
-  {
-    object: "Entities",
-    fields: "name, entityType, city, state",
-    purpose: "Defines the people, properties, companies, or records users are tracking."
-  },
-  {
-    object: "Interest edges",
-    fields: "userEmail, entityName or entityId, interestScore, source",
-    purpose: "Connects users to entities and provides the signal strength used in scoring."
-  },
-  {
-    object: "Change events",
-    fields: "entityName or entityId, changeType, oldValue, newValue, deltaSummary, detectedAt",
-    purpose: "Creates the trigger events that become candidates for OpenAI-generated outreach."
   }
 ];
 
@@ -115,6 +91,10 @@ export default async function LifecycleConnectionsPage() {
           This page defines the connection surface: start with demo data, then move toward spreadsheet uploads,
           live sheets, and direct datasource connectors.
         </p>
+        <div className="ctaRow">
+          <Link className="btn primary" href="/lifecycle/connections/csv">Connect CSV</Link>
+          <Link className="btn" href="/lifecycle/inputs">Open current data</Link>
+        </div>
       </Section>
 
       <Section title="Connection modes">
@@ -136,33 +116,6 @@ export default async function LifecycleConnectionsPage() {
           ))}
         </div>
       </Section>
-
-      <Section title="Lifecycle schema requirements">
-        <p>
-          Every connector maps external data into the same lifecycle model, so simulations, scoring, OpenAI message generation,
-          outputs, and audit views can run consistently.
-        </p>
-        <table className="table">
-          <thead>
-            <tr><th>Object</th><th>Required fields</th><th>Why it matters</th></tr>
-          </thead>
-          <tbody>
-            {schemaGroups.map((group) => (
-              <tr key={group.object}>
-                <td>{group.object}</td>
-                <td><code className="small">{group.fields}</code></td>
-                <td>{group.purpose}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Section>
-
-      <div id="csv-upload" className="anchorTarget">
-        <Section title="CSV / spreadsheet upload scaffold">
-          <LifecycleCsvUploadScaffold />
-        </Section>
-      </div>
 
       <Section title="Recent import history">
         {importLogs.length === 0 ? (
