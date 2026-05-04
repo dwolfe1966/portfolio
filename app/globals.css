@@ -1736,6 +1736,26 @@ button {
   gap: 18px;
   justify-content: space-between;
 }
+.importHistoryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.importMetadataDetails {
+  margin-top: 8px;
+}
+.importMetadataDetails summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+.importMetadataDetails pre {
+  max-width: min(520px, 70vw);
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .homeHero, .aboutIntroGrid, .experienceGrid { grid-template-columns: 1fr; }

@@ -93,6 +93,11 @@ function formatDate(value: Date) {
   }).format(value);
 }
 
+function formatMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") return "No metadata recorded.";
+  return JSON.stringify(metadata, null, 2);
+}
+
 export default async function LifecycleConnectionsPage() {
   const importLogs = await db.lifecycleImportLog.findMany({
     orderBy: { createdAt: "desc" },
@@ -174,6 +179,7 @@ export default async function LifecycleConnectionsPage() {
                   <th>Rows imported</th>
                   <th>Validation issues</th>
                   <th>Created</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -198,6 +204,16 @@ export default async function LifecycleConnectionsPage() {
                       </td>
                       <td>{log.validationErrors}</td>
                       <td>{formatDate(log.createdAt)}</td>
+                      <td>
+                        <div className="importHistoryActions">
+                          <Link className="btn smallBtn" href="/lifecycle/inputs?imported=1">Inputs</Link>
+                          <Link className="btn smallBtn primary" href="/lifecycle/simulations?imported=1">Simulate</Link>
+                        </div>
+                        <details className="importMetadataDetails">
+                          <summary>Import details</summary>
+                          <pre>{formatMetadata(log.metadata)}</pre>
+                        </details>
+                      </td>
                     </tr>
                   );
                 })}
