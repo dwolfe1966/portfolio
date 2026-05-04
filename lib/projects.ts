@@ -23,44 +23,45 @@ export const projects: ProjectEntry[] = [
     slug: "lifecycle-revenue-engine",
     title: "Lifecycle Revenue Engine",
     summary:
-      "A working AI-enabled lifecycle system that converts meaningful entity-level change into targeted outreach and modeled revenue opportunity.",
+      "A working AI-enabled lifecycle system that turns entity-level change signals into scored campaign opportunities, generated outreach, and modeled revenue outcomes.",
     problem:
-      "Most lifecycle marketing systems are still structured around static schedules, broad segmentation, and generic messaging. When outreach is untethered from meaningful change, monetization opportunities are missed.",
+      "Most lifecycle programs still start with a calendar, a broad segment, and a message template. That structure misses the moments when a user has fresh intent tied to a specific person, place, record, or entity change.",
     thesis:
-      "When meaningful external changes are detected, mapped to users who have demonstrated interest, and translated into specific outreach and landing experiences, lifecycle marketing becomes a revenue engine.",
+      "Lifecycle marketing becomes a revenue system when the unit of work shifts from campaigns to opportunities: detect a meaningful change, prove user interest, score the commercial value, then generate the right action.",
     architecture: [
-      { title: "1. Entity Deltas", detail: "Detect changes such as address updates, phone additions, or legal record changes." },
-      { title: "2. Interest Graph", detail: "Map users to entities they have searched for, viewed, or otherwise shown interest in." },
-      { title: "3. Audience Layer", detail: "Filter users by free, trial, lapsed, or active status." },
-      { title: "4. Prioritization Engine", detail: "Rank opportunities using interest strength, change type, segment, and recency." },
-      { title: "5. AI Generator", detail: "Generate subject lines, email copy, landing copy, and CTAs tied to the opportunity." }
+      { title: "1. Change detection", detail: "Seed and simulate entity deltas such as address, phone, associate, and legal-record changes." },
+      { title: "2. Interest graph", detail: "Connect users to entities they searched, viewed, saved, or otherwise demonstrated interest in." },
+      { title: "3. Eligibility layer", detail: "Apply segment and subscription context so free, trial, active, and lapsed users can be treated differently." },
+      { title: "4. Priority scoring", detail: "Rank candidates using interest strength, recency, segment value, and change-type weight." },
+      { title: "5. Generation and outcome loop", detail: "Create message assets, persist campaign runs, and model downstream funnel/revenue outcomes." }
     ],
     kpiCallouts: [
-      { label: "Candidate precision", value: "+28%", detail: "Higher precision vs static segment-based trigger campaigns." },
-      { label: "Reactivation lift", value: "+14%", detail: "Incremental reactivation in targeted lapsed cohorts." },
-      { label: "Time-to-campaign", value: "-42%", detail: "Faster operator throughput using generated copy + templates." }
+      { label: "Priority score", value: "0-1", detail: "Inspectable score built from interest, recency, segment, and change-type contribution." },
+      { label: "Generated assets", value: "Email + landing", detail: "Each selected opportunity can produce subject, preview, body, landing copy, and CTA." },
+      { label: "Revenue model", value: "$/run", detail: "Campaign runs store estimated revenue so scenarios can be compared over time." }
     ],
     commercialFraming:
-      "The purpose of the system is not just personalization. It is commercial relevance: reactivation, retention, conversion, and incremental revenue per run.",
+      "The system is not trying to send more lifecycle messages. It is trying to identify which moments deserve action, why they matter, and what revenue path they create.",
     whatIBuilt:
-      "I specified, designed, implemented, and evolved the data model, simulation layer, prioritization logic, AI generation layer, working dashboard, and public portfolio presentation.",
-    appHref: "/lifecycle",
+      "I built the lifecycle schema, editable input surfaces, entity/user graph, scoring logic, generation endpoint, simulation flow, output views, documentation, and audit-aware run details.",
+    appHref: "/lifecycle/overview",
     status: "live",
     artifacts: {
       outcomeStrip: [
-        { label: "Signal volume", value: "45+", note: "Seeded deltas used to exercise prioritization and generation flows." },
+        { label: "Signal volume", value: "45+", note: "Seeded and simulated deltas exercise the prioritization and generation flow." },
         { label: "Opportunity score", value: "0-1", note: "Explainable priority score from interest, recency, segment, and change type." },
         { label: "Revenue view", value: "$/run", note: "Estimated revenue stored with each campaign run for trend comparison." }
       ],
       decisionFrame: [
-        { label: "Input", detail: "Users, tracked entities, interest relations, and entity-level change events." },
-        { label: "Decision", detail: "Rank candidate opportunities and select the highest-value records for generation." },
-        { label: "Output", detail: "Campaign run, generated message assets, and modeled revenue outcomes." }
+        { label: "Input", detail: "Editable users, tracked entities, interest relations, assumptions, and entity-level change events." },
+        { label: "Decision", detail: "Rank candidate opportunities and select the highest-value records for campaign generation." },
+        { label: "Output", detail: "Persisted campaign run, generated message assets, score breakdowns, and modeled revenue outcomes." }
       ],
       evidenceLinks: [
         { label: "Lifecycle overview", href: "/lifecycle/overview", detail: "Shows signal flow, graph context, and operating model." },
+        { label: "Lifecycle inputs", href: "/lifecycle/inputs", detail: "Shows editable users, entities, interest edges, scoring weights, and assumptions." },
         { label: "Lifecycle outputs", href: "/lifecycle/outputs", detail: "Shows runs, trend charts, segment breakdown, and generated messages." },
-        { label: "Campaign opportunities", href: "/lifecycle/campaigns", detail: "Shows candidate filtering and scoring evidence." }
+        { label: "Campaign opportunities", href: "/lifecycle/campaigns", detail: "Shows candidate filtering, scoring evidence, and generated campaign runs." }
       ],
       guardrails: [
         { label: "Schema fallback", detail: "Pages and APIs degrade with compatibility messaging when demo tables are missing." },
@@ -73,42 +74,44 @@ export const projects: ProjectEntry[] = [
     slug: "agent-acquisition",
     title: "Agent-Managed Paid Acquisition",
     summary:
-      "A closed-loop prototype where agents generate creatives, build test cells, and reallocate budget based on live CAC-to-LTV economics across channels.",
+      "A policy-bounded acquisition workspace where campaigns, audiences, creatives, test cells, simulations, and budget decisions operate against explicit CAC/LTV guardrails.",
     problem:
-      "Paid acquisition teams frequently lose efficiency due to slow creative iteration and manual budget tuning across fragmented channels.",
+      "Paid growth teams can now generate more creative and audience variants than they can responsibly govern. Without policy, automation simply creates faster spend movement and noisier optimization.",
     thesis:
-      "When campaign orchestration is automated and constrained by economics, teams can test faster, reduce waste, and scale winning cells with clearer confidence.",
+      "Acquisition agents become useful when their action space is constrained by economics: target CAC, target LTV, confidence thresholds, budget-shift limits, cooldowns, and audit logs.",
     architecture: [
-      { title: "1. Campaign Manager", detail: "Stores objective, constraints, channels, and state transitions from draft to scaling." },
-      { title: "2. Creative + Audience Engines", detail: "Generate ad variants and target pools, then assemble multivariate test cells." },
-      { title: "3. Agent Orchestrator", detail: "Runs iteration loops to score cells, pause weak performers, and shift budget." },
-      { title: "4. Analytics + Audit", detail: "Tracks spend, conversions, CAC, and ROAS while logging every automated action." }
+      { title: "1. Campaign workspace", detail: "Stores objective, channel mix, budget, state, policy thresholds, and approval constraints." },
+      { title: "2. Audience + creative library", detail: "Maintains editable targeting templates and creative variants with predicted CPC/CAC assumptions." },
+      { title: "3. Test-cell engine", detail: "Combines creative, audience, and channel into measurable cells with spend, conversion, CAC, and ROAS." },
+      { title: "4. Policy-aware iteration", detail: "Scores cells, proposes pauses or reallocations, and records every budget action in the audit trail." }
     ],
     kpiCallouts: [
-      { label: "CAC efficiency", value: "-19%", detail: "Lower blended CAC after three orchestrator cycles." },
-      { label: "Budget reallocation", value: "24h", detail: "Daily closed-loop budget movement with policy checks." },
-      { label: "Winning-cell share", value: "+31%", detail: "More spend concentrated in profitable cell cohorts." }
+      { label: "Economic policy", value: "CAC/LTV", detail: "Campaign decisions are evaluated against target CAC, target LTV, and LTV:CAC guardrails." },
+      { label: "Budget control", value: "Shift cap", detail: "Budget movement is constrained by max-shift policy and operator override controls." },
+      { label: "Simulation lab", value: "50 runs", detail: "Revenue scenarios use saved presets and Monte Carlo output for planning confidence." }
     ],
     commercialFraming:
-      "Focuses spend on high-confidence cells, keeps CAC under LTV-informed thresholds, and improves learning velocity via rapid multivariate testing.",
+      "The commercial goal is not autonomous media buying for its own sake. It is faster learning under explicit unit-economics constraints, with enough auditability to trust the budget decisions.",
     whatIBuilt:
-      "I specified, designed, implemented, and evolved a working acquisition workspace with campaign bootstrap, orchestrator iterations, insights panels, and schema support for audit-ready optimization loops.",
-    appHref: "/acquisition",
+      "I built the acquisition schema, campaign builder, audience and creative editors, test-cell controls, operator override flow, simulation panel, output views, connection scaffolding, and audit trail.",
+    appHref: "/acquisition/overview",
     status: "live",
     artifacts: {
       outcomeStrip: [
-        { label: "Test cells", value: "creative x audience", note: "Campaign variants are evaluated as measurable cells." },
-        { label: "Guardrail loop", value: "24h", note: "Cooldown and shift constraints shape automated budget movement." },
-        { label: "Economics", value: "CAC/LTV", note: "Insights compare CPA, ROAS, and LTV/CAC against campaign targets." }
+        { label: "Test cells", value: "Creative x audience", note: "Campaign variants are evaluated as measurable performance cells." },
+        { label: "Guardrail loop", value: "Policy first", note: "Budget shifts are bounded by caps, confidence, and target economics." },
+        { label: "Economics", value: "CAC/LTV", note: "Insights compare CPA, ROAS, and LTV:CAC against campaign targets." }
       ],
       decisionFrame: [
-        { label: "Input", detail: "Campaign objective, budget, channels, creative variants, and audience segments." },
-        { label: "Decision", detail: "Score test cells, identify winners/losers, and apply budget-shift policy." },
-        { label: "Output", detail: "Insights panel, trend comparison, budget timeline, and audit logs." }
+        { label: "Input", detail: "Campaign objective, budget, channels, policy, creative variants, and audience templates." },
+        { label: "Decision", detail: "Score test cells, identify winners/losers, and apply policy-bound budget movement." },
+        { label: "Output", detail: "Insights panel, simulation distribution, budget timeline, override controls, and audit logs." }
       ],
       evidenceLinks: [
         { label: "Acquisition overview", href: "/acquisition/overview", detail: "Shows architecture, readiness counts, and operating sequence." },
-        { label: "Campaign workspace", href: "/acquisition/campaigns", detail: "Lists campaigns, states, cells, and budget actions." },
+        { label: "Campaign workspace", href: "/acquisition/campaigns", detail: "Lists campaigns, states, cells, policy, and budget actions." },
+        { label: "Audience inputs", href: "/acquisition/audiences", detail: "Shows editable audience templates and predicted CPC/CAC assumptions." },
+        { label: "Simulation lab", href: "/acquisition/simulations", detail: "Shows scenario presets and Monte Carlo revenue distribution." },
         { label: "Acquisition outputs", href: "/acquisition/outputs", detail: "Shows economics, creative/audience trends, and budget timeline." }
       ],
       guardrails: [
@@ -122,47 +125,50 @@ export const projects: ProjectEntry[] = [
     slug: "pricing-experimentation-control-tower",
     title: "Pricing Experimentation Control Tower",
     summary:
-      "A pricing operations system that plans, runs, and audits segmented price/packaging tests with guardrails for margin and churn risk.",
+      "A pricing operations system that makes segments, variants, scenario assumptions, simulation runs, guardrail bands, and decisions editable and auditable.",
     problem:
-      "Pricing teams often run isolated experiments in spreadsheets, making it difficult to connect test design to downstream retention, expansion, and profitability outcomes.",
+      "Pricing tests are often spread across spreadsheets, analytics dashboards, and decision meetings. That makes it hard to preserve the hypothesis, cohort rules, guardrails, and final decision rationale in one place.",
     thesis:
-      "When pricing experiments are managed as a repeatable operating loop with explicit constraints and instrumentation, teams can increase monetization without destabilizing retention.",
+      "Pricing experiments become safer when they are managed as governed operating loops: define the test, edit the inputs, simulate the risk, inspect the guardrails, and record the decision.",
     architecture: [
-      { title: "1. Experiment registry", detail: "Store hypotheses, segment eligibility, and pricing variants with owner/accountability metadata." },
-      { title: "2. Exposure and holdout service", detail: "Assign users to control/treatment cohorts while preserving analytical integrity." },
-      { title: "3. Impact monitor", detail: "Track conversion, churn, ARPU, margin, and support burden by cohort in near real time." },
-      { title: "4. Policy engine", detail: "Enforce stop-loss thresholds and rollout rules before promoting any winning treatment." }
+      { title: "1. Experiment registry", detail: "Store the hypothesis, owner, segment eligibility, variants, and minimum sample rules." },
+      { title: "2. Editable inputs", detail: "Let operators update price variants, segment baselines, margin, conversion, churn, and assumptions." },
+      { title: "3. Scenario simulation", detail: "Run conversion, churn, support-load, ARPU, margin, and confidence logic against each segment." },
+      { title: "4. Decision record", detail: "Persist segment results, guardrail bands, recommendations, decisions, and audit entries." }
     ],
     kpiCallouts: [
-      { label: "ARPU lift", value: "+9%", detail: "Treatment cohorts exceeded control ARPU in first 60 days." },
-      { label: "Gross margin floor", value: ">72%", detail: "Guardrail enforcement prevented low-margin rollout candidates." },
-      { label: "Decision cycle time", value: "-35%", detail: "Faster promotion/revert decisions from unified experiment reporting." }
+      { label: "Scenario output", value: "Promote/extend/pause", detail: "Each run produces a recommendation based on confidence, holdout health, and guardrails." },
+      { label: "Guardrail bands", value: "Segment-level", detail: "Segment results expose revenue lift and guardrail status before rollout." },
+      { label: "Editable economics", value: "$ not cents", detail: "Operator inputs use dollar fields for variants and segment economics." }
     ],
     commercialFraming:
-      "Improves pricing learning velocity while protecting gross margin and net revenue retention through explicit experiment governance.",
+      "The system protects monetization decisions from spreadsheet drift by keeping the hypothesis, assumptions, guardrails, simulation output, and decision trail together.",
     whatIBuilt:
-      "I specified, designed, implemented, and evolved an end-to-end blueprint spanning test design templates, cohort instrumentation contracts, decision policy rules, and operator reporting views.",
+      "I built the pricing schema, editable segment and variant inputs, scenario assumption form, simulation endpoint, guardrail visualization, output tables, decision queue, audit logs, and docs.",
     appHref: "/pricing/overview",
     status: "live",
     artifacts: {
       outcomeStrip: [
-        { label: "ARPU", value: "+9%", note: "Illustrative lift tracked against control cohorts." },
-        { label: "Margin floor", value: "72%", note: "Rollout guardrail blocks treatments below margin threshold." },
-        { label: "Cycle time", value: "-35%", note: "Unified reporting shortens pricing decision loops." }
+        { label: "Recommendation", value: "4 states", note: "Runs can promote, extend, pause, or roll back based on policy." },
+        { label: "Segment lift", value: "$/segment", note: "Each segment stores simulated net revenue lift and guardrail band." },
+        { label: "Holdout health", value: "Tracked", note: "Sample size and control health influence the recommendation." }
       ],
       decisionFrame: [
-        { label: "Input", detail: "Hypothesis, segment eligibility, price/packaging variants, and holdout rules." },
-        { label: "Decision", detail: "Evaluate ARPU, churn, margin, support load, and confidence thresholds." },
-        { label: "Output", detail: "Promote, extend, or roll back experiment with full decision history." }
+        { label: "Input", detail: "Hypothesis, segment eligibility, price variants, segment baselines, and scenario assumptions." },
+        { label: "Decision", detail: "Evaluate conversion, churn, margin, support load, holdout health, and confidence." },
+        { label: "Output", detail: "Segment results, guardrail bands, recommendation, decision record, and audit trail." }
       ],
       evidenceLinks: [
-        { label: "Experiment registry", href: "/projects/pricing-experimentation-control-tower", detail: "Case-study artifact for hypothesis and cohort governance." },
-        { label: "Policy engine", href: "/projects/pricing-experimentation-control-tower", detail: "Guardrail model for promotion and rollback decisions." }
+        { label: "Pricing overview", href: "/pricing/overview", detail: "Shows the control tower framing, reset controls, and operating model." },
+        { label: "Pricing inputs", href: "/pricing/inputs", detail: "Shows editable experiment, variants, segments, and assumptions." },
+        { label: "Pricing simulation", href: "/pricing/simulations", detail: "Shows scenario controls, guardrail response, and segment lift map." },
+        { label: "Pricing outputs", href: "/pricing/outputs", detail: "Shows latest run KPIs, segment results, and simulation output." },
+        { label: "Decision queue", href: "/pricing/decisions", detail: "Shows promote/extend/pause/rollback decisions and rationale." }
       ],
       guardrails: [
-        { label: "Holdout protection", detail: "Control groups remain intact for clean measurement." },
-        { label: "Stop-loss rules", detail: "Treatments are paused when churn or margin thresholds degrade." },
-        { label: "Owner approval", detail: "Promotion requires explicit accountable decision ownership." }
+        { label: "Holdout health", detail: "Sample and holdout checks influence whether a test can be promoted." },
+        { label: "Margin and churn", detail: "Treatments are paused or rolled back when margin or churn pressure breaks policy." },
+        { label: "Decision ownership", detail: "Promotion decisions require explicit rationale and actor history." }
       ]
     }
   },
@@ -170,43 +176,45 @@ export const projects: ProjectEntry[] = [
     slug: "retention-risk-command-center",
     title: "Retention Risk Command Center",
     summary:
-      "A lifecycle risk platform that prioritizes at-risk accounts, recommends interventions, and tracks save-rate economics by segment.",
+      "A churn-risk operating console that scores accounts, identifies risk drivers, assigns playbooks, and models expected saved revenue and payback.",
     problem:
-      "Retention workflows are frequently reactive and fragmented across CS, product, and marketing systems, which delays interventions and obscures outcome accountability.",
+      "Retention work often starts after the account is already in trouble. Usage, support, payment, renewal, and relationship signals sit in different places, so intervention work becomes reactive and hard to measure.",
     thesis:
-      "When churn risk detection, intervention design, and follow-through analytics are unified in one command center, teams can reduce preventable revenue loss and improve retention quality.",
+      "Retention improves when risk scoring, driver diagnosis, playbook selection, intervention ownership, and save-rate economics live in the same operating loop.",
     architecture: [
-      { title: "1. Risk scoring layer", detail: "Combine behavioral, product, and billing signals into account-level risk trajectories." },
-      { title: "2. Intervention planner", detail: "Recommend playbooks (education, offer, outreach, product assist) by segment and risk driver." },
-      { title: "3. Execution orchestration", detail: "Trigger cross-functional tasks and customer messaging with SLA-aware ownership." },
-      { title: "4. Save-rate analytics", detail: "Measure intervention efficacy, payback, and residual churn risk over time." }
+      { title: "1. Account risk inputs", detail: "Maintain editable MRR, usage, support, NPS, renewal, payment, sponsor, touch, and trend signals." },
+      { title: "2. Risk scoring layer", detail: "Classify account risk and identify the primary churn driver behind each recommendation." },
+      { title: "3. Playbook assignment", detail: "Map risk drivers to intervention playbooks with save-rate lift, cost, discount, and SLA assumptions." },
+      { title: "4. Save economics", detail: "Persist expected saved revenue, intervention cost, payback ratio, and portfolio recommendation." }
     ],
     kpiCallouts: [
-      { label: "Preventable churn", value: "-12%", detail: "Reduction in churn for cohorts flagged high-risk with active interventions." },
-      { label: "Save-rate", value: "+18%", detail: "Improved save-rate in renewal windows with guided playbooks." },
-      { label: "Ops latency", value: "-46%", detail: "Faster cross-functional response from one risk command queue." }
+      { label: "Risk band", value: "Low/med/high", detail: "Every account receives an interpretable risk score and driver." },
+      { label: "Expected saved", value: "$/run", detail: "Portfolio runs model preventable churn and saved revenue." },
+      { label: "Payback", value: "Ratio", detail: "Playbooks are evaluated against intervention cost and minimum payback policy." }
     ],
     commercialFraming:
-      "Shifts retention from reactive triage to proactive revenue protection, improving net retention and reducing avoidable churn cost.",
+      "The system turns retention from reactive triage into economic prioritization: which account is at risk, why, what action should happen, and whether the save motion is worth the cost.",
     whatIBuilt:
-      "I specified, designed, implemented, and evolved a practical operating design with risk taxonomy, intervention playbook matrix, KPI definitions, and implementation sequencing guidance.",
+      "I built the retention schema, editable account/playbook/policy inputs, risk simulation endpoint, run visualization, intervention queue, output economics, audit trail, and docs.",
     status: "live",
     appHref: "/retention/overview",
     artifacts: {
       outcomeStrip: [
-        { label: "Churn risk", value: "-12%", note: "Reduction in preventable churn for high-risk cohorts." },
-        { label: "Save-rate", value: "+18%", note: "Improvement in renewal-window intervention outcomes." },
-        { label: "Ops latency", value: "-46%", note: "Faster response through one command queue." }
+        { label: "Risk scoring", value: "0-1", note: "Account signals combine into interpretable churn-risk scores." },
+        { label: "Saved revenue", value: "$/run", note: "Runs estimate preventable churn and expected saved revenue." },
+        { label: "Interventions", value: "Queued", note: "High-risk accounts can be routed to owner-assigned playbooks." }
       ],
       decisionFrame: [
-        { label: "Input", detail: "Usage, billing, support, renewal, and product-health signals." },
-        { label: "Decision", detail: "Prioritize risk drivers and choose the next-best intervention playbook." },
-        { label: "Output", detail: "Assigned intervention, SLA, save-rate outcome, and residual risk reading." }
+        { label: "Input", detail: "Editable account health, MRR, renewal, payment, sponsor, support, NPS, playbook, and policy data." },
+        { label: "Decision", detail: "Score churn risk, identify the primary driver, and select the strongest playbook." },
+        { label: "Output", detail: "Risk run, account recommendations, expected saved revenue, payback, and intervention queue." }
       ],
       evidenceLinks: [
-        { label: "Risk taxonomy", href: "/retention/accounts", detail: "Live account risk queue with interpretable churn drivers." },
-        { label: "Playbook matrix", href: "/retention/inputs", detail: "Maps risk drivers to SLA-aware intervention choices." },
-        { label: "Save-rate economics", href: "/retention/outputs", detail: "Run output for expected saved revenue, payback, and account recommendations." }
+        { label: "Retention overview", href: "/retention/overview", detail: "Shows the command-center framing and operating sequence." },
+        { label: "Account inputs", href: "/retention/inputs", detail: "Shows editable accounts, playbooks, and policy thresholds." },
+        { label: "Risk simulation", href: "/retention/simulations", detail: "Shows model controls, risk/save visualization, and driver mix." },
+        { label: "Interventions", href: "/retention/interventions", detail: "Shows owner-assigned playbooks and intervention workflow." },
+        { label: "Save economics", href: "/retention/outputs", detail: "Shows expected saved revenue, payback, and account recommendations." }
       ],
       guardrails: [
         { label: "SLA routing", detail: "High-risk accounts require owner and response window assignment." },
@@ -219,43 +227,45 @@ export const projects: ProjectEntry[] = [
     slug: "expansion-revenue-intelligence",
     title: "Expansion Revenue Intelligence Command Center",
     summary:
-      "An account-base growth system that scores expansion readiness, recommends upsell motions, and tracks expected ARR, margin, and payback.",
+      "An installed-base growth console that scores expansion readiness, selects the right upsell motion, and models expected ARR, margin, SLA, and payback.",
     problem:
-      "Expansion revenue is often trapped in scattered CSM notes, usage dashboards, and renewal cadences, making it hard to identify which accounts are actually ready for commercial action.",
+      "Expansion revenue is often hidden in scattered CSM notes, usage dashboards, renewal timing, and sales intuition. Teams know some accounts are ready, but the readiness signal is rarely operationalized.",
     thesis:
-      "When usage, seat utilization, product-qualified signals, support health, and renewal timing are unified into an operator-facing decision loop, teams can pursue expansion with higher precision and cleaner economics.",
+      "Expansion becomes repeatable when account readiness, offer fit, margin, pursuit cost, SLA, and payback are evaluated before the team chooses pursue, nurture, or defer.",
     architecture: [
-      { title: "1. Account signal layer", detail: "Normalize seats, usage growth, product qualification, support health, renewal timing, and sponsor signals." },
-      { title: "2. Readiness scorer", detail: "Classify accounts into pursue, nurture, or defer paths based on expansion readiness and economics." },
-      { title: "3. Offer recommender", detail: "Map the strongest signal pattern to seat expansion, feature upgrade, usage commit, or services attach." },
-      { title: "4. ARR economics", detail: "Measure expected expansion ARR, margin, pursuit cost, payback, and audit trail by run." }
+      { title: "1. Account-base inputs", detail: "Maintain editable ARR, seats, usage growth, PQS, support health, renewal timing, sponsors, and expansion signals." },
+      { title: "2. Readiness scorer", detail: "Classify accounts by readiness and infer the strongest motion from seat, usage, product, and commercial signals." },
+      { title: "3. Offer recommender", detail: "Map account signals to seat expansion, feature upgrade, usage commit, or services attach offers." },
+      { title: "4. ARR economics", detail: "Persist expected expansion ARR, margin, pursuit cost, payback, SLA fit, decision band, and audit event." }
     ],
     kpiCallouts: [
-      { label: "Expansion ARR", value: "+16%", detail: "Illustrative lift from high-readiness account motions." },
-      { label: "Payback", value: "3.0x+", detail: "Policy requires gross-profit payback before pursue recommendations." },
-      { label: "Cycle time", value: "-32%", detail: "Faster prioritization from one account-base scoring queue." }
+      { label: "Readiness score", value: "0-1", detail: "Each account is scored using utilization, growth, PQS, support health, timing, and signals." },
+      { label: "Expected ARR", value: "$/run", detail: "Runs model expected expansion ARR by account and offer." },
+      { label: "Decision lane", value: "Pursue/nurture/defer", detail: "Policy checks turn readiness into pipeline action." }
     ],
     commercialFraming:
-      "Completes the revenue loop by turning installed-base signals into accountable expansion pipeline and economics-aware next-best actions.",
+      "The system makes expansion less anecdotal by converting installed-base signals into an accountable pipeline with offer fit, margin, and payback attached.",
     whatIBuilt:
-      "I specified, designed, implemented, and evolved a runnable expansion command center with account scoring, offer recommendations, persisted run output, policy guardrails, and audit-ready reporting.",
+      "I built the expansion schema, editable account/offer/policy inputs, readiness scoring engine, run endpoint, pipeline board, account recommendations, output economics, audit trail, and docs.",
     status: "live",
     appHref: "/expansion/overview",
     artifacts: {
       outcomeStrip: [
-        { label: "Expected ARR", value: "+16%", note: "Expansion motions are modeled as incremental ARR by account." },
+        { label: "Expected ARR", value: "$/run", note: "Expansion motions are modeled as incremental ARR by account." },
         { label: "Readiness", value: "0-1", note: "Signals combine into inspectable expansion readiness scores." },
-        { label: "Payback", value: "3.0x+", note: "Pursuit decisions respect margin and payback policy." }
+        { label: "Payback", value: "Policy", note: "Pursuit decisions respect margin, SLA, and payback thresholds." }
       ],
       decisionFrame: [
-        { label: "Input", detail: "Seats, usage growth, product qualification, support health, renewal timing, and sponsor status." },
+        { label: "Input", detail: "Editable ARR, seats, usage growth, product qualification, support health, renewal timing, sponsor status, offers, and policy." },
         { label: "Decision", detail: "Score readiness and select seat expansion, feature upgrade, usage commit, or services attach." },
         { label: "Output", detail: "Expected ARR, margin, pursuit cost, payback, decision band, and audit event." }
       ],
       evidenceLinks: [
-        { label: "Expansion accounts", href: "/expansion/accounts", detail: "Live account-base signal table with readiness scores." },
-        { label: "Offer library", href: "/expansion/inputs", detail: "Policy and offer inputs for economics-aware expansion motions." },
-        { label: "ARR output", href: "/expansion/outputs", detail: "Run output for expected ARR, margin, payback, and recommendations." }
+        { label: "Expansion overview", href: "/expansion/overview", detail: "Shows the command-center framing and operating sequence." },
+        { label: "Expansion inputs", href: "/expansion/inputs", detail: "Shows editable accounts, offers, and policy thresholds." },
+        { label: "Readiness simulation", href: "/expansion/simulations", detail: "Shows run controls, KPI output, and the pipeline board." },
+        { label: "Account queue", href: "/expansion/accounts", detail: "Shows account-base signal table with readiness scores." },
+        { label: "ARR output", href: "/expansion/outputs", detail: "Shows expected ARR, margin, payback, and account recommendations." }
       ],
       guardrails: [
         { label: "Margin floor", detail: "Offers below policy margin are deferred." },
@@ -268,43 +278,44 @@ export const projects: ProjectEntry[] = [
     slug: "vickrey-auction-closed-ads-ecosystem",
     title: "Vickrey Auction Model for Closed Advertising Ecosystem",
     summary:
-      "A second-price auction framework for a closed ad marketplace that balances advertiser efficiency, platform revenue, and fair inventory allocation.",
+      "A closed-marketplace auction desk that runs quality-adjusted second-price auctions with advertiser behavior modes, reserve floors, pacing controls, and live clearing output.",
     problem:
-      "Closed advertising ecosystems often over-index on short-term yield, causing bidder distrust, inefficient allocation, and volatile campaign performance.",
+      "Closed ad marketplaces can over-index on short-term yield and obscure how clearing prices are set. That weakens advertiser trust, creates allocation inefficiency, and makes marketplace health hard to diagnose.",
     thesis:
-      "A transparent Vickrey-style clearing model with quality-weighted ranking can improve allocation fairness and bidder trust while preserving marketplace monetization.",
+      "A transparent second-price mechanism with quality weighting, reserve floors, pacing, and behavior simulation gives operators a clearer way to balance bidder trust, relevance, and yield.",
     architecture: [
-      { title: "1. Bid intake + eligibility", detail: "Validate campaign constraints, budgets, pacing, and placement eligibility before auction." },
-      { title: "2. Quality-adjusted scoring", detail: "Rank bids using bid price × quality score to reward relevance and user experience." },
-      { title: "3. Second-price clearing", detail: "Charge winner based on next-best adjusted bid plus minimal increment." },
-      { title: "4. Pacing + reserve controls", detail: "Apply reserve price and pacing rules to stabilize delivery and marketplace health." }
+      { title: "1. Marketplace inputs", detail: "Maintain editable slots, advertisers, quality scores, behavior modes, budget, reserve price, and bid matrix." },
+      { title: "2. Eligibility + pacing", detail: "Filter bids by reserve, budget state, behavior mode, target CAC, and smoothing factor." },
+      { title: "3. Quality-adjusted ranking", detail: "Rank bids using adjusted bid x quality score to reward relevance as well as price." },
+      { title: "4. Second-price clearing", detail: "Charge the winner from the next-best adjusted score, then persist run history and marketplace KPIs." }
     ],
     kpiCallouts: [
-      { label: "Bidder trust proxy", value: "+22%", detail: "Higher repeat spend from advertisers after pricing transparency rollout." },
-      { label: "Fill quality", value: "+11%", detail: "Improved weighted relevance score across served impressions." },
-      { label: "Revenue stability", value: "+8%", detail: "Lower week-over-week volatility in marketplace gross revenue." }
+      { label: "Clearing logic", value: "2nd price", detail: "Winner pays a quality-adjusted second-price equivalent, not a max-charge black box." },
+      { label: "Behavior modes", value: "3 modes", detail: "Advertisers can bid truthfully, shade bids, or auto-bid against target CAC." },
+      { label: "Health KPIs", value: "5 signals", detail: "Runs summarize fill rate, fill quality, revenue stability, trust proxy, and concentration." }
     ],
     commercialFraming:
-      "Creates healthier long-term marketplace economics by reducing overpayment risk, improving bidder confidence, and maintaining predictable platform yield.",
+      "The system frames marketplace monetization as a trust problem as much as a yield problem: advertisers need predictable clearing logic, and operators need health diagnostics before changing reserves or pacing rules.",
     whatIBuilt:
-      "I specified, designed, implemented, and evolved an auction policy blueprint with ranking/clearing math, simulation scenarios, guardrails for reserve/pacing, and operator dashboards for pricing diagnostics.",
+      "I built the auction schema, advertiser/slot/bid editors, clearing engine, simulation endpoint, live ticker, run history, marketplace health calculations, reserve suggestion logic, audit views, and docs.",
     appHref: "/auction/overview",
     status: "live",
     artifacts: {
       outcomeStrip: [
-        { label: "Trust proxy", value: "+22%", note: "Repeat spend increases when pricing mechanics are easier to explain." },
-        { label: "Fill quality", value: "+11%", note: "Quality-weighted ranking improves relevance of served placements." },
-        { label: "Stability", value: "+8%", note: "Marketplace revenue volatility declines with reserve and pacing controls." }
+        { label: "Clearing", value: "2nd price", note: "Winner is charged from the next-best adjusted score and winner quality." },
+        { label: "Fill quality", value: "Tracked", note: "Quality-weighted ranking exposes relevance of served placements." },
+        { label: "Health", value: "KPI rollup", note: "Marketplace runs track stability, trust proxy, concentration, and fill." }
       ],
       decisionFrame: [
-        { label: "Input", detail: "Bid, quality score, campaign constraints, pacing state, and reserve price." },
-        { label: "Decision", detail: "Rank bids by quality-adjusted score and clear at a second-price equivalent." },
-        { label: "Output", detail: "Winning placement, charged price, pacing update, and marketplace diagnostic event." }
+        { label: "Input", detail: "Editable slot, advertiser, bid, quality score, behavior mode, pacing state, target CAC, and reserve price." },
+        { label: "Decision", detail: "Filter eligibility, rank by quality-adjusted score, and clear at a second-price equivalent." },
+        { label: "Output", detail: "Winning placement, charged price, ranked bids, health KPIs, reserve suggestion, and audit event." }
       ],
       evidenceLinks: [
         { label: "Run a marketplace round", href: "/auction/simulations", detail: "Trigger N quality-adjusted second-price auctions with a live ticker." },
         { label: "Define inventory + advertisers", href: "/auction/inputs", detail: "CRUD editors for slots, advertisers (with behavior modes), and bid matrix." },
-        { label: "Run history + economics", href: "/auction/outputs", detail: "KPI rollups, revenue stability, advertiser-level fill share." }
+        { label: "Run history + economics", href: "/auction/outputs", detail: "KPI rollups, revenue stability, advertiser-level fill share." },
+        { label: "Marketplace health", href: "/auction/health", detail: "Shows bidder concentration, reserve suggestion, and health diagnostics." }
       ],
       guardrails: [
         { label: "Reserve price", detail: "Placements do not clear below marketplace floor pricing." },

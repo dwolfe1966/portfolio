@@ -15,6 +15,9 @@ type PageProps = { params: Promise<{ slug: string }> };
 
 function resolveLaunchTarget(slug: string): DemoAppLaunchTarget {
   if (slug === "agent-acquisition") return "acquisition";
+  if (slug === "pricing-experimentation-control-tower") return "pricing";
+  if (slug === "retention-risk-command-center") return "retention";
+  if (slug === "expansion-revenue-intelligence") return "expansion";
   if (slug === "vickrey-auction-closed-ads-ecosystem") return "auction";
   return "lifecycle";
 }
