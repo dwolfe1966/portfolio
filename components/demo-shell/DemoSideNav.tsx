@@ -177,6 +177,9 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
           <Link href="/demo/dashboard" className="demoSideNavReturn demoSideNavToolset">
             All tools dashboard
           </Link>
+          <Link href="/demo/activity" className="demoSideNavReturn">
+            Activity
+          </Link>
           <Link href="/demo/connections" className="demoSideNavReturn">
             Connections hub
           </Link>

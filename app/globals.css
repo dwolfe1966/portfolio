@@ -1160,6 +1160,26 @@ button {
   gap: 10px;
   align-content: start;
 }
+.activityFeed {
+  display: grid;
+  gap: 10px;
+}
+.activityFeedItem {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  padding: 14px;
+}
+.activityFeedItem:hover {
+  border-color: color-mix(in oklab, var(--blue) 44%, var(--line));
+}
+.activityFeedItem .statusPill {
+  justify-self: start;
+}
 .retentionEditorCard {
   display: grid;
   gap: 10px;
@@ -1872,6 +1892,10 @@ button {
   }
   .siteNav .links a:hover { background: #f3f4f6; }
   .navCta { display: none; }
+  .activityFeedItem {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
   .demoAppShell {
     grid-template-columns: 1fr;
     min-height: 0;
