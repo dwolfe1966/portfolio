@@ -1,0 +1,73 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import {
+  TOOL_IMPORT_SCHEMAS,
+  createEmptyMappings,
+  getToolImportSchema,
+  inferMapping,
+  parseMappedCsvObject,
+  parseSourceCsv
+} from "@/lib/tool-data-imports";
+
+describe("tool data import schemas", () => {
+  it("exposes lifecycle objects as a reusable import schema", () => {
+    const schema = getToolImportSchema("lifecycle");
+    assert.equal(schema.objects.length, 4);
+    assert.deepEqual(schema.objects.map((object) => object.key), ["users", "entities", "interestEdges", "changeEvents"]);
+    assert.ok(schema.sourceTypes.includes("csv"));
+    assert.ok(schema.sourceTypes.includes("google_sheets"));
+    assert.ok(schema.sourceTypes.includes("live"));
+  });
+
+  it("defines import schemas for every tool", () => {
+    assert.deepEqual(
+      TOOL_IMPORT_SCHEMAS.map((schema) => schema.tool),
+      ["lifecycle", "acquisition", "pricing", "retention", "expansion", "auction"]
+    );
+    TOOL_IMPORT_SCHEMAS.forEach((schema) => {
+      assert.ok(schema.objects.length > 0);
+      schema.objects.forEach((object) => {
+        assert.ok(object.fields.length > 0);
+        assert.ok(object.requiredFields.length > 0);
+        assert.ok(object.maxRows > 0);
+      });
+    });
+  });
+
+  it("infers field mappings from common source column names", () => {
+    const schema = getToolImportSchema("lifecycle");
+    const users = schema.objects.find((object) => object.key === "users");
+    assert.ok(users);
+    assert.equal(inferMapping(["Customer Name", "Email Address", "Plan Status"], "fullName", users), "Customer Name");
+    assert.equal(inferMapping(["Customer Name", "Email Address", "Plan Status"], "subscriptionStatus", users), "Plan Status");
+  });
+
+  it("parses quoted CSV cells and validates mapped lifecycle rows", () => {
+    const schema = getToolImportSchema("lifecycle");
+    const users = schema.objects.find((object) => object.key === "users");
+    assert.ok(users);
+
+    const source = "Customer Name,Email Address,Segment,Plan Status\n\"Lee, Jordan\",jordan@example.com,TRIAL,TRIALING";
+    const parsedSource = parseSourceCsv(source);
+    assert.equal(parsedSource.sourceRows[0]["Customer Name"], "Lee, Jordan");
+
+    const parsed = parseMappedCsvObject(source, users, {
+      fullName: "Customer Name",
+      email: "Email Address",
+      segment: "Segment",
+      subscriptionStatus: "Plan Status",
+      lastActiveAt: ""
+    });
+
+    assert.deepEqual(parsed.errors, []);
+    assert.equal(parsed.rows[0].fullName, "Lee, Jordan");
+    assert.equal(parsed.rows[0].email, "jordan@example.com");
+  });
+
+  it("creates empty mappings for every object and field", () => {
+    const schema = getToolImportSchema("lifecycle");
+    const mappings = createEmptyMappings(schema);
+    assert.equal(mappings.users.email, "");
+    assert.equal(mappings.changeEvents.detectedAt, "");
+  });
+});

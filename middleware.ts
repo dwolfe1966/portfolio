@@ -8,18 +8,7 @@ const PROTECTED_PREFIXES = [
   "/workspace/activity",
   "/workspace/connections",
   "/workspace/datasets",
-  "/workspace/settings",
-  "/demo/dashboard",
-  "/demo/activity",
-  "/demo/connections",
-  "/demo/datasets",
-  "/demo/settings",
-  "/lifecycle",
-  "/acquisition",
-  "/auction",
-  "/pricing",
-  "/retention",
-  "/expansion"
+  "/workspace/settings"
 ];
 
 function isProtectedPath(pathname: string) {
@@ -53,12 +42,6 @@ export const config = {
     "/workspace/activity/:path*",
     "/workspace/connections/:path*",
     "/workspace/datasets/:path*",
-    "/workspace/settings/:path*",
-    "/lifecycle/:path*",
-    "/acquisition/:path*",
-    "/auction/:path*",
-    "/pricing/:path*",
-    "/retention/:path*",
-    "/expansion/:path*"
+    "/workspace/settings/:path*"
   ]
 };

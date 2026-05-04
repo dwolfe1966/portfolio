@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
+import { getToolImportSchema } from "@/lib/tool-data-imports";
 
 type CsvRow = Record<string, unknown>;
 
@@ -16,12 +17,10 @@ type LifecycleImportPayload = {
   changeEvents?: CsvRow[];
 };
 
-const maxRowsByObject = {
-  users: 500,
-  entities: 500,
-  interestEdges: 1500,
-  changeEvents: 1000
-};
+const lifecycleImportSchema = getToolImportSchema("lifecycle");
+const maxRowsByObject = Object.fromEntries(
+  lifecycleImportSchema.objects.map((object) => [object.key, object.maxRows])
+) as Record<"users" | "entities" | "interestEdges" | "changeEvents", number>;
 
 function clean(value: unknown, max = 180) {
   return String(value ?? "").trim().slice(0, max);

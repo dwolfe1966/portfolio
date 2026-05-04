@@ -2,26 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import {
+  createEmptyMappings,
+  getToolImportSchema,
+  inferMapping,
+  parseMappedCsvObject,
+  parseSourceCsv,
+  type FieldMappings,
+  type ParsedMappedRows
+} from "@/lib/tool-data-imports";
 
 type CsvObjectKey = "users" | "entities" | "interestEdges" | "changeEvents";
-
-type CsvConfig = {
-  key: CsvObjectKey;
-  title: string;
-  description: string;
-  fields: string[];
-  requiredFields: string[];
-  sample: string;
-};
-
-type ParsedCsv = {
-  headers: string[];
-  sourceRows: Record<string, string>[];
-  rows: Record<string, string>[];
-  errors: string[];
-};
-
-type FieldMappings = Record<CsvObjectKey, Record<string, string>>;
 
 type MappingPreset = {
   id: string;
@@ -38,158 +29,12 @@ type ImportStatus =
   | { state: "success"; message: string }
   | { state: "error"; message: string };
 
-const configs: CsvConfig[] = [
-  {
-    key: "users",
-    title: "Users",
-    description: "People eligible for lifecycle scoring and generated outreach.",
-    fields: ["fullName", "email", "segment", "subscriptionStatus", "lastActiveAt"],
-    requiredFields: ["fullName", "email", "segment", "subscriptionStatus"],
-    sample: "fullName,email,segment,subscriptionStatus,lastActiveAt\nJordan Lee,jordan@example.com,TRIAL,TRIALING,2026-04-28\nMorgan Patel,morgan@example.com,LAPSED,EXPIRED,2026-04-15"
-  },
-  {
-    key: "entities",
-    title: "Entities",
-    description: "Records, people, companies, properties, or objects a user is tracking.",
-    fields: ["name", "entityType", "city", "state"],
-    requiredFields: ["name", "entityType"],
-    sample: "name,entityType,city,state\n123 Main St,property,Austin,TX\nAcme Holdings,business,Denver,CO"
-  },
-  {
-    key: "interestEdges",
-    title: "Interest edges",
-    description: "Relationships connecting users to tracked entities with signal strength.",
-    fields: ["userEmail", "entityName", "interestScore", "source"],
-    requiredFields: ["userEmail", "entityName", "interestScore", "source"],
-    sample: "userEmail,entityName,interestScore,source\njordan@example.com,123 Main St,0.82,saved_search\nmorgan@example.com,Acme Holdings,0.64,profile_view"
-  },
-  {
-    key: "changeEvents",
-    title: "Change events",
-    description: "Detected deltas that create lifecycle campaign opportunities.",
-    fields: ["entityName", "changeType", "oldValue", "newValue", "deltaSummary", "detectedAt"],
-    requiredFields: ["entityName", "changeType", "deltaSummary", "detectedAt"],
-    sample: "entityName,changeType,oldValue,newValue,deltaSummary,detectedAt\n123 Main St,ADDRESS_CHANGE,Old address,New address,A new address update was detected.,2026-05-01\nAcme Holdings,EMAIL_ADDED,,ops@example.com,A new email was added.,2026-05-02"
-  }
-];
-
-const segments = new Set(["FREE", "TRIAL", "LAPSED", "ACTIVE"]);
-const statuses = new Set(["NONE", "TRIALING", "ACTIVE", "CANCELED", "EXPIRED"]);
-const changeTypes = new Set(["ADDRESS_CHANGE", "PHONE_ADDED", "PHONE_CHANGED", "EMAIL_ADDED", "ASSOCIATE_ADDED", "LEGAL_RECORD_ADDED"]);
+const lifecycleSchema = getToolImportSchema("lifecycle");
+const configs = lifecycleSchema.objects;
 const mappingPresetStorageKey = "lifecycle.csv.mappingPresets.v1";
-const fieldAliases: Record<string, string[]> = {
-  fullName: ["fullName", "full name", "name", "customer name", "user name"],
-  email: ["email", "email address", "user email"],
-  segment: ["segment", "user segment", "lifecycle segment"],
-  subscriptionStatus: ["subscriptionStatus", "subscription status", "status", "plan status"],
-  lastActiveAt: ["lastActiveAt", "last active", "last active at", "last seen"],
-  name: ["name", "entity name", "record name"],
-  entityType: ["entityType", "entity type", "type", "record type"],
-  city: ["city", "entity city"],
-  state: ["state", "region", "entity state"],
-  userEmail: ["userEmail", "user email", "email", "customer email"],
-  entityName: ["entityName", "entity name", "record name", "name"],
-  interestScore: ["interestScore", "interest score", "score", "intent score"],
-  source: ["source", "signal source", "event source"],
-  changeType: ["changeType", "change type", "event type", "delta type"],
-  oldValue: ["oldValue", "old value", "previous value"],
-  newValue: ["newValue", "new value", "current value"],
-  deltaSummary: ["deltaSummary", "delta summary", "summary", "event summary"],
-  detectedAt: ["detectedAt", "detected at", "event date", "detected date", "date"]
-};
 
-function parseCsvLine(line: string) {
-  const cells: string[] = [];
-  let value = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < line.length; index++) {
-    const char = line[index];
-    const next = line[index + 1];
-
-    if (char === "\"" && inQuotes && next === "\"") {
-      value += "\"";
-      index++;
-    } else if (char === "\"") {
-      inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
-      cells.push(value.trim());
-      value = "";
-    } else {
-      value += char;
-    }
-  }
-
-  cells.push(value.trim());
-  return cells;
-}
-
-function normalizeHeader(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
-}
-
-function createEmptyMappings(): FieldMappings {
-  return Object.fromEntries(configs.map((config) => [
-    config.key,
-    Object.fromEntries(config.fields.map((field) => [field, ""]))
-  ])) as FieldMappings;
-}
-
-function inferMapping(headers: string[], field: string) {
-  const aliases = fieldAliases[field] ?? [field];
-  const normalizedHeaders = headers.map((header) => ({ header, normalized: normalizeHeader(header) }));
-  return normalizedHeaders.find((item) => aliases.some((alias) => item.normalized === normalizeHeader(alias)))?.header ?? "";
-}
-
-function parseSourceCsv(text: string): Pick<ParsedCsv, "headers" | "sourceRows"> & { parseErrors: string[] } {
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  if (lines.length === 0) return { headers: [], sourceRows: [], parseErrors: ["Paste CSV text or load the sample data."] };
-
-  const headers = parseCsvLine(lines[0]);
-  const sourceRows = lines.slice(1).map((line) => {
-    const cells = parseCsvLine(line);
-    return Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? ""]));
-  });
-
-  return { headers, sourceRows, parseErrors: [] };
-}
-
-function normalizeRows(sourceRows: Record<string, string>[], mappings: Record<string, string>, config: CsvConfig) {
-  return sourceRows.map((sourceRow) => Object.fromEntries(
-    config.fields.map((field) => [field, mappings[field] ? sourceRow[mappings[field]] ?? "" : ""])
-  ));
-}
-
-function parseCsv(text: string, config: CsvConfig, mappings: Record<string, string>): ParsedCsv {
-  const parsed = parseSourceCsv(text);
-  const errors: string[] = [...parsed.parseErrors];
-  const missing = config.requiredFields.filter((field) => !mappings[field]);
-  if (missing.length > 0 && parsed.headers.length > 0) errors.push(`Map required fields: ${missing.join(", ")}`);
-
-  const rows = normalizeRows(parsed.sourceRows, mappings, config);
-
-  rows.slice(0, 100).forEach((row, index) => {
-    const rowNumber = index + 2;
-    config.requiredFields.forEach((field) => {
-      if (!row[field]) errors.push(`Row ${rowNumber}: ${field} is required.`);
-    });
-    if (config.key === "users") {
-      if (row.segment && !segments.has(row.segment)) errors.push(`Row ${rowNumber}: segment must be FREE, TRIAL, LAPSED, or ACTIVE.`);
-      if (row.subscriptionStatus && !statuses.has(row.subscriptionStatus)) errors.push(`Row ${rowNumber}: subscriptionStatus is not recognized.`);
-      if (row.email && !row.email.includes("@")) errors.push(`Row ${rowNumber}: email does not look valid.`);
-    }
-    if (config.key === "interestEdges") {
-      const score = Number(row.interestScore);
-      if (!Number.isFinite(score) || score < 0 || score > 1) errors.push(`Row ${rowNumber}: interestScore must be between 0 and 1.`);
-    }
-    if (config.key === "changeEvents" && row.changeType && !changeTypes.has(row.changeType)) {
-      errors.push(`Row ${rowNumber}: changeType is not recognized.`);
-    }
-  });
-
-  if (rows.length === 0) errors.push("CSV has headers but no data rows.");
-
-  return { headers: parsed.headers, sourceRows: parsed.sourceRows, rows, errors: [...new Set(errors)] };
+function lifecycleObjectKey(key: string) {
+  return key as CsvObjectKey;
 }
 
 function readMappingPresets(): MappingPreset[] {
@@ -223,20 +68,26 @@ export function LifecycleCsvUploadScaffold() {
     interestEdges: "",
     changeEvents: ""
   });
-  const [mappingsByObject, setMappingsByObject] = useState<FieldMappings>(createEmptyMappings);
+  const [mappingsByObject, setMappingsByObject] = useState<FieldMappings>(() => createEmptyMappings(lifecycleSchema));
 
   useEffect(() => {
     void loadMappingPresets();
   }, []);
 
   const parsedByObject = useMemo(
-    () => Object.fromEntries(configs.map((config) => [config.key, parseCsv(csvByObject[config.key], config, mappingsByObject[config.key])])) as Record<CsvObjectKey, ParsedCsv>,
+    () => Object.fromEntries(configs.map((config) => {
+      const key = lifecycleObjectKey(config.key);
+      return [
+        key,
+        parseMappedCsvObject(csvByObject[key], config, mappingsByObject[key] ?? {})
+      ];
+    })) as Record<CsvObjectKey, ParsedMappedRows>,
     [csvByObject, mappingsByObject]
   );
 
-  const totalRows = configs.reduce((sum, config) => sum + parsedByObject[config.key].rows.length, 0);
-  const totalErrors = configs.reduce((sum, config) => sum + parsedByObject[config.key].errors.length, 0);
-  const importReady = totalRows > 0 && totalErrors === 0 && configs.every((config) => parsedByObject[config.key].rows.length > 0);
+  const totalRows = configs.reduce((sum, config) => sum + parsedByObject[lifecycleObjectKey(config.key)].rows.length, 0);
+  const totalErrors = configs.reduce((sum, config) => sum + parsedByObject[lifecycleObjectKey(config.key)].errors.length, 0);
+  const importReady = totalRows > 0 && totalErrors === 0 && configs.every((config) => parsedByObject[lifecycleObjectKey(config.key)].rows.length > 0);
 
   function updateCsv(key: CsvObjectKey, value: string) {
     setCsvByObject((current) => ({ ...current, [key]: value }));
@@ -249,7 +100,7 @@ export function LifecycleCsvUploadScaffold() {
         field,
         current[key][field] && parsed.headers.includes(current[key][field])
           ? current[key][field]
-          : inferMapping(parsed.headers, field)
+          : inferMapping(parsed.headers, field, config)
       ]))
     }));
   }
@@ -287,7 +138,7 @@ export function LifecycleCsvUploadScaffold() {
           name: trimmedName,
           mappings: mappingsByObject,
           metadata: {
-            headers: Object.fromEntries(configs.map((config) => [config.key, parsedByObject[config.key].headers])),
+            headers: Object.fromEntries(configs.map((config) => [config.key, parsedByObject[lifecycleObjectKey(config.key)].headers])),
             savedFrom: sourceName
           }
         })
@@ -351,8 +202,8 @@ export function LifecycleCsvUploadScaffold() {
           sourceName,
           sourceMetadata: {
             mappings: mappingsByObject,
-            headers: Object.fromEntries(configs.map((config) => [config.key, parsedByObject[config.key].headers])),
-            rowCounts: Object.fromEntries(configs.map((config) => [config.key, parsedByObject[config.key].rows.length]))
+            headers: Object.fromEntries(configs.map((config) => [config.key, parsedByObject[lifecycleObjectKey(config.key)].headers])),
+            rowCounts: Object.fromEntries(configs.map((config) => [config.key, parsedByObject[lifecycleObjectKey(config.key)].rows.length]))
           },
           users: parsedByObject.users.rows,
           entities: parsedByObject.entities.rows,
@@ -442,15 +293,16 @@ export function LifecycleCsvUploadScaffold() {
 
       <div className="grid grid-2">
         {configs.map((config) => {
-          const parsed = parsedByObject[config.key];
+          const key = lifecycleObjectKey(config.key);
+          const parsed = parsedByObject[key];
           return (
-            <div className="card editorCard" key={config.key}>
+            <div className="card editorCard" key={key}>
               <div className="editorHeader">
                 <div>
                   <p className="editorKicker">{config.title}</p>
                   <h3>{parsed.rows.length} rows parsed</h3>
                 </div>
-                <button type="button" onClick={() => updateCsv(config.key, config.sample)}>Load sample</button>
+                <button type="button" onClick={() => updateCsv(key, config.sample)}>Load sample</button>
               </div>
               <p>{config.description}</p>
               <p className="small">Required app fields: <code>{config.requiredFields.join(", ")}</code></p>
@@ -458,14 +310,14 @@ export function LifecycleCsvUploadScaffold() {
                 CSV data
                 <textarea
                   rows={7}
-                  value={csvByObject[config.key]}
-                  onChange={(event) => updateCsv(config.key, event.target.value)}
+                  value={csvByObject[key]}
+                  onChange={(event) => updateCsv(key, event.target.value)}
                   placeholder={config.sample}
                 />
               </label>
               <label>
                 Upload CSV file
-                <input type="file" accept=".csv,text/csv" onChange={(event) => void loadFile(config.key, event.target.files?.[0] ?? null)} />
+                <input type="file" accept=".csv,text/csv" onChange={(event) => void loadFile(key, event.target.files?.[0] ?? null)} />
               </label>
 
               {parsed.headers.length > 0 ? (
@@ -482,8 +334,8 @@ export function LifecycleCsvUploadScaffold() {
                       <label key={field}>
                         {field}{config.requiredFields.includes(field) ? " *" : ""}
                         <select
-                          value={mappingsByObject[config.key][field] ?? ""}
-                          onChange={(event) => updateMapping(config.key, field, event.target.value)}
+                          value={mappingsByObject[key][field] ?? ""}
+                          onChange={(event) => updateMapping(key, field, event.target.value)}
                         >
                           <option value="">Do not map</option>
                           {parsed.headers.map((header) => (
@@ -515,7 +367,7 @@ export function LifecycleCsvUploadScaffold() {
                     </thead>
                     <tbody>
                       {parsed.rows.slice(0, 3).map((row, rowIndex) => (
-                        <tr key={`${config.key}-${rowIndex}`}>
+                        <tr key={`${key}-${rowIndex}`}>
                           {config.fields.slice(0, 5).map((field) => <td key={field}>{row[field]}</td>)}
                         </tr>
                       ))}
