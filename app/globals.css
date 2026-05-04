@@ -1168,6 +1168,30 @@ button {
   border-color: var(--accent);
   color: #ffffff;
 }
+.workspaceModuleCard {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 220px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  padding: 18px;
+}
+.workspaceModuleCard:hover {
+  border-color: color-mix(in oklab, var(--blue) 42%, var(--line));
+  transform: translateY(-1px);
+}
+.workspaceModuleCard h3,
+.workspaceModuleCard p {
+  margin-bottom: 0;
+}
+.workspaceModuleCard span {
+  align-self: end;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 800;
+}
 .workspaceSettingValue {
   color: var(--text);
   font-size: 17px;

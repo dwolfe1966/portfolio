@@ -16,6 +16,33 @@ const apps: Array<{ app: DemoAppLaunchTarget; href: string; status: string }> = 
   { app: "auction", href: "/auction/overview", status: "Demo app" }
 ];
 
+const workspaceModules = [
+  {
+    href: "/demo/activity",
+    label: "Activity",
+    title: "Workspace operating history",
+    detail: "Recent imports, model runs, connector events, and app audit logs in one shared feed."
+  },
+  {
+    href: "/demo/connections",
+    label: "Connections",
+    title: "Bring your own data",
+    detail: "CSV, spreadsheet, OAuth, and planned live datasource paths into the toolset."
+  },
+  {
+    href: "/demo/datasets",
+    label: "Datasets",
+    title: "Reusable data assets",
+    detail: "Saved mappings, imported datasets, and recent model runs attached to the workspace."
+  },
+  {
+    href: "/demo/settings",
+    label: "Settings",
+    title: "Account and workspace layer",
+    detail: "Workspace identity, persistence state, and the next account-management surface."
+  }
+];
+
 async function loadToolsetSummary() {
   try {
     const [workspace, presets, imports, lifecycleRuns] = await Promise.all([
@@ -65,6 +92,19 @@ export default async function DemoDashboardPage() {
         {summary.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable workspace persistence.</p>
         ) : null}
+      </Section>
+
+      <Section title="Workspace modules">
+        <div className="grid grid-4">
+          {workspaceModules.map((module) => (
+            <Link className="workspaceModuleCard" href={module.href} key={module.href}>
+              <p className="editorKicker">{module.label}</p>
+              <h3>{module.title}</h3>
+              <p>{module.detail}</p>
+              <span>Open {module.label.toLowerCase()}</span>
+            </Link>
+          ))}
+        </div>
       </Section>
 
       <Section title="Tool launcher">
