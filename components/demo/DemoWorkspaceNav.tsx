@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 const links = [
+  { href: "/lifecycle/workspace", label: "Workspace" },
   { href: "/lifecycle/overview", label: "Overview" },
   { href: "/lifecycle/inputs", label: "Inputs" },
   { href: "/lifecycle/simulations", label: "Simulations" },
