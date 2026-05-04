@@ -77,6 +77,7 @@ export default async function DemoConnectionsPage() {
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/lifecycle/connections/csv">Connect CSV data</Link>
+          <Link className="btn" href="/demo/datasets">View datasets</Link>
           <Link className="btn" href="/acquisition/connections">Connect ad platform</Link>
           <Link className="btn" href="/demo/settings">Workspace settings</Link>
         </div>

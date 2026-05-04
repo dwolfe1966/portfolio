@@ -180,6 +180,9 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
           <Link href="/demo/connections" className="demoSideNavReturn">
             Connections hub
           </Link>
+          <Link href="/demo/datasets" className="demoSideNavReturn">
+            Datasets
+          </Link>
           <Link href="/demo/settings" className="demoSideNavReturn">
             Workspace settings
           </Link>

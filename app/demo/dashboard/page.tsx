@@ -46,6 +46,7 @@ export default async function DemoDashboardPage() {
         <div className="ctaRow">
           <Link className="btn primary" href="/lifecycle/workspace">Open lifecycle workspace</Link>
           <Link className="btn" href="/demo/connections">Connect data</Link>
+          <Link className="btn" href="/demo/datasets">Datasets</Link>
           <Link className="btn" href="/demo/settings">Workspace settings</Link>
           <Link className="btn" href="/lifecycle/connections/csv">Import lifecycle data</Link>
         </div>

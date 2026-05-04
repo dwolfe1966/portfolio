@@ -1155,6 +1155,11 @@ button {
 .connectionModeCard .statusPill {
   justify-self: start;
 }
+.datasetRunCard {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
 .retentionEditorCard {
   display: grid;
   gap: 10px;
