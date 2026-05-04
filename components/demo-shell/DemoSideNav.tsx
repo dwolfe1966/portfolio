@@ -18,6 +18,7 @@ const LIFECYCLE_LINKS: NavLink[] = [
   { href: "/lifecycle/simulations", label: "Simulations", group: "primary" },
   { href: "/lifecycle/outputs", label: "Outputs", group: "primary" },
   { href: "/lifecycle/campaigns", label: "Campaigns", group: "primary" },
+  { href: "/lifecycle/connections", label: "Connections", group: "operations" },
   { href: "/lifecycle/dashboard", label: "Dashboard", group: "operations" },
   { href: "/lifecycle/docs", label: "Docs", group: "operations" },
   { href: "/lifecycle/audit", label: "Audit", group: "operations" }
