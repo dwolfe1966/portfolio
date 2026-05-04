@@ -5,6 +5,7 @@ import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
+import { loadWorkspaceDatasetReadiness, summarizeDatasetReadiness } from "@/lib/workspace-datasets";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export const metadata: Metadata = buildMetadata({
 
 async function loadDatasetInventory() {
   try {
-    const [presets, imports, runs] = await Promise.all([
+    const [presets, imports, runs, readiness] = await Promise.all([
       db.lifecycleMappingPreset.findMany({
         orderBy: [{ updatedAt: "desc" }],
         take: 8,
@@ -29,13 +30,14 @@ async function loadDatasetInventory() {
       db.campaignRun.findMany({
         orderBy: { createdAt: "desc" },
         take: 6
-      })
+      }),
+      loadWorkspaceDatasetReadiness()
     ]);
 
-    return { presets, imports, runs, compatibilityMode: false };
+    return { presets, imports, runs, readiness, compatibilityMode: false };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return { presets: [], imports: [], runs: [], compatibilityMode: true };
+      return { presets: [], imports: [], runs: [], readiness: [], compatibilityMode: true };
     }
     throw error;
   }
@@ -58,6 +60,7 @@ export default async function DemoDatasetsPage() {
   const inventory = await loadDatasetInventory();
   const totalRows = inventory.imports.reduce((sum, log) => sum + importedRows(log), 0);
   const activeWorkspace = inventory.presets[0]?.workspace?.name ?? "Default Workspace";
+  const readinessSummary = summarizeDatasetReadiness(inventory.readiness);
 
   return (
     <>
@@ -79,21 +82,61 @@ export default async function DemoDatasetsPage() {
             <div className="workspaceSettingValue">{activeWorkspace}</div>
           </div>
           <div className="card">
-            <p className="small">Saved presets</p>
-            <div className="kpi">{inventory.presets.length.toLocaleString()}</div>
+            <p className="small">Ready tools</p>
+            <div className="kpi">{readinessSummary.available.toLocaleString()}</div>
           </div>
           <div className="card">
             <p className="small">Imported rows</p>
             <div className="kpi">{totalRows.toLocaleString()}</div>
           </div>
           <div className="card">
-            <p className="small">Recent runs</p>
-            <div className="kpi">{inventory.runs.length.toLocaleString()}</div>
+            <p className="small">Imported tools</p>
+            <div className="kpi">{readinessSummary.imported.toLocaleString()}</div>
           </div>
         </div>
         {inventory.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable workspace dataset inventory.</p>
         ) : null}
+      </Section>
+
+      <Section title="Imported data readiness by tool">
+        {inventory.readiness.length === 0 ? (
+          <div className="card">
+            <p>Dataset readiness is unavailable until workspace tables are migrated.</p>
+          </div>
+        ) : (
+          <div className="tableScroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Tool</th>
+                  <th>Status</th>
+                  <th>Required objects</th>
+                  <th>Records</th>
+                  <th>Imports/connectors</th>
+                  <th>Gap</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inventory.readiness.map((tool) => (
+                  <tr key={tool.app}>
+                    <td>
+                      <strong>{tool.label}</strong>
+                      <p className="small">{tool.objects.map((object) => object.label).join(" · ")}</p>
+                    </td>
+                    <td><span className={`statusPill ${tool.status === "available" ? "live" : "progress"}`}>{tool.status}</span></td>
+                    <td>{tool.availableObjects} / {tool.requiredObjects}</td>
+                    <td>{tool.recordCount.toLocaleString()}</td>
+                    <td>{tool.importCount.toLocaleString()}</td>
+                    <td>{tool.gap}</td>
+                    <td><Link className="btn smallBtn" href={tool.importPath}>{tool.primaryAction}</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Section>
 
       <Section title="Saved mapping presets">
