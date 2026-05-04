@@ -427,6 +427,7 @@ section { padding: 36px 0; border-bottom: 1px solid var(--line); }
   min-height: 100%;
 }
 .ctaRow { display:flex; gap:12px; flex-wrap:wrap; margin-top: 18px; }
+.anchorTarget { scroll-margin-top: 132px; }
 .btn { display:inline-block; padding: 12px 16px; border-radius: 999px; border:1px solid var(--accent); }
 .btn.primary { background: var(--accent); color:#fff; }
 .btn:hover, button:hover { background: #f1f5f9; }

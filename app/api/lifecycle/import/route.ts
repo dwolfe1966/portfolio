@@ -1,4 +1,4 @@
-import { DeltaChangeType, SubscriptionStatus, UserSegment } from "@prisma/client";
+import { DeltaChangeType, Prisma, SubscriptionStatus, UserSegment } from "@prisma/client";
 import { apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -91,7 +91,7 @@ async function recordImportLog(data: {
   interestEdgesImported?: number;
   changeEventsImported?: number;
   validationErrors?: number;
-  metadata?: Record<string, unknown>;
+  metadata?: Prisma.InputJsonValue;
 }) {
   try {
     const log = await db.lifecycleImportLog.create({

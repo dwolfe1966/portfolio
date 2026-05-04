@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LifecycleCsvUploadScaffold } from "@/components/demo/LifecycleCsvUploadScaffold";
 import { db } from "@/lib/db";
@@ -10,25 +11,29 @@ const sourceModes = [
     title: "Demo data",
     status: "Available now",
     detail: "Use the seeded lifecycle dataset: users, entities, interest edges, and change events. Best for exploring the workflow before connecting external data.",
-    action: "Active default"
+    action: "Active default",
+    href: "/lifecycle/inputs"
   },
   {
     title: "CSV / spreadsheet upload",
     status: "Available now",
     detail: "Upload users, entities, interest edges, and change events from CSV, validate rows, import them into the lifecycle model, and run simulations against the imported dataset.",
-    action: "Import enabled"
+    action: "Import enabled",
+    href: "#csv-upload"
   },
   {
     title: "Google Sheets",
     status: "Planned connector",
     detail: "Connect a live sheet, map tabs to lifecycle objects, and refresh the app from spreadsheet rows without replacing the demo schema.",
-    action: "Design target"
+    action: "Design target",
+    href: null
   },
   {
     title: "Direct data source",
     status: "Planned connector",
     detail: "Connect live data through an API, warehouse, or relational database standard. Map source fields into the lifecycle model and run simulations on current operating data.",
-    action: "Design target"
+    action: "Design target",
+    href: null
   }
 ];
 
@@ -115,6 +120,13 @@ export default async function LifecycleConnectionsPage() {
               <h3 style={{ marginTop: 12 }}>{mode.title}</h3>
               <p>{mode.detail}</p>
               <p className="small"><strong>{mode.action}</strong></p>
+              {mode.href ? (
+                <Link className="btn" href={mode.href}>
+                  {mode.title === "CSV / spreadsheet upload" ? "Connect CSV" : "Open data"}
+                </Link>
+              ) : (
+                <button type="button" disabled>Coming soon</button>
+              )}
             </div>
           ))}
         </div>
@@ -141,9 +153,11 @@ export default async function LifecycleConnectionsPage() {
         </table>
       </Section>
 
-      <Section title="CSV / spreadsheet upload scaffold">
-        <LifecycleCsvUploadScaffold />
-      </Section>
+      <div id="csv-upload" className="anchorTarget">
+        <Section title="CSV / spreadsheet upload scaffold">
+          <LifecycleCsvUploadScaffold />
+        </Section>
+      </div>
 
       <Section title="Recent import history">
         {importLogs.length === 0 ? (
