@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { SiteLogo } from "@/components/site/SiteLogo";
 
@@ -15,6 +16,13 @@ const links = [
 
 export function NavBar() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  function isActive(href: string) {
+    if (href === "/") return pathname === "/";
+    if (href === "/workspace/dashboard") return pathname.startsWith("/workspace") || pathname.startsWith("/demo");
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
 
   return (
     <nav className="siteNav" aria-label="Main navigation">
@@ -36,11 +44,20 @@ export function NavBar() {
       </button>
 
       <div id="primary-links" className={`links ${open ? "open" : ""}`}>
-        {links.map((link) => (
-          <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
-            {link.label}
-          </Link>
-        ))}
+        {links.map((link) => {
+          const active = isActive(link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={active ? "active" : undefined}
+              aria-current={active ? "page" : undefined}
+              onClick={() => setOpen(false)}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </div>
 
       <div className="navCta">

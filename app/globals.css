@@ -50,6 +50,28 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 80px; }
   color: var(--blue);
 }
 .siteNav .links { display:flex; gap:16px; flex-wrap:wrap; }
+.siteNav .links a {
+  position: relative;
+  padding: 6px 0;
+  color: #374151;
+}
+.siteNav .links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -7px;
+  height: 2px;
+  border-radius: 999px;
+  background: transparent;
+}
+.siteNav .links a.active {
+  color: var(--text);
+  font-weight: 700;
+}
+.siteNav .links a.active::after {
+  background: var(--blue);
+}
 .navCta { margin-left: auto; }
 .menuToggle {
   display: none;
@@ -2025,6 +2047,11 @@ button {
     padding: 11px 10px;
     border-radius: 6px;
     font-weight: 600;
+  }
+  .siteNav .links a::after { display: none; }
+  .siteNav .links a.active {
+    background: #eef2ff;
+    color: #1d4ed8;
   }
   .siteNav .links a:hover { background: #f3f4f6; }
   .navCta { display: none; }
