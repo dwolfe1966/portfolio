@@ -9,6 +9,7 @@ type CsvRow = Record<string, unknown>;
 
 type LifecycleImportPayload = {
   sourceName?: unknown;
+  sourceMetadata?: unknown;
   users?: CsvRow[];
   entities?: CsvRow[];
   interestEdges?: CsvRow[];
@@ -83,6 +84,11 @@ function validatePayload(payload: LifecycleImportPayload) {
   return { errors: errors.slice(0, 30), rows: { users, entities, interestEdges, changeEvents } };
 }
 
+function readSourceMetadata(value: unknown): Prisma.InputJsonValue | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
 async function recordImportLog(data: {
   sourceName: string;
   status: string;
@@ -121,6 +127,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({})) as LifecycleImportPayload;
   const validation = validatePayload(body);
   const sourceName = clean(body.sourceName, 120) || "CSV upload";
+  const sourceMetadata = readSourceMetadata(body.sourceMetadata);
   if (validation.errors.length > 0) {
     await recordImportLog({
       sourceName,
@@ -129,6 +136,7 @@ export async function POST(request: Request) {
       metadata: {
         eventId,
         errors: validation.errors,
+        sourceMetadata,
         rowCounts: {
           users: validation.rows.users.length,
           entities: validation.rows.entities.length,
@@ -250,6 +258,7 @@ export async function POST(request: Request) {
       ...result,
       metadata: {
         eventId,
+        sourceMetadata,
         rowCounts: {
           users: validation.rows.users.length,
           entities: validation.rows.entities.length,

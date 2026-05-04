@@ -243,6 +243,11 @@ export function LifecycleCsvUploadScaffold() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sourceName,
+          sourceMetadata: {
+            mappings: mappingsByObject,
+            headers: Object.fromEntries(configs.map((config) => [config.key, parsedByObject[config.key].headers])),
+            rowCounts: Object.fromEntries(configs.map((config) => [config.key, parsedByObject[config.key].rows.length]))
+          },
           users: parsedByObject.users.rows,
           entities: parsedByObject.entities.rows,
           interestEdges: parsedByObject.interestEdges.rows,
