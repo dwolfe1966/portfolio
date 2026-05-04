@@ -104,16 +104,23 @@ section { padding: 36px 0; border-bottom: 1px solid var(--line); }
 .heroLead {
   font-size: 20px;
   color: #3f4652;
+  max-width: 590px;
+  margin-bottom: 24px;
+}
+.homeProofBand {
+  padding: 18px 0 20px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in oklab, var(--bg) 96%, white 4%);
 }
 .proofStrip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin: 22px 0 18px;
+  gap: 14px;
+  margin: 0;
 }
 .proofItem {
-  border-top: 2px solid var(--accent);
-  padding-top: 10px;
+  border-left: 2px solid var(--accent);
+  padding: 4px 0 4px 12px;
 }
 .proofItem span {
   display: block;

@@ -104,17 +104,8 @@ export default function HomePage() {
           <p className="eyebrow">AI revenue systems · Product leadership · Operator-builder</p>
           <h1>AI systems.</h1>
           <p className="heroLead">
-            I build AI-native operating systems that connect product strategy, data science,
-            growth marketing, and engineering execution to measurable commercial outcomes.
+            I build AI-native operating systems that turn product, growth, and customer signals into measurable revenue actions.
           </p>
-          <div className="proofStrip" aria-label="Experience and portfolio proof">
-            {proofStats.map((item) => (
-              <div className="proofItem" key={item.label}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
           <div className="ctaRow">
             <Link className="btn primary" href="/projects">Explore runnable systems</Link>
             <Link className="btn" href="/about">See leadership profile</Link>
@@ -171,6 +162,17 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="homeProofBand" aria-label="Experience and portfolio proof">
+        <div className="proofStrip">
+          {proofStats.map((item) => (
+            <div className="proofItem" key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
         </div>
       </section>
 
