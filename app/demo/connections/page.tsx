@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -81,7 +80,6 @@ export default async function DemoConnectionsPage() {
   return (
     <>
       <DemoWorkspaceTabs />
-      <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Connections hub">
         <p>
           This is the shared entry point for turning Tools into operating tools: bring your own data, map it into the app model,
@@ -89,9 +87,7 @@ export default async function DemoConnectionsPage() {
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/lifecycle/connections/csv">Connect CSV data</Link>
-          <Link className="btn" href="/workspace/datasets">View datasets</Link>
           <Link className="btn" href="/acquisition/connections">Connect ad platform</Link>
-          <Link className="btn" href="/workspace/settings">Workspace settings</Link>
         </div>
       </Section>
 

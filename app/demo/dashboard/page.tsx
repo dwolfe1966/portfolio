@@ -1,7 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { DemoAppLaunchCard, type DemoAppLaunchTarget } from "@/components/site/DemoAppLaunchCard";
-import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -76,33 +75,6 @@ const toolReadiness = [
   }
 ];
 
-const workspaceModules = [
-  {
-    href: "/workspace/activity",
-    label: "Activity",
-    title: "Workspace operating history",
-    detail: "Recent imports, model runs, connector events, and app audit logs in one shared feed."
-  },
-  {
-    href: "/workspace/connections",
-    label: "Connections",
-    title: "Bring your own data",
-    detail: "CSV, spreadsheet, OAuth, and planned live datasource paths into Tools."
-  },
-  {
-    href: "/workspace/datasets",
-    label: "Datasets",
-    title: "Reusable data assets",
-    detail: "Saved mappings, imported datasets, and recent model runs attached to the workspace."
-  },
-  {
-    href: "/workspace/settings",
-    label: "Settings",
-    title: "Account and workspace layer",
-    detail: "Workspace identity, persistence state, and the next account-management surface."
-  }
-];
-
 async function loadToolsetSummary() {
   try {
     const [workspace, presets, workspacePresets, imports, lifecycleRuns] = await Promise.all([
@@ -128,7 +100,6 @@ export default async function DemoDashboardPage() {
   return (
     <>
       <DemoWorkspaceTabs />
-      <DemoWorkspaceQuickActions />
       <Section eyebrow="Tools" title="Revenue systems workspace">
         <p>
           This dashboard is the early account surface for Tools: one place to launch tools, inspect saved
@@ -136,10 +107,6 @@ export default async function DemoDashboardPage() {
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/lifecycle/workspace">Open lifecycle workspace</Link>
-          <Link className="btn" href="/workspace/activity">Activity</Link>
-          <Link className="btn" href="/workspace/connections">Connect data</Link>
-          <Link className="btn" href="/workspace/datasets">Datasets</Link>
-          <Link className="btn" href="/workspace/settings">Workspace settings</Link>
           <Link className="btn" href="/lifecycle/connections/csv">Import lifecycle data</Link>
         </div>
       </Section>
@@ -154,19 +121,6 @@ export default async function DemoDashboardPage() {
         {summary.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable workspace persistence.</p>
         ) : null}
-      </Section>
-
-      <Section title="Workspace modules">
-        <div className="grid grid-4">
-          {workspaceModules.map((module) => (
-            <Link className="workspaceModuleCard" href={module.href} key={module.href}>
-              <p className="editorKicker">{module.label}</p>
-              <h3>{module.title}</h3>
-              <p>{module.detail}</p>
-              <span>Open {module.label.toLowerCase()}</span>
-            </Link>
-          ))}
-        </div>
       </Section>
 
       <Section title="Tool readiness">

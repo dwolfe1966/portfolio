@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -168,17 +167,11 @@ export default async function DemoActivityPage() {
   return (
     <>
       <DemoWorkspaceTabs />
-      <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Activity feed">
         <p>
           A shared operating history for Tools: imports, model runs, connector events, and app audit logs
           gathered into one workspace-level view.
         </p>
-        <div className="ctaRow">
-          <Link className="btn primary" href="/workspace/dashboard">Tools dashboard</Link>
-          <Link className="btn" href="/workspace/datasets">Datasets</Link>
-          <Link className="btn" href="/workspace/connections">Connections</Link>
-        </div>
       </Section>
 
       <Section title="Activity summary">

@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -63,16 +62,13 @@ export default async function DemoDatasetsPage() {
   return (
     <>
       <DemoWorkspaceTabs />
-      <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Datasets and presets">
         <p>
           This page inventories the reusable data assets behind Tools: field mapping presets, imported datasets,
           and model runs that can become saved workspace history as the apps mature into tools.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/workspace/connections">Connect data</Link>
-          <Link className="btn" href="/lifecycle/connections/csv">Import lifecycle CSV</Link>
-          <Link className="btn" href="/workspace/settings">Workspace settings</Link>
+          <Link className="btn primary" href="/lifecycle/connections/csv">Import lifecycle CSV</Link>
         </div>
       </Section>
 

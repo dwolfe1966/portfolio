@@ -2,7 +2,6 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -107,15 +106,13 @@ export default async function DemoSettingsPage({
   return (
     <>
       <DemoWorkspaceTabs />
-      <DemoWorkspaceQuickActions />
       <Section eyebrow="Account" title="Workspace settings">
         <p>
           This is the first shared settings surface for Tools: workspace identity, saved configuration,
           connector state, and the account capabilities that will later sit behind login.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/workspace/dashboard">Back to tools dashboard</Link>
-          <Link className="btn" href="/lifecycle/connections/csv">Manage lifecycle CSV mapping</Link>
+          <Link className="btn primary" href="/lifecycle/connections/csv">Manage lifecycle CSV mapping</Link>
         </div>
       </Section>
 
