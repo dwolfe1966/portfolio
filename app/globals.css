@@ -1726,12 +1726,22 @@ button {
   background: rgba(248, 113, 113, 0.14);
   color: #fecaca;
 }
+.lifecycleImportNextSteps {
+  margin-top: 10px;
+}
+.lifecycleImportBanner {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .homeHero, .aboutIntroGrid, .experienceGrid { grid-template-columns: 1fr; }
   .homeHero { padding-top: 36px; }
   .proofStrip { grid-template-columns: 1fr; }
   .heroSystemGrid { grid-template-columns: 1fr; }
+  .lifecycleImportBanner { align-items: flex-start; flex-direction: column; }
   .heroPanelLarge { grid-row: auto; }
   .signalStrip { grid-template-columns: 1fr; }
   .pricingVizGrid,

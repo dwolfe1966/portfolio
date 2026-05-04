@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type CsvObjectKey = "users" | "entities" | "interestEdges" | "changeEvents";
@@ -203,6 +204,12 @@ export function LifecycleCsvUploadScaffold() {
           {importStatus.state === "loading" ? "Importing dataset..." : "Import dataset"}
         </button>
         <p className={`small lifecycleImportStatus lifecycleImportStatus--${importStatus.state}`}>{importStatus.message}</p>
+        {importStatus.state === "success" ? (
+          <div className="ctaRow lifecycleImportNextSteps">
+            <Link className="btn primary" href="/lifecycle/inputs?imported=1">Review imported inputs</Link>
+            <Link className="btn" href="/lifecycle/simulations?imported=1">Run simulation</Link>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid grid-2">

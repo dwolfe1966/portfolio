@@ -1,10 +1,17 @@
+import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { ScenarioLabCard } from "@/components/demo/ScenarioLabCard";
 import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
 export const dynamic = "force-dynamic";
 
-export default function DemoSimulationsPage() {
+type PageProps = {
+  searchParams: Promise<{ imported?: string }>;
+};
+
+export default async function DemoSimulationsPage({ searchParams }: PageProps) {
+  const query = await searchParams;
+  const imported = query.imported === "1";
   return (
     <>
       <Section title="Simulations: generate events, campaigns, and outcomes">
@@ -13,6 +20,20 @@ export default function DemoSimulationsPage() {
           then model downstream opens, clicks, engagement, purchases, and revenue.
         </p>
       </Section>
+      {imported ? (
+        <Section title="Imported dataset ready">
+          <div className="card lifecycleImportBanner">
+            <div>
+              <p className="editorKicker">Current data source</p>
+              <h3>The lifecycle model now includes your imported users, entities, relations, and events.</h3>
+              <p>
+                Generate campaign opportunities next, then inspect message output, landing-page copy, and modeled revenue.
+              </p>
+            </div>
+            <Link className="btn" href="/lifecycle/inputs?imported=1">Review inputs</Link>
+          </div>
+        </Section>
+      ) : null}
       <Section title="Simulation flow">
         <div className="grid grid-3">
           <div className="card">
