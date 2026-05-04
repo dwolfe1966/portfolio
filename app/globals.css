@@ -1723,6 +1723,21 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 10px;
 }
+.csvPresetPanel {
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 8px;
+  margin-top: 12px;
+  padding: 12px;
+}
+.csvPresetControls {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 10px;
+}
+.csvPresetActions {
+  margin-top: 10px;
+}
 .lifecycleImportStatus {
   border-radius: 8px;
   padding: 8px 10px;
@@ -1771,7 +1786,8 @@ button {
 }
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .csvMappingGrid { grid-template-columns: 1fr; }
+  .csvMappingGrid,
+  .csvPresetControls { grid-template-columns: 1fr; }
   .homeHero, .aboutIntroGrid, .experienceGrid { grid-template-columns: 1fr; }
   .homeHero { padding-top: 36px; }
   .proofStrip { grid-template-columns: 1fr; }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type CsvObjectKey = "users" | "entities" | "interestEdges" | "changeEvents";
 
@@ -22,6 +22,13 @@ type ParsedCsv = {
 };
 
 type FieldMappings = Record<CsvObjectKey, Record<string, string>>;
+
+type MappingPreset = {
+  id: string;
+  name: string;
+  mappings: FieldMappings;
+  createdAt: string;
+};
 
 type ImportStatus =
   | { state: "idle"; message: string }
@@ -67,6 +74,7 @@ const configs: CsvConfig[] = [
 const segments = new Set(["FREE", "TRIAL", "LAPSED", "ACTIVE"]);
 const statuses = new Set(["NONE", "TRIALING", "ACTIVE", "CANCELED", "EXPIRED"]);
 const changeTypes = new Set(["ADDRESS_CHANGE", "PHONE_ADDED", "PHONE_CHANGED", "EMAIL_ADDED", "ASSOCIATE_ADDED", "LEGAL_RECORD_ADDED"]);
+const mappingPresetStorageKey = "lifecycle.csv.mappingPresets.v1";
 const fieldAliases: Record<string, string[]> = {
   fullName: ["fullName", "full name", "name", "customer name", "user name"],
   email: ["email", "email address", "user email"],
@@ -182,8 +190,27 @@ function parseCsv(text: string, config: CsvConfig, mappings: Record<string, stri
   return { headers: parsed.headers, sourceRows: parsed.sourceRows, rows, errors: [...new Set(errors)] };
 }
 
+function readMappingPresets(): MappingPreset[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(mappingPresetStorageKey);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeMappingPresets(presets: MappingPreset[]) {
+  window.localStorage.setItem(mappingPresetStorageKey, JSON.stringify(presets));
+}
+
 export function LifecycleCsvUploadScaffold() {
   const [sourceName, setSourceName] = useState("Lifecycle CSV upload");
+  const [presetName, setPresetName] = useState("Lifecycle CSV mapping");
+  const [selectedPresetId, setSelectedPresetId] = useState("");
+  const [mappingPresets, setMappingPresets] = useState<MappingPreset[]>([]);
   const [importStatus, setImportStatus] = useState<ImportStatus>({
     state: "idle",
     message: "Validate all four lifecycle objects before importing rows into the demo database."
@@ -195,6 +222,10 @@ export function LifecycleCsvUploadScaffold() {
     changeEvents: ""
   });
   const [mappingsByObject, setMappingsByObject] = useState<FieldMappings>(createEmptyMappings);
+
+  useEffect(() => {
+    setMappingPresets(readMappingPresets());
+  }, []);
 
   const parsedByObject = useMemo(
     () => Object.fromEntries(configs.map((config) => [config.key, parseCsv(csvByObject[config.key], config, mappingsByObject[config.key])])) as Record<CsvObjectKey, ParsedCsv>,
@@ -231,6 +262,37 @@ export function LifecycleCsvUploadScaffold() {
   async function loadFile(key: CsvObjectKey, file: File | null) {
     if (!file) return;
     updateCsv(key, await file.text());
+  }
+
+  function saveMappingPreset() {
+    const trimmedName = presetName.trim() || "Lifecycle CSV mapping";
+    const preset: MappingPreset = {
+      id: crypto.randomUUID(),
+      name: trimmedName,
+      mappings: mappingsByObject,
+      createdAt: new Date().toISOString()
+    };
+    const next = [preset, ...mappingPresets].slice(0, 8);
+    writeMappingPresets(next);
+    setMappingPresets(next);
+    setSelectedPresetId(preset.id);
+    setImportStatus({ state: "idle", message: `Saved mapping preset: ${trimmedName}.` });
+  }
+
+  function applyMappingPreset() {
+    const preset = mappingPresets.find((item) => item.id === selectedPresetId);
+    if (!preset) return;
+    setMappingsByObject(preset.mappings);
+    setPresetName(preset.name);
+    setImportStatus({ state: "idle", message: `Applied mapping preset: ${preset.name}.` });
+  }
+
+  function deleteMappingPreset() {
+    const next = mappingPresets.filter((item) => item.id !== selectedPresetId);
+    writeMappingPresets(next);
+    setMappingPresets(next);
+    setSelectedPresetId("");
+    setImportStatus({ state: "idle", message: "Deleted mapping preset." });
   }
 
   async function importDataset() {
@@ -291,6 +353,35 @@ export function LifecycleCsvUploadScaffold() {
           Dataset name
           <input value={sourceName} onChange={(event) => setSourceName(event.target.value)} />
         </label>
+        <div className="csvPresetPanel">
+          <div className="editorHeader">
+            <div>
+              <p className="editorKicker">Mapping preset</p>
+              <h3>Reuse column mappings</h3>
+            </div>
+            <p className="small">{mappingPresets.length} saved</p>
+          </div>
+          <div className="csvPresetControls">
+            <label>
+              Preset name
+              <input value={presetName} onChange={(event) => setPresetName(event.target.value)} />
+            </label>
+            <label>
+              Saved presets
+              <select value={selectedPresetId} onChange={(event) => setSelectedPresetId(event.target.value)}>
+                <option value="">Select preset</option>
+                {mappingPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>{preset.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="ctaRow csvPresetActions">
+            <button type="button" onClick={saveMappingPreset}>Save mapping</button>
+            <button type="button" onClick={applyMappingPreset} disabled={!selectedPresetId}>Apply preset</button>
+            <button type="button" onClick={deleteMappingPreset} disabled={!selectedPresetId}>Delete preset</button>
+          </div>
+        </div>
         <p className="small">Rows parsed: {totalRows} · validation issues: {totalErrors}</p>
         <button type="button" disabled={!importReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
           {importStatus.state === "loading" ? "Importing dataset..." : "Import dataset"}
