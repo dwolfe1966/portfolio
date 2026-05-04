@@ -63,11 +63,11 @@ test("normalizeDemoAssumptions passes through a full valid payload", () => {
 
 test("expectedRevenuePerHighPriority derives revenue from funnel inputs", () => {
   const value = expectedRevenuePerHighPriority({
-    purchaseRate: 0.012,
-    avgOrderValue: 89,
-    highPriorityLift: 1.5
+    purchaseRate: 0.25,
+    avgOrderValue: 129,
+    highPriorityLift: 1.8
   });
-  assert.equal(Number(value.toFixed(4)), 1.602);
+  assert.equal(Number(value.toFixed(4)), 58.05);
 });
 
 test("expectedRevenuePerHighPriority scales linearly with lift", () => {

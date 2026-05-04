@@ -14,16 +14,16 @@ export type DemoAssumptions = {
 };
 
 export const DEMO_ASSUMPTION_DEFAULTS: DemoAssumptions = {
-  defaultTopN: 10,
+  defaultTopN: 50,
   recencyScore: 0.9,
   minPriorityScore: 0,
-  highPriorityThreshold: 0.8,
-  highPriorityLift: 1.5,
-  openRate: 0.3,
-  clickRate: 0.08,
-  engageRate: 0.04,
-  purchaseRate: 0.012,
-  avgOrderValue: 89
+  highPriorityThreshold: 0.65,
+  highPriorityLift: 1.8,
+  openRate: 0.5,
+  clickRate: 0.24,
+  engageRate: 0.45,
+  purchaseRate: 0.25,
+  avgOrderValue: 129
 };
 
 export function normalizeDemoAssumptions(input?: Partial<DemoAssumptions> | null): DemoAssumptions {

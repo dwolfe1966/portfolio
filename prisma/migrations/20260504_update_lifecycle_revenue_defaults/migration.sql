@@ -1,0 +1,8 @@
+ALTER TABLE "AssumptionSet" ALTER COLUMN "defaultTopN" SET DEFAULT 50;
+ALTER TABLE "AssumptionSet" ALTER COLUMN "highPriorityThreshold" SET DEFAULT 0.65;
+ALTER TABLE "AssumptionSet" ALTER COLUMN "highPriorityLift" SET DEFAULT 1.8;
+ALTER TABLE "AssumptionSet" ALTER COLUMN "openRate" SET DEFAULT 0.5;
+ALTER TABLE "AssumptionSet" ALTER COLUMN "clickRate" SET DEFAULT 0.24;
+ALTER TABLE "AssumptionSet" ALTER COLUMN "engageRate" SET DEFAULT 0.45;
+ALTER TABLE "AssumptionSet" ALTER COLUMN "purchaseRate" SET DEFAULT 0.25;
+ALTER TABLE "AssumptionSet" ALTER COLUMN "avgOrderValue" SET DEFAULT 129;

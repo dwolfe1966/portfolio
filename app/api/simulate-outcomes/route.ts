@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
+import { DEMO_ASSUMPTION_DEFAULTS } from "@/lib/demo-assumptions";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
@@ -25,11 +26,11 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const openRate = toRate(body.openRate, 0.3);
-  const clickRate = toRate(body.clickRate, 0.08);
-  const engageRate = toRate(body.engageRate, 0.04);
-  const purchaseRate = toRate(body.purchaseRate, 0.012);
-  const avgOrderValue = Number(body.avgOrderValue ?? 89);
+  const openRate = toRate(body.openRate, DEMO_ASSUMPTION_DEFAULTS.openRate);
+  const clickRate = toRate(body.clickRate, DEMO_ASSUMPTION_DEFAULTS.clickRate);
+  const engageRate = toRate(body.engageRate, DEMO_ASSUMPTION_DEFAULTS.engageRate);
+  const purchaseRate = toRate(body.purchaseRate, DEMO_ASSUMPTION_DEFAULTS.purchaseRate);
+  const avgOrderValue = Number(body.avgOrderValue ?? DEMO_ASSUMPTION_DEFAULTS.avgOrderValue);
 
   try {
     const messages = await db.generatedMessage.findMany({
