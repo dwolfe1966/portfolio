@@ -12,7 +12,14 @@ import {
   isValidDemoAccessToken
 } from "@/lib/demo-access";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
+import {
+  DEFAULT_WORKSPACE,
+  getDefaultWorkspace,
+  normalizeWorkspaceName,
+  updateDefaultWorkspaceName
+} from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +31,9 @@ export const metadata: Metadata = buildMetadata({
 
 async function loadWorkspaceSettings() {
   try {
+    await getDefaultWorkspace();
     const workspace = await db.workspace.findUnique({
-      where: { slug: "default-demo-workspace" },
+      where: { slug: DEFAULT_WORKSPACE.slug },
       include: {
         mappingPresets: {
           orderBy: [{ app: "asc" }, { updatedAt: "desc" }]
@@ -65,8 +73,30 @@ async function leaveDemoWorkspace() {
   redirect("/workspace/login");
 }
 
-export default async function DemoSettingsPage() {
+async function saveWorkspaceIdentity(formData: FormData) {
+  "use server";
+
+  if (!isDemoMutationAllowed()) {
+    redirect("/workspace/settings?error=mutations");
+  }
+
+  const name = normalizeWorkspaceName(formData.get("workspaceName"));
+  await updateDefaultWorkspaceName(name);
+  redirect("/workspace/settings?saved=identity");
+}
+
+type SettingsSearchParams = {
+  saved?: string;
+  error?: string;
+};
+
+export default async function DemoSettingsPage({
+  searchParams
+}: {
+  searchParams?: Promise<SettingsSearchParams>;
+}) {
   const settings = await loadWorkspaceSettings();
+  const params = await searchParams;
   const presets = settings.workspace?.mappingPresets ?? [];
   const uniqueApps = new Set(presets.map((preset) => preset.app));
   const cookieStore = await cookies();
@@ -89,6 +119,12 @@ export default async function DemoSettingsPage() {
       </Section>
 
       <Section title="Workspace identity">
+        {params?.saved === "identity" ? (
+          <p className="small bandText--healthy">Workspace identity saved.</p>
+        ) : null}
+        {params?.error === "mutations" ? (
+          <p className="small bandText--unhealthy">Workspace editing is disabled in this environment.</p>
+        ) : null}
         <div className="grid grid-4">
           <div className="card">
             <p className="small">Workspace</p>
@@ -106,6 +142,21 @@ export default async function DemoSettingsPage() {
             <p className="small">Last updated</p>
             <div className="workspaceSettingValue">{formatDate(settings.workspace?.updatedAt)}</div>
           </div>
+        </div>
+        <div className="card" style={{ marginTop: 16 }}>
+          <form action={saveWorkspaceIdentity} className="demoLoginForm">
+            <label>
+              <span>Workspace name</span>
+              <input
+                name="workspaceName"
+                type="text"
+                defaultValue={settings.workspace?.name ?? DEFAULT_WORKSPACE.name}
+                maxLength={80}
+                required
+              />
+            </label>
+            <button className="btn primary" type="submit">Save workspace name</button>
+          </form>
         </div>
         {settings.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable saved workspace settings.</p>

@@ -4,19 +4,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
-
-const defaultWorkspace = {
-  slug: "default-demo-workspace",
-  name: "Default Demo Workspace"
-};
-
-async function getDefaultWorkspace() {
-  return db.workspace.upsert({
-    where: { slug: defaultWorkspace.slug },
-    update: { name: defaultWorkspace.name },
-    create: defaultWorkspace
-  });
-}
+import { getDefaultWorkspace } from "@/lib/workspace";
 
 function clean(value: unknown, max = 120) {
   return String(value ?? "").trim().slice(0, max);
