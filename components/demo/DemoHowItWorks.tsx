@@ -19,7 +19,7 @@ const flow = [
   {
     title: "4) Generate lifecycle copy",
     detail:
-      "Top candidates get generated subject lines, preview text, email body, and landing copy using OpenAI or fallback templates."
+      "Top candidates get generated subject lines, preview text, email body, and landing copy using OpenAI."
   },
   {
     title: "5) Review campaign run",

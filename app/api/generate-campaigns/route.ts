@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { calculatePriorityBreakdown } from "@/lib/scoring";
-import { generateLifecycleCopy } from "@/lib/ai";
+import { generateLifecycleCopy, LifecycleCopyGenerationError } from "@/lib/ai";
 import { CampaignStatus } from "@prisma/client";
 import {
   DEMO_ASSUMPTION_DEFAULTS,
@@ -197,6 +197,16 @@ export async function POST(req: NextRequest) {
       eventId
     });
   } catch (error) {
+    if (error instanceof LifecycleCopyGenerationError) {
+      logApiEvent("error", eventId, "generate_campaigns.openai_failed", { message: error.message });
+      return apiError(
+        502,
+        "OPENAI_MESSAGE_GENERATION_FAILED",
+        "Lifecycle message generation requires OpenAI content and could not complete.",
+        { eventId, message: error.message }
+      );
+    }
+
     if (isMissingDemoTableError(error)) {
       logApiEvent("warn", eventId, "generate_campaigns.compatibility_mode");
       return apiCompatibilityError("Lifecycle campaign tables are missing.", { eventId });

@@ -1,29 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { generateLifecycleCopy } from "@/lib/ai";
+import { generateLifecycleCopy, LifecycleCopyGenerationError } from "@/lib/ai";
 import { renderUserPrompt } from "@/lib/prompts";
 
-test("generateLifecycleCopy returns personalized fallback copy without an API key", async () => {
+test("generateLifecycleCopy requires an OpenAI key", async () => {
   const originalKey = process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_API_KEY;
 
   try {
-    const copy = await generateLifecycleCopy({
-      recipientName: "Jordan Lee",
-      recipientFirstName: "Jordan",
-      segment: "TRIAL",
-      entityName: "123 Main St",
-      entityType: "property",
-      entityLocation: "Austin, TX",
-      deltaSummary: "A new address update was detected.",
-      interestSource: "saved_search"
-    });
-
-    assert.equal(copy.modelName, "fallback-template");
-    assert.match(copy.subjectLine, /Jordan/);
-    assert.match(copy.emailBody, /123 Main St/);
-    assert.match(copy.emailBody, /Austin, TX/);
-    assert.match(copy.landingHeadline, /123 Main St/);
+    await assert.rejects(
+      generateLifecycleCopy({
+        recipientName: "Jordan Lee",
+        recipientFirstName: "Jordan",
+        segment: "TRIAL",
+        entityName: "123 Main St",
+        entityType: "property",
+        entityLocation: "Austin, TX",
+        deltaSummary: "A new address update was detected.",
+        interestSource: "saved_search"
+      }),
+      LifecycleCopyGenerationError
+    );
   } finally {
     if (originalKey) {
       process.env.OPENAI_API_KEY = originalKey;

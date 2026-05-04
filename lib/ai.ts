@@ -16,6 +16,13 @@ export type LifecycleCopyResult = CopyPayload & {
   modelName: string;
 };
 
+export class LifecycleCopyGenerationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LifecycleCopyGenerationError";
+  }
+}
+
 const COPY_FIELDS: (keyof CopyPayload)[] = [
   "subjectLine",
   "previewText",
@@ -25,24 +32,6 @@ const COPY_FIELDS: (keyof CopyPayload)[] = [
   "ctaText"
 ];
 
-function fallbackTemplate(input: LifecycleCopyInput): CopyPayload {
-  const recipientName = String(input.recipientFirstName ?? input.recipientName ?? "there");
-  const entityName = String(input.entityName ?? "this record");
-  const entityType = String(input.entityType ?? "record").replace(/_/g, " ").toLowerCase();
-  const entityLocation = input.entityLocation ? ` in ${input.entityLocation}` : "";
-  const deltaSummary = String(input.deltaSummary ?? "A new update was detected.");
-  const segment = input.segment ? String(input.segment).toLowerCase() : "member";
-
-  return {
-    subjectLine: `${recipientName}, new update for ${entityName}`,
-    previewText: `${deltaSummary} Review the latest details for this ${entityType}.`,
-    emailBody: `${recipientName}, we found an update connected to ${entityName}${entityLocation}. ${deltaSummary} Because this ${entityType} matched your ${segment} monitoring activity, you can review the latest details and decide whether to unlock the full record.`,
-    landingHeadline: `Review the latest update for ${entityName}`,
-    landingBody: `${deltaSummary} Continue to see the latest details associated with ${entityName}${entityLocation}.`,
-    ctaText: "Unlock full details"
-  };
-}
-
 function stripJsonFence(text: string) {
   return text
     .trim()
@@ -51,31 +40,48 @@ function stripJsonFence(text: string) {
     .trim();
 }
 
-function normalizeCopyPayload(value: unknown, input: LifecycleCopyInput): CopyPayload {
-  const fallback = fallbackTemplate(input);
-  if (!value || typeof value !== "object") return fallback;
+function normalizeCopyPayload(value: unknown): CopyPayload {
+  if (!value || typeof value !== "object") {
+    throw new LifecycleCopyGenerationError("OpenAI lifecycle copy response was not valid JSON.");
+  }
 
   const source = value as Record<string, unknown>;
-  return Object.fromEntries(
+  const payload = Object.fromEntries(
     COPY_FIELDS.map((field) => {
       const raw = source[field];
       const text = typeof raw === "string" ? raw.trim() : "";
-      return [field, text || fallback[field]];
+      return [field, text || ""];
     })
   ) as CopyPayload;
+
+  const missingFields = COPY_FIELDS.filter((field) => !payload[field]);
+  if (missingFields.length > 0) {
+    throw new LifecycleCopyGenerationError(`OpenAI lifecycle copy response missed fields: ${missingFields.join(", ")}.`);
+  }
+
+  if (payload.subjectLine.length > 120 || payload.previewText.length > 180) {
+    return {
+      ...payload,
+      subjectLine: payload.subjectLine.slice(0, 120),
+      previewText: payload.previewText.slice(0, 180)
+    };
+  }
+
+  return payload;
 }
 
-function parseCopyPayload(text: string, input: LifecycleCopyInput): CopyPayload {
+function parseCopyPayload(text: string): CopyPayload {
   try {
-    return normalizeCopyPayload(JSON.parse(stripJsonFence(text)), input);
-  } catch {
-    return fallbackTemplate(input);
+    return normalizeCopyPayload(JSON.parse(stripJsonFence(text)));
+  } catch (error) {
+    if (error instanceof LifecycleCopyGenerationError) throw error;
+    throw new LifecycleCopyGenerationError("OpenAI lifecycle copy response could not be parsed as JSON.");
   }
 }
 
 export async function generateLifecycleCopy(input: LifecycleCopyInput): Promise<LifecycleCopyResult> {
   if (!process.env.OPENAI_API_KEY) {
-    return { ...fallbackTemplate(input), modelName: "fallback-template" };
+    throw new LifecycleCopyGenerationError("OPENAI_API_KEY is required for lifecycle message generation.");
   }
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -89,8 +95,10 @@ export async function generateLifecycleCopy(input: LifecycleCopyInput): Promise<
         { role: "user", content: [{ type: "input_text", text: renderUserPrompt(input) }] }
       ]
     });
-    return { ...parseCopyPayload(response.output_text, input), modelName };
-  } catch {
-    return { ...fallbackTemplate(input), modelName: "fallback-template" };
+    return { ...parseCopyPayload(response.output_text), modelName };
+  } catch (error) {
+    if (error instanceof LifecycleCopyGenerationError) throw error;
+    const message = error instanceof Error ? error.message : "Unknown OpenAI error.";
+    throw new LifecycleCopyGenerationError(`OpenAI lifecycle copy generation failed: ${message}`);
   }
 }
