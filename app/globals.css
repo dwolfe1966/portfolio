@@ -1140,6 +1140,34 @@ button {
 .demoToolCard .statusPill {
   justify-self: start;
 }
+.demoWorkspaceTabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-x: auto;
+  padding: 0 0 14px;
+  margin: 0 0 8px;
+  border-bottom: 1px solid var(--line);
+}
+.demoWorkspaceTab {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+.demoWorkspaceTab:hover {
+  color: var(--text);
+  border-color: color-mix(in oklab, var(--blue) 42%, var(--line));
+}
+.demoWorkspaceTab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
 .workspaceSettingValue {
   color: var(--text);
   font-size: 17px;

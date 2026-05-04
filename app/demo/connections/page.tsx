@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -70,6 +71,7 @@ export default async function DemoConnectionsPage() {
 
   return (
     <>
+      <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Connections hub">
         <p>
           This is the shared entry point for turning demos into tools: bring your own data, map it into the app model,

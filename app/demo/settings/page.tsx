@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -47,6 +48,7 @@ export default async function DemoSettingsPage() {
 
   return (
     <>
+      <DemoWorkspaceTabs />
       <Section eyebrow="Account" title="Workspace settings">
         <p>
           This is the first shared settings surface for the demo toolset: workspace identity, saved configuration,
