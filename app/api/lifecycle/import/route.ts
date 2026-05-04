@@ -1,12 +1,14 @@
 import { DeltaChangeType, SubscriptionStatus, UserSegment } from "@prisma/client";
 import { apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { db } from "@/lib/db";
+import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
 
 type CsvRow = Record<string, unknown>;
 
 type LifecycleImportPayload = {
+  sourceName?: unknown;
   users?: CsvRow[];
   entities?: CsvRow[];
   interestEdges?: CsvRow[];
@@ -81,13 +83,60 @@ function validatePayload(payload: LifecycleImportPayload) {
   return { errors: errors.slice(0, 30), rows: { users, entities, interestEdges, changeEvents } };
 }
 
+async function recordImportLog(data: {
+  sourceName: string;
+  status: string;
+  usersImported?: number;
+  entitiesImported?: number;
+  interestEdgesImported?: number;
+  changeEventsImported?: number;
+  validationErrors?: number;
+  metadata?: Record<string, unknown>;
+}) {
+  try {
+    const log = await db.lifecycleImportLog.create({
+      data: {
+        sourceType: "csv",
+        sourceName: data.sourceName,
+        status: data.status,
+        usersImported: data.usersImported ?? 0,
+        entitiesImported: data.entitiesImported ?? 0,
+        interestEdgesImported: data.interestEdgesImported ?? 0,
+        changeEventsImported: data.changeEventsImported ?? 0,
+        validationErrors: data.validationErrors ?? 0,
+        metadata: data.metadata
+      }
+    });
+    return log.id;
+  } catch (error) {
+    if (isMissingDemoTableError(error)) return null;
+    throw error;
+  }
+}
+
 export async function POST(request: Request) {
   const eventId = createEventId("lifecycle_import");
   if (!isDemoMutationAllowed()) return apiError(403, "MUTATION_DISABLED", "Lifecycle data import is disabled.", { eventId });
 
   const body = await request.json().catch(() => ({})) as LifecycleImportPayload;
   const validation = validatePayload(body);
+  const sourceName = clean(body.sourceName, 120) || "CSV upload";
   if (validation.errors.length > 0) {
+    await recordImportLog({
+      sourceName,
+      status: "validation_failed",
+      validationErrors: validation.errors.length,
+      metadata: {
+        eventId,
+        errors: validation.errors,
+        rowCounts: {
+          users: validation.rows.users.length,
+          entities: validation.rows.entities.length,
+          interestEdges: validation.rows.interestEdges.length,
+          changeEvents: validation.rows.changeEvents.length
+        }
+      }
+    });
     return apiError(400, "VALIDATION_ERROR", "Lifecycle import data is invalid.", { eventId, errors: validation.errors });
   }
 
@@ -195,7 +244,22 @@ export async function POST(request: Request) {
       return { usersImported, entitiesImported, interestEdgesImported, changeEventsImported };
     });
 
-    return apiOk({ eventId, import: result });
+    const importLogId = await recordImportLog({
+      sourceName,
+      status: "imported",
+      ...result,
+      metadata: {
+        eventId,
+        rowCounts: {
+          users: validation.rows.users.length,
+          entities: validation.rows.entities.length,
+          interestEdges: validation.rows.interestEdges.length,
+          changeEvents: validation.rows.changeEvents.length
+        }
+      }
+    });
+
+    return apiOk({ eventId, import: { id: importLogId, ...result } });
   } catch (error) {
     return apiUnhandledError(error, eventId);
   }

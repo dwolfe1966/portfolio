@@ -1,5 +1,7 @@
 import { Section } from "@/components/site/Section";
 import { LifecycleCsvUploadScaffold } from "@/components/demo/LifecycleCsvUploadScaffold";
+import { db } from "@/lib/db";
+import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +14,9 @@ const sourceModes = [
   },
   {
     title: "CSV / spreadsheet upload",
-    status: "Planned connector",
-    detail: "Upload users, entities, interest edges, and change events from CSV or XLSX, map columns, validate rows, and run simulations against the imported dataset.",
-    action: "Design target"
+    status: "Available now",
+    detail: "Upload users, entities, interest edges, and change events from CSV, validate rows, import them into the lifecycle model, and run simulations against the imported dataset.",
+    action: "Import enabled"
   },
   {
     title: "Google Sheets",
@@ -77,7 +79,24 @@ const connectionFlow = [
   "Run lifecycle simulation"
 ];
 
-export default function LifecycleConnectionsPage() {
+function formatDate(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(value);
+}
+
+export default async function LifecycleConnectionsPage() {
+  const importLogs = await db.lifecycleImportLog.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 8
+  }).catch((error) => {
+    if (isMissingDemoTableError(error)) return [];
+    throw error;
+  });
+
   return (
     <>
       <Section eyebrow="Operations" title="Use your own data">
@@ -124,6 +143,54 @@ export default function LifecycleConnectionsPage() {
 
       <Section title="CSV / spreadsheet upload scaffold">
         <LifecycleCsvUploadScaffold />
+      </Section>
+
+      <Section title="Recent import history">
+        {importLogs.length === 0 ? (
+          <div className="card">
+            <p>No lifecycle imports have been recorded yet.</p>
+          </div>
+        ) : (
+          <div className="tableScroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Status</th>
+                  <th>Rows imported</th>
+                  <th>Validation issues</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {importLogs.map((log) => {
+                  const rows =
+                    log.usersImported +
+                    log.entitiesImported +
+                    log.interestEdgesImported +
+                    log.changeEventsImported;
+                  return (
+                    <tr key={log.id}>
+                      <td>
+                        <strong>{log.sourceName}</strong>
+                        <p className="small">{log.sourceType.toUpperCase()}</p>
+                      </td>
+                      <td><span className={`statusPill ${log.status === "imported" ? "live" : "progress"}`}>{log.status}</span></td>
+                      <td>
+                        {rows.toLocaleString()}
+                        <p className="small">
+                          {log.usersImported} users · {log.entitiesImported} entities · {log.interestEdgesImported} edges · {log.changeEventsImported} events
+                        </p>
+                      </td>
+                      <td>{log.validationErrors}</td>
+                      <td>{formatDate(log.createdAt)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Section>
 
       <Section title="Direct data source connector targets">

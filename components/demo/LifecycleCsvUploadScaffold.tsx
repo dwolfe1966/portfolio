@@ -122,6 +122,7 @@ function parseCsv(text: string, config: CsvConfig): ParsedCsv {
 }
 
 export function LifecycleCsvUploadScaffold() {
+  const [sourceName, setSourceName] = useState("Lifecycle CSV upload");
   const [importStatus, setImportStatus] = useState<ImportStatus>({
     state: "idle",
     message: "Validate all four lifecycle objects before importing rows into the demo database."
@@ -160,6 +161,7 @@ export function LifecycleCsvUploadScaffold() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          sourceName,
           users: parsedByObject.users.rows,
           entities: parsedByObject.entities.rows,
           interestEdges: parsedByObject.interestEdges.rows,
@@ -199,6 +201,10 @@ export function LifecycleCsvUploadScaffold() {
           Paste CSV text or load sample rows for each lifecycle object. This validates and previews data locally;
           ready data can now be imported into the lifecycle demo database.
         </p>
+        <label>
+          Dataset name
+          <input value={sourceName} onChange={(event) => setSourceName(event.target.value)} />
+        </label>
         <p className="small">Rows parsed: {totalRows} · validation issues: {totalErrors}</p>
         <button type="button" disabled={!importReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
           {importStatus.state === "loading" ? "Importing dataset..." : "Import dataset"}

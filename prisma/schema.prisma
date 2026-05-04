@@ -866,3 +866,20 @@ model AssumptionSet {
   updatedAt              DateTime      @updatedAt
   campaignRuns           CampaignRun[]
 }
+
+model LifecycleImportLog {
+  id                    String   @id @default(cuid())
+  sourceType            String
+  sourceName            String
+  status                String
+  usersImported         Int      @default(0)
+  entitiesImported      Int      @default(0)
+  interestEdgesImported Int      @default(0)
+  changeEventsImported  Int      @default(0)
+  validationErrors      Int      @default(0)
+  metadata              Json?
+  createdAt             DateTime @default(now())
+
+  @@index([sourceType, createdAt])
+  @@index([status, createdAt])
+}
