@@ -102,7 +102,7 @@ export default function HomePage() {
       <section className="homeHero">
         <div className="homeHeroCopy">
           <p className="eyebrow">AI revenue systems · Product leadership · Operator-builder</p>
-          <h1>Generating revenue through product, growth, & AI systems.</h1>
+          <h1>AI systems.</h1>
           <p className="heroLead">
             I build AI-native operating systems that connect product strategy, data science,
             growth marketing, and engineering execution to measurable commercial outcomes.
