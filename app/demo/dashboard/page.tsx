@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { DemoAppLaunchCard, type DemoAppLaunchTarget } from "@/components/site/DemoAppLaunchCard";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
@@ -15,15 +14,6 @@ export const metadata: Metadata = buildMetadata({
   description: "Workspace dashboard for Tools: AI revenue tools, datasets, connections, activity, and settings.",
   path: "/workspace/dashboard"
 });
-
-const apps: Array<{ app: DemoAppLaunchTarget; href: string; status: string }> = [
-  { app: "lifecycle", href: "/lifecycle/workspace", status: "Workspace-enabled" },
-  { app: "acquisition", href: "/acquisition/overview", status: "Tool" },
-  { app: "pricing", href: "/pricing/overview", status: "Tool" },
-  { app: "retention", href: "/retention/overview", status: "Tool" },
-  { app: "expansion", href: "/expansion/overview", status: "Tool" },
-  { app: "auction", href: "/auction/overview", status: "Tool" }
-];
 
 const toolReadiness = [
   {
@@ -108,10 +98,6 @@ export default async function DemoDashboardPage() {
           This dashboard is the early account surface for Tools: one place to launch tools, inspect saved
           configuration, and move from tool workflows toward reusable operating systems.
         </p>
-        <div className="ctaRow">
-          <Link className="btn primary" href="/lifecycle/workspace">Open lifecycle workspace</Link>
-          <Link className="btn" href="/lifecycle/connections/csv">Import lifecycle data</Link>
-        </div>
       </Section>
 
       <Section title="Workspace status">
@@ -139,7 +125,7 @@ export default async function DemoDashboardPage() {
         </div>
       </Section>
 
-      <Section title="Tool readiness">
+      <Section title="Tools">
         <div className="toolReadinessList">
           {toolReadiness.map((tool) => (
             <div className="toolReadinessRow" key={tool.name}>
@@ -153,17 +139,6 @@ export default async function DemoDashboardPage() {
                 <Link className="btn smallBtn" href={tool.simulate}>Simulate</Link>
                 <Link className="btn smallBtn" href={tool.docs}>Docs</Link>
               </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Tool launcher">
-        <div className="grid grid-3">
-          {apps.map((item) => (
-            <div className="demoToolCard" key={item.app}>
-              <p className={`statusPill ${item.status === "Workspace-enabled" ? "live" : "progress"}`}>{item.status}</p>
-              <DemoAppLaunchCard app={item.app} href={item.href} />
             </div>
           ))}
         </div>

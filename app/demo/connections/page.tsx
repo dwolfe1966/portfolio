@@ -85,10 +85,6 @@ export default async function DemoConnectionsPage() {
           This is the shared entry point for turning Tools into operating tools: bring your own data, map it into the app model,
           save the configuration, and run simulations against an owned operating context.
         </p>
-        <div className="ctaRow">
-          <Link className="btn primary" href="/lifecycle/connections/csv">Connect CSV data</Link>
-          <Link className="btn" href="/acquisition/connections">Connect ad platform</Link>
-        </div>
       </Section>
 
       <Section title="Connection status">

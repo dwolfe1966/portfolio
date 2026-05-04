@@ -111,9 +111,6 @@ export default async function DemoSettingsPage({
           This is the first shared settings surface for Tools: workspace identity, saved configuration,
           connector state, and the account capabilities that will later sit behind login.
         </p>
-        <div className="ctaRow">
-          <Link className="btn primary" href="/lifecycle/connections/csv">Manage lifecycle CSV mapping</Link>
-        </div>
       </Section>
 
       <Section title="Workspace identity">

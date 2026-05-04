@@ -70,9 +70,6 @@ export default async function DemoDatasetsPage() {
           This page inventories the reusable data assets behind Tools: field mapping presets, imported datasets,
           and model runs that can become saved workspace history as the apps mature into tools.
         </p>
-        <div className="ctaRow">
-          <Link className="btn primary" href="/lifecycle/connections/csv">Import lifecycle CSV</Link>
-        </div>
       </Section>
 
       <Section title="Dataset status">
