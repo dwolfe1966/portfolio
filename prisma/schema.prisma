@@ -8,6 +8,15 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
+model Workspace {
+  id             String                 @id @default(cuid())
+  slug           String                 @unique
+  name           String
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  mappingPresets LifecycleMappingPreset[]
+}
+
 enum UserSegment {
   FREE
   TRIAL
@@ -882,4 +891,20 @@ model LifecycleImportLog {
 
   @@index([sourceType, createdAt])
   @@index([status, createdAt])
+}
+
+model LifecycleMappingPreset {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  sourceType  String
+  app         String
+  mappings    Json
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, app, sourceType, updatedAt])
+  @@unique([workspaceId, app, sourceType, name])
 }

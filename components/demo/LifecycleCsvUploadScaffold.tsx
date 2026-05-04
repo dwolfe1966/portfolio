@@ -28,6 +28,8 @@ type MappingPreset = {
   name: string;
   mappings: FieldMappings;
   createdAt: string;
+  updatedAt?: string;
+  source?: "server" | "local";
 };
 
 type ImportStatus =
@@ -224,7 +226,7 @@ export function LifecycleCsvUploadScaffold() {
   const [mappingsByObject, setMappingsByObject] = useState<FieldMappings>(createEmptyMappings);
 
   useEffect(() => {
-    setMappingPresets(readMappingPresets());
+    void loadMappingPresets();
   }, []);
 
   const parsedByObject = useMemo(
@@ -264,19 +266,51 @@ export function LifecycleCsvUploadScaffold() {
     updateCsv(key, await file.text());
   }
 
-  function saveMappingPreset() {
+  async function loadMappingPresets() {
+    try {
+      const response = await fetch("/api/lifecycle/mapping-presets", { cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error("server presets unavailable");
+      setMappingPresets((payload.presets ?? []).map((preset: MappingPreset) => ({ ...preset, source: "server" })));
+    } catch {
+      setMappingPresets(readMappingPresets().map((preset) => ({ ...preset, source: "local" })));
+    }
+  }
+
+  async function saveMappingPreset() {
     const trimmedName = presetName.trim() || "Lifecycle CSV mapping";
-    const preset: MappingPreset = {
-      id: crypto.randomUUID(),
-      name: trimmedName,
-      mappings: mappingsByObject,
-      createdAt: new Date().toISOString()
-    };
-    const next = [preset, ...mappingPresets].slice(0, 8);
-    writeMappingPresets(next);
-    setMappingPresets(next);
-    setSelectedPresetId(preset.id);
-    setImportStatus({ state: "idle", message: `Saved mapping preset: ${trimmedName}.` });
+    try {
+      const response = await fetch("/api/lifecycle/mapping-presets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmedName,
+          mappings: mappingsByObject,
+          metadata: {
+            headers: Object.fromEntries(configs.map((config) => [config.key, parsedByObject[config.key].headers])),
+            savedFrom: sourceName
+          }
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error?.message ?? "server save failed");
+      await loadMappingPresets();
+      setSelectedPresetId(payload.preset.id);
+      setImportStatus({ state: "idle", message: `Saved server mapping preset: ${trimmedName}.` });
+    } catch {
+      const preset: MappingPreset = {
+        id: crypto.randomUUID(),
+        name: trimmedName,
+        mappings: mappingsByObject,
+        createdAt: new Date().toISOString(),
+        source: "local"
+      };
+      const next = [preset, ...mappingPresets.filter((item) => item.source !== "server")].slice(0, 8);
+      writeMappingPresets(next);
+      setMappingPresets(next);
+      setSelectedPresetId(preset.id);
+      setImportStatus({ state: "idle", message: `Saved local mapping preset: ${trimmedName}.` });
+    }
   }
 
   function applyMappingPreset() {
@@ -287,10 +321,20 @@ export function LifecycleCsvUploadScaffold() {
     setImportStatus({ state: "idle", message: `Applied mapping preset: ${preset.name}.` });
   }
 
-  function deleteMappingPreset() {
-    const next = mappingPresets.filter((item) => item.id !== selectedPresetId);
-    writeMappingPresets(next);
-    setMappingPresets(next);
+  async function deleteMappingPreset() {
+    const preset = mappingPresets.find((item) => item.id === selectedPresetId);
+    if (preset?.source === "server") {
+      await fetch("/api/lifecycle/mapping-presets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedPresetId })
+      }).catch(() => null);
+      await loadMappingPresets();
+    } else {
+      const next = mappingPresets.filter((item) => item.id !== selectedPresetId);
+      writeMappingPresets(next);
+      setMappingPresets(next);
+    }
     setSelectedPresetId("");
     setImportStatus({ state: "idle", message: "Deleted mapping preset." });
   }
@@ -371,15 +415,16 @@ export function LifecycleCsvUploadScaffold() {
               <select value={selectedPresetId} onChange={(event) => setSelectedPresetId(event.target.value)}>
                 <option value="">Select preset</option>
                 {mappingPresets.map((preset) => (
-                  <option key={preset.id} value={preset.id}>{preset.name}</option>
+                  <option key={preset.id} value={preset.id}>{preset.name}{preset.source === "local" ? " (local)" : ""}</option>
                 ))}
               </select>
             </label>
           </div>
           <div className="ctaRow csvPresetActions">
-            <button type="button" onClick={saveMappingPreset}>Save mapping</button>
+            <button type="button" onClick={() => void saveMappingPreset()}>Save mapping</button>
             <button type="button" onClick={applyMappingPreset} disabled={!selectedPresetId}>Apply preset</button>
-            <button type="button" onClick={deleteMappingPreset} disabled={!selectedPresetId}>Delete preset</button>
+            <button type="button" onClick={() => void deleteMappingPreset()} disabled={!selectedPresetId}>Delete preset</button>
+            <button type="button" onClick={() => void loadMappingPresets()}>Refresh presets</button>
           </div>
         </div>
         <p className="small">Rows parsed: {totalRows} · validation issues: {totalErrors}</p>
