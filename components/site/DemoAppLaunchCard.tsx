@@ -48,9 +48,9 @@ export function DemoAppLaunchCard({
 }) {
   const copy = APP_COPY[app];
   return (
-    <Link href={href} className="demoLaunchCard" aria-label={`Open ${copy.name} demo app`}>
+    <Link href={href} className="demoLaunchCard" aria-label={`Open ${copy.name} Wolfe App`}>
       <div className="demoLaunchCard__head">
-        <span className="demoLaunchCard__chip">DEMO</span>
+        <span className="demoLaunchCard__chip">WOLFE APP</span>
         <span className="demoLaunchCard__name">{copy.name}</span>
         <span className="demoLaunchCard__arrow" aria-hidden>→</span>
       </div>

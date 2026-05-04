@@ -39,7 +39,7 @@ export function ResetDemoDataCard({ appLabel, scope = "all" }: ResetDemoDataCard
   }
 
   const scopeCopy = scope === "all"
-    ? "Clears lifecycle, acquisition, auction, pricing, retention, and expansion demo records, then reseeds representative baseline data for all demo apps."
+    ? "Clears lifecycle, acquisition, auction, pricing, retention, and expansion records, then reseeds representative baseline data for all Wolfe Apps."
     : `Clears ${appLabel.toLowerCase()} demo records, then reseeds representative ${appLabel.toLowerCase()} baseline data.`;
 
   return (

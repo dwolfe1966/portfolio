@@ -163,11 +163,11 @@ export default async function DemoActivityPage() {
       <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Activity feed">
         <p>
-          A shared operating history for the demo toolset: imports, model runs, connector events, and app audit logs
+          A shared operating history for Wolfe Apps: imports, model runs, connector events, and app audit logs
           gathered into one workspace-level view.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/demo/dashboard">Tools dashboard</Link>
+          <Link className="btn primary" href="/demo/dashboard">Wolfe Apps dashboard</Link>
           <Link className="btn" href="/demo/datasets">Datasets</Link>
           <Link className="btn" href="/demo/connections">Connections</Link>
         </div>

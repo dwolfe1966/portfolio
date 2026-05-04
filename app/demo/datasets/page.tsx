@@ -58,8 +58,8 @@ export default async function DemoDatasetsPage() {
       <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Datasets and presets">
         <p>
-          This page inventories the reusable data assets behind the toolset: field mapping presets, imported datasets,
-          and model runs that can become saved workspace history as the demos mature into tools.
+          This page inventories the reusable data assets behind Wolfe Apps: field mapping presets, imported datasets,
+          and model runs that can become saved workspace history as the apps mature into tools.
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/demo/connections">Connect data</Link>

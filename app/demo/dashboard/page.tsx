@@ -10,11 +10,11 @@ export const dynamic = "force-dynamic";
 
 const apps: Array<{ app: DemoAppLaunchTarget; href: string; status: string }> = [
   { app: "lifecycle", href: "/lifecycle/workspace", status: "Workspace-enabled" },
-  { app: "acquisition", href: "/acquisition/overview", status: "Demo app" },
-  { app: "pricing", href: "/pricing/overview", status: "Demo app" },
-  { app: "retention", href: "/retention/overview", status: "Demo app" },
-  { app: "expansion", href: "/expansion/overview", status: "Demo app" },
-  { app: "auction", href: "/auction/overview", status: "Demo app" }
+  { app: "acquisition", href: "/acquisition/overview", status: "Wolfe App" },
+  { app: "pricing", href: "/pricing/overview", status: "Wolfe App" },
+  { app: "retention", href: "/retention/overview", status: "Wolfe App" },
+  { app: "expansion", href: "/expansion/overview", status: "Wolfe App" },
+  { app: "auction", href: "/auction/overview", status: "Wolfe App" }
 ];
 
 const toolReadiness = [
@@ -36,7 +36,7 @@ const toolReadiness = [
   },
   {
     name: "Pricing Control Tower",
-    readiness: "Demo tool",
+    readiness: "Wolfe App",
     data: "Editable variants, segments, experiments, guardrails",
     workflow: "/pricing/inputs",
     simulate: "/pricing/simulations",
@@ -44,7 +44,7 @@ const toolReadiness = [
   },
   {
     name: "Retention Command Center",
-    readiness: "Demo tool",
+    readiness: "Wolfe App",
     data: "Editable accounts, playbooks, interventions, policy settings",
     workflow: "/retention/accounts",
     simulate: "/retention/simulations",
@@ -52,7 +52,7 @@ const toolReadiness = [
   },
   {
     name: "Expansion Command Center",
-    readiness: "Demo tool",
+    readiness: "Wolfe App",
     data: "Editable accounts, offers, expansion policy settings",
     workflow: "/expansion/accounts",
     simulate: "/expansion/simulations",
@@ -60,7 +60,7 @@ const toolReadiness = [
   },
   {
     name: "Auction Desk",
-    readiness: "Demo tool",
+    readiness: "Wolfe App",
     data: "Editable advertisers, slots, bids, reserve settings",
     workflow: "/auction/inputs",
     simulate: "/auction/simulations",
@@ -79,7 +79,7 @@ const workspaceModules = [
     href: "/demo/connections",
     label: "Connections",
     title: "Bring your own data",
-    detail: "CSV, spreadsheet, OAuth, and planned live datasource paths into the toolset."
+    detail: "CSV, spreadsheet, OAuth, and planned live datasource paths into Wolfe Apps."
   },
   {
     href: "/demo/datasets",
@@ -120,9 +120,9 @@ export default async function DemoDashboardPage() {
     <>
       <DemoWorkspaceTabs />
       <DemoWorkspaceQuickActions />
-      <Section eyebrow="Toolset" title="Revenue systems workspace">
+      <Section eyebrow="Wolfe Apps" title="Revenue systems workspace">
         <p>
-          This dashboard is the early account surface for the demo apps: one place to launch tools, inspect saved
+          This dashboard is the early account surface for Wolfe Apps: one place to launch tools, inspect saved
           configuration, and move from demo workflows toward reusable operating systems.
         </p>
         <div className="ctaRow">
@@ -165,7 +165,7 @@ export default async function DemoDashboardPage() {
           {toolReadiness.map((tool) => (
             <div className="toolReadinessRow" key={tool.name}>
               <div>
-                <p className={`statusPill ${tool.readiness === "Demo tool" ? "progress" : "live"}`}>{tool.readiness}</p>
+                <p className={`statusPill ${tool.readiness === "Wolfe App" ? "progress" : "live"}`}>{tool.readiness}</p>
                 <h3>{tool.name}</h3>
                 <p>{tool.data}</p>
               </div>

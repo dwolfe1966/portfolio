@@ -1,3 +1,3 @@
-export function EnvironmentChip({ label = "DEMO" }: { label?: string }) {
+export function EnvironmentChip({ label = "WOLFE APP" }: { label?: string }) {
   return <span className="demoEnvChip">{label}</span>;
 }

@@ -1,8 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { DemoWorkspaceQuickActions } from "@/components/demo-shell/DemoWorkspaceQuickActions";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
+import {
+  DEMO_ACCESS_COOKIE,
+  isDemoAccessConfigured,
+  isValidDemoAccessToken
+} from "@/lib/demo-access";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
 export const dynamic = "force-dynamic";
@@ -42,10 +49,21 @@ function formatDate(value: Date | null | undefined) {
   }).format(value);
 }
 
+async function leaveDemoWorkspace() {
+  "use server";
+
+  const cookieStore = await cookies();
+  cookieStore.delete(DEMO_ACCESS_COOKIE);
+  redirect("/demo/login");
+}
+
 export default async function DemoSettingsPage() {
   const settings = await loadWorkspaceSettings();
   const presets = settings.workspace?.mappingPresets ?? [];
   const uniqueApps = new Set(presets.map((preset) => preset.app));
+  const cookieStore = await cookies();
+  const accessConfigured = isDemoAccessConfigured();
+  const hasValidSession = await isValidDemoAccessToken(cookieStore.get(DEMO_ACCESS_COOKIE)?.value);
 
   return (
     <>
@@ -53,7 +71,7 @@ export default async function DemoSettingsPage() {
       <DemoWorkspaceQuickActions />
       <Section eyebrow="Account" title="Workspace settings">
         <p>
-          This is the first shared settings surface for the demo toolset: workspace identity, saved configuration,
+          This is the first shared settings surface for Wolfe Apps: workspace identity, saved configuration,
           connector state, and the account capabilities that will later sit behind login.
         </p>
         <div className="ctaRow">
@@ -84,6 +102,28 @@ export default async function DemoSettingsPage() {
         {settings.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable saved workspace settings.</p>
         ) : null}
+      </Section>
+
+      <Section title="Access and session">
+        <div className="grid grid-3">
+          <div className="card">
+            <p className="small">Access mode</p>
+            <div className="workspaceSettingValue">{accessConfigured ? "Protected" : "Open"}</div>
+            <p>{accessConfigured ? "A shared Wolfe Apps password is configured." : "No shared password is configured for this environment."}</p>
+          </div>
+          <div className="card">
+            <p className="small">Current session</p>
+            <div className="workspaceSettingValue">{accessConfigured ? (hasValidSession ? "Active" : "Not signed in") : "Not required"}</div>
+            <p>{accessConfigured ? "Access is stored in an HTTP-only browser cookie." : "Workspace routes do not require a demo session."}</p>
+          </div>
+          <div className="card accessSessionCard">
+            <p className="small">Session controls</p>
+            <form action={leaveDemoWorkspace}>
+              <button className="btn" type="submit">Leave workspace</button>
+            </form>
+            <Link className="btn smallBtn" href="/demo/login">Open login page</Link>
+          </div>
+        </div>
       </Section>
 
       <Section title="Saved configuration">

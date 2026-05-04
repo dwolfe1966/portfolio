@@ -179,7 +179,7 @@ export default async function LifecycleConnectionsPage() {
       <Section title="Direct data source connector targets">
         <div className="card">
           <p>
-            The direct connector is the bridge from demo app to operating tool: pull current lifecycle data from an existing
+            The direct connector is the bridge from Wolfe App to operating tool: pull current lifecycle data from an existing
             API, warehouse, relational database, CRM, or event stream.
           </p>
           <div className="connectorChipGrid" aria-label="Direct datasource connector targets">

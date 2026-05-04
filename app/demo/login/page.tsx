@@ -52,8 +52,8 @@ export default async function DemoLoginPage({
       <Section eyebrow="Demo" title="Demo access">
         <p>
           {protectedMode
-            ? "Enter the shared demo password to open the workspace and demo apps."
-            : "Demo access is open in this environment. Set DEMO_PASSWORD to enable the shared-password gate."}
+            ? "Enter the shared Wolfe Apps password to open the workspace."
+            : "Wolfe Apps access is open in this environment. Set DEMO_PASSWORD to enable the shared-password gate."}
         </p>
       </Section>
 

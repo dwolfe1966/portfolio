@@ -76,7 +76,7 @@ export default async function DemoConnectionsPage() {
       <DemoWorkspaceQuickActions />
       <Section eyebrow="Workspace" title="Connections hub">
         <p>
-          This is the shared entry point for turning demos into tools: bring your own data, map it into the app model,
+          This is the shared entry point for turning Wolfe Apps into operating tools: bring your own data, map it into the app model,
           save the configuration, and run simulations against an owned operating context.
         </p>
         <div className="ctaRow">
