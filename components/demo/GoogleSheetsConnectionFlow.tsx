@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   TOOL_IMPORT_SCHEMAS,
   createEmptyMappings,
@@ -32,6 +32,16 @@ type SheetPreviewObject = {
 type SheetPreview = {
   sheetId: string;
   objects: Record<string, SheetPreviewObject>;
+};
+
+type SavedSourceConfig = {
+  id: string;
+  app: string;
+  sourceType: string;
+  name: string;
+  mappings: unknown;
+  metadata: unknown;
+  updatedAt: string;
 };
 
 const toolOrder = TOOL_IMPORT_SCHEMAS.map((schema) => schema.tool);
@@ -76,12 +86,33 @@ function summarizeErrors(schema: ToolImportSchema, parsedByObject: Record<string
   return schema.objects.reduce((sum, object) => sum + (parsedByObject[object.key]?.errors.length ?? 0), 0);
 }
 
+function asRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asStringRecord(value: unknown) {
+  const record = asRecord(value);
+  return Object.fromEntries(Object.entries(record).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+}
+
+function asFieldMappings(value: unknown, schema: ToolImportSchema) {
+  const source = asRecord(value);
+  const nextMappings = createEmptyMappings(schema);
+  schema.objects.forEach((object) => {
+    const objectMappings = asStringRecord(source[object.key]);
+    nextMappings[object.key] = Object.fromEntries(object.fields.map((field) => [field, objectMappings[field] ?? ""]));
+  });
+  return nextMappings;
+}
+
 export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: string }) {
   const [selectedTool, setSelectedTool] = useState<ToolKey>(isToolKey(initialTool) ? initialTool : "lifecycle");
   const [datasetName, setDatasetName] = useState("Workspace Google Sheets import");
   const [sheetUrlOrId, setSheetUrlOrId] = useState("");
   const [rangesByTool, setRangesByTool] = useState<Record<ToolKey, Record<string, string>>>(initializeRangeState);
   const [mappingsByTool, setMappingsByTool] = useState<Record<ToolKey, FieldMappings>>(initializeMappingState);
+  const [savedConfigs, setSavedConfigs] = useState<SavedSourceConfig[]>([]);
+  const [selectedConfigId, setSelectedConfigId] = useState("");
   const [preview, setPreview] = useState<SheetPreview | null>(null);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>({
     state: "idle",
@@ -94,6 +125,10 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({
     state: "idle",
     message: "Save the source config after preview to make this Sheet reusable."
+  });
+  const [configStatus, setConfigStatus] = useState<SaveStatus>({
+    state: "idle",
+    message: "Saved Google Sheets source configs will appear here."
   });
 
   const schema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === selectedTool) ?? TOOL_IMPORT_SCHEMAS[0];
@@ -113,6 +148,27 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
   const totalRows = summarizeRows(schema, parsedByObject);
   const totalErrors = summarizeErrors(schema, parsedByObject);
   const importReady = Boolean(preview) && totalRows > 0 && totalErrors === 0 && schema.objects.every((object) => parsedByObject[object.key]?.rows.length > 0);
+  const filteredConfigs = savedConfigs.filter((config) => config.app === selectedTool && config.sourceType === "google_sheets");
+
+  useEffect(() => {
+    void loadSourceConfigs();
+  }, []);
+
+  async function loadSourceConfigs() {
+    setConfigStatus({ state: "loading", message: "Loading saved Google Sheets source configs..." });
+    try {
+      const response = await fetch("/api/workspace/source-configs?sourceType=google_sheets");
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error?.message ?? "Saved source configs could not be loaded.");
+      setSavedConfigs(Array.isArray(payload.configs) ? payload.configs : []);
+      setConfigStatus({ state: "success", message: `Loaded ${(payload.configs ?? []).length} saved Google Sheets source configs.` });
+    } catch (error) {
+      setConfigStatus({
+        state: "error",
+        message: error instanceof Error ? error.message : "Saved source configs could not be loaded."
+      });
+    }
+  }
 
   function updateRange(objectKey: string, range: string) {
     setRangesByTool((current) => ({
@@ -123,6 +179,7 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
 
   function selectTool(tool: ToolKey) {
     setSelectedTool(tool);
+    setSelectedConfigId("");
     setPreview(null);
     setPreviewStatus({
       state: "idle",
@@ -130,6 +187,34 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
     });
     setImportStatus({ state: "idle", message: "Preview a Google Sheet to validate and import rows." });
     setSaveStatus({ state: "idle", message: "Save the source config after preview to make this Sheet reusable." });
+  }
+
+  function applySourceConfig(configId: string) {
+    const config = savedConfigs.find((item) => item.id === configId);
+    if (!config || !isToolKey(config.app)) return;
+    const configSchema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === config.app) ?? TOOL_IMPORT_SCHEMAS[0];
+    const metadata = asRecord(config.metadata);
+    const storedRanges = asStringRecord(metadata.ranges);
+    const nextRanges = { ...createDefaultRanges(configSchema), ...storedRanges };
+    const sheetValue = typeof metadata.sheetUrlOrId === "string"
+      ? metadata.sheetUrlOrId
+      : typeof metadata.sheetId === "string"
+        ? metadata.sheetId
+        : "";
+
+    setSelectedTool(config.app);
+    setSelectedConfigId(config.id);
+    setDatasetName(config.name);
+    setSheetUrlOrId(sheetValue);
+    setPreview(null);
+    setRangesByTool((current) => ({ ...current, [config.app as ToolKey]: nextRanges }));
+    setMappingsByTool((current) => ({ ...current, [config.app as ToolKey]: asFieldMappings(config.mappings, configSchema) }));
+    setPreviewStatus({
+      state: "idle",
+      message: `Loaded "${config.name}". Preview the Sheet to refresh rows before import.`
+    });
+    setImportStatus({ state: "idle", message: "Preview the saved source config before import." });
+    setSaveStatus({ state: "idle", message: "Saved config loaded. Preview, adjust, then save updates if needed." });
   }
 
   function updateMapping(objectKey: string, field: string, sourceHeader: string) {
@@ -231,6 +316,8 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
         state: "success",
         message: `Saved source config "${payload.config?.name ?? datasetName}".`
       });
+      await loadSourceConfigs();
+      if (typeof payload.config?.id === "string") setSelectedConfigId(payload.config.id);
     } catch (error) {
       setSaveStatus({
         state: "error",
@@ -366,6 +453,27 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
           Use Google Sheets as a live spreadsheet source, map tabs or ranges to tool objects, and reuse the same validated
           entity schemas that power CSV imports.
         </p>
+        <div className="csvPresetPanel">
+          <div className="editorHeader">
+            <div>
+              <p className="editorKicker">Saved source configs</p>
+              <h3>{filteredConfigs.length} reusable {schema.label.toLowerCase()} Sheets configs</h3>
+            </div>
+            <button type="button" onClick={() => void loadSourceConfigs()}>Refresh</button>
+          </div>
+          <div className="csvPresetControls">
+            <label>
+              Saved config
+              <select value={selectedConfigId} onChange={(event) => applySourceConfig(event.target.value)}>
+                <option value="">Start from scratch</option>
+                {filteredConfigs.map((config) => (
+                  <option key={config.id} value={config.id}>{config.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className={`small lifecycleImportStatus lifecycleImportStatus--${configStatus.state}`}>{configStatus.message}</p>
+        </div>
         <div className="csvPresetControls">
           <label>
             Target tool
