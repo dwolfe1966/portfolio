@@ -1322,6 +1322,16 @@ button {
   display: grid;
   gap: 18px;
 }
+.savedSourceSummaryGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.savedSourceSummaryCard {
+  align-content: start;
+  display: grid;
+  gap: 6px;
+}
 .savedSourceGroup {
   display: grid;
   gap: 14px;
@@ -2008,6 +2018,7 @@ button {
 }
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .savedSourceSummaryGrid { grid-template-columns: 1fr; }
   .csvMappingGrid,
   .csvPresetControls { grid-template-columns: 1fr; }
   .homeHero, .aboutIntroGrid, .experienceGrid { grid-template-columns: 1fr; }

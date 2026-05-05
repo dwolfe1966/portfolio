@@ -84,6 +84,14 @@ function formatOptionalDate(value: string) {
   return Number.isNaN(date.getTime()) ? "" : formatDate(date);
 }
 
+function sourceActivityTime(value: unknown) {
+  const detail = sourceDetail(value);
+  const candidates = [detail.lastImportedAt, detail.lastPreviewedAt, detail.lastValidatedAt]
+    .map((item) => new Date(item).getTime())
+    .filter((time) => Number.isFinite(time));
+  return candidates.length > 0 ? Math.max(...candidates) : 0;
+}
+
 function toolPageHref(app: string, page: "inputs" | "simulations") {
   const safeApp = ["lifecycle", "acquisition", "pricing", "retention", "expansion", "auction"].includes(app) ? app : "lifecycle";
   return `/${safeApp}/${page}?imported=1`;
@@ -131,6 +139,25 @@ export default async function DemoDatasetsPage() {
     groups[key].presets.push(preset);
     return groups;
   }, {})).sort((a, b) => a.app.localeCompare(b.app) || a.sourceType.localeCompare(b.sourceType));
+  const sourceTypeCounts = inventory.presets.reduce<Record<string, number>>((counts, preset) => {
+    counts[preset.sourceType] = (counts[preset.sourceType] ?? 0) + 1;
+    return counts;
+  }, {});
+  const savedSourceRows = inventory.presets.reduce((sum, preset) => sum + sourceRowCount(preset.metadata), 0);
+  const savedSourceImported = inventory.presets.filter((preset) => sourceDetail(preset.metadata).lastImportedAt).length;
+  const savedSourceTools = new Set(inventory.presets.map((preset) => preset.app)).size;
+  const latestSourceActivity = Math.max(...inventory.presets.map((preset) => sourceActivityTime(preset.metadata)), 0);
+  const sourceSummary = [
+    { label: "Saved configs", value: inventory.presets.length.toLocaleString(), detail: `${savedSourceTools} tool${savedSourceTools === 1 ? "" : "s"}` },
+    { label: "Google Sheets", value: (sourceTypeCounts.google_sheets ?? 0).toLocaleString(), detail: "live spreadsheet sources" },
+    { label: "CSV", value: (sourceTypeCounts.csv ?? 0).toLocaleString(), detail: "mapping presets" },
+    { label: "Mapped rows", value: savedSourceRows.toLocaleString(), detail: `${savedSourceImported} imported config${savedSourceImported === 1 ? "" : "s"}` },
+    {
+      label: "Latest activity",
+      value: latestSourceActivity > 0 ? formatOptionalDate(new Date(latestSourceActivity).toISOString()) : "None",
+      detail: "preview, validate, or import"
+    }
+  ];
 
   return (
     <>
@@ -213,6 +240,15 @@ export default async function DemoDatasetsPage() {
           </div>
         ) : (
           <div className="savedSourceGroupList">
+            <div className="savedSourceSummaryGrid">
+              {sourceSummary.map((item) => (
+                <div className="card savedSourceSummaryCard" key={item.label}>
+                  <p className="small">{item.label}</p>
+                  <div className="workspaceSettingValue">{item.value}</div>
+                  <p className="small">{item.detail}</p>
+                </div>
+              ))}
+            </div>
             {savedSourceGroups.map((group) => (
               <div className="card savedSourceGroup" key={group.key}>
                 <div className="editorHeader">
