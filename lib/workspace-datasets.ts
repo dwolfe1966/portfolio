@@ -126,6 +126,7 @@ export async function loadWorkspaceDatasetReadiness() {
     acquisitionCreatives,
     acquisitionPerformance,
     adConnections,
+    acquisitionImports,
     pricingSegments,
     pricingVariants,
     pricingExperiments,
@@ -155,6 +156,7 @@ export async function loadWorkspaceDatasetReadiness() {
     db.adCreative.count(),
     db.adPerformance.count(),
     db.adAccountConnection.count(),
+    db.acquisitionAuditLog.count({ where: { action: "acquisition_import" } }),
     db.pricingSegment.count(),
     db.pricingVariant.count(),
     db.pricingExperiment.count(),
@@ -184,7 +186,7 @@ export async function loadWorkspaceDatasetReadiness() {
     acquisition: {
       objectCounts: [acquisitionCampaigns, acquisitionAudiences, acquisitionCreatives, acquisitionPerformance],
       recordCount: acquisitionCampaigns + acquisitionAudiences + acquisitionCreatives + acquisitionPerformance,
-      importCount: adConnections,
+      importCount: adConnections + acquisitionImports,
       presetCount: 0
     },
     pricing: {

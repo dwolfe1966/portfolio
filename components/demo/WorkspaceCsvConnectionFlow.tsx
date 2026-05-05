@@ -71,7 +71,7 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
   const totalRows = summarizeRows(schema, parsedByObject);
   const totalErrors = summarizeErrors(schema, parsedByObject);
   const importReady = totalRows > 0 && totalErrors === 0 && schema.objects.every((object) => parsedByObject[object.key]?.rows.length > 0);
-  const persistentImportReady = ["lifecycle", "pricing", "retention", "expansion", "auction"].includes(selectedTool) && importReady;
+  const persistentImportReady = ["lifecycle", "pricing", "retention", "expansion", "auction", "acquisition"].includes(selectedTool) && importReady;
 
   function selectTool(tool: ToolKey) {
     setSelectedTool(tool);
@@ -155,7 +155,9 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
             ? "/api/expansion/import"
             : selectedTool === "auction"
               ? "/api/auction/import"
-              : "/api/lifecycle/import";
+              : selectedTool === "acquisition"
+                ? "/api/acquisition/import"
+                : "/api/lifecycle/import";
       const sharedPayload = {
         sourceName: datasetName,
         sourceMetadata: {
@@ -195,6 +197,14 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
                   bids: parsedByObject.bids.rows,
                   reserveSettings: parsedByObject.reserveSettings.rows
                 }
+              : selectedTool === "acquisition"
+                ? {
+                    ...sharedPayload,
+                    campaigns: parsedByObject.campaigns.rows,
+                    audiences: parsedByObject.audiences.rows,
+                    creatives: parsedByObject.creatives.rows,
+                    performance: parsedByObject.performance.rows
+                  }
           : {
               ...sharedPayload,
               users: parsedByObject.users.rows,
@@ -223,6 +233,8 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
             ? `Imported ${imported.accountsImported ?? 0} accounts, ${imported.offersImported ?? 0} offers, and ${imported.policiesImported ?? 0} policies.`
             : selectedTool === "auction"
               ? `Imported ${imported.advertisersImported ?? 0} advertisers, ${imported.slotsImported ?? 0} slots, ${imported.bidsImported ?? 0} bids, and ${imported.reserveSettingsImported ?? 0} reserve settings.`
+              : selectedTool === "acquisition"
+                ? `Imported ${imported.campaignsImported ?? 0} campaigns, ${imported.audiencesImported ?? 0} audiences, ${imported.creativesImported ?? 0} creatives, and ${imported.performanceImported ?? 0} performance rows.`
           : `Imported ${imported.usersImported ?? 0} users, ${imported.entitiesImported ?? 0} entities, ${imported.interestEdgesImported ?? 0} interest edges, and ${imported.changeEventsImported ?? 0} change events.`;
       setImportStatus({ state: "success", message });
     } catch (error) {
@@ -270,15 +282,15 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
         </div>
         <p className="small">Rows parsed: {totalRows} · validation issues: {totalErrors}</p>
         <p className={`small lifecycleImportStatus lifecycleImportStatus--${importStatus.state}`}>{importStatus.message}</p>
-        {!["lifecycle", "pricing", "retention", "expansion", "auction"].includes(selectedTool) && importReady ? (
+        {!["lifecycle", "pricing", "retention", "expansion", "auction", "acquisition"].includes(selectedTool) && importReady ? (
           <p className="small bandText--healthy">
             {schema.label} rows validate successfully. The next backlog item will wire these normalized rows into the tool database tables.
           </p>
         ) : null}
         {importStatus.state === "success" ? (
           <div className="ctaRow lifecycleImportNextSteps">
-            <Link className="btn primary" href={selectedTool === "pricing" ? "/pricing/inputs?imported=1" : selectedTool === "retention" ? "/retention/inputs?imported=1" : selectedTool === "expansion" ? "/expansion/inputs?imported=1" : selectedTool === "auction" ? "/auction/inputs?imported=1" : "/lifecycle/inputs?imported=1"}>Review imported inputs</Link>
-            <Link className="btn" href={selectedTool === "pricing" ? "/pricing/simulations?imported=1" : selectedTool === "retention" ? "/retention/simulations?imported=1" : selectedTool === "expansion" ? "/expansion/simulations?imported=1" : selectedTool === "auction" ? "/auction/simulations?imported=1" : "/lifecycle/simulations?imported=1"}>Run simulation</Link>
+            <Link className="btn primary" href={selectedTool === "pricing" ? "/pricing/inputs?imported=1" : selectedTool === "retention" ? "/retention/inputs?imported=1" : selectedTool === "expansion" ? "/expansion/inputs?imported=1" : selectedTool === "auction" ? "/auction/inputs?imported=1" : selectedTool === "acquisition" ? "/acquisition/inputs?imported=1" : "/lifecycle/inputs?imported=1"}>Review imported inputs</Link>
+            <Link className="btn" href={selectedTool === "pricing" ? "/pricing/simulations?imported=1" : selectedTool === "retention" ? "/retention/simulations?imported=1" : selectedTool === "expansion" ? "/expansion/simulations?imported=1" : selectedTool === "auction" ? "/auction/simulations?imported=1" : selectedTool === "acquisition" ? "/acquisition/simulations?imported=1" : "/lifecycle/simulations?imported=1"}>Run simulation</Link>
           </div>
         ) : null}
       </div>
