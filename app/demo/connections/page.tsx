@@ -25,8 +25,8 @@ const connectionModes = [
   },
   {
     title: "Google Sheets",
-    status: "Preview scaffold",
-    detail: "Map sheet tabs to app entities and refresh datasets without manually replacing files.",
+    status: "Available now",
+    detail: "Map sheet tabs to app entities, refresh live rows, validate mappings, and import without replacing files.",
     tools: "All tools",
     href: "/workspace/connections/google-sheets",
     action: "Open Sheets flow"
@@ -53,7 +53,7 @@ const rolloutSteps = [
   "Choose a source",
   "Map fields to app entities",
   "Validate data types and ranges",
-  "Save a workspace preset",
+  "Save a source config",
   "Run a model with owned data"
 ];
 
@@ -111,10 +111,10 @@ export default async function DemoConnectionsPage() {
   return (
     <>
       <DemoWorkspaceTabs />
-      <Section eyebrow="Workspace" title="Connections hub">
+      <Section eyebrow="Workspace" title="Connect data">
         <p>
-          This is the shared entry point for turning Tools into operating tools: bring your own data, map it into the app model,
-          save the configuration, and run simulations against an owned operating context.
+          Choose a connector, map external fields into a tool schema, validate the data, and save the source so it can be
+          refreshed or imported again from the workspace.
         </p>
       </Section>
 
@@ -142,7 +142,7 @@ export default async function DemoConnectionsPage() {
         ) : null}
       </Section>
 
-      <Section title="Connection flows">
+      <Section title="Connector options">
         <div className="grid grid-4">
           {connectionModes.map((mode) => (
             <div className="card connectionModeCard" key={mode.title}>
@@ -196,7 +196,7 @@ export default async function DemoConnectionsPage() {
         )}
       </Section>
 
-      <Section title="Reusable import workflow">
+      <Section title="How sources become tool-ready">
         <div className="signalStrip">
           {rolloutSteps.map((step, index) => (
             <div className="signalStep" key={step}>

@@ -88,15 +88,45 @@ async function loadToolsetSummary() {
 export default async function DemoDashboardPage() {
   const summary = await loadToolsetSummary();
   const datasetSummary = summarizeDatasetReadiness(summary.datasetReadiness);
+  const quickActions = [
+    {
+      href: "/workspace/connections",
+      title: "Connect data",
+      detail: "Create CSV, Google Sheets, OAuth, or future live-data sources."
+    },
+    {
+      href: "/workspace/datasets",
+      title: "Review sources",
+      detail: "Inspect source configs, readiness gaps, imports, and model runs."
+    },
+    {
+      href: "/lifecycle/simulations",
+      title: "Run lifecycle",
+      detail: "Generate candidates, AI messages, and revenue output from current data."
+    },
+    {
+      href: "/workspace/activity",
+      title: "View activity",
+      detail: "Audit recent source, import, model, and tool events."
+    }
+  ];
 
   return (
     <>
       <DemoWorkspaceTabs />
-      <Section eyebrow="Tools" title="Revenue systems workspace">
+      <Section eyebrow="Workspace" title="Workspace command center">
         <p>
-          This dashboard is the early account surface for Tools: one place to launch tools, inspect saved
-          configuration, and move from tool workflows toward reusable operating systems.
+          Start from the operating task: connect data, inspect source readiness, run a tool, or review activity.
+          The workspace is the shared layer beneath every revenue tool.
         </p>
+        <div className="demoWorkspaceQuickActions">
+          {quickActions.map((action) => (
+            <Link className="demoWorkspaceQuickAction" href={action.href} key={action.href}>
+              <strong>{action.title}</strong>
+              <span>{action.detail}</span>
+            </Link>
+          ))}
+        </div>
       </Section>
 
       <Section title="Workspace status">
@@ -111,7 +141,11 @@ export default async function DemoDashboardPage() {
         ) : null}
       </Section>
 
-      <Section title="Imported data readiness">
+      <Section title="Tool data readiness">
+        <p>
+          Readiness shows which tools have enough structured data to run against the current workspace instead of only
+          relying on default sample data.
+        </p>
         <div className="grid grid-4">
           <div className="card"><p className="small">Available</p><div className="kpi">{datasetSummary.available}</div><p>Tools with required objects present.</p></div>
           <div className="card"><p className="small">Partial</p><div className="kpi">{datasetSummary.partial}</div><p>Tools with some required data but gaps.</p></div>
@@ -134,7 +168,7 @@ export default async function DemoDashboardPage() {
                 <p>{tool.data}</p>
               </div>
               <div className="toolReadinessActions">
-                <Link className="btn smallBtn primary" href={tool.workflow}>Open</Link>
+                <Link className="btn smallBtn primary" href={tool.workflow}>Open tool</Link>
                 <Link className="btn smallBtn" href={tool.simulate}>Simulate</Link>
                 <Link className="btn smallBtn" href={tool.docs}>Docs</Link>
               </div>

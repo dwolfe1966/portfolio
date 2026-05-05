@@ -187,17 +187,16 @@ export default async function DemoActivityPage() {
   return (
     <>
       <DemoWorkspaceTabs />
-      <Section eyebrow="Workspace" title="Activity feed">
+      <Section eyebrow="Workspace" title="Workspace activity">
         <p>
-          A shared operating history for Tools: imports, model runs, connector events, and app audit logs
-          gathered into one workspace-level view.
+          Track source changes, imports, model runs, connector events, and app audit logs from one workspace-level feed.
         </p>
       </Section>
 
       <Section title="Activity summary">
         <div className="grid grid-4">
           <div className="card"><p className="small">Imports</p><div className="kpi">{activity.counts.imports}</div></div>
-          <div className="card"><p className="small">Lifecycle runs</p><div className="kpi">{activity.counts.lifecycleRuns}</div></div>
+          <div className="card"><p className="small">Model runs</p><div className="kpi">{activity.counts.lifecycleRuns}</div></div>
           <div className="card"><p className="small">Audit events</p><div className="kpi">{activity.counts.audits}</div></div>
           <div className="card"><p className="small">Connections</p><div className="kpi">{activity.counts.connections}</div></div>
         </div>

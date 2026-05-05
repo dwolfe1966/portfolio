@@ -178,10 +178,10 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
   return (
     <>
       <DemoWorkspaceTabs />
-      <Section eyebrow="Workspace" title="Datasets and presets">
+      <Section eyebrow="Workspace" title="Data sources and readiness">
         <p>
-          This page inventories the reusable data assets behind Tools: saved source configs, imported datasets,
-          and model runs that can become saved workspace history as the apps mature into tools.
+          Manage saved sources, inspect which tool objects are ready, and move from validated data into imported
+          datasets and model runs.
         </p>
       </Section>
 
@@ -209,7 +209,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
         ) : null}
       </Section>
 
-      <Section title="Imported data readiness by tool">
+      <Section title="Tool readiness gaps">
         {inventory.readiness.length === 0 ? (
           <div className="card">
             <p>Dataset readiness is unavailable until workspace tables are migrated.</p>
@@ -223,9 +223,9 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                   <th>Status</th>
                   <th>Required objects</th>
                   <th>Records</th>
-                  <th>Imports/connectors</th>
+                  <th>Imports</th>
                   <th>Gap</th>
-                  <th>Action</th>
+                  <th>Next</th>
                 </tr>
               </thead>
               <tbody>
@@ -249,7 +249,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
         )}
       </Section>
 
-      <Section title="Saved source configs">
+      <Section title="Saved sources">
         {inventory.presets.length === 0 ? (
           <div className="card">
             <p>No saved source configs yet. Start with CSV import or Google Sheets preview.</p>
@@ -303,7 +303,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                     <p className="editorKicker">{sourceTypeLabel(group.sourceType)}</p>
                     <h3>{group.app} sources</h3>
                   </div>
-                  <p className="statusPill progress">{group.presets.length} config{group.presets.length === 1 ? "" : "s"}</p>
+                  <p className="statusPill progress">{group.presets.length} source{group.presets.length === 1 ? "" : "s"}</p>
                 </div>
                 <div className="tableScroll">
                   <table className="table">
@@ -313,7 +313,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                         <th>Rows</th>
                         <th>Source detail</th>
                         <th>Updated</th>
-                  <th>Next</th>
+                        <th>Next</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -340,7 +340,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                                 </>
                               ) : (
                                 <>
-                                  <span className="small">Mapping preset</span>
+                                  <span className="small">CSV source</span>
                                   {detail.lastValidatedAt ? <p className="small">Validated {formatOptionalDate(detail.lastValidatedAt)}</p> : null}
                                   {detail.lastImportedAt ? (
                                     <p className="small">
