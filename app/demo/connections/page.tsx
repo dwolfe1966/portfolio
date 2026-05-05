@@ -82,6 +82,15 @@ function sourceConfigHref(sourceType: string, app: string, id: string) {
   return "/workspace/settings";
 }
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function sourceRowCount(value: unknown) {
+  const rowCounts = metadataRecord(metadataRecord(value).rowCounts);
+  return Object.values(rowCounts).reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
+}
+
 async function loadConnectionSummary() {
   try {
     const [sourceConfigs, csvConfigs, sheetConfigs, adConnections, recentSourceConfigs] = await Promise.all([
@@ -162,36 +171,36 @@ export default async function DemoConnectionsPage() {
             <p>No saved source configs yet. Open CSV or Google Sheets to save reusable mappings for any tool.</p>
           </div>
         ) : (
-          <div className="tableScroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Source</th>
-                  <th>Tool</th>
-                  <th>Type</th>
-                  <th>Workspace</th>
-                  <th>Updated</th>
-                  <th>Manage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.recentSourceConfigs.map((config) => (
-                  <tr key={config.id}>
-                    <td><strong>{config.name}</strong></td>
-                    <td>{config.app}</td>
-                    <td>{sourceTypeLabel(config.sourceType)}</td>
-                    <td>{config.workspace.name}</td>
-                    <td>{formatDate(config.updatedAt)}</td>
-                    <td>
-                      <div className="importHistoryActions">
-                        <Link className="btn smallBtn primary" href={`/workspace/datasets/${encodeURIComponent(config.id)}`}>Manage source</Link>
-                        <Link className="btn smallBtn" href={sourceConfigHref(config.sourceType, config.app, config.id)}>Open connector</Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="savedSourceCardGrid">
+            {summary.recentSourceConfigs.map((config) => (
+              <div className="card savedSourceCard" key={config.id}>
+                <div className="editorHeader">
+                  <div>
+                    <p className="editorKicker">{config.app} · {sourceTypeLabel(config.sourceType)}</p>
+                    <h3>{config.name}</h3>
+                  </div>
+                  <span className="statusPill progress">{sourceRowCount(config.metadata).toLocaleString()} rows</span>
+                </div>
+                <div className="savedSourceCardStats">
+                  <div>
+                    <span className="small">Workspace</span>
+                    <strong>{config.workspace.name}</strong>
+                  </div>
+                  <div>
+                    <span className="small">Updated</span>
+                    <strong>{formatDate(config.updatedAt)}</strong>
+                  </div>
+                  <div>
+                    <span className="small">Source</span>
+                    <strong>{sourceTypeLabel(config.sourceType)}</strong>
+                  </div>
+                </div>
+                <div className="importHistoryActions">
+                  <Link className="btn smallBtn primary" href={sourceConfigHref(config.sourceType, config.app, config.id)}>Open connector</Link>
+                  <Link className="btn smallBtn" href={`/workspace/datasets/${encodeURIComponent(config.id)}`}>Manage source</Link>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </Section>

@@ -98,11 +98,12 @@ function toolPageHref(app: string, page: "inputs" | "simulations") {
   return `/${safeApp}/${page}?imported=1`;
 }
 
-function sourceConfigHref(sourceType: string, app: string, id: string) {
+function sourceConfigHref(sourceType: string, app: string, id: string, action?: "refresh" | "map" | "import") {
   const encodedApp = encodeURIComponent(app);
   const encodedId = encodeURIComponent(id);
-  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}&config=${encodedId}`;
-  return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}`;
+  const actionParam = action ? `&action=${action}` : "";
+  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}&config=${encodedId}${actionParam}`;
+  return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}${actionParam}`;
 }
 
 function sourceDetailHref(id: string) {
@@ -126,27 +127,31 @@ function sourceActionState(sourceType: string, metadata: unknown) {
     return {
       label: "Needs refresh",
       action: "Refresh source",
-      detail: "Pull live Sheet rows before import."
+      detail: "Pull live Sheet rows before import.",
+      connectorAction: "refresh" as const
     };
   }
   if (rows === 0 && !detail.lastValidatedAt) {
     return {
       label: "Needs mapping",
       action: "Map source",
-      detail: "Add rows and validate field mappings."
+      detail: "Add rows and validate field mappings.",
+      connectorAction: "map" as const
     };
   }
   if (!detail.lastImportedAt) {
     return {
       label: "Ready to import",
       action: "Import source",
-      detail: "Validated rows have not been imported yet."
+      detail: "Validated rows have not been imported yet.",
+      connectorAction: "import" as const
     };
   }
   return {
     label: "Operational",
     action: sourceType === "google_sheets" ? "Refresh source" : "Import source",
-    detail: "Imported data is available for tool runs."
+    detail: "Imported data is available for tool runs.",
+    connectorAction: sourceType === "google_sheets" ? "refresh" as const : "import" as const
   };
 }
 
@@ -313,7 +318,8 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                       </div>
                       {detail.sheetId ? <p className="small">Sheet ID: <code>{detail.sheetId}</code></p> : null}
                       <div className="importHistoryActions">
-                        <Link className="btn smallBtn primary" href={sourceDetailHref(preset.id)}>{state.action}</Link>
+                        <Link className="btn smallBtn primary" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, state.connectorAction)}>{state.action}</Link>
+                        <Link className="btn smallBtn" href={sourceDetailHref(preset.id)}>Manage source</Link>
                         <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id)}>Open connector</Link>
                       </div>
                     </div>

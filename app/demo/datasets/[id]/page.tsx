@@ -190,11 +190,10 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
           </p>
           <div className="ctaRow">
             <Link className="btn" href="/workspace/datasets">Back to datasets</Link>
-            {config.sourceType === "google_sheets" ? (
-              <Link className="btn primary" href={sourceConfigHref(config.sourceType, config.app, config.id, "refresh")}>Refresh source</Link>
-            ) : null}
-            <Link className="btn" href={sourceConfigHref(config.sourceType, config.app, config.id, "map")}>Map source</Link>
-            <Link className="btn" href={sourceConfigHref(config.sourceType, config.app, config.id, "import")}>Import source</Link>
+            <Link className="btn" href="/workspace/connections">Back to connections</Link>
+            <Link className="btn primary" href={sourceConfigHref(config.sourceType, config.app, config.id, actionState.action)}>
+              {actionState.nextAction}
+            </Link>
           </div>
         </Section>
 
@@ -331,14 +330,6 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
               <p className="editorKicker">Mappings</p>
               <pre>{jsonPreview(config.mappings)}</pre>
             </div>
-          </div>
-        </Section>
-
-        <Section title="Use this source">
-          <div className="ctaRow">
-            <Link className="btn" href={toolPageHref(config.app, "inputs")}>Open inputs</Link>
-            <Link className="btn primary" href={toolPageHref(config.app, "simulations")}>Run simulation</Link>
-            <Link className="btn" href={sourceConfigHref(config.sourceType, config.app, config.id, "import")}>Import latest data</Link>
           </div>
         </Section>
 
