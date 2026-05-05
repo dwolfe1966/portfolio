@@ -81,10 +81,11 @@ function formatOptionalDate(value: string) {
   return Number.isNaN(date.getTime()) ? "" : formatDate(date);
 }
 
-function sourceConfigHref(sourceType: string, app: string) {
+function sourceConfigHref(sourceType: string, app: string, id: string) {
   const encodedApp = encodeURIComponent(app);
-  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}`;
-  return `/workspace/connections/csv?tool=${encodedApp}`;
+  const encodedId = encodeURIComponent(id);
+  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}&config=${encodedId}`;
+  return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}`;
 }
 
 async function deleteSourceConfig(formData: FormData) {
@@ -222,7 +223,7 @@ export default async function DemoDatasetsPage() {
                       <td>{formatDate(preset.updatedAt)}</td>
                       <td>
                         <div className="importHistoryActions">
-                          <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app)}>Open</Link>
+                          <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id)}>Open</Link>
                           <form action={deleteSourceConfig}>
                             <input type="hidden" name="id" value={preset.id} />
                             <button className="smallBtn" type="submit">Delete</button>

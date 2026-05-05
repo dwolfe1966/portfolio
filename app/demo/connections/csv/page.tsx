@@ -15,7 +15,7 @@ export const metadata: Metadata = buildMetadata({
 });
 
 type PageProps = {
-  searchParams: Promise<{ tool?: string }>;
+  searchParams: Promise<{ tool?: string; config?: string }>;
 };
 
 export default async function WorkspaceCsvConnectionPage({ searchParams }: PageProps) {
@@ -50,7 +50,7 @@ export default async function WorkspaceCsvConnectionPage({ searchParams }: PageP
       </Section>
 
       <Section title="CSV mapping">
-        <WorkspaceCsvConnectionFlow initialTool={params.tool} />
+        <WorkspaceCsvConnectionFlow initialTool={params.tool} initialConfigId={params.config} />
       </Section>
     </>
   );

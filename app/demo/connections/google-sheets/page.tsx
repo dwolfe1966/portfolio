@@ -15,7 +15,7 @@ export const metadata: Metadata = buildMetadata({
 });
 
 type PageProps = {
-  searchParams: Promise<{ tool?: string }>;
+  searchParams: Promise<{ tool?: string; config?: string }>;
 };
 
 export default async function WorkspaceGoogleSheetsConnectionPage({ searchParams }: PageProps) {
@@ -51,7 +51,7 @@ export default async function WorkspaceGoogleSheetsConnectionPage({ searchParams
       </Section>
 
       <Section title="Sheet preview">
-        <GoogleSheetsConnectionFlow initialTool={params.tool} />
+        <GoogleSheetsConnectionFlow initialTool={params.tool} initialConfigId={params.config} />
       </Section>
     </>
   );

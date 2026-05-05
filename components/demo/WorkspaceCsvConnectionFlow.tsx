@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   TOOL_IMPORT_SCHEMAS,
   createEmptyMappings,
@@ -77,7 +77,7 @@ function asFieldMappings(value: unknown, schema: ToolImportSchema) {
   return nextMappings;
 }
 
-export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: string }) {
+export function WorkspaceCsvConnectionFlow({ initialTool, initialConfigId }: { initialTool?: string; initialConfigId?: string }) {
   const [selectedTool, setSelectedTool] = useState<ToolKey>(isToolKey(initialTool) ? initialTool : "lifecycle");
   const [datasetName, setDatasetName] = useState("Workspace CSV upload");
   const [csvByTool, setCsvByTool] = useState<Record<ToolKey, Record<string, string>>>(initializeCsvState);
@@ -115,10 +115,6 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
   const persistentImportReady = ["lifecycle", "pricing", "retention", "expansion", "auction", "acquisition"].includes(selectedTool) && importReady;
   const filteredConfigs = savedConfigs.filter((config) => config.app === selectedTool && config.sourceType === "csv");
 
-  useEffect(() => {
-    void loadSourceConfigs();
-  }, []);
-
   async function loadSourceConfigs() {
     setConfigStatus({ state: "loading", message: "Loading saved CSV source configs..." });
     try {
@@ -147,7 +143,7 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
     setSaveStatus({ state: "idle", message: "Save the CSV source config after validation to reuse mappings." });
   }
 
-  function applySourceConfig(configId: string) {
+  const applySourceConfig = useCallback(function applySourceConfig(configId: string) {
     const config = savedConfigs.find((item) => item.id === configId);
     if (!config || !isToolKey(config.app)) return;
     const configSchema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === config.app) ?? TOOL_IMPORT_SCHEMAS[0];
@@ -161,7 +157,16 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
       message: `Loaded "${config.name}". Add or paste CSV rows, then validate and import.`
     });
     setSaveStatus({ state: "idle", message: "Saved config loaded. Update CSV data or mappings, then save changes if needed." });
-  }
+  }, [savedConfigs]);
+
+  useEffect(() => {
+    void loadSourceConfigs();
+  }, []);
+
+  useEffect(() => {
+    if (!initialConfigId || savedConfigs.length === 0 || selectedConfigId === initialConfigId) return;
+    applySourceConfig(initialConfigId);
+  }, [applySourceConfig, initialConfigId, savedConfigs, selectedConfigId]);
 
   function updateCsv(objectKey: string, value: string) {
     const objectSchema = schema.objects.find((object) => object.key === objectKey);

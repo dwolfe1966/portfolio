@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   TOOL_IMPORT_SCHEMAS,
   createEmptyMappings,
@@ -105,7 +105,7 @@ function asFieldMappings(value: unknown, schema: ToolImportSchema) {
   return nextMappings;
 }
 
-export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: string }) {
+export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { initialTool?: string; initialConfigId?: string }) {
   const [selectedTool, setSelectedTool] = useState<ToolKey>(isToolKey(initialTool) ? initialTool : "lifecycle");
   const [datasetName, setDatasetName] = useState("Workspace Google Sheets import");
   const [sheetUrlOrId, setSheetUrlOrId] = useState("");
@@ -150,10 +150,6 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
   const importReady = Boolean(preview) && totalRows > 0 && totalErrors === 0 && schema.objects.every((object) => parsedByObject[object.key]?.rows.length > 0);
   const filteredConfigs = savedConfigs.filter((config) => config.app === selectedTool && config.sourceType === "google_sheets");
 
-  useEffect(() => {
-    void loadSourceConfigs();
-  }, []);
-
   async function loadSourceConfigs() {
     setConfigStatus({ state: "loading", message: "Loading saved Google Sheets source configs..." });
     try {
@@ -189,7 +185,7 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
     setSaveStatus({ state: "idle", message: "Save the source config after preview to make this Sheet reusable." });
   }
 
-  function applySourceConfig(configId: string) {
+  const applySourceConfig = useCallback(function applySourceConfig(configId: string) {
     const config = savedConfigs.find((item) => item.id === configId);
     if (!config || !isToolKey(config.app)) return;
     const configSchema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === config.app) ?? TOOL_IMPORT_SCHEMAS[0];
@@ -215,7 +211,16 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
     });
     setImportStatus({ state: "idle", message: "Preview the saved source config before import." });
     setSaveStatus({ state: "idle", message: "Saved config loaded. Preview, adjust, then save updates if needed." });
-  }
+  }, [savedConfigs]);
+
+  useEffect(() => {
+    void loadSourceConfigs();
+  }, []);
+
+  useEffect(() => {
+    if (!initialConfigId || savedConfigs.length === 0 || selectedConfigId === initialConfigId) return;
+    applySourceConfig(initialConfigId);
+  }, [applySourceConfig, initialConfigId, savedConfigs, selectedConfigId]);
 
   function updateMapping(objectKey: string, field: string, sourceHeader: string) {
     setMappingsByTool((current) => ({
