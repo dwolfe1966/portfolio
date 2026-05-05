@@ -90,19 +90,19 @@ export default async function DemoDashboardPage() {
   const datasetSummary = summarizeDatasetReadiness(summary.datasetReadiness);
   const quickActions = [
     {
+      href: "/workspace/datasets",
+      title: "Review datasets",
+      detail: "Inspect source configs, readiness gaps, imports, and model runs."
+    },
+    {
       href: "/workspace/connections",
       title: "Connect data",
       detail: "Create CSV, Google Sheets, OAuth, or future live-data sources."
     },
     {
-      href: "/workspace/datasets",
-      title: "Review sources",
-      detail: "Inspect source configs, readiness gaps, imports, and model runs."
-    },
-    {
-      href: "/lifecycle/simulations",
-      title: "Run lifecycle",
-      detail: "Generate candidates, AI messages, and revenue output from current data."
+      href: "#workspace-tools",
+      title: "Open tools",
+      detail: "Launch a revenue tool once the workspace has usable data."
     },
     {
       href: "/workspace/activity",
@@ -116,8 +116,8 @@ export default async function DemoDashboardPage() {
       <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Workspace command center">
         <p>
-          Start from the operating task: connect data, inspect source readiness, run a tool, or review activity.
-          The workspace is the shared layer beneath every revenue tool.
+          Start from the operating task: review datasets, connect a source, open a tool, or audit recent activity.
+          The workspace is the shared data and configuration layer beneath every revenue tool.
         </p>
         <div className="demoWorkspaceQuickActions">
           {quickActions.map((action) => (
@@ -158,24 +158,26 @@ export default async function DemoDashboardPage() {
         </div>
       </Section>
 
-      <Section title="Tools">
-        <div className="toolReadinessList">
-          {toolReadiness.map((tool) => (
-            <div className="toolReadinessRow" key={tool.name}>
-              <div>
-                <p className={`statusPill ${tool.readiness === "Tool" ? "progress" : "live"}`}>{tool.readiness}</p>
-                <h3>{tool.name}</h3>
-                <p>{tool.data}</p>
+      <div id="workspace-tools">
+        <Section title="Tools">
+          <div className="toolReadinessList">
+            {toolReadiness.map((tool) => (
+              <div className="toolReadinessRow" key={tool.name}>
+                <div>
+                  <p className={`statusPill ${tool.readiness === "Tool" ? "progress" : "live"}`}>{tool.readiness}</p>
+                  <h3>{tool.name}</h3>
+                  <p>{tool.data}</p>
+                </div>
+                <div className="toolReadinessActions">
+                  <Link className="btn smallBtn primary" href={tool.workflow}>Open tool</Link>
+                  <Link className="btn smallBtn" href={tool.simulate}>Simulate</Link>
+                  <Link className="btn smallBtn" href={tool.docs}>Docs</Link>
+                </div>
               </div>
-              <div className="toolReadinessActions">
-                <Link className="btn smallBtn primary" href={tool.workflow}>Open tool</Link>
-                <Link className="btn smallBtn" href={tool.simulate}>Simulate</Link>
-                <Link className="btn smallBtn" href={tool.docs}>Docs</Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
+            ))}
+          </div>
+        </Section>
+      </div>
     </>
   );
 }

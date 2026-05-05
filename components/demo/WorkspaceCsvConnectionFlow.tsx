@@ -572,7 +572,7 @@ export function WorkspaceCsvConnectionFlow({
           const parsed = parsedByObject[object.key];
           return (
             <div className="card editorCard connectorEntityCard" key={`${selectedTool}-${object.key}`}>
-              <div className="editorHeader connectorEntityHeader">
+              <div className="editorHeader connectorEntityHeader connectorSubPanel--title">
                 <div>
                   <p className="editorKicker">Entity</p>
                   <h3>{object.title}</h3>
@@ -581,12 +581,12 @@ export function WorkspaceCsvConnectionFlow({
                   {parsed.rows.length > 0 ? `${parsed.rows.length} rows` : "No rows"}
                 </p>
               </div>
-              <div className="connectorEntityIntro">
+              <div className="connectorEntityIntro connectorSubPanel--title">
                 <p>{object.description}</p>
                 <p className="small">Required app fields: <code>{object.requiredFields.join(", ")}</code></p>
               </div>
 
-              <div className="connectorSubPanel">
+              <div className="connectorSubPanel connectorSubPanel--action">
                 <div className="connectorSubPanelHeader">
                   <div>
                     <p className="editorKicker">Actions</p>
@@ -614,7 +614,7 @@ export function WorkspaceCsvConnectionFlow({
               </div>
 
               {parsed.headers.length > 0 ? (
-                <div className="connectorSubPanel">
+                <div className="connectorSubPanel connectorSubPanel--data">
                   <div className="connectorSubPanelHeader">
                     <div>
                       <p className="editorKicker">Field mapping</p>
@@ -642,7 +642,7 @@ export function WorkspaceCsvConnectionFlow({
               ) : null}
 
               {parsed.sourceRows.length > 0 ? (
-                <div className="connectorSubPanel">
+                <div className="connectorSubPanel connectorSubPanel--data">
                   <div className="connectorSubPanelHeader">
                     <div>
                       <p className="editorKicker">Source preview</p>
@@ -680,20 +680,20 @@ export function WorkspaceCsvConnectionFlow({
               ) : null}
 
               {parsed.errors.length > 0 ? (
-                <div className="connectorSubPanel connectorMessagePanel">
+                <div className="connectorSubPanel connectorSubPanel--message connectorMessagePanel">
                   <p className="small bandText--unhealthy">Validation issues</p>
                   <ul>
                     {parsed.errors.slice(0, 6).map((error) => <li className="small bandText--unhealthy" key={error}>{error}</li>)}
                   </ul>
                 </div>
               ) : parsed.rows.length > 0 ? (
-                <div className="connectorSubPanel connectorMessagePanel">
+                <div className="connectorSubPanel connectorSubPanel--message connectorMessagePanel">
                   <p className="small bandText--healthy">Headers and preview rows look valid.</p>
                 </div>
               ) : null}
 
               {parsed.rows.length > 0 ? (
-                <div className="connectorSubPanel">
+                <div className="connectorSubPanel connectorSubPanel--data">
                   <div className="connectorSubPanelHeader">
                     <div>
                       <p className="editorKicker">Dataset preview</p>

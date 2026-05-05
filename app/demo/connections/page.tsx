@@ -127,6 +127,22 @@ export default async function DemoConnectionsPage() {
         </p>
       </Section>
 
+      <Section title="Connections vs. datasets">
+        <div className="grid grid-2">
+          <div className="card connectionModeCard">
+            <p className="editorKicker">Connections</p>
+            <h3>Source setup</h3>
+            <p>Use this page to create or refresh the link to external data: files, Sheets, OAuth accounts, and future live sources.</p>
+          </div>
+          <div className="card connectionModeCard">
+            <p className="editorKicker">Datasets</p>
+            <h3>Operating inventory</h3>
+            <p>Use Datasets after setup to inspect saved sources, imported rows, readiness gaps, and the next action for each tool.</p>
+            <Link className="btn smallBtn" href="/workspace/datasets">Review datasets</Link>
+          </div>
+        </div>
+      </Section>
+
       <Section title="Connection status">
         <div className="grid grid-4">
           <div className="card">
