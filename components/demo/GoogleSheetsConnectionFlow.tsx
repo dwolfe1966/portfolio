@@ -20,6 +20,7 @@ type PreviewStatus =
   | { state: "error"; message: string };
 
 type ImportStatus = PreviewStatus;
+type SaveStatus = PreviewStatus;
 
 type SheetPreviewObject = {
   range: string;
@@ -90,6 +91,10 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
     state: "idle",
     message: "Preview a Google Sheet to validate and import rows."
   });
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>({
+    state: "idle",
+    message: "Save the source config after preview to make this Sheet reusable."
+  });
 
   const schema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === selectedTool) ?? TOOL_IMPORT_SCHEMAS[0];
   const ranges = rangesByTool[selectedTool];
@@ -124,6 +129,7 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
       message: `Ready to preview ${TOOL_IMPORT_SCHEMAS.find((item) => item.tool === tool)?.label ?? "tool"} sheet ranges.`
     });
     setImportStatus({ state: "idle", message: "Preview a Google Sheet to validate and import rows." });
+    setSaveStatus({ state: "idle", message: "Save the source config after preview to make this Sheet reusable." });
   }
 
   function updateMapping(objectKey: string, field: string, sourceHeader: string) {
@@ -180,12 +186,56 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
         message: `Previewed Google Sheet ${payload.sheetId}. Review field mappings, validate rows, and import the dataset.`
       });
       setImportStatus({ state: "idle", message: "Preview loaded. Complete field mapping before import." });
+      setSaveStatus({ state: "idle", message: "Preview loaded. Save this Sheet config for reuse or refresh." });
     } catch (error) {
       setPreviewStatus({
         state: "error",
         message: error instanceof Error ? error.message : "Google Sheets preview failed."
       });
       setImportStatus({ state: "idle", message: "Preview a Google Sheet to validate and import rows." });
+      setSaveStatus({ state: "idle", message: "Save the source config after preview to make this Sheet reusable." });
+    }
+  }
+
+  async function saveSourceConfig() {
+    if (!preview || saveStatus.state === "loading") return;
+    setSaveStatus({
+      state: "loading",
+      message: `Saving ${schema.label.toLowerCase()} Google Sheets source configuration...`
+    });
+
+    try {
+      const response = await fetch("/api/workspace/source-configs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          app: selectedTool,
+          sourceType: "google_sheets",
+          name: datasetName,
+          mappings: mappingsByObject,
+          metadata: {
+            sheetId: preview.sheetId,
+            sheetUrlOrId,
+            ranges,
+            rowCounts: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].rows.length])),
+            headers: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].headers])),
+            lastPreviewedAt: new Date().toISOString()
+          }
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error?.message ?? "Source config save failed.");
+      }
+      setSaveStatus({
+        state: "success",
+        message: `Saved source config "${payload.config?.name ?? datasetName}".`
+      });
+    } catch (error) {
+      setSaveStatus({
+        state: "error",
+        message: error instanceof Error ? error.message : "Source config save failed."
+      });
     }
   }
 
@@ -289,6 +339,9 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
                 ? `Imported ${imported.campaignsImported ?? 0} campaigns, ${imported.audiencesImported ?? 0} audiences, ${imported.creativesImported ?? 0} creatives, and ${imported.performanceImported ?? 0} performance rows.`
           : `Imported ${imported.usersImported ?? 0} users, ${imported.entitiesImported ?? 0} entities, ${imported.interestEdgesImported ?? 0} interest edges, and ${imported.changeEventsImported ?? 0} change events.`;
       setImportStatus({ state: "success", message });
+      if (preview) {
+        setSaveStatus({ state: "idle", message: "Import complete. Save or update this source config if you want to reuse it." });
+      }
     } catch (error) {
       setImportStatus({
         state: "error",
@@ -342,11 +395,15 @@ export function GoogleSheetsConnectionFlow({ initialTool }: { initialTool?: stri
           <button type="button" disabled={!importReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
             {importStatus.state === "loading" ? `Importing ${schema.label.toLowerCase()} data...` : importReady ? `Import ${schema.label.toLowerCase()} dataset` : "Import after validation"}
           </button>
+          <button type="button" disabled={!preview || saveStatus.state === "loading"} onClick={() => void saveSourceConfig()}>
+            {saveStatus.state === "loading" ? "Saving source..." : preview ? "Save source config" : "Save after preview"}
+          </button>
           <Link className="btn" href="/workspace/datasets">Review datasets</Link>
         </div>
         <p className="small">Rows parsed: {totalRows} · validation issues: {totalErrors}</p>
         <p className={`small lifecycleImportStatus lifecycleImportStatus--${previewStatus.state}`}>{previewStatus.message}</p>
         <p className={`small lifecycleImportStatus lifecycleImportStatus--${importStatus.state}`}>{importStatus.message}</p>
+        <p className={`small lifecycleImportStatus lifecycleImportStatus--${saveStatus.state}`}>{saveStatus.message}</p>
         {importStatus.state === "success" ? (
           <div className="ctaRow lifecycleImportNextSteps">
             <Link className="btn primary" href={selectedTool === "pricing" ? "/pricing/inputs?imported=1" : selectedTool === "retention" ? "/retention/inputs?imported=1" : selectedTool === "expansion" ? "/expansion/inputs?imported=1" : selectedTool === "auction" ? "/auction/inputs?imported=1" : selectedTool === "acquisition" ? "/acquisition/inputs?imported=1" : "/lifecycle/inputs?imported=1"}>Review imported inputs</Link>

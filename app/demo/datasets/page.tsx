@@ -56,6 +56,28 @@ function importedRows(log: Awaited<ReturnType<typeof loadDatasetInventory>>["imp
   return log.usersImported + log.entitiesImported + log.interestEdgesImported + log.changeEventsImported;
 }
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function sourceRowCount(value: unknown) {
+  const metadata = metadataRecord(value);
+  const rowCounts = metadataRecord(metadata.rowCounts);
+  return Object.values(rowCounts).reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
+}
+
+function sourceDetail(value: unknown) {
+  const metadata = metadataRecord(value);
+  const sheetId = typeof metadata.sheetId === "string" ? metadata.sheetId : "";
+  const lastPreviewedAt = typeof metadata.lastPreviewedAt === "string" ? metadata.lastPreviewedAt : "";
+  return { sheetId, lastPreviewedAt };
+}
+
+function formatOptionalDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : formatDate(date);
+}
+
 export default async function DemoDatasetsPage() {
   const inventory = await loadDatasetInventory();
   const totalRows = inventory.imports.reduce((sum, log) => sum + importedRows(log), 0);
@@ -136,10 +158,10 @@ export default async function DemoDatasetsPage() {
         )}
       </Section>
 
-      <Section title="Saved mapping presets">
+      <Section title="Saved source configs">
         {inventory.presets.length === 0 ? (
           <div className="card">
-            <p>No saved mapping presets yet. Start with the lifecycle CSV import flow.</p>
+            <p>No saved source configs or mapping presets yet. Start with CSV import or Google Sheets preview.</p>
           </div>
         ) : (
           <div className="tableScroll">
@@ -150,19 +172,35 @@ export default async function DemoDatasetsPage() {
                   <th>App</th>
                   <th>Source</th>
                   <th>Workspace</th>
+                  <th>Rows</th>
+                  <th>Source detail</th>
                   <th>Updated</th>
                 </tr>
               </thead>
               <tbody>
-                {inventory.presets.map((preset) => (
-                  <tr key={preset.id}>
-                    <td><strong>{preset.name}</strong></td>
-                    <td>{preset.app}</td>
-                    <td>{preset.sourceType.toUpperCase()}</td>
-                    <td>{preset.workspace.name}</td>
-                    <td>{formatDate(preset.updatedAt)}</td>
-                  </tr>
-                ))}
+                {inventory.presets.map((preset) => {
+                  const detail = sourceDetail(preset.metadata);
+                  return (
+                    <tr key={preset.id}>
+                      <td><strong>{preset.name}</strong></td>
+                      <td>{preset.app}</td>
+                      <td>{preset.sourceType.toUpperCase()}</td>
+                      <td>{preset.workspace.name}</td>
+                      <td>{sourceRowCount(preset.metadata).toLocaleString()}</td>
+                      <td>
+                        {detail.sheetId ? (
+                          <>
+                            <code>{detail.sheetId}</code>
+                            {detail.lastPreviewedAt ? <p className="small">Previewed {formatOptionalDate(detail.lastPreviewedAt)}</p> : null}
+                          </>
+                        ) : (
+                          <span className="small">Mapping preset</span>
+                        )}
+                      </td>
+                      <td>{formatDate(preset.updatedAt)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
