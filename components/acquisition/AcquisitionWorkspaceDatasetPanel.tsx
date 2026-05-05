@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { applyAcquisitionDatasetSnapshotAction } from "@/app/(demo)/acquisition/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
@@ -87,15 +86,18 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
         </div>
         <div className="dataSourceModeGrid">
           <div className="dataSourceModePanel">
-            <p className="editorKicker">Option A</p>
-            <h3>Use sample data</h3>
-            <p className="small">Resets this tool back to its seeded sample dataset.</p>
-            <ResetDemoDataCard appLabel="Acquisition" scope="acquisition" variant="embedded" />
+            <h3>Option A Use Sample Data</h3>
+            <details className="dataSourceDetails">
+              <summary>What this means</summary>
+              <p className="small">Use the seeded acquisition dataset that ships with the product. To switch back to sample data after applying an import, use the reset control below.</p>
+            </details>
           </div>
           <div className="dataSourceModePanel">
-            <p className="editorKicker">Option B</p>
-            <h3>Use imported data</h3>
-            <p className="small">Choose a persisted workspace dataset and apply it to this tool.</p>
+            <h3>Option B Use Imported Data</h3>
+            <details className="dataSourceDetails">
+              <summary>What this means</summary>
+              <p className="small">Choose a persisted workspace dataset and apply it to this tool. Applying an imported dataset replaces the active acquisition tables.</p>
+            </details>
         {snapshots.length > 0 ? (
           <form className="lifecycleDatasetSelector" action={applyAcquisitionDatasetSnapshotAction}>
             <label>
@@ -109,19 +111,13 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
               </select>
             </label>
             <button type="submit">Apply dataset to acquisition app</button>
-            <p className="small">
-              Applying a dataset replaces active acquisition campaigns, audiences, creatives, test cells, performance rows, and audit output.
-            </p>
           </form>
         ) : (
           <p className="small">No imported acquisition dataset snapshots are available for this account yet.</p>
         )}
           </div>
         </div>
-        <div className="ctaRow">
-          <Link className="btn smallBtn primary" href="/acquisition/simulations">Run with current data</Link>
-          <Link className="btn smallBtn" href="/acquisition/inputs">Review app inputs</Link>
-        </div>
+        <ResetDemoDataCard appLabel="Acquisition" scope="acquisition" variant="embedded" />
       </div>
     );
   } catch (error) {

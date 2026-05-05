@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { applyRetentionDatasetSnapshotAction } from "@/app/(demo)/retention/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
@@ -87,15 +86,18 @@ export async function RetentionWorkspaceDatasetPanel({ compact = false }: Retent
         </div>
         <div className="dataSourceModeGrid">
           <div className="dataSourceModePanel">
-            <p className="editorKicker">Option A</p>
-            <h3>Use sample data</h3>
-            <p className="small">Resets this tool back to its seeded sample dataset.</p>
-            <ResetDemoDataCard appLabel="Retention" scope="retention" variant="embedded" />
+            <h3>Option A Use Sample Data</h3>
+            <details className="dataSourceDetails">
+              <summary>What this means</summary>
+              <p className="small">Use the seeded retention dataset that ships with the product. To switch back to sample data after applying an import, use the reset control below.</p>
+            </details>
           </div>
           <div className="dataSourceModePanel">
-            <p className="editorKicker">Option B</p>
-            <h3>Use imported data</h3>
-            <p className="small">Choose a persisted workspace dataset and apply it to this tool.</p>
+            <h3>Option B Use Imported Data</h3>
+            <details className="dataSourceDetails">
+              <summary>What this means</summary>
+              <p className="small">Choose a persisted workspace dataset and apply it to this tool. Applying an imported dataset replaces the active retention tables.</p>
+            </details>
         {snapshots.length > 0 ? (
           <form className="lifecycleDatasetSelector" action={applyRetentionDatasetSnapshotAction}>
             <label>
@@ -109,19 +111,13 @@ export async function RetentionWorkspaceDatasetPanel({ compact = false }: Retent
               </select>
             </label>
             <button type="submit">Apply dataset to retention app</button>
-            <p className="small">
-              Applying a dataset replaces active retention accounts, playbooks, policy, prior runs, interventions, and audit output.
-            </p>
           </form>
         ) : (
           <p className="small">No imported retention dataset snapshots are available for this account yet.</p>
         )}
           </div>
         </div>
-        <div className="ctaRow">
-          <Link className="btn smallBtn primary" href="/retention/simulations">Run with current data</Link>
-          <Link className="btn smallBtn" href="/retention/inputs">Review app inputs</Link>
-        </div>
+        <ResetDemoDataCard appLabel="Retention" scope="retention" variant="embedded" />
       </div>
     );
   } catch (error) {
