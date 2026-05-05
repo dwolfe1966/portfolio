@@ -14,6 +14,14 @@ const links = [
   { href: "/contact", label: "Contact" }
 ];
 
+const workspaceLinks = [
+  { href: "/workspace/dashboard", label: "Dashboard" },
+  { href: "/workspace/datasets", label: "Datasets" },
+  { href: "/workspace/connections", label: "Connections" },
+  { href: "/workspace/settings", label: "Settings" },
+  { href: "/workspace/activity", label: "Activity" }
+];
+
 export function NavBar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -47,15 +55,34 @@ export function NavBar() {
         {links.map((link) => {
           const active = isActive(link.href);
           return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={active ? "active" : undefined}
-              aria-current={active ? "page" : undefined}
-              onClick={() => setOpen(false)}
-            >
-              {link.label}
-            </Link>
+            <div className="siteNavLinkGroup" key={link.href}>
+              <Link
+                href={link.href}
+                className={active ? "active" : undefined}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setOpen(false)}
+              >
+                {link.label}
+              </Link>
+              {link.href === "/workspace/dashboard" ? (
+                <div className="mobileWorkspaceLinks" aria-label="Workspace navigation">
+                  {workspaceLinks.map((workspaceLink) => {
+                    const workspaceActive = isActive(workspaceLink.href);
+                    return (
+                      <Link
+                        href={workspaceLink.href}
+                        className={workspaceActive ? "active" : undefined}
+                        aria-current={workspaceActive ? "page" : undefined}
+                        key={workspaceLink.href}
+                        onClick={() => setOpen(false)}
+                      >
+                        {workspaceLink.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
           );
         })}
       </div>

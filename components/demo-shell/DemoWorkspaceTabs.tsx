@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 
 const tabs = [
   { href: "/workspace/dashboard", label: "Dashboard" },
-  { href: "/workspace/activity", label: "Activity" },
-  { href: "/workspace/connections", label: "Connections" },
   { href: "/workspace/datasets", label: "Datasets" },
-  { href: "/workspace/settings", label: "Settings" }
+  { href: "/workspace/connections", label: "Connections" },
+  { href: "/workspace/settings", label: "Settings" },
+  { href: "/workspace/activity", label: "Activity" }
 ];
 
 export function DemoWorkspaceTabs() {

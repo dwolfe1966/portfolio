@@ -205,8 +205,8 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
       <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Data sources and readiness">
         <p>
-          Manage saved sources, inspect which tool objects are ready, and move from validated data into imported
-          datasets and model runs.
+          Datasets are the operating layer: review saved sources, inspect what has been validated or imported, and see
+          whether each tool has enough data to run.
         </p>
       </Section>
 

@@ -122,8 +122,8 @@ export default async function DemoConnectionsPage() {
       <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Connect data">
         <p>
-          Choose a connector, map external fields into a tool schema, validate the data, and save the source so it can be
-          refreshed or imported again from the workspace.
+          Connections are the setup layer: choose where data comes from, configure credentials or uploads, map external
+          fields into a tool schema, and save a reusable source.
         </p>
       </Section>
 

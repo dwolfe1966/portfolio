@@ -50,6 +50,12 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 80px; }
   color: var(--blue);
 }
 .siteNav .links { display:flex; gap:16px; flex-wrap:wrap; }
+.siteNavLinkGroup {
+  display: contents;
+}
+.mobileWorkspaceLinks {
+  display: none;
+}
 .siteNav .links a {
   position: relative;
   padding: 6px 0;
@@ -1163,12 +1169,16 @@ button {
   justify-self: start;
 }
 .demoWorkspaceTabs {
+  position: sticky;
+  top: 69px;
+  z-index: 15;
   display: flex;
   gap: 8px;
   align-items: center;
   overflow-x: auto;
-  padding: 0 0 14px;
-  margin: 0 0 8px;
+  padding: 10px 0 14px;
+  margin: -10px 0 8px;
+  background: color-mix(in oklab, var(--bg) 94%, white 6%);
   border-bottom: 1px solid var(--line);
 }
 .demoWorkspaceTab {
@@ -2253,6 +2263,10 @@ button {
     box-shadow: 0 18px 48px -28px rgba(15, 23, 42, 0.55);
   }
   .siteNav .links.open { display: flex; }
+  .siteNavLinkGroup {
+    display: grid;
+    gap: 0;
+  }
   .siteNav .links a {
     padding: 11px 10px;
     border-radius: 6px;
@@ -2264,6 +2278,25 @@ button {
     color: #1d4ed8;
   }
   .siteNav .links a:hover { background: #f3f4f6; }
+  .mobileWorkspaceLinks {
+    display: grid;
+    gap: 2px;
+    margin: 0 0 6px 12px;
+    padding: 4px 0 4px 10px;
+    border-left: 1px solid #dbe3f0;
+  }
+  .siteNav .links .mobileWorkspaceLinks a {
+    color: #64748b;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  .siteNav .links .mobileWorkspaceLinks a.active {
+    background: #f1f5ff;
+    color: #1d4ed8;
+  }
+  .demoWorkspaceTabs {
+    display: none;
+  }
   .navCta { display: none; }
   .demoWorkspaceQuickActions {
     grid-template-columns: 1fr;
