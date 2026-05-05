@@ -109,6 +109,10 @@ function sourceConfigHref(sourceType: string, app: string, id: string, action?: 
   return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}${actionParam}`;
 }
 
+function sourceDetailHref(id: string) {
+  return `/workspace/datasets/${encodeURIComponent(id)}`;
+}
+
 function sourceTypeLabel(sourceType: string) {
   if (sourceType === "google_sheets") return "Google Sheets";
   if (sourceType === "csv") return "CSV";
@@ -334,7 +338,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                         return (
                           <tr key={preset.id}>
                             <td>
-                              <strong>{preset.name}</strong>
+                              <Link href={sourceDetailHref(preset.id)}><strong>{preset.name}</strong></Link>
                               <p className="small">{preset.workspace.name}</p>
                             </td>
                             <td>{sourceRowCount(preset.metadata).toLocaleString()}</td>
@@ -371,6 +375,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                                 ) : null}
                                 <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "map")}>Map</Link>
                                 <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "import")}>Import</Link>
+                                <Link className="btn smallBtn" href={sourceDetailHref(preset.id)}>Details</Link>
                                 <Link className="btn smallBtn" href={toolPageHref(preset.app, "inputs")}>Inputs</Link>
                                 <Link className="btn smallBtn" href={toolPageHref(preset.app, "simulations")}>Simulate</Link>
                                 <form action={deleteSourceConfig}>

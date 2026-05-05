@@ -13,12 +13,13 @@ const tabs = [
 
 export function DemoWorkspaceTabs() {
   const pathname = usePathname();
+  const workspacePathname = pathname.replace(/^\/demo/, "/workspace");
 
   return (
     <nav className="demoWorkspaceTabs" aria-label="Workspace navigation">
       {tabs.map((tab) => (
         <Link
-          className={`demoWorkspaceTab ${pathname === tab.href || pathname.replace(/^\/demo/, "/workspace") === tab.href ? "active" : ""}`}
+          className={`demoWorkspaceTab ${workspacePathname === tab.href || workspacePathname.startsWith(`${tab.href}/`) ? "active" : ""}`}
           href={tab.href}
           key={tab.href}
         >
