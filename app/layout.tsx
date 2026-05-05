@@ -3,6 +3,7 @@ import React from "react";
 import { Metadata } from "next";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { defaultDescription, defaultTitle, siteName } from "@/lib/seo";
+import { Analytics } from "@vercel/analytics/next";
 
 const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 const siteUrl = rawSiteUrl.replace(/\/$/, "");
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <SiteHeader />
         <main>{children}</main>
+        <Analytics />
       </body>
     </html>
   );
