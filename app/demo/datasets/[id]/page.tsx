@@ -197,7 +197,43 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
           </div>
         </Section>
 
-        <Section title="Source status">
+        <Section title="Source workflow">
+          <div className="grid grid-3">
+            <div className="card sourceWorkflowCard sourceWorkflowCard--primary">
+              <p className="editorKicker">Recommended next step</p>
+              <h3>{actionState.nextAction}</h3>
+              <p>{actionState.detail}</p>
+              <Link className="btn smallBtn primary" href={sourceConfigHref(config.sourceType, config.app, config.id, actionState.action)}>
+                {actionState.nextAction}
+              </Link>
+            </div>
+            <div className="card sourceWorkflowCard">
+              <div className="editorHeader">
+                <div>
+                  <p className="editorKicker">Source state</p>
+                  <h3>{actionState.status}</h3>
+                </div>
+                <span className={`statusPill ${actionState.status === "Operational" ? "live" : "progress"}`}>{sourceTypeLabel(config.sourceType)}</span>
+              </div>
+              <p className="small">
+                {config.sourceType === "google_sheets"
+                  ? "Sheets sources refresh live rows, validate mappings, then import into tool tables."
+                  : "CSV sources store reusable mappings; fresh rows are pasted or uploaded during import."}
+              </p>
+            </div>
+            <div className="card sourceWorkflowCard">
+              <p className="editorKicker">After import</p>
+              <h3>Run the tool</h3>
+              <p className="small">Review imported inputs, then run the simulation against the owned dataset.</p>
+              <div className="importHistoryActions">
+                <Link className="btn smallBtn" href={toolPageHref(config.app, "inputs")}>Inputs</Link>
+                <Link className="btn smallBtn" href={toolPageHref(config.app, "simulations")}>Simulate</Link>
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Source facts">
           <div className="grid grid-4">
             <div className="card">
               <p className="small">Tool</p>
@@ -218,7 +254,7 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
           </div>
         </Section>
 
-        <Section title="Activity">
+        <Section title="Recent activity">
           <div className="grid grid-4">
             <div className="card">
               <p className="small">{config.sourceType === "google_sheets" ? "Previewed" : "Validated"}</p>
@@ -243,37 +279,6 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
           {sheetId ? <p className="small">Sheet ID: <code>{sheetId}</code></p> : null}
         </Section>
 
-        <Section title="Workflow state">
-          <div className="grid grid-3">
-            <div className="card">
-              <p className="editorKicker">Recommended next step</p>
-              <h3>{actionState.nextAction}</h3>
-              <p>{actionState.detail}</p>
-              <Link className="btn smallBtn primary" href={sourceConfigHref(config.sourceType, config.app, config.id, actionState.action)}>
-                {actionState.nextAction}
-              </Link>
-            </div>
-            <div className="card">
-              <p className="editorKicker">Source state</p>
-              <h3>{actionState.status}</h3>
-              <p className="small">
-                {config.sourceType === "google_sheets"
-                  ? "Sheets sources refresh live rows, validate mappings, then import into tool tables."
-                  : "CSV sources store reusable mappings; fresh rows are pasted or uploaded during import."}
-              </p>
-            </div>
-            <div className="card">
-              <p className="editorKicker">After import</p>
-              <h3>Run the tool</h3>
-              <p className="small">Review imported inputs, then run the simulation against the owned dataset.</p>
-              <div className="importHistoryActions">
-                <Link className="btn smallBtn" href={toolPageHref(config.app, "inputs")}>Inputs</Link>
-                <Link className="btn smallBtn" href={toolPageHref(config.app, "simulations")}>Simulate</Link>
-              </div>
-            </div>
-          </div>
-        </Section>
-
         <Section title="Object coverage">
           {mappedObjects.length === 0 ? (
             <div className="card">
@@ -282,9 +287,11 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
           ) : (
             <div className="grid grid-3">
               {mappedObjects.map(([objectKey, count]) => (
-                <div className="card" key={objectKey}>
-                  <p className="editorKicker">{objectKey}</p>
+                <div className="card sourceObjectCoverageCard" key={objectKey}>
+                  <p className="editorKicker">Object</p>
+                  <h3>{objectKey}</h3>
                   <div className="kpi">{count.toLocaleString()}</div>
+                  <p className="small">Mapped rows</p>
                 </div>
               ))}
             </div>
@@ -320,16 +327,20 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
           )}
         </Section>
 
-        <Section title="Raw source metadata">
-          <div className="grid grid-2">
-            <div className="card importMetadataDetails">
-              <p className="editorKicker">Metadata</p>
+        <Section title="Technical details">
+          <div className="card sourceMetadataDisclosure">
+            <p>
+              Raw connector metadata is available for debugging saved source configs. Most workspace tasks should use
+              the workflow, coverage, and field mapping sections above.
+            </p>
+            <details className="importMetadataDetails">
+              <summary>View raw metadata</summary>
               <pre>{jsonPreview(config.metadata)}</pre>
-            </div>
-            <div className="card importMetadataDetails">
-              <p className="editorKicker">Mappings</p>
+            </details>
+            <details className="importMetadataDetails">
+              <summary>View raw mappings</summary>
               <pre>{jsonPreview(config.mappings)}</pre>
-            </div>
+            </details>
           </div>
         </Section>
 

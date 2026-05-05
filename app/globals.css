@@ -1385,6 +1385,34 @@ button {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+.sourceWorkflowCard {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+}
+.sourceWorkflowCard h3,
+.sourceWorkflowCard p {
+  margin-bottom: 0;
+}
+.sourceWorkflowCard--primary {
+  background: color-mix(in oklab, var(--card) 88%, var(--accent) 12%);
+}
+.sourceObjectCoverageCard {
+  align-content: start;
+  display: grid;
+  gap: 6px;
+}
+.sourceObjectCoverageCard h3,
+.sourceObjectCoverageCard p {
+  margin-bottom: 0;
+}
+.sourceMetadataDisclosure {
+  display: grid;
+  gap: 10px;
+}
+.sourceMetadataDisclosure p {
+  margin-bottom: 0;
+}
 .sourceDangerCard {
   align-items: center;
   display: flex;
