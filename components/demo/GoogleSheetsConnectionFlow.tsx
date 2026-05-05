@@ -130,6 +130,10 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
     state: "idle",
     message: "Saved Google Sheets source configs will appear here."
   });
+  const [refreshStatus, setRefreshStatus] = useState<SaveStatus>({
+    state: "idle",
+    message: "Load a saved config to refresh live Sheet rows."
+  });
 
   const schema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === selectedTool) ?? TOOL_IMPORT_SCHEMAS[0];
   const ranges = rangesByTool[selectedTool];
@@ -211,6 +215,7 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
     });
     setImportStatus({ state: "idle", message: "Preview the saved source config before import." });
     setSaveStatus({ state: "idle", message: "Saved config loaded. Preview, adjust, then save updates if needed." });
+    setRefreshStatus({ state: "idle", message: "Saved config loaded. Refresh live Sheet rows when ready." });
   }, [savedConfigs]);
 
   useEffect(() => {
@@ -232,13 +237,18 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
     }));
   }
 
-  async function previewSheet() {
+  async function previewSheet(mode: "manual" | "refresh" = "manual") {
     if (!sheetUrlOrId.trim() || previewStatus.state === "loading") return;
     setPreview(null);
     setPreviewStatus({
       state: "loading",
-      message: `Reading ${schema.label.toLowerCase()} tabs from Google Sheets...`
+      message: mode === "refresh"
+        ? `Refreshing ${schema.label.toLowerCase()} rows from saved Google Sheets ranges...`
+        : `Reading ${schema.label.toLowerCase()} tabs from Google Sheets...`
     });
+    if (mode === "refresh") {
+      setRefreshStatus({ state: "loading", message: `Refreshing "${datasetName}" from Google Sheets...` });
+    }
 
     try {
       const response = await fetch("/api/workspace/google-sheets/preview", {
@@ -273,10 +283,18 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
       });
       setPreviewStatus({
         state: "success",
-        message: `Previewed Google Sheet ${payload.sheetId}. Review field mappings, validate rows, and import the dataset.`
+        message: mode === "refresh"
+          ? `Refreshed Google Sheet ${payload.sheetId}. Validate rows, then import the latest data.`
+          : `Previewed Google Sheet ${payload.sheetId}. Review field mappings, validate rows, and import the dataset.`
       });
       setImportStatus({ state: "idle", message: "Preview loaded. Complete field mapping before import." });
       setSaveStatus({ state: "idle", message: "Preview loaded. Save this Sheet config for reuse or refresh." });
+      if (mode === "refresh") {
+        setRefreshStatus({
+          state: "success",
+          message: `Refreshed ${schema.objects.reduce((sum, object) => sum + (nextPreview.objects[object.key]?.rowCount ?? 0), 0).toLocaleString()} source rows from saved ranges.`
+        });
+      }
     } catch (error) {
       setPreviewStatus({
         state: "error",
@@ -284,6 +302,12 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
       });
       setImportStatus({ state: "idle", message: "Preview a Google Sheet to validate and import rows." });
       setSaveStatus({ state: "idle", message: "Save the source config after preview to make this Sheet reusable." });
+      if (mode === "refresh") {
+        setRefreshStatus({
+          state: "error",
+          message: error instanceof Error ? error.message : "Saved Sheet refresh failed."
+        });
+      }
     }
   }
 
@@ -477,7 +501,13 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
               </select>
             </label>
           </div>
+          <div className="ctaRow csvPresetActions">
+            <button type="button" disabled={!selectedConfigId || !sheetUrlOrId.trim() || previewStatus.state === "loading"} onClick={() => void previewSheet("refresh")}>
+              {refreshStatus.state === "loading" ? "Refreshing saved Sheet..." : "Refresh saved Sheet"}
+            </button>
+          </div>
           <p className={`small lifecycleImportStatus lifecycleImportStatus--${configStatus.state}`}>{configStatus.message}</p>
+          <p className={`small lifecycleImportStatus lifecycleImportStatus--${refreshStatus.state}`}>{refreshStatus.message}</p>
         </div>
         <div className="csvPresetControls">
           <label>

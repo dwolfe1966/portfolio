@@ -53,6 +53,16 @@ export default async function WorkspaceGoogleSheetsConnectionPage({ searchParams
       <Section title="Sheet preview">
         <GoogleSheetsConnectionFlow initialTool={params.tool} initialConfigId={params.config} />
       </Section>
+
+      <Section title="Credential setup">
+        <div className="card">
+          <p>
+            Public Sheets can use <code>GOOGLE_SHEETS_API_KEY</code>. Private Sheets should use a Google service account with
+            <code> GOOGLE_APPLICATION_CREDENTIALS</code> pointing at the JSON credential file, then share the Sheet with the
+            service account email.
+          </p>
+        </div>
+      </Section>
     </>
   );
 }
