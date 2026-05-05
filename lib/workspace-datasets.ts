@@ -138,6 +138,7 @@ export async function loadWorkspaceDatasetReadiness() {
     expansionAccounts,
     expansionOffers,
     expansionPolicies,
+    expansionImports,
     auctionAdvertisers,
     auctionSlots,
     auctionBids
@@ -165,6 +166,7 @@ export async function loadWorkspaceDatasetReadiness() {
     db.expansionAccount.count(),
     db.expansionOffer.count(),
     db.expansionPolicy.count(),
+    db.expansionAuditLog.count({ where: { action: "expansion_import" } }),
     db.auctionAdvertiser.count(),
     db.auctionSlot.count(),
     db.auctionBid.count()
@@ -198,7 +200,7 @@ export async function loadWorkspaceDatasetReadiness() {
     expansion: {
       objectCounts: [expansionAccounts, expansionOffers, expansionPolicies],
       recordCount: expansionAccounts + expansionOffers + expansionPolicies,
-      importCount: 0,
+      importCount: expansionImports,
       presetCount: 0
     },
     auction: {
