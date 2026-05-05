@@ -739,35 +739,44 @@ export function GoogleSheetsConnectionFlow({
 
       <div className="connectorObjectStack">
         {previewedObjects.map(({ schema: object, preview: objectPreview }) => (
-          <div className="card editorCard" key={`${selectedTool}-${object.key}`}>
-            <div className="editorHeader">
+          <div className="card editorCard connectorEntityCard" key={`${selectedTool}-${object.key}`}>
+            <div className="editorHeader connectorEntityHeader">
               <div>
-                <p className="editorKicker">{object.title}</p>
-                <h3>{objectPreview ? `${objectPreview.rowCount} rows detected` : "Range setup"}</h3>
+                <p className="editorKicker">Entity</p>
+                <h3>{object.title}</h3>
               </div>
-              <p className="small">{object.maxRows.toLocaleString()} row max</p>
+              <p className={`statusPill ${objectPreview ? "live" : "progress"}`}>
+                {objectPreview ? `${objectPreview.rowCount} rows` : "Range setup"}
+              </p>
             </div>
-            <p>{object.description}</p>
-            <label>
-              Sheet tab or range
-              <input
-                value={ranges[object.key] ?? ""}
-                onChange={(event) => updateRange(object.key, event.target.value)}
-                placeholder={defaultRange(object.title)}
-              />
-            </label>
-            <p className="small">Expected fields: <code>{object.fields.join(", ")}</code></p>
+            <div className="connectorEntityIntro">
+              <p>{object.description}</p>
+              <p className="small">{object.maxRows.toLocaleString()} row max · expected fields: <code>{object.fields.join(", ")}</code></p>
+            </div>
+            <div className="connectorSubPanel">
+              <div className="connectorSubPanelHeader">
+                <div>
+                  <p className="editorKicker">Actions</p>
+                  <h4>Sheet range</h4>
+                </div>
+              </div>
+              <label>
+                Sheet tab or range
+                <input
+                  value={ranges[object.key] ?? ""}
+                  onChange={(event) => updateRange(object.key, event.target.value)}
+                  placeholder={defaultRange(object.title)}
+                />
+              </label>
+            </div>
             {objectPreview ? (
               <>
-                <p className="small bandText--healthy">
-                  Headers detected: <code>{objectPreview.headers.join(", ") || "none"}</code>
-                </p>
                 {objectPreview.headers.length > 0 ? (
-                  <div className="csvMappingPanel">
-                    <div className="editorHeader">
+                  <div className="connectorSubPanel">
+                    <div className="connectorSubPanelHeader">
                       <div>
                         <p className="editorKicker">Field mapping</p>
-                        <h3>Map source columns to {schema.label.toLowerCase()} fields</h3>
+                        <h4>Map source columns to {schema.label.toLowerCase()} fields</h4>
                       </div>
                       <p className="small">{objectPreview.headers.length} source columns detected</p>
                     </div>
@@ -790,7 +799,7 @@ export function GoogleSheetsConnectionFlow({
                   </div>
                 ) : null}
                 {parsedByObject[object.key]?.errors.length > 0 ? (
-                  <div>
+                  <div className="connectorSubPanel connectorMessagePanel">
                     <p className="small bandText--unhealthy">Validation issues</p>
                     <ul>
                       {parsedByObject[object.key].errors.slice(0, 6).map((error) => (
@@ -799,14 +808,16 @@ export function GoogleSheetsConnectionFlow({
                     </ul>
                   </div>
                 ) : parsedByObject[object.key]?.rows.length > 0 ? (
-                  <p className="small bandText--healthy">Mapped rows validate successfully.</p>
+                  <div className="connectorSubPanel connectorMessagePanel">
+                    <p className="small bandText--healthy">Mapped rows validate successfully.</p>
+                  </div>
                 ) : null}
                 {objectPreview.rows.length > 0 ? (
-                  <div className="sourceDatasetStack">
-                    <div className="editorHeader">
+                  <div className="connectorSubPanel">
+                    <div className="connectorSubPanelHeader">
                       <div>
                         <p className="editorKicker">Source preview</p>
-                        <h3>Edit preview rows inline</h3>
+                        <h4>Edit preview rows inline</h4>
                       </div>
                       <button type="button" onClick={() => addPreviewRow(object.key)}>Add row</button>
                     </div>
@@ -839,10 +850,12 @@ export function GoogleSheetsConnectionFlow({
                   </div>
                 ) : null}
                 {parsedByObject[object.key]?.rows.length > 0 ? (
-                  <div className="sourceDatasetStack">
-                    <div>
-                      <p className="editorKicker">Dataset preview</p>
-                      <h3>Imported {object.title.toLowerCase()} shape</h3>
+                  <div className="connectorSubPanel">
+                    <div className="connectorSubPanelHeader">
+                      <div>
+                        <p className="editorKicker">Dataset preview</p>
+                        <h4>Imported {object.title.toLowerCase()} shape</h4>
+                      </div>
                     </div>
                     <div className="tableScroll">
                       <table className="table">
@@ -866,7 +879,9 @@ export function GoogleSheetsConnectionFlow({
                 ) : null}
               </>
             ) : (
-              <p className="small">Preview will show detected headers and rows before this source moves into mapping and import.</p>
+              <div className="connectorSubPanel connectorMessagePanel">
+                <p className="small">Preview will show detected headers and rows before this source moves into mapping and import.</p>
+              </div>
             )}
           </div>
         ))}

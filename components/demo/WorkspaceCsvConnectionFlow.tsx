@@ -571,40 +571,54 @@ export function WorkspaceCsvConnectionFlow({
         {schema.objects.map((object) => {
           const parsed = parsedByObject[object.key];
           return (
-            <div className="card editorCard" key={`${selectedTool}-${object.key}`}>
-              <div className="editorHeader">
+            <div className="card editorCard connectorEntityCard" key={`${selectedTool}-${object.key}`}>
+              <div className="editorHeader connectorEntityHeader">
                 <div>
-                  <p className="editorKicker">{object.title}</p>
-                  <h3>{parsed.rows.length} rows parsed</h3>
+                  <p className="editorKicker">Entity</p>
+                  <h3>{object.title}</h3>
                 </div>
-                <button type="button" onClick={() => updateCsv(object.key, object.sample)}>Load sample</button>
+                <p className={`statusPill ${parsed.rows.length > 0 && parsed.errors.length === 0 ? "live" : "progress"}`}>
+                  {parsed.rows.length > 0 ? `${parsed.rows.length} rows` : "No rows"}
+                </p>
               </div>
-              <p>{object.description}</p>
-              <p className="small">Required app fields: <code>{object.requiredFields.join(", ")}</code></p>
-              <details className="rawSourceDetails">
-                <summary>Raw CSV text</summary>
+              <div className="connectorEntityIntro">
+                <p>{object.description}</p>
+                <p className="small">Required app fields: <code>{object.requiredFields.join(", ")}</code></p>
+              </div>
+
+              <div className="connectorSubPanel">
+                <div className="connectorSubPanelHeader">
+                  <div>
+                    <p className="editorKicker">Actions</p>
+                    <h4>Source controls</h4>
+                  </div>
+                  <button type="button" onClick={() => updateCsv(object.key, object.sample)}>Load sample</button>
+                </div>
+                <details className="rawSourceDetails">
+                  <summary>Raw CSV text</summary>
+                  <label>
+                    CSV data
+                    <textarea
+                      ref={object.key === schema.objects[0]?.key ? firstCsvInputRef : undefined}
+                      rows={7}
+                      value={csvByObject[object.key] ?? ""}
+                      onChange={(event) => updateCsv(object.key, event.target.value)}
+                      placeholder={object.sample}
+                    />
+                  </label>
+                </details>
                 <label>
-                  CSV data
-                  <textarea
-                    ref={object.key === schema.objects[0]?.key ? firstCsvInputRef : undefined}
-                    rows={7}
-                    value={csvByObject[object.key] ?? ""}
-                    onChange={(event) => updateCsv(object.key, event.target.value)}
-                    placeholder={object.sample}
-                  />
+                  Upload CSV file
+                  <input type="file" accept=".csv,text/csv" onChange={(event) => void loadFile(object.key, event.target.files?.[0] ?? null)} />
                 </label>
-              </details>
-              <label>
-                Upload CSV file
-                <input type="file" accept=".csv,text/csv" onChange={(event) => void loadFile(object.key, event.target.files?.[0] ?? null)} />
-              </label>
+              </div>
 
               {parsed.headers.length > 0 ? (
-                <div className="csvMappingPanel">
-                  <div className="editorHeader">
+                <div className="connectorSubPanel">
+                  <div className="connectorSubPanelHeader">
                     <div>
                       <p className="editorKicker">Field mapping</p>
-                      <h3>Map source columns to {schema.label.toLowerCase()} fields</h3>
+                      <h4>Map source columns to {schema.label.toLowerCase()} fields</h4>
                     </div>
                     <p className="small">{parsed.headers.length} source columns detected</p>
                   </div>
@@ -628,11 +642,11 @@ export function WorkspaceCsvConnectionFlow({
               ) : null}
 
               {parsed.sourceRows.length > 0 ? (
-                <div className="sourceDatasetStack">
-                  <div className="editorHeader">
+                <div className="connectorSubPanel">
+                  <div className="connectorSubPanelHeader">
                     <div>
                       <p className="editorKicker">Source preview</p>
-                      <h3>Edit source rows inline</h3>
+                      <h4>Edit source rows inline</h4>
                     </div>
                     <button type="button" onClick={() => addSourceRow(object.key)}>Add row</button>
                   </div>
@@ -666,21 +680,25 @@ export function WorkspaceCsvConnectionFlow({
               ) : null}
 
               {parsed.errors.length > 0 ? (
-                <div>
+                <div className="connectorSubPanel connectorMessagePanel">
                   <p className="small bandText--unhealthy">Validation issues</p>
                   <ul>
                     {parsed.errors.slice(0, 6).map((error) => <li className="small bandText--unhealthy" key={error}>{error}</li>)}
                   </ul>
                 </div>
               ) : parsed.rows.length > 0 ? (
-                <p className="small bandText--healthy">Headers and preview rows look valid.</p>
+                <div className="connectorSubPanel connectorMessagePanel">
+                  <p className="small bandText--healthy">Headers and preview rows look valid.</p>
+                </div>
               ) : null}
 
               {parsed.rows.length > 0 ? (
-                <div className="sourceDatasetStack">
-                  <div>
-                    <p className="editorKicker">Dataset preview</p>
-                    <h3>Imported {object.title.toLowerCase()} shape</h3>
+                <div className="connectorSubPanel">
+                  <div className="connectorSubPanelHeader">
+                    <div>
+                      <p className="editorKicker">Dataset preview</p>
+                      <h4>Imported {object.title.toLowerCase()} shape</h4>
+                    </div>
                   </div>
                   <div className="tableScroll">
                     <table className="table">

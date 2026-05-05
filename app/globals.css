@@ -1997,6 +1997,49 @@ button {
   display: grid;
   gap: 14px;
 }
+.connectorEntityCard {
+  gap: 12px;
+}
+.connectorEntityHeader {
+  border-bottom: 1px solid var(--demo-divider, var(--line));
+  padding-bottom: 12px;
+}
+.connectorEntityHeader h3 {
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.1;
+  margin-bottom: 0;
+}
+.connectorEntityIntro {
+  display: grid;
+  gap: 6px;
+}
+.connectorEntityIntro p {
+  margin-bottom: 0;
+}
+.connectorSubPanel {
+  background: color-mix(in oklab, var(--demo-surface, #fff) 94%, var(--demo-accent, #2563eb) 6%);
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+.connectorSubPanelHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.connectorSubPanelHeader h4 {
+  color: var(--demo-text, var(--text));
+  font-size: 16px;
+  line-height: 1.25;
+  margin-bottom: 0;
+}
+.connectorSubPanelHeader .small,
+.connectorMessagePanel p {
+  margin-bottom: 0;
+}
 .lifecycleCsvScaffold textarea {
   font-family: var(--demo-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   font-size: 12px;
