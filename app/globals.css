@@ -1424,20 +1424,41 @@ button {
   gap: 10px;
 }
 .activityFeedItem {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: 16px;
   align-items: start;
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--card);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 170px minmax(0, 1fr) auto;
   padding: 14px;
 }
 .activityFeedItem:hover {
   border-color: color-mix(in oklab, var(--blue) 44%, var(--line));
 }
-.activityFeedItem .statusPill {
-  justify-self: start;
+.activityFeedTime,
+.activityFeedMeta {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+}
+.activityFeedTime {
+  flex-direction: column;
+}
+.activityFeedTime strong,
+.activityFeedItem h3,
+.activityFeedItem p {
+  margin-bottom: 0;
+}
+.activityFeedTime span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.activityFeedMeta {
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
 }
 .retentionEditorCard {
   display: grid;

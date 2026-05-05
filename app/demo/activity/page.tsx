@@ -25,12 +25,39 @@ type ActivityItem = {
   createdAt: Date;
 };
 
+const activityLanes = [
+  {
+    title: "Source work",
+    detail: "CSV and Sheets configs, connector changes, OAuth connections, and saved mappings.",
+    href: "/workspace/connections",
+    action: "Review connections"
+  },
+  {
+    title: "Dataset work",
+    detail: "Imports, validation results, row counts, and source readiness for tool runs.",
+    href: "/workspace/datasets",
+    action: "Review datasets"
+  },
+  {
+    title: "Tool work",
+    detail: "Model runs, simulations, pricing decisions, campaign audits, and operating logs.",
+    href: "/workspace/dashboard",
+    action: "Open workspace"
+  }
+];
+
 function sourceTypeLabel(sourceType: string) {
   if (sourceType === "google_sheets") return "Google Sheets";
   if (sourceType === "csv") return "CSV";
   if (sourceType === "oauth") return "OAuth";
   if (sourceType === "live") return "Live datasource";
   return sourceType.toUpperCase();
+}
+
+function activityTone(kind: string) {
+  if (kind === "Import" || kind === "Model run") return "live";
+  if (kind === "Audit") return "progress";
+  return "idle";
 }
 
 async function loadActivity() {
@@ -189,11 +216,11 @@ export default async function DemoActivityPage() {
       <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Workspace activity">
         <p>
-          Track source changes, imports, model runs, connector events, and app audit logs from one workspace-level feed.
+          Track source changes, imports, model runs, connector events, and tool audit logs from one workspace-level event log.
         </p>
       </Section>
 
-      <Section title="Activity summary">
+      <Section title="Event volume">
         <div className="grid grid-4">
           <div className="card"><p className="small">Imports</p><div className="kpi">{activity.counts.imports}</div></div>
           <div className="card"><p className="small">Model runs</p><div className="kpi">{activity.counts.lifecycleRuns}</div></div>
@@ -205,7 +232,19 @@ export default async function DemoActivityPage() {
         ) : null}
       </Section>
 
-      <Section title="Recent activity">
+      <Section title="Activity lanes">
+        <div className="grid grid-3">
+          {activityLanes.map((lane) => (
+            <div className="card sourceWorkflowCard" key={lane.title}>
+              <p className="editorKicker">{lane.title}</p>
+              <p>{lane.detail}</p>
+              <Link className="btn smallBtn" href={lane.href}>{lane.action}</Link>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Event log">
         {activity.items.length === 0 ? (
           <div className="card">
             <p>No workspace activity is available yet. Import data, run a simulation, or connect a provider to populate this feed.</p>
@@ -214,12 +253,19 @@ export default async function DemoActivityPage() {
           <div className="activityFeed">
             {activity.items.map((item) => (
               <Link className="activityFeedItem" href={item.href} key={item.id}>
-                <span className="statusPill live">{item.app}</span>
+                <div className="activityFeedTime">
+                  <strong>{formatDate(item.createdAt)}</strong>
+                  <span>{item.app}</span>
+                </div>
                 <div>
-                  <p className="editorKicker">{item.kind} · {formatDate(item.createdAt)} · {item.actor}</p>
+                  <div className="activityFeedMeta">
+                    <span className={`statusPill ${activityTone(item.kind)}`}>{item.kind}</span>
+                    <span className="small">{item.actor}</span>
+                  </div>
                   <h3>{item.title}</h3>
                   <p>{item.detail}</p>
                 </div>
+                <span className="btn smallBtn">Inspect</span>
               </Link>
             ))}
           </div>
