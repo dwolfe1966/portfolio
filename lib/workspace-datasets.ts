@@ -134,6 +134,7 @@ export async function loadWorkspaceDatasetReadiness() {
     retentionPlaybooks,
     retentionInterventions,
     retentionPolicies,
+    retentionImports,
     expansionAccounts,
     expansionOffers,
     expansionPolicies,
@@ -160,6 +161,7 @@ export async function loadWorkspaceDatasetReadiness() {
     db.retentionPlaybook.count(),
     db.retentionIntervention.count(),
     db.retentionPolicy.count(),
+    db.retentionAuditLog.count({ where: { action: "retention_import" } }),
     db.expansionAccount.count(),
     db.expansionOffer.count(),
     db.expansionPolicy.count(),
@@ -190,7 +192,7 @@ export async function loadWorkspaceDatasetReadiness() {
     retention: {
       objectCounts: [retentionAccounts, retentionPlaybooks, retentionInterventions, retentionPolicies],
       recordCount: retentionAccounts + retentionPlaybooks + retentionInterventions + retentionPolicies,
-      importCount: 0,
+      importCount: retentionImports,
       presetCount: 0
     },
     expansion: {
