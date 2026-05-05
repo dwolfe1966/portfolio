@@ -39,16 +39,12 @@ async function loadWorkspaceSettings() {
         }
       }
     });
-    const [imports, lifecycleRuns, workspacePresets] = await Promise.all([
-      db.lifecycleImportLog.count(),
-      db.campaignRun.count(),
-      db.workspacePreset.count()
-    ]);
+    const workspacePresets = await db.workspacePreset.count();
 
-    return { workspace, imports, lifecycleRuns, workspacePresets, compatibilityMode: false };
+    return { workspace, workspacePresets, compatibilityMode: false };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return { workspace: null, imports: 0, lifecycleRuns: 0, workspacePresets: 0, compatibilityMode: true };
+      return { workspace: null, workspacePresets: 0, compatibilityMode: true };
     }
     throw error;
   }
@@ -97,8 +93,8 @@ export default async function DemoSettingsPage({
 }) {
   const settings = await loadWorkspaceSettings();
   const params = await searchParams;
-  const presets = settings.workspace?.mappingPresets ?? [];
-  const uniqueApps = new Set(presets.map((preset) => preset.app));
+  const sourceConfigs = settings.workspace?.mappingPresets ?? [];
+  const uniqueApps = new Set(sourceConfigs.map((config) => config.app));
   const cookieStore = await cookies();
   const accessConfigured = isDemoAccessConfigured();
   const hasValidSession = await isValidDemoAccessToken(cookieStore.get(DEMO_ACCESS_COOKIE)?.value);
@@ -183,9 +179,9 @@ export default async function DemoSettingsPage({
       <Section title="Saved configuration">
         <div className="grid grid-3">
           <div className="card">
-            <p className="small">Mapping presets</p>
-            <div className="kpi">{presets.length.toLocaleString()}</div>
-            <p>Reusable field maps saved from data import flows.</p>
+            <p className="small">Source configs</p>
+            <div className="kpi">{sourceConfigs.length.toLocaleString()}</div>
+            <p>Reusable source mappings saved from CSV and Google Sheets flows.</p>
           </div>
           <div className="card">
             <p className="small">Configured apps</p>
@@ -214,8 +210,8 @@ export default async function DemoSettingsPage({
             <p className="editorKicker">Next account layer</p>
             <ul>
               <li>User login and workspace membership.</li>
-              <li>Per-tool saved presets beyond lifecycle CSV mappings.</li>
-              <li>Connector credentials scoped to a workspace and user.</li>
+              <li>Per-tool saved presets and connector credentials scoped to each workspace.</li>
+              <li>Workspace-level activity and billing boundaries.</li>
             </ul>
           </div>
         </div>
