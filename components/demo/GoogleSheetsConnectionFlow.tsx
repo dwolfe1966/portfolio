@@ -278,13 +278,13 @@ export function GoogleSheetsConnectionFlow({
       message: connectorAction === "refresh"
         ? `Loaded "${config.name}". Click Refresh saved Sheet to pull the latest rows.`
         : connectorAction === "import"
-          ? `Loaded "${config.name}". Preview or refresh the Sheet, then import the validated rows.`
+          ? `Loaded "${config.name}". Refreshing the live Sheet before import.`
           : `Loaded "${config.name}". Preview the Sheet to refresh rows before import.`
     });
     setImportStatus({
       state: "idle",
       message: connectorAction === "import"
-        ? "Import is available after the saved Sheet is previewed and mappings validate."
+        ? "Refreshing the saved Sheet first. Import will be available after mappings validate."
         : "Preview the saved source config before import."
     });
     setSaveStatus({
@@ -407,14 +407,36 @@ export function GoogleSheetsConnectionFlow({
   }
 
   useEffect(() => {
-    if (connectorAction !== "refresh" || !initialConfigId || selectedConfigId !== initialConfigId || !sheetUrlOrId.trim()) return;
-    const actionKey = `${initialConfigId}:refresh:${sheetUrlOrId}`;
+    if (!connectorAction || !["refresh", "import"].includes(connectorAction) || !initialConfigId || selectedConfigId !== initialConfigId || !sheetUrlOrId.trim()) return;
+    const actionKey = `${initialConfigId}:${connectorAction}:${sheetUrlOrId}`;
     if (autoActionRef.current === actionKey || previewStatus.state === "loading") return;
     autoActionRef.current = actionKey;
-    setRefreshStatus({ state: "loading", message: `Auto-refreshing "${datasetName}" from Google Sheets...` });
+    setRefreshStatus({
+      state: "loading",
+      message: connectorAction === "import"
+        ? `Refreshing "${datasetName}" before import...`
+        : `Auto-refreshing "${datasetName}" from Google Sheets...`
+    });
+    if (connectorAction === "import") {
+      setImportStatus({ state: "loading", message: "Refreshing source rows and validating mappings before import." });
+    }
     void previewSheet("refresh");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectorAction, datasetName, initialConfigId, previewStatus.state, selectedConfigId, sheetUrlOrId]);
+
+  useEffect(() => {
+    if (connectorAction !== "import" || !preview) return;
+    if (importReady) {
+      setImportStatus({ state: "success", message: "Source refreshed and validated. Import is ready." });
+    } else if (previewStatus.state === "success") {
+      setImportStatus({
+        state: "idle",
+        message: totalErrors > 0
+          ? `Source refreshed, but ${totalErrors} validation issue${totalErrors === 1 ? "" : "s"} must be fixed before import.`
+          : "Source refreshed. Complete all required mappings before import."
+      });
+    }
+  }, [connectorAction, importReady, preview, previewStatus.state, totalErrors]);
 
   async function saveSourceConfig() {
     if (!preview || saveStatus.state === "loading") return;
@@ -652,7 +674,15 @@ export function GoogleSheetsConnectionFlow({
             {previewStatus.state === "loading" ? "Previewing sheet..." : "Preview Google Sheet"}
           </button>
           <button type="button" disabled={!importReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
-            {importStatus.state === "loading" ? `Importing ${schema.label.toLowerCase()} data...` : importReady ? `Import ${schema.label.toLowerCase()} dataset` : "Import after validation"}
+            {importStatus.state === "loading"
+              ? connectorAction === "import" && previewStatus.state === "loading"
+                ? "Refreshing before import..."
+                : `Importing ${schema.label.toLowerCase()} data...`
+              : importReady
+                ? connectorAction === "import"
+                  ? `Import refreshed ${schema.label.toLowerCase()} dataset`
+                  : `Import ${schema.label.toLowerCase()} dataset`
+                : "Import after validation"}
           </button>
           <button type="button" disabled={!preview || saveStatus.state === "loading"} onClick={() => void saveSourceConfig()}>
             {saveStatus.state === "loading" ? "Saving source..." : preview ? "Save source config" : "Save after preview"}
