@@ -1351,6 +1351,40 @@ button {
   display: grid;
   gap: 14px;
 }
+.savedSourceCardGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.savedSourceCard {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+}
+.savedSourceCard h3,
+.savedSourceCard p {
+  margin-bottom: 0;
+}
+.savedSourceCard .statusPill {
+  justify-self: end;
+}
+.savedSourceCardStats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.savedSourceCardStats div {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+}
+.savedSourceCardStats strong {
+  color: var(--text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
 .sourceDangerCard {
   align-items: center;
   display: flex;
@@ -2040,6 +2074,8 @@ button {
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .savedSourceSummaryGrid { grid-template-columns: 1fr; }
+  .savedSourceCardGrid { grid-template-columns: 1fr; }
+  .savedSourceCardStats { grid-template-columns: 1fr; }
   .savedSourceFilters { grid-template-columns: 1fr; }
   .sourceDangerCard { align-items: flex-start; flex-direction: column; }
   .csvMappingGrid,

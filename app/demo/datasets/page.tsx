@@ -119,6 +119,37 @@ function cleanFilter(value: string | undefined) {
   return String(value ?? "").trim().slice(0, 80);
 }
 
+function sourceActionState(sourceType: string, metadata: unknown) {
+  const detail = sourceDetail(metadata);
+  const rows = sourceRowCount(metadata);
+  if (sourceType === "google_sheets" && !detail.lastPreviewedAt) {
+    return {
+      label: "Needs refresh",
+      action: "Refresh source",
+      detail: "Pull live Sheet rows before import."
+    };
+  }
+  if (rows === 0 && !detail.lastValidatedAt) {
+    return {
+      label: "Needs mapping",
+      action: "Map source",
+      detail: "Add rows and validate field mappings."
+    };
+  }
+  if (!detail.lastImportedAt) {
+    return {
+      label: "Ready to import",
+      action: "Import source",
+      detail: "Validated rows have not been imported yet."
+    };
+  }
+  return {
+    label: "Operational",
+    action: sourceType === "google_sheets" ? "Refresh source" : "Import source",
+    detail: "Imported data is available for tool runs."
+  };
+}
+
 export default async function DemoDatasetsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const sourceQuery = cleanFilter(params?.q).toLowerCase();
@@ -144,17 +175,6 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
   const savedSourceToolsList = [...new Set(inventory.presets.map((preset) => preset.app))].sort((a, b) => a.localeCompare(b));
   const savedSourceTypesList = [...new Set(inventory.presets.map((preset) => preset.sourceType))].sort((a, b) => a.localeCompare(b));
   const hasSourceFilters = Boolean(sourceQuery || sourceToolFilter || sourceTypeFilter);
-  const savedSourceGroups = Object.values(filteredPresets.reduce<Record<string, {
-    key: string;
-    app: string;
-    sourceType: string;
-    presets: typeof inventory.presets;
-  }>>((groups, preset) => {
-    const key = `${preset.app}:${preset.sourceType}`;
-    groups[key] ??= { key, app: preset.app, sourceType: preset.sourceType, presets: [] };
-    groups[key].presets.push(preset);
-    return groups;
-  }, {})).sort((a, b) => a.app.localeCompare(b.app) || a.sourceType.localeCompare(b.sourceType));
   const sourceTypeCounts = inventory.presets.reduce<Record<string, number>>((counts, preset) => {
     counts[preset.sourceType] = (counts[preset.sourceType] ?? 0) + 1;
     return counts;
@@ -209,50 +229,14 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
         ) : null}
       </Section>
 
-      <Section title="Tool readiness gaps">
-        {inventory.readiness.length === 0 ? (
-          <div className="card">
-            <p>Dataset readiness is unavailable until workspace tables are migrated.</p>
-          </div>
-        ) : (
-          <div className="tableScroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Tool</th>
-                  <th>Status</th>
-                  <th>Required objects</th>
-                  <th>Records</th>
-                  <th>Imports</th>
-                  <th>Gap</th>
-                  <th>Next</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventory.readiness.map((tool) => (
-                  <tr key={tool.app}>
-                    <td>
-                      <strong>{tool.label}</strong>
-                      <p className="small">{tool.objects.map((object) => object.label).join(" · ")}</p>
-                    </td>
-                    <td><span className={`statusPill ${tool.status === "available" ? "live" : "progress"}`}>{tool.status}</span></td>
-                    <td>{tool.availableObjects} / {tool.requiredObjects}</td>
-                    <td>{tool.recordCount.toLocaleString()}</td>
-                    <td>{tool.importCount.toLocaleString()}</td>
-                    <td>{tool.gap}</td>
-                    <td><Link className="btn smallBtn" href={tool.importPath}>{tool.primaryAction}</Link></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-
       <Section title="Saved sources">
         {inventory.presets.length === 0 ? (
           <div className="card">
-            <p>No saved source configs yet. Start with CSV import or Google Sheets preview.</p>
+            <p>No saved sources yet. Start with CSV import or Google Sheets preview.</p>
+            <div className="ctaRow">
+              <Link className="btn primary" href="/workspace/connections/csv">Create CSV source</Link>
+              <Link className="btn" href="/workspace/connections/google-sheets">Create Sheets source</Link>
+            </div>
           </div>
         ) : (
           <div className="savedSourceGroupList">
@@ -292,80 +276,91 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
               </div>
               <p className="small">{filteredPresets.length.toLocaleString()} of {inventory.presets.length.toLocaleString()} saved configs shown.</p>
             </form>
-            {savedSourceGroups.length === 0 ? (
+            {filteredPresets.length === 0 ? (
               <div className="card">
-                <p>No saved source configs match the current filters.</p>
+                <p>No saved sources match the current filters.</p>
               </div>
-            ) : savedSourceGroups.map((group) => (
-              <div className="card savedSourceGroup" key={group.key}>
-                <div className="editorHeader">
-                  <div>
-                    <p className="editorKicker">{sourceTypeLabel(group.sourceType)}</p>
-                    <h3>{group.app} sources</h3>
-                  </div>
-                  <p className="statusPill progress">{group.presets.length} source{group.presets.length === 1 ? "" : "s"}</p>
-                </div>
-                <div className="tableScroll">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Rows</th>
-                        <th>Source detail</th>
-                        <th>Updated</th>
-                        <th>Next</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.presets.map((preset) => {
-                        const detail = sourceDetail(preset.metadata);
-                        return (
-                          <tr key={preset.id}>
-                            <td>
-                              <Link href={sourceDetailHref(preset.id)}><strong>{preset.name}</strong></Link>
-                              <p className="small">{preset.workspace.name}</p>
-                            </td>
-                            <td>{sourceRowCount(preset.metadata).toLocaleString()}</td>
-                            <td>
-                              {detail.sheetId ? (
-                                <>
-                                  <code>{detail.sheetId}</code>
-                                  {detail.lastPreviewedAt ? <p className="small">Previewed {formatOptionalDate(detail.lastPreviewedAt)}</p> : null}
-                                  {detail.lastImportedAt ? (
-                                    <p className="small">
-                                      Imported {formatOptionalDate(detail.lastImportedAt)}
-                                      {detail.lastImportedRowsTotal > 0 ? ` · ${detail.lastImportedRowsTotal.toLocaleString()} rows` : ""}
-                                    </p>
-                                  ) : null}
-                                </>
-                              ) : (
-                                <>
-                                  <span className="small">CSV source</span>
-                                  {detail.lastValidatedAt ? <p className="small">Validated {formatOptionalDate(detail.lastValidatedAt)}</p> : null}
-                                  {detail.lastImportedAt ? (
-                                    <p className="small">
-                                      Imported {formatOptionalDate(detail.lastImportedAt)}
-                                      {detail.lastImportedRowsTotal > 0 ? ` · ${detail.lastImportedRowsTotal.toLocaleString()} rows` : ""}
-                                    </p>
-                                  ) : null}
-                                </>
-                              )}
-                            </td>
-                            <td>{formatDate(preset.updatedAt)}</td>
-                            <td>
-                              <div className="importHistoryActions">
-                                <Link className="btn smallBtn primary" href={sourceDetailHref(preset.id)}>Manage source</Link>
-                                <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id)}>Open connector</Link>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+            ) : (
+              <div className="savedSourceCardGrid">
+                {filteredPresets.map((preset) => {
+                  const detail = sourceDetail(preset.metadata);
+                  const rows = sourceRowCount(preset.metadata);
+                  const state = sourceActionState(preset.sourceType, preset.metadata);
+                  const latestActivity = sourceActivityTime(preset.metadata);
+                  return (
+                    <div className="card savedSourceCard" key={preset.id}>
+                      <div className="editorHeader">
+                        <div>
+                          <p className="editorKicker">{preset.app} · {sourceTypeLabel(preset.sourceType)}</p>
+                          <h3>{preset.name}</h3>
+                        </div>
+                        <span className={`statusPill ${state.label === "Operational" ? "live" : "progress"}`}>{state.label}</span>
+                      </div>
+                      <p>{state.detail}</p>
+                      <div className="savedSourceCardStats">
+                        <div>
+                          <span className="small">Rows</span>
+                          <strong>{rows.toLocaleString()}</strong>
+                        </div>
+                        <div>
+                          <span className="small">Updated</span>
+                          <strong>{formatDate(preset.updatedAt)}</strong>
+                        </div>
+                        <div>
+                          <span className="small">Latest activity</span>
+                          <strong>{latestActivity > 0 ? formatOptionalDate(new Date(latestActivity).toISOString()) : "None"}</strong>
+                        </div>
+                      </div>
+                      {detail.sheetId ? <p className="small">Sheet ID: <code>{detail.sheetId}</code></p> : null}
+                      <div className="importHistoryActions">
+                        <Link className="btn smallBtn primary" href={sourceDetailHref(preset.id)}>{state.action}</Link>
+                        <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id)}>Open connector</Link>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
+          </div>
+        )}
+      </Section>
+
+      <Section title="Tool readiness gaps">
+        {inventory.readiness.length === 0 ? (
+          <div className="card">
+            <p>Dataset readiness is unavailable until workspace tables are migrated.</p>
+          </div>
+        ) : (
+          <div className="tableScroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Tool</th>
+                  <th>Status</th>
+                  <th>Required objects</th>
+                  <th>Records</th>
+                  <th>Imports</th>
+                  <th>Gap</th>
+                  <th>Next</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inventory.readiness.map((tool) => (
+                  <tr key={tool.app}>
+                    <td>
+                      <strong>{tool.label}</strong>
+                      <p className="small">{tool.objects.map((object) => object.label).join(" · ")}</p>
+                    </td>
+                    <td><span className={`statusPill ${tool.status === "available" ? "live" : "progress"}`}>{tool.status}</span></td>
+                    <td>{tool.availableObjects} / {tool.requiredObjects}</td>
+                    <td>{tool.recordCount.toLocaleString()}</td>
+                    <td>{tool.importCount.toLocaleString()}</td>
+                    <td>{tool.gap}</td>
+                    <td><Link className="btn smallBtn" href={tool.importPath}>{tool.primaryAction}</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </Section>
