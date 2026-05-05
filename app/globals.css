@@ -2235,6 +2235,50 @@ button {
   gap: 18px;
   justify-content: space-between;
 }
+.lifecycleDatasetPanel {
+  display: grid;
+  gap: 12px;
+}
+.lifecycleDatasetPanel h3,
+.lifecycleDatasetPanel p {
+  margin-bottom: 0;
+}
+.lifecycleDatasetPanel--compact {
+  grid-template-columns: minmax(240px, 1fr) minmax(260px, 0.9fr) minmax(260px, 0.9fr);
+  align-items: center;
+}
+.lifecycleDatasetStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.lifecycleDatasetStats div {
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 6px;
+  padding: 8px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 91%, #3b82f6 9%);
+}
+.lifecycleDatasetStats span,
+.lifecycleDatasetStats strong {
+  display: block;
+}
+.lifecycleDatasetStats span {
+  color: var(--demo-text-muted, var(--muted));
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.lifecycleDatasetStats strong {
+  color: var(--demo-text, var(--text));
+  font-size: 18px;
+  line-height: 1.2;
+}
+.lifecycleDatasetMeta {
+  display: grid;
+  gap: 4px;
+  color: var(--demo-text-muted, var(--muted));
+  font-size: 12px;
+}
 .importHistoryActions {
   display: flex;
   flex-wrap: wrap;
@@ -2261,6 +2305,8 @@ button {
   .savedSourceCardGrid { grid-template-columns: 1fr; }
   .savedSourceCardStats { grid-template-columns: 1fr; }
   .savedSourceFilters { grid-template-columns: 1fr; }
+  .lifecycleDatasetPanel--compact { grid-template-columns: 1fr; }
+  .lifecycleDatasetStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sourceDangerCard { align-items: flex-start; flex-direction: column; }
   .csvMappingGrid,
   .csvPresetControls { grid-template-columns: 1fr; }

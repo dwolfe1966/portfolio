@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { ScenarioLabCard } from "@/components/demo/ScenarioLabCard";
 import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
+import { LifecycleWorkspaceDatasetPanel } from "@/components/demo/LifecycleWorkspaceDatasetPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,9 @@ export default async function DemoSimulationsPage({ searchParams }: PageProps) {
           Run one guided lifecycle scenario: inject fresh entity events, generate campaign opportunities,
           then model downstream opens, clicks, engagement, purchases, and revenue.
         </p>
+      </Section>
+      <Section title="Run data">
+        <LifecycleWorkspaceDatasetPanel compact />
       </Section>
       {imported ? (
         <Section title="Imported dataset ready">

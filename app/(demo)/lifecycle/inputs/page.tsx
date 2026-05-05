@@ -10,6 +10,7 @@ import {
   LifecycleInterestEdgeEditor,
   LifecycleUserEditor
 } from "@/components/demo/LifecycleTableEditors";
+import { LifecycleWorkspaceDatasetPanel } from "@/components/demo/LifecycleWorkspaceDatasetPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ export default async function DemoInputsPage({ searchParams }: PageProps) {
           This section defines the &quot;starting state&quot; for simulations: who your users are, which entities they track,
           and what conversion assumptions drive outcome projections.
         </p>
+      </Section>
+      <Section title="Input data mode">
+        <LifecycleWorkspaceDatasetPanel compact />
       </Section>
       {imported ? (
         <Section title="Imported data is active">

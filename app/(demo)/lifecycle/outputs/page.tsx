@@ -6,6 +6,7 @@ import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { LifecycleFunnelKpiStrip } from "@/components/demo/LifecycleFunnelKpiStrip";
 import { LifecycleMessagePreviewTable } from "@/components/demo/LifecycleMessagePreviewTable";
+import { LifecycleWorkspaceDatasetPanel } from "@/components/demo/LifecycleWorkspaceDatasetPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -171,6 +172,10 @@ export default async function DemoOutputsPage({ searchParams }: PageProps) {
               ))}
             </div>
           </div>
+        </Section>
+
+        <Section title="Output data mode">
+          <LifecycleWorkspaceDatasetPanel compact />
         </Section>
 
         <div id="recent-campaign-runs"><Section title="Recent campaign runs">
