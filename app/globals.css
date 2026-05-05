@@ -2367,24 +2367,50 @@ button {
   color: var(--demo-text-muted, var(--muted));
   font-size: 12px;
 }
-.toolDataSourceProgress div {
+.toolDataSourceProgress {
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 92%, var(--demo-accent, #2563eb) 8%);
+  padding: 12px;
+}
+.toolDataSourceProgressTrack {
   overflow: hidden;
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
   background: color-mix(in oklab, var(--demo-surface, #fff) 80%, #64748b 20%);
   margin-bottom: 8px;
 }
-.toolDataSourceProgress div span {
+.toolDataSourceProgressTrack span {
   display: block;
-  width: 45%;
   height: 100%;
   border-radius: inherit;
   background: var(--demo-accent, #2563eb);
-  animation: toolDataSourceProgress 1.1s ease-in-out infinite;
+  transition: width 420ms ease;
 }
-@keyframes toolDataSourceProgress {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(230%); }
+.toolDataSourceProgressHeader {
+  align-items: center;
+  color: var(--demo-text, var(--text));
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.toolDataSourceProgressHeader span {
+  color: var(--demo-text-muted, var(--muted));
+  font-size: 11px;
+  font-weight: 800;
+}
+.toolDataSourceProgress p {
+  margin: 0;
+}
+.toolDataSourceProgress ol {
+  display: grid;
+  gap: 3px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.toolDataSourceProgress li {
+  color: var(--demo-text-muted, var(--muted));
 }
 .dataSourceModeGrid {
   display: grid;

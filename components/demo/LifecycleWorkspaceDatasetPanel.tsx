@@ -4,6 +4,7 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { ensureLegacyLifecycleDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 import { ToolDataSourceSelector } from "@/components/site/ToolDataSourceSelector";
 
 type LifecycleWorkspaceDatasetPanelProps = {
@@ -64,6 +65,10 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
       ? latestImport.usersImported + latestImport.entitiesImported + latestImport.interestEdgesImported + latestImport.changeEventsImported
       : 0;
     const hasWorkspaceImport = Boolean(latestImport);
+    const legacySnapshot = snapshots.length === 0
+      ? await ensureLegacyLifecycleDatasetSnapshot(latestImport)
+      : null;
+    const datasetSnapshots = legacySnapshot ? [legacySnapshot] : snapshots;
 
     return (
       <div className={`card lifecycleDatasetPanel ${compact ? "lifecycleDatasetPanel--compact" : ""}`}>
@@ -100,7 +105,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
             { label: "Edges", value: interestEdges },
             { label: "Events", value: events }
           ]}
-          datasets={snapshots.map((snapshot) => ({
+          datasets={datasetSnapshots.map((snapshot) => ({
             id: snapshot.id,
             label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
           }))}

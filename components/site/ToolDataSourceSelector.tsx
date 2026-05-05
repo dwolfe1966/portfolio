@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Mode = "sample" | "imported";
@@ -26,6 +26,12 @@ type ToolDataSourceSelectorProps = {
   applyDatasetAction: (formData: FormData) => void | Promise<void>;
 };
 
+type ProgressStage = {
+  percent: number;
+  status: string;
+  detail: string;
+};
+
 export function ToolDataSourceSelector({
   appLabel,
   scope,
@@ -41,17 +47,105 @@ export function ToolDataSourceSelector({
   const [datasetId, setDatasetId] = useState(activeDatasetId ?? datasets[0]?.id ?? "");
   const [status, setStatus] = useState("");
   const [detail, setDetail] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [progressSteps, setProgressSteps] = useState<string[]>([]);
   const [isApplying, setIsApplying] = useState(false);
+  const timers = useRef<number[]>([]);
 
   const selectedDataset = useMemo(
     () => datasets.find((dataset) => dataset.id === datasetId),
     [datasetId, datasets]
   );
 
-  async function applySampleData() {
+  useEffect(() => () => {
+    timers.current.forEach((timer) => window.clearTimeout(timer));
+  }, []);
+
+  function clearProgressTimers() {
+    timers.current.forEach((timer) => window.clearTimeout(timer));
+    timers.current = [];
+  }
+
+  function startProgress(stages: ProgressStage[]) {
+    clearProgressTimers();
     setIsApplying(true);
-    setStatus(`Switching ${appLabel} to sample data`);
-    setDetail("Clearing current product rows and reseeding the baseline sample dataset.");
+    setProgressSteps([]);
+    stages.forEach((stage, index) => {
+      const timer = window.setTimeout(() => {
+        setProgress(stage.percent);
+        setStatus(stage.status);
+        setDetail(stage.detail);
+        setProgressSteps((current) => [...current.slice(-3), stage.status]);
+      }, index * 1300);
+      timers.current.push(timer);
+    });
+  }
+
+  function completeProgress(statusText: string, detailText: string) {
+    clearProgressTimers();
+    setProgress(100);
+    setStatus(statusText);
+    setDetail(detailText);
+    setProgressSteps((current) => [...current.slice(-3), statusText]);
+  }
+
+  function sampleStages(): ProgressStage[] {
+    return [
+      {
+        percent: 15,
+        status: `Preparing ${appLabel} sample data`,
+        detail: "Confirming the sample dataset switch and locking the active source selector."
+      },
+      {
+        percent: 35,
+        status: "Clearing current product rows",
+        detail: "Removing current active rows so the app does not mix imported and sample data."
+      },
+      {
+        percent: 65,
+        status: "Reseeding baseline data",
+        detail: "Writing representative sample users, entities, policies, runs, or product records."
+      },
+      {
+        percent: 85,
+        status: "Recording selected source",
+        detail: "Saving Sample Data as the active source and refreshing displayed counts."
+      }
+    ];
+  }
+
+  function importedStages(): ProgressStage[] {
+    return [
+      {
+        percent: 12,
+        status: "Loading selected workspace dataset",
+        detail: selectedDataset ? `Reading ${selectedDataset.label}.` : "Reading the selected persisted dataset snapshot."
+      },
+      {
+        percent: 30,
+        status: "Validating imported rows",
+        detail: "Checking required fields and preparing model-ready records for this product."
+      },
+      {
+        percent: 55,
+        status: "Replacing active product tables",
+        detail: "Clearing current rows and copying the imported dataset into the app tables."
+      },
+      {
+        percent: 78,
+        status: "Rebuilding downstream outputs",
+        detail: "Clearing prior generated runs, messages, audit rows, and stale outputs where needed."
+      },
+      {
+        percent: 92,
+        status: "Refreshing source indicator and counts",
+        detail: "Saving Imported Data as the active source and reloading the product view."
+      }
+    ];
+  }
+
+  async function applySampleData() {
+    startProgress(sampleStages());
     try {
       const response = await fetch("/api/seed", {
         method: "POST",
@@ -60,25 +154,20 @@ export function ToolDataSourceSelector({
       });
       const payload = await response.json();
       if (!payload.ok) {
-        setStatus("Source switch failed");
-        setDetail(payload.error?.message ?? "The sample dataset could not be restored.");
+        completeProgress("Source switch failed", payload.error?.message ?? "The sample dataset could not be restored.");
         return;
       }
-      setStatus("Sample data is active");
-      setDetail("Refreshing counts from the product database.");
+      completeProgress("Sample data is active", "Refreshing counts from the product database.");
       router.refresh();
     } catch {
-      setStatus("Source switch failed");
-      setDetail("The request could not reach the server.");
+      completeProgress("Source switch failed", "The request could not reach the server.");
     } finally {
       setIsApplying(false);
     }
   }
 
   function onSubmit() {
-    setIsApplying(true);
-    setStatus(`Applying imported dataset${selectedDataset ? `: ${selectedDataset.label}` : ""}`);
-    setDetail("Replacing current product rows with the selected workspace dataset. Counts refresh when the switch completes.");
+    startProgress(importedStages());
   }
 
   const canApply = mode === "sample" || Boolean(datasetId);
@@ -155,8 +244,19 @@ export function ToolDataSourceSelector({
 
       {isApplying && (
         <div className="toolDataSourceProgress" aria-live="polite">
-          <div><span /></div>
-          <p><strong>{status}</strong> {detail}</p>
+          <div className="toolDataSourceProgressTrack">
+            <span style={{ width: `${progress}%` }} />
+          </div>
+          <div className="toolDataSourceProgressHeader">
+            <strong>{status}</strong>
+            <span>{progress}%</span>
+          </div>
+          <p>{detail}</p>
+          <ol>
+            {progressSteps.map((step, index) => (
+              <li key={`${step}-${index}`}>{step}</li>
+            ))}
+          </ol>
         </div>
       )}
       {!isApplying && status && (
