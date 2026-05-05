@@ -1,10 +1,13 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { getDefaultWorkspace } from "@/lib/workspace";
 
@@ -88,6 +91,19 @@ async function loadSourceConfig(id: string) {
     where: { id, workspaceId: workspace.id },
     include: { workspace: true }
   });
+}
+
+async function deleteSourceConfig(formData: FormData) {
+  "use server";
+
+  if (!isDemoMutationAllowed()) return;
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  const workspace = await getDefaultWorkspace();
+  await db.lifecycleMappingPreset.deleteMany({ where: { id, workspaceId: workspace.id } });
+  revalidatePath("/workspace/datasets");
+  revalidatePath("/demo/datasets");
+  redirect("/workspace/datasets");
 }
 
 export default async function SourceConfigDetailPage({ params }: PageProps) {
@@ -236,6 +252,21 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
             <Link className="btn" href={toolPageHref(config.app, "inputs")}>Open inputs</Link>
             <Link className="btn primary" href={toolPageHref(config.app, "simulations")}>Run simulation</Link>
             <Link className="btn" href={sourceConfigHref(config.sourceType, config.app, config.id, "import")}>Import latest data</Link>
+          </div>
+        </Section>
+
+        <Section title="Source management">
+          <div className="card sourceDangerCard">
+            <div>
+              <p className="editorKicker">Delete source config</p>
+              <p className="small">
+                This removes the saved connector configuration and mappings. Imported tool data remains in the workspace.
+              </p>
+            </div>
+            <form action={deleteSourceConfig}>
+              <input type="hidden" name="id" value={config.id} />
+              <button type="submit">Delete source config</button>
+            </form>
           </div>
         </Section>
       </>

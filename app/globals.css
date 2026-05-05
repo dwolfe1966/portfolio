@@ -1351,6 +1351,12 @@ button {
   display: grid;
   gap: 14px;
 }
+.sourceDangerCard {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
 .activityFeed {
   display: grid;
   gap: 10px;
@@ -2035,6 +2041,7 @@ button {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .savedSourceSummaryGrid { grid-template-columns: 1fr; }
   .savedSourceFilters { grid-template-columns: 1fr; }
+  .sourceDangerCard { align-items: flex-start; flex-direction: column; }
   .csvMappingGrid,
   .csvPresetControls { grid-template-columns: 1fr; }
   .homeHero, .aboutIntroGrid, .experienceGrid { grid-template-columns: 1fr; }
