@@ -23,7 +23,7 @@ async function loadDatasetInventory() {
     const [presets, imports, runs, readiness] = await Promise.all([
       db.lifecycleMappingPreset.findMany({
         orderBy: [{ updatedAt: "desc" }],
-        take: 8,
+        take: 40,
         include: { workspace: true }
       }),
       db.lifecycleImportLog.findMany({
@@ -97,6 +97,12 @@ function sourceConfigHref(sourceType: string, app: string, id: string, action?: 
   return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}${actionParam}`;
 }
 
+function sourceTypeLabel(sourceType: string) {
+  if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "csv") return "CSV";
+  return sourceType.toUpperCase();
+}
+
 async function deleteSourceConfig(formData: FormData) {
   "use server";
 
@@ -114,6 +120,17 @@ export default async function DemoDatasetsPage() {
   const totalRows = inventory.imports.reduce((sum, log) => sum + importedRows(log), 0);
   const activeWorkspace = inventory.presets[0]?.workspace?.name ?? "Default Workspace";
   const readinessSummary = summarizeDatasetReadiness(inventory.readiness);
+  const savedSourceGroups = Object.values(inventory.presets.reduce<Record<string, {
+    key: string;
+    app: string;
+    sourceType: string;
+    presets: typeof inventory.presets;
+  }>>((groups, preset) => {
+    const key = `${preset.app}:${preset.sourceType}`;
+    groups[key] ??= { key, app: preset.app, sourceType: preset.sourceType, presets: [] };
+    groups[key].presets.push(preset);
+    return groups;
+  }, {})).sort((a, b) => a.app.localeCompare(b.app) || a.sourceType.localeCompare(b.sourceType));
 
   return (
     <>
@@ -195,76 +212,86 @@ export default async function DemoDatasetsPage() {
             <p>No saved source configs or mapping presets yet. Start with CSV import or Google Sheets preview.</p>
           </div>
         ) : (
-          <div className="tableScroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>App</th>
-                  <th>Source</th>
-                  <th>Workspace</th>
-                  <th>Rows</th>
-                  <th>Source detail</th>
-                  <th>Updated</th>
-                  <th>Manage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventory.presets.map((preset) => {
-                  const detail = sourceDetail(preset.metadata);
-                  return (
-                    <tr key={preset.id}>
-                      <td><strong>{preset.name}</strong></td>
-                      <td>{preset.app}</td>
-                      <td>{preset.sourceType.toUpperCase()}</td>
-                      <td>{preset.workspace.name}</td>
-                      <td>{sourceRowCount(preset.metadata).toLocaleString()}</td>
-                      <td>
-                        {detail.sheetId ? (
-                          <>
-                            <code>{detail.sheetId}</code>
-                            {detail.lastPreviewedAt ? <p className="small">Previewed {formatOptionalDate(detail.lastPreviewedAt)}</p> : null}
-                            {detail.lastImportedAt ? (
-                              <p className="small">
-                                Imported {formatOptionalDate(detail.lastImportedAt)}
-                                {detail.lastImportedRowsTotal > 0 ? ` · ${detail.lastImportedRowsTotal.toLocaleString()} rows` : ""}
-                              </p>
-                            ) : null}
-                          </>
-                        ) : (
-                          <>
-                            <span className="small">Mapping preset</span>
-                            {detail.lastValidatedAt ? <p className="small">Validated {formatOptionalDate(detail.lastValidatedAt)}</p> : null}
-                            {detail.lastImportedAt ? (
-                              <p className="small">
-                                Imported {formatOptionalDate(detail.lastImportedAt)}
-                                {detail.lastImportedRowsTotal > 0 ? ` · ${detail.lastImportedRowsTotal.toLocaleString()} rows` : ""}
-                              </p>
-                            ) : null}
-                          </>
-                        )}
-                      </td>
-                      <td>{formatDate(preset.updatedAt)}</td>
-                      <td>
-                        <div className="importHistoryActions">
-                          {preset.sourceType === "google_sheets" ? (
-                            <Link className="btn smallBtn primary" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "refresh")}>Refresh</Link>
-                          ) : null}
-                          <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "map")}>Map</Link>
-                          <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "import")}>Import</Link>
-                          <Link className="btn smallBtn" href={toolPageHref(preset.app, "inputs")}>Inputs</Link>
-                          <Link className="btn smallBtn" href={toolPageHref(preset.app, "simulations")}>Simulate</Link>
-                          <form action={deleteSourceConfig}>
-                            <input type="hidden" name="id" value={preset.id} />
-                            <button className="smallBtn" type="submit">Delete</button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="savedSourceGroupList">
+            {savedSourceGroups.map((group) => (
+              <div className="card savedSourceGroup" key={group.key}>
+                <div className="editorHeader">
+                  <div>
+                    <p className="editorKicker">{sourceTypeLabel(group.sourceType)}</p>
+                    <h3>{group.app} sources</h3>
+                  </div>
+                  <p className="statusPill progress">{group.presets.length} config{group.presets.length === 1 ? "" : "s"}</p>
+                </div>
+                <div className="tableScroll">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Rows</th>
+                        <th>Source detail</th>
+                        <th>Updated</th>
+                        <th>Manage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.presets.map((preset) => {
+                        const detail = sourceDetail(preset.metadata);
+                        return (
+                          <tr key={preset.id}>
+                            <td>
+                              <strong>{preset.name}</strong>
+                              <p className="small">{preset.workspace.name}</p>
+                            </td>
+                            <td>{sourceRowCount(preset.metadata).toLocaleString()}</td>
+                            <td>
+                              {detail.sheetId ? (
+                                <>
+                                  <code>{detail.sheetId}</code>
+                                  {detail.lastPreviewedAt ? <p className="small">Previewed {formatOptionalDate(detail.lastPreviewedAt)}</p> : null}
+                                  {detail.lastImportedAt ? (
+                                    <p className="small">
+                                      Imported {formatOptionalDate(detail.lastImportedAt)}
+                                      {detail.lastImportedRowsTotal > 0 ? ` · ${detail.lastImportedRowsTotal.toLocaleString()} rows` : ""}
+                                    </p>
+                                  ) : null}
+                                </>
+                              ) : (
+                                <>
+                                  <span className="small">Mapping preset</span>
+                                  {detail.lastValidatedAt ? <p className="small">Validated {formatOptionalDate(detail.lastValidatedAt)}</p> : null}
+                                  {detail.lastImportedAt ? (
+                                    <p className="small">
+                                      Imported {formatOptionalDate(detail.lastImportedAt)}
+                                      {detail.lastImportedRowsTotal > 0 ? ` · ${detail.lastImportedRowsTotal.toLocaleString()} rows` : ""}
+                                    </p>
+                                  ) : null}
+                                </>
+                              )}
+                            </td>
+                            <td>{formatDate(preset.updatedAt)}</td>
+                            <td>
+                              <div className="importHistoryActions">
+                                {preset.sourceType === "google_sheets" ? (
+                                  <Link className="btn smallBtn primary" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "refresh")}>Refresh</Link>
+                                ) : null}
+                                <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "map")}>Map</Link>
+                                <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "import")}>Import</Link>
+                                <Link className="btn smallBtn" href={toolPageHref(preset.app, "inputs")}>Inputs</Link>
+                                <Link className="btn smallBtn" href={toolPageHref(preset.app, "simulations")}>Simulate</Link>
+                                <form action={deleteSourceConfig}>
+                                  <input type="hidden" name="id" value={preset.id} />
+                                  <button className="smallBtn" type="submit">Delete</button>
+                                </form>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </Section>

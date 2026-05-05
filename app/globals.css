@@ -1318,6 +1318,14 @@ button {
   gap: 10px;
   align-content: start;
 }
+.savedSourceGroupList {
+  display: grid;
+  gap: 18px;
+}
+.savedSourceGroup {
+  display: grid;
+  gap: 14px;
+}
 .activityFeed {
   display: grid;
   gap: 10px;
