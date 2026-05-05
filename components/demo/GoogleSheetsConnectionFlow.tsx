@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   TOOL_IMPORT_SCHEMAS,
   createEmptyMappings,
@@ -167,6 +167,7 @@ export function GoogleSheetsConnectionFlow({
     state: "idle",
     message: "Load a saved config to refresh live Sheet rows."
   });
+  const autoActionRef = useRef("");
   const connectorAction = isConnectorAction(initialAction) ? initialAction : undefined;
 
   const schema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === selectedTool) ?? TOOL_IMPORT_SCHEMAS[0];
@@ -404,6 +405,16 @@ export function GoogleSheetsConnectionFlow({
       }
     }
   }
+
+  useEffect(() => {
+    if (connectorAction !== "refresh" || !initialConfigId || selectedConfigId !== initialConfigId || !sheetUrlOrId.trim()) return;
+    const actionKey = `${initialConfigId}:refresh:${sheetUrlOrId}`;
+    if (autoActionRef.current === actionKey || previewStatus.state === "loading") return;
+    autoActionRef.current = actionKey;
+    setRefreshStatus({ state: "loading", message: `Auto-refreshing "${datasetName}" from Google Sheets...` });
+    void previewSheet("refresh");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectorAction, datasetName, initialConfigId, previewStatus.state, selectedConfigId, sheetUrlOrId]);
 
   async function saveSourceConfig() {
     if (!preview || saveStatus.state === "loading") return;
