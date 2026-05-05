@@ -141,7 +141,8 @@ export async function loadWorkspaceDatasetReadiness() {
     expansionImports,
     auctionAdvertisers,
     auctionSlots,
-    auctionBids
+    auctionBids,
+    auctionImports
   ] = await Promise.all([
     db.user.count(),
     db.entity.count(),
@@ -169,7 +170,8 @@ export async function loadWorkspaceDatasetReadiness() {
     db.expansionAuditLog.count({ where: { action: "expansion_import" } }),
     db.auctionAdvertiser.count(),
     db.auctionSlot.count(),
-    db.auctionBid.count()
+    db.auctionBid.count(),
+    db.auctionAuditLog.count({ where: { action: "auction_import" } })
   ]);
 
   const counts = {
@@ -206,7 +208,7 @@ export async function loadWorkspaceDatasetReadiness() {
     auction: {
       objectCounts: [auctionAdvertisers, auctionSlots, auctionBids, auctionSlots],
       recordCount: auctionAdvertisers + auctionSlots + auctionBids,
-      importCount: 0,
+      importCount: auctionImports,
       presetCount: 0
     }
   };
