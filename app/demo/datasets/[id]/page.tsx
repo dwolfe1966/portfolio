@@ -74,15 +74,6 @@ function objectRows(metadata: unknown) {
     .sort((a, b) => a[0].localeCompare(b[0]));
 }
 
-function mappingRows(mappings: unknown) {
-  return Object.entries(metadataRecord(mappings))
-    .map(([objectKey, value]) => ({
-      objectKey,
-      fields: Object.entries(metadataRecord(value)).filter((entry): entry is [string, string] => typeof entry[1] === "string")
-    }))
-    .sort((a, b) => a.objectKey.localeCompare(b.objectKey));
-}
-
 function jsonPreview(value: unknown) {
   return JSON.stringify(value ?? {}, null, 2);
 }
@@ -171,7 +162,6 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
     const lastImportedRowsTotal = typeof metadata.lastImportedRowsTotal === "number" ? metadata.lastImportedRowsTotal : 0;
     const rows = rowCount(config.metadata);
     const mappedObjects = objectRows(config.metadata);
-    const mappings = mappingRows(config.mappings);
     const actionState = sourceActionState({
       sourceType: config.sourceType,
       rows,
@@ -294,35 +284,6 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
                   <p className="small">Mapped rows</p>
                 </div>
               ))}
-            </div>
-          )}
-        </Section>
-
-        <Section title="Field mappings">
-          {mappings.length === 0 ? (
-            <div className="card">
-              <p>No field mappings have been saved for this source yet.</p>
-            </div>
-          ) : (
-            <div className="tableScroll">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Object</th>
-                    <th>App field</th>
-                    <th>Source column</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mappings.flatMap((object) => object.fields.map(([field, sourceColumn]) => (
-                    <tr key={`${object.objectKey}-${field}`}>
-                      <td>{object.objectKey}</td>
-                      <td><code>{field}</code></td>
-                      <td>{sourceColumn || <span className="small">Not mapped</span>}</td>
-                    </tr>
-                  )))}
-                </tbody>
-              </table>
             </div>
           )}
         </Section>
