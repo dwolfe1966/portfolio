@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { recordImportedDataSourceSelection } from "@/lib/app-data-source-selection";
 import {
   validateAdvertiserInput,
   validateBidInput,
@@ -120,6 +121,8 @@ export async function applyAuctionDatasetSnapshotAction(formData: FormData) {
       }
     });
   });
+
+  await recordImportedDataSourceSelection("auction", dataset, session?.userId);
 
   revalidatePath("/auction/inputs");
   revalidatePath("/auction/overview");

@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
 import { applyPricingDatasetSnapshotAction } from "@/app/(demo)/pricing/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
+import { ToolDataSourceSelector } from "@/components/site/ToolDataSourceSelector";
 
 type PricingWorkspaceDatasetPanelProps = {
   compact?: boolean;
@@ -49,7 +50,7 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
   try {
     const cookieStore = await cookies();
     const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
-    const [latestImport, latestSource, snapshots, segments, variants, experiments, runs] = await Promise.all([
+    const [latestImport, latestSource, snapshots, activeSelection, segments, variants, experiments, runs] = await Promise.all([
       db.pricingAuditLog.findFirst({ where: { action: "pricing_import" }, orderBy: { createdAt: "desc" } }),
       db.lifecycleMappingPreset.findFirst({
         where: { app: "pricing" },
@@ -65,6 +66,7 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
         orderBy: { createdAt: "desc" },
         take: 12
       }),
+      getActiveDataSourceSelection("pricing", session?.userId),
       db.pricingSegment.count(),
       db.pricingVariant.count(),
       db.pricingExperiment.count(),
@@ -96,40 +98,24 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
           <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}{rows > 0 ? ` · ${rows.toLocaleString()} rows` : ""}</p>
           <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
         </div>
-        <div className="dataSourceModeGrid">
-          <div className="dataSourceModePanel">
-            <h3>Option A Use Sample Data</h3>
-            <details className="dataSourceDetails">
-              <summary>What this means</summary>
-              <p className="small">Use the seeded pricing dataset that ships with the product. To switch back to sample data after applying an import, use the reset control below.</p>
-            </details>
-          </div>
-          <div className="dataSourceModePanel">
-            <h3>Option B Use Imported Data</h3>
-            <details className="dataSourceDetails">
-              <summary>What this means</summary>
-              <p className="small">Choose a persisted workspace dataset and apply it to this tool. Applying an imported dataset replaces the active pricing tables.</p>
-            </details>
-        {snapshots.length > 0 ? (
-          <form className="lifecycleDatasetSelector" action={applyPricingDatasetSnapshotAction}>
-            <label>
-              Use imported dataset
-              <select name="datasetId" defaultValue={snapshots[0]?.id}>
-                {snapshots.map((snapshot) => (
-                  <option key={snapshot.id} value={snapshot.id}>
-                    {snapshot.name} · {sourceLabel(snapshot.sourceType)} · {rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · {formatDate(snapshot.createdAt)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit">Apply dataset to pricing app</button>
-          </form>
-        ) : (
-          <p className="small">No imported pricing dataset snapshots are available for this account yet.</p>
-        )}
-          </div>
-        </div>
-        <ResetDemoDataCard appLabel="Pricing" scope="pricing" variant="embedded" />
+        <ToolDataSourceSelector
+          appLabel="Pricing"
+          scope="pricing"
+          activeMode={activeSelection?.mode === "imported" ? "imported" : "sample"}
+          activeLabel={activeSelection?.label ?? "Pricing sample data"}
+          activeDatasetId={activeSelection?.datasetId}
+          stats={[
+            { label: "Segments", value: segments },
+            { label: "Variants", value: variants },
+            { label: "Experiments", value: experiments },
+            { label: "Runs", value: runs }
+          ]}
+          datasets={snapshots.map((snapshot) => ({
+            id: snapshot.id,
+            label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
+          }))}
+          applyDatasetAction={applyPricingDatasetSnapshotAction}
+        />
       </div>
     );
   } catch (error) {

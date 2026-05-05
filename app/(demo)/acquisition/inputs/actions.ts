@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { recordImportedDataSourceSelection } from "@/lib/app-data-source-selection";
 import { validateCreateCampaignInput } from "@/lib/acquisition";
 import { db } from "@/lib/db";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -269,6 +270,8 @@ export async function applyAcquisitionDatasetSnapshotAction(formData: FormData) 
       });
     }
   });
+
+  await recordImportedDataSourceSelection("acquisition", dataset, session?.userId);
 
   revalidatePath("/acquisition/inputs");
   revalidatePath("/acquisition/overview");

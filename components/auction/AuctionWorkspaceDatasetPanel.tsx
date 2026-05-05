@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
 import { applyAuctionDatasetSnapshotAction } from "@/app/(demo)/auction/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
+import { ToolDataSourceSelector } from "@/components/site/ToolDataSourceSelector";
 
 type AuctionWorkspaceDatasetPanelProps = {
   compact?: boolean;
@@ -39,7 +40,7 @@ export async function AuctionWorkspaceDatasetPanel({ compact = false }: AuctionW
   try {
     const cookieStore = await cookies();
     const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
-    const [latestImport, latestSource, snapshots, advertisers, slots, bids, runs] = await Promise.all([
+    const [latestImport, latestSource, snapshots, activeSelection, advertisers, slots, bids, runs] = await Promise.all([
       db.auctionAuditLog.findFirst({ where: { action: "auction_import" }, orderBy: { createdAt: "desc" } }),
       db.lifecycleMappingPreset.findFirst({
         where: { app: "auction" },
@@ -55,6 +56,7 @@ export async function AuctionWorkspaceDatasetPanel({ compact = false }: AuctionW
         orderBy: { createdAt: "desc" },
         take: 12
       }),
+      getActiveDataSourceSelection("auction", session?.userId),
       db.auctionAdvertiser.count(),
       db.auctionSlot.count(),
       db.auctionBid.count(),
@@ -84,40 +86,24 @@ export async function AuctionWorkspaceDatasetPanel({ compact = false }: AuctionW
           <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}</p>
           <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
         </div>
-        <div className="dataSourceModeGrid">
-          <div className="dataSourceModePanel">
-            <h3>Option A Use Sample Data</h3>
-            <details className="dataSourceDetails">
-              <summary>What this means</summary>
-              <p className="small">Use the seeded auction dataset that ships with the product. To switch back to sample data after applying an import, use the reset control below.</p>
-            </details>
-          </div>
-          <div className="dataSourceModePanel">
-            <h3>Option B Use Imported Data</h3>
-            <details className="dataSourceDetails">
-              <summary>What this means</summary>
-              <p className="small">Choose a persisted workspace dataset and apply it to this tool. Applying an imported dataset replaces the active auction tables.</p>
-            </details>
-        {snapshots.length > 0 ? (
-          <form className="lifecycleDatasetSelector" action={applyAuctionDatasetSnapshotAction}>
-            <label>
-              Use imported dataset
-              <select name="datasetId" defaultValue={snapshots[0]?.id}>
-                {snapshots.map((snapshot) => (
-                  <option key={snapshot.id} value={snapshot.id}>
-                    {snapshot.name} · {sourceLabel(snapshot.sourceType)} · {rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · {formatDate(snapshot.createdAt)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit">Apply dataset to auction app</button>
-          </form>
-        ) : (
-          <p className="small">No imported auction dataset snapshots are available for this account yet.</p>
-        )}
-          </div>
-        </div>
-        <ResetDemoDataCard appLabel="Auction" scope="auction" variant="embedded" />
+        <ToolDataSourceSelector
+          appLabel="Auction"
+          scope="auction"
+          activeMode={activeSelection?.mode === "imported" ? "imported" : "sample"}
+          activeLabel={activeSelection?.label ?? "Auction sample data"}
+          activeDatasetId={activeSelection?.datasetId}
+          stats={[
+            { label: "Advertisers", value: advertisers },
+            { label: "Slots", value: slots },
+            { label: "Bids", value: bids },
+            { label: "Runs", value: runs }
+          ]}
+          datasets={snapshots.map((snapshot) => ({
+            id: snapshot.id,
+            label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
+          }))}
+          applyDatasetAction={applyAuctionDatasetSnapshotAction}
+        />
       </div>
     );
   } catch (error) {

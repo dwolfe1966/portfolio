@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
 import { applyLifecycleDatasetSnapshotAction } from "@/app/(demo)/lifecycle/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
+import { ToolDataSourceSelector } from "@/components/site/ToolDataSourceSelector";
 
 type LifecycleWorkspaceDatasetPanelProps = {
   compact?: boolean;
@@ -37,7 +38,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
   try {
     const cookieStore = await cookies();
     const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
-    const [latestImport, latestSource, snapshots, users, entities, interestEdges, events] = await Promise.all([
+    const [latestImport, latestSource, snapshots, activeSelection, users, entities, interestEdges, events] = await Promise.all([
       db.lifecycleImportLog.findFirst({ orderBy: { createdAt: "desc" } }),
       db.lifecycleMappingPreset.findFirst({
         where: { app: "lifecycle" },
@@ -53,6 +54,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
         orderBy: { createdAt: "desc" },
         take: 12
       }),
+      getActiveDataSourceSelection("lifecycle", session?.userId),
       db.user.count(),
       db.entity.count(),
       db.interestEdge.count(),
@@ -86,40 +88,24 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
           <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}{importedRows > 0 ? ` · ${importedRows.toLocaleString()} rows` : ""}</p>
           <p><strong>Workspace source:</strong> {latestSource ? `${latestSource.name} (${sourceLabel(latestSource.sourceType)})` : "None available"}</p>
         </div>
-        <div className="dataSourceModeGrid">
-          <div className="dataSourceModePanel">
-            <h3>Option A Use Sample Data</h3>
-            <details className="dataSourceDetails">
-              <summary>What this means</summary>
-              <p className="small">Use the seeded lifecycle dataset that ships with the product. To switch back to sample data after applying an import, use the reset control below.</p>
-            </details>
-          </div>
-          <div className="dataSourceModePanel">
-            <h3>Option B Use Imported Data</h3>
-            <details className="dataSourceDetails">
-              <summary>What this means</summary>
-              <p className="small">Choose a persisted workspace dataset and apply it to this tool. Applying an imported dataset replaces the active lifecycle tables.</p>
-            </details>
-        {snapshots.length > 0 ? (
-          <form className="lifecycleDatasetSelector" action={applyLifecycleDatasetSnapshotAction}>
-            <label>
-              Use imported dataset
-              <select name="datasetId" defaultValue={snapshots[0]?.id}>
-                {snapshots.map((snapshot) => (
-                  <option key={snapshot.id} value={snapshot.id}>
-                    {snapshot.name} · {sourceLabel(snapshot.sourceType)} · {rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · {formatDate(snapshot.createdAt)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit">Apply dataset to lifecycle app</button>
-          </form>
-        ) : (
-          <p className="small">No imported lifecycle dataset snapshots are available for this account yet.</p>
-        )}
-          </div>
-        </div>
-        <ResetDemoDataCard appLabel="Lifecycle" scope="lifecycle" variant="embedded" />
+        <ToolDataSourceSelector
+          appLabel="Lifecycle"
+          scope="lifecycle"
+          activeMode={activeSelection?.mode === "imported" ? "imported" : "sample"}
+          activeLabel={activeSelection?.label ?? "Lifecycle sample data"}
+          activeDatasetId={activeSelection?.datasetId}
+          stats={[
+            { label: "Users", value: users },
+            { label: "Entities", value: entities },
+            { label: "Edges", value: interestEdges },
+            { label: "Events", value: events }
+          ]}
+          datasets={snapshots.map((snapshot) => ({
+            id: snapshot.id,
+            label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
+          }))}
+          applyDatasetAction={applyLifecycleDatasetSnapshotAction}
+        />
       </div>
     );
   } catch (error) {

@@ -30,6 +30,7 @@ model AccountUser {
   updatedAt   DateTime              @updatedAt
   memberships WorkspaceMembership[]
   datasets    WorkspaceDataset[]
+  dataSourceSelections AppDataSourceSelection[]
 
   @@index([updatedAt])
 }
@@ -49,6 +50,25 @@ model WorkspaceMembership {
   @@index([workspaceId, role])
 }
 
+model AppDataSourceSelection {
+  id            String            @id @default(cuid())
+  app           String
+  mode          String
+  label         String
+  sourceType    String?
+  datasetId     String?
+  rowCounts     Json?
+  accountUserId String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  accountUser   AccountUser?      @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  dataset       WorkspaceDataset? @relation(fields: [datasetId], references: [id], onDelete: SetNull)
+
+  @@index([app, updatedAt])
+  @@index([accountUserId, updatedAt])
+  @@index([datasetId])
+}
+
 model WorkspaceDataset {
   id            String       @id @default(cuid())
   workspaceId   String
@@ -64,6 +84,7 @@ model WorkspaceDataset {
   updatedAt     DateTime     @updatedAt
   workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   accountUser   AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  activeSelections AppDataSourceSelection[]
 
   @@index([workspaceId, app, createdAt])
   @@index([accountUserId, createdAt])

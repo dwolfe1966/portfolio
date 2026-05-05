@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { recordImportedDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import {
@@ -106,6 +107,8 @@ export async function applyRetentionDatasetSnapshotAction(formData: FormData) {
       }
     });
   });
+
+  await recordImportedDataSourceSelection("retention", dataset, session?.userId);
 
   revalidatePath("/retention/inputs");
   revalidatePath("/retention/overview");

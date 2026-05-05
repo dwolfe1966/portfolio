@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import { reseed, reseedAcquisitionOnly, reseedAuctionOnly, reseedExpansionOnly, reseedLifecycleOnly, reseedPricingOnly, reseedRetentionOnly } from "@/lib/seed";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { recordSampleDataSourceSelection, recordSampleDataSourceSelections, type ToolScope } from "@/lib/app-data-source-selection";
 import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -39,6 +42,14 @@ export async function POST(request: Request) {
       await reseedExpansionOnly();
     } else {
       await reseed();
+    }
+
+    const cookieStore = await cookies();
+    const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    if (resolved.scope === "all") {
+      await recordSampleDataSourceSelections(["lifecycle", "acquisition", "auction", "pricing", "retention", "expansion"], session?.userId);
+    } else {
+      await recordSampleDataSourceSelection(resolved.scope as ToolScope, session?.userId);
     }
 
     logApiEvent("info", eventId, "seed.completed", { scope: resolved.scope });

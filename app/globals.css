@@ -2279,6 +2279,112 @@ button {
   color: var(--demo-text-muted, var(--muted));
   font-size: 12px;
 }
+.toolDataSourceSelector {
+  display: grid;
+  gap: 12px;
+}
+.toolDataSourceStatus {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 94%, #22c55e 6%);
+  padding: 12px;
+}
+.toolDataSourceStatus span,
+.toolDataSourceCounts span {
+  color: var(--demo-text-muted, var(--muted));
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.toolDataSourceStatus strong {
+  display: block;
+  color: var(--demo-text, var(--text));
+}
+.toolDataSourceStatus p {
+  margin: 2px 0 0;
+  color: var(--demo-text-muted, var(--muted));
+  font-size: 12px;
+}
+.toolDataSourceCounts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.toolDataSourceCounts div {
+  border-radius: 6px;
+  background: var(--demo-surface, #fff);
+  padding: 8px;
+}
+.toolDataSourceOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.toolDataSourceOption {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 94%, #64748b 6%);
+  padding: 12px;
+  cursor: pointer;
+}
+.toolDataSourceOption.isSelected {
+  border-color: var(--demo-accent, #2563eb);
+  background: color-mix(in oklab, var(--demo-surface, #fff) 88%, var(--demo-accent, #2563eb) 12%);
+}
+.toolDataSourceOption input {
+  margin-top: 3px;
+}
+.toolDataSourceOption strong,
+.toolDataSourceOption small {
+  display: block;
+}
+.toolDataSourceOption small {
+  color: var(--demo-text-muted, var(--muted));
+  font-size: 12px;
+  margin-top: 2px;
+}
+.toolDataSourceDataset {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.toolDataSourceDataset select {
+  text-transform: none;
+}
+.toolDataSourceSelector button {
+  width: 100%;
+}
+.toolDataSourceProgress,
+.toolDataSourceMessage {
+  color: var(--demo-text-muted, var(--muted));
+  font-size: 12px;
+}
+.toolDataSourceProgress div {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 80%, #64748b 20%);
+  margin-bottom: 8px;
+}
+.toolDataSourceProgress div span {
+  display: block;
+  width: 45%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--demo-accent, #2563eb);
+  animation: toolDataSourceProgress 1.1s ease-in-out infinite;
+}
+@keyframes toolDataSourceProgress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(230%); }
+}
 .dataSourceModeGrid {
   display: grid;
   grid-template-columns: 1fr;
@@ -2364,6 +2470,8 @@ button {
   .savedSourceFilters { grid-template-columns: 1fr; }
   .lifecycleDatasetPanel--compact { grid-template-columns: 1fr; }
   .lifecycleDatasetStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolDataSourceCounts,
+  .toolDataSourceOptions { grid-template-columns: 1fr; }
   .dataSourceModeGrid { grid-template-columns: 1fr; }
   .sourceDangerCard { align-items: flex-start; flex-direction: column; }
   .csvMappingGrid,
