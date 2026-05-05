@@ -1175,9 +1175,10 @@ button {
   display: flex;
   gap: 8px;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   overflow-x: auto;
-  padding: 10px 0 14px;
+  min-height: 54px;
+  padding: 8px 0;
   margin: -10px 0 8px;
   background: color-mix(in oklab, var(--bg) 94%, white 6%);
   border-bottom: 1px solid var(--line);
