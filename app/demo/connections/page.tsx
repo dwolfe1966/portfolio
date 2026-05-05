@@ -25,11 +25,11 @@ const connectionModes = [
   },
   {
     title: "Google Sheets",
-    status: "Designed",
+    status: "Preview scaffold",
     detail: "Map sheet tabs to app entities and refresh datasets without manually replacing files.",
-    tools: "Lifecycle first",
-    href: "/lifecycle/connections",
-    action: "View design"
+    tools: "All tools",
+    href: "/workspace/connections/google-sheets",
+    action: "Open Sheets flow"
   },
   {
     title: "Ad platform OAuth",
