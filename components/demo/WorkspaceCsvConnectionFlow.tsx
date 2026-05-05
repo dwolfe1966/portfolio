@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   TOOL_IMPORT_SCHEMAS,
   createEmptyMappings,
@@ -19,6 +19,18 @@ type ImportStatus =
   | { state: "loading"; message: string }
   | { state: "success"; message: string }
   | { state: "error"; message: string };
+
+type SaveStatus = ImportStatus;
+
+type SavedSourceConfig = {
+  id: string;
+  app: string;
+  sourceType: string;
+  name: string;
+  mappings: unknown;
+  metadata: unknown;
+  updatedAt: string;
+};
 
 const toolOrder = TOOL_IMPORT_SCHEMAS.map((schema) => schema.tool);
 
@@ -46,14 +58,43 @@ function summarizeErrors(schema: ToolImportSchema, parsedByObject: Record<string
   return schema.objects.reduce((sum, object) => sum + (parsedByObject[object.key]?.errors.length ?? 0), 0);
 }
 
+function asRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asStringRecord(value: unknown) {
+  const record = asRecord(value);
+  return Object.fromEntries(Object.entries(record).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+}
+
+function asFieldMappings(value: unknown, schema: ToolImportSchema) {
+  const source = asRecord(value);
+  const nextMappings = createEmptyMappings(schema);
+  schema.objects.forEach((object) => {
+    const objectMappings = asStringRecord(source[object.key]);
+    nextMappings[object.key] = Object.fromEntries(object.fields.map((field) => [field, objectMappings[field] ?? ""]));
+  });
+  return nextMappings;
+}
+
 export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: string }) {
   const [selectedTool, setSelectedTool] = useState<ToolKey>(isToolKey(initialTool) ? initialTool : "lifecycle");
   const [datasetName, setDatasetName] = useState("Workspace CSV upload");
   const [csvByTool, setCsvByTool] = useState<Record<ToolKey, Record<string, string>>>(initializeCsvState);
   const [mappingsByTool, setMappingsByTool] = useState<Record<ToolKey, FieldMappings>>(initializeMappingState);
+  const [savedConfigs, setSavedConfigs] = useState<SavedSourceConfig[]>([]);
+  const [selectedConfigId, setSelectedConfigId] = useState("");
   const [importStatus, setImportStatus] = useState<ImportStatus>({
     state: "idle",
     message: "Choose a tool, upload or paste CSV data, map fields, and validate the dataset before import."
+  });
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>({
+    state: "idle",
+    message: "Save the CSV source config after validation to reuse mappings."
+  });
+  const [configStatus, setConfigStatus] = useState<SaveStatus>({
+    state: "idle",
+    message: "Saved CSV source configs will appear here."
   });
 
   const schema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === selectedTool) ?? TOOL_IMPORT_SCHEMAS[0];
@@ -72,15 +113,54 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
   const totalErrors = summarizeErrors(schema, parsedByObject);
   const importReady = totalRows > 0 && totalErrors === 0 && schema.objects.every((object) => parsedByObject[object.key]?.rows.length > 0);
   const persistentImportReady = ["lifecycle", "pricing", "retention", "expansion", "auction", "acquisition"].includes(selectedTool) && importReady;
+  const filteredConfigs = savedConfigs.filter((config) => config.app === selectedTool && config.sourceType === "csv");
+
+  useEffect(() => {
+    void loadSourceConfigs();
+  }, []);
+
+  async function loadSourceConfigs() {
+    setConfigStatus({ state: "loading", message: "Loading saved CSV source configs..." });
+    try {
+      const response = await fetch("/api/workspace/source-configs?sourceType=csv");
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error?.message ?? "Saved CSV source configs could not be loaded.");
+      setSavedConfigs(Array.isArray(payload.configs) ? payload.configs : []);
+      setConfigStatus({ state: "success", message: `Loaded ${(payload.configs ?? []).length} saved CSV source configs.` });
+    } catch (error) {
+      setConfigStatus({
+        state: "error",
+        message: error instanceof Error ? error.message : "Saved CSV source configs could not be loaded."
+      });
+    }
+  }
 
   function selectTool(tool: ToolKey) {
     setSelectedTool(tool);
+    setSelectedConfigId("");
     setImportStatus({
       state: "idle",
       message: tool === "lifecycle"
         ? "Lifecycle CSV data can be imported into the workspace database after validation."
         : `${TOOL_IMPORT_SCHEMAS.find((item) => item.tool === tool)?.label ?? "Tool"} CSV validation is ready. Persistence is the next implementation step.`
     });
+    setSaveStatus({ state: "idle", message: "Save the CSV source config after validation to reuse mappings." });
+  }
+
+  function applySourceConfig(configId: string) {
+    const config = savedConfigs.find((item) => item.id === configId);
+    if (!config || !isToolKey(config.app)) return;
+    const configSchema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === config.app) ?? TOOL_IMPORT_SCHEMAS[0];
+
+    setSelectedTool(config.app);
+    setSelectedConfigId(config.id);
+    setDatasetName(config.name);
+    setMappingsByTool((current) => ({ ...current, [config.app as ToolKey]: asFieldMappings(config.mappings, configSchema) }));
+    setImportStatus({
+      state: "idle",
+      message: `Loaded "${config.name}". Add or paste CSV rows, then validate and import.`
+    });
+    setSaveStatus({ state: "idle", message: "Saved config loaded. Update CSV data or mappings, then save changes if needed." });
   }
 
   function updateCsv(objectKey: string, value: string) {
@@ -137,6 +217,45 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
       return { ...current, [selectedTool]: nextMappings };
     });
     setImportStatus({ state: "idle", message: `Loaded sample ${schema.label.toLowerCase()} CSV data.` });
+  }
+
+  async function saveSourceConfig() {
+    if (!importReady || saveStatus.state === "loading") return;
+    setSaveStatus({
+      state: "loading",
+      message: `Saving ${schema.label.toLowerCase()} CSV source configuration...`
+    });
+
+    try {
+      const response = await fetch("/api/workspace/source-configs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          app: selectedTool,
+          sourceType: "csv",
+          name: datasetName,
+          mappings: mappingsByObject,
+          metadata: {
+            rowCounts: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].rows.length])),
+            headers: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].headers])),
+            lastValidatedAt: new Date().toISOString()
+          }
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error?.message ?? "Source config save failed.");
+      setSaveStatus({
+        state: "success",
+        message: `Saved source config "${payload.config?.name ?? datasetName}".`
+      });
+      await loadSourceConfigs();
+      if (typeof payload.config?.id === "string") setSelectedConfigId(payload.config.id);
+    } catch (error) {
+      setSaveStatus({
+        state: "error",
+        message: error instanceof Error ? error.message : "Source config save failed."
+      });
+    }
   }
 
   async function importDataset() {
@@ -237,6 +356,7 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
                 ? `Imported ${imported.campaignsImported ?? 0} campaigns, ${imported.audiencesImported ?? 0} audiences, ${imported.creativesImported ?? 0} creatives, and ${imported.performanceImported ?? 0} performance rows.`
           : `Imported ${imported.usersImported ?? 0} users, ${imported.entitiesImported ?? 0} entities, ${imported.interestEdgesImported ?? 0} interest edges, and ${imported.changeEventsImported ?? 0} change events.`;
       setImportStatus({ state: "success", message });
+      setSaveStatus({ state: "idle", message: "Import complete. Save or update this CSV source config if you want to reuse it." });
     } catch (error) {
       setImportStatus({
         state: "error",
@@ -259,6 +379,27 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
           This flow uses one schema registry for every tool. CSV rows are mapped into tool objects, validated against required
           fields and ranges, and previewed before import.
         </p>
+        <div className="csvPresetPanel">
+          <div className="editorHeader">
+            <div>
+              <p className="editorKicker">Saved source configs</p>
+              <h3>{filteredConfigs.length} reusable {schema.label.toLowerCase()} CSV configs</h3>
+            </div>
+            <button type="button" onClick={() => void loadSourceConfigs()}>Refresh</button>
+          </div>
+          <div className="csvPresetControls">
+            <label>
+              Saved config
+              <select value={selectedConfigId} onChange={(event) => applySourceConfig(event.target.value)}>
+                <option value="">Start from scratch</option>
+                {filteredConfigs.map((config) => (
+                  <option key={config.id} value={config.id}>{config.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className={`small lifecycleImportStatus lifecycleImportStatus--${configStatus.state}`}>{configStatus.message}</p>
+        </div>
         <div className="csvPresetControls">
           <label>
             Target tool
@@ -278,10 +419,14 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
           <button type="button" disabled={!persistentImportReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
             {importStatus.state === "loading" ? `Importing ${schema.label.toLowerCase()} data...` : persistentImportReady ? `Import ${schema.label.toLowerCase()} dataset` : "Import endpoint pending"}
           </button>
+          <button type="button" disabled={!importReady || saveStatus.state === "loading"} onClick={() => void saveSourceConfig()}>
+            {saveStatus.state === "loading" ? "Saving source..." : importReady ? "Save source config" : "Save after validation"}
+          </button>
           <Link className="btn" href="/workspace/datasets">Review datasets</Link>
         </div>
         <p className="small">Rows parsed: {totalRows} · validation issues: {totalErrors}</p>
         <p className={`small lifecycleImportStatus lifecycleImportStatus--${importStatus.state}`}>{importStatus.message}</p>
+        <p className={`small lifecycleImportStatus lifecycleImportStatus--${saveStatus.state}`}>{saveStatus.message}</p>
         {!["lifecycle", "pricing", "retention", "expansion", "auction", "acquisition"].includes(selectedTool) && importReady ? (
           <p className="small bandText--healthy">
             {schema.label} rows validate successfully. The next backlog item will wire these normalized rows into the tool database tables.
