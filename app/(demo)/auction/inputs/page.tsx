@@ -4,6 +4,7 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { AuctionAdvertiserEditor } from "@/components/auction/AuctionAdvertiserEditor";
 import { AuctionSlotEditor } from "@/components/auction/AuctionSlotEditor";
 import { AuctionBidMatrix } from "@/components/auction/AuctionBidMatrix";
+import { AuctionWorkspaceDatasetPanel } from "@/components/auction/AuctionWorkspaceDatasetPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ export default async function AuctionInputsPage() {
             of cents-per-impression values. Saved bids are fed into every auction run; quality
             scores and reserve prices come into play during clearing.
           </p>
+        </Section>
+
+        <Section title="Current app data">
+          <AuctionWorkspaceDatasetPanel compact />
         </Section>
 
         <Section title="Advertisers">
