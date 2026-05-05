@@ -25,6 +25,14 @@ type ActivityItem = {
   createdAt: Date;
 };
 
+function sourceTypeLabel(sourceType: string) {
+  if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "csv") return "CSV";
+  if (sourceType === "oauth") return "OAuth";
+  if (sourceType === "live") return "Live datasource";
+  return sourceType.toUpperCase();
+}
+
 async function loadActivity() {
   try {
     const [
@@ -35,7 +43,8 @@ async function loadActivity() {
       retention,
       expansion,
       auction,
-      adConnections
+      adConnections,
+      sourceConfigs
     ] = await Promise.all([
       db.lifecycleImportLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.campaignRun.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
@@ -44,7 +53,8 @@ async function loadActivity() {
       db.retentionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.expansionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.auctionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
-      db.adAccountConnection.findMany({ orderBy: { createdAt: "desc" }, take: 8 })
+      db.adAccountConnection.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+      db.lifecycleMappingPreset.findMany({ orderBy: { updatedAt: "desc" }, take: 12, include: { workspace: true } })
     ]);
 
     const items: ActivityItem[] = [
@@ -127,6 +137,16 @@ async function loadActivity() {
         actor: connection.isTestAccount ? "test account" : "live account",
         href: `/acquisition/connections/${connection.id}`,
         createdAt: connection.createdAt
+      })),
+      ...sourceConfigs.map((config) => ({
+        id: `source-config-${config.id}`,
+        app: config.app.charAt(0).toUpperCase() + config.app.slice(1),
+        kind: "Source config",
+        title: config.name,
+        detail: `${sourceTypeLabel(config.sourceType)} mapping in ${config.workspace.name}`,
+        actor: "workspace",
+        href: `/workspace/datasets/${config.id}`,
+        createdAt: config.updatedAt
       }))
     ];
 
@@ -136,7 +156,7 @@ async function loadActivity() {
         imports: imports.length,
         lifecycleRuns: lifecycleRuns.length,
         audits: acquisition.length + pricing.length + retention.length + expansion.length + auction.length,
-        connections: adConnections.length
+        connections: adConnections.length + sourceConfigs.length
       },
       compatibilityMode: false
     };

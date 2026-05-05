@@ -57,18 +57,49 @@ const rolloutSteps = [
   "Run a model with owned data"
 ];
 
+function formatDate(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(value);
+}
+
+function sourceTypeLabel(sourceType: string) {
+  if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "csv") return "CSV";
+  if (sourceType === "oauth") return "OAuth";
+  if (sourceType === "live") return "Live datasource";
+  return sourceType.toUpperCase();
+}
+
+function sourceConfigHref(sourceType: string, app: string, id: string) {
+  const encodedApp = encodeURIComponent(app);
+  const encodedId = encodeURIComponent(id);
+  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}&config=${encodedId}`;
+  if (sourceType === "csv") return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}`;
+  return "/workspace/settings";
+}
+
 async function loadConnectionSummary() {
   try {
-    const [presets, imports, adConnections] = await Promise.all([
+    const [sourceConfigs, csvConfigs, sheetConfigs, adConnections, recentSourceConfigs] = await Promise.all([
       db.lifecycleMappingPreset.count(),
-      db.lifecycleImportLog.count(),
-      db.adAccountConnection.count()
+      db.lifecycleMappingPreset.count({ where: { sourceType: "csv" } }),
+      db.lifecycleMappingPreset.count({ where: { sourceType: "google_sheets" } }),
+      db.adAccountConnection.count(),
+      db.lifecycleMappingPreset.findMany({
+        orderBy: { updatedAt: "desc" },
+        take: 6,
+        include: { workspace: true }
+      })
     ]);
 
-    return { presets, imports, adConnections, compatibilityMode: false };
+    return { sourceConfigs, csvConfigs, sheetConfigs, adConnections, recentSourceConfigs, compatibilityMode: false };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return { presets: 0, imports: 0, adConnections: 0, compatibilityMode: true };
+      return { sourceConfigs: 0, csvConfigs: 0, sheetConfigs: 0, adConnections: 0, recentSourceConfigs: [], compatibilityMode: true };
     }
     throw error;
   }
@@ -90,20 +121,20 @@ export default async function DemoConnectionsPage() {
       <Section title="Connection status">
         <div className="grid grid-4">
           <div className="card">
-            <p className="small">Saved mappings</p>
-            <div className="kpi">{summary.presets.toLocaleString()}</div>
+            <p className="small">Source configs</p>
+            <div className="kpi">{summary.sourceConfigs.toLocaleString()}</div>
           </div>
           <div className="card">
-            <p className="small">Lifecycle imports</p>
-            <div className="kpi">{summary.imports.toLocaleString()}</div>
+            <p className="small">CSV configs</p>
+            <div className="kpi">{summary.csvConfigs.toLocaleString()}</div>
+          </div>
+          <div className="card">
+            <p className="small">Sheet configs</p>
+            <div className="kpi">{summary.sheetConfigs.toLocaleString()}</div>
           </div>
           <div className="card">
             <p className="small">Ad connections</p>
             <div className="kpi">{summary.adConnections.toLocaleString()}</div>
-          </div>
-          <div className="card">
-            <p className="small">Persistence</p>
-            <div className="kpi">{summary.compatibilityMode ? "Setup" : "Active"}</div>
           </div>
         </div>
         {summary.compatibilityMode ? (
@@ -123,6 +154,46 @@ export default async function DemoConnectionsPage() {
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section title="Recent saved sources">
+        {summary.recentSourceConfigs.length === 0 ? (
+          <div className="card">
+            <p>No saved source configs yet. Open CSV or Google Sheets to save reusable mappings for any tool.</p>
+          </div>
+        ) : (
+          <div className="tableScroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Tool</th>
+                  <th>Type</th>
+                  <th>Workspace</th>
+                  <th>Updated</th>
+                  <th>Manage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.recentSourceConfigs.map((config) => (
+                  <tr key={config.id}>
+                    <td><strong>{config.name}</strong></td>
+                    <td>{config.app}</td>
+                    <td>{sourceTypeLabel(config.sourceType)}</td>
+                    <td>{config.workspace.name}</td>
+                    <td>{formatDate(config.updatedAt)}</td>
+                    <td>
+                      <div className="importHistoryActions">
+                        <Link className="btn smallBtn primary" href={sourceConfigHref(config.sourceType, config.app, config.id)}>Open</Link>
+                        <Link className="btn smallBtn" href={`/workspace/datasets/${encodeURIComponent(config.id)}`}>Details</Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Section>
 
       <Section title="Reusable import workflow">
