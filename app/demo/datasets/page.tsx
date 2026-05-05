@@ -73,9 +73,10 @@ function sourceDetail(value: unknown) {
   const metadata = metadataRecord(value);
   const sheetId = typeof metadata.sheetId === "string" ? metadata.sheetId : "";
   const lastPreviewedAt = typeof metadata.lastPreviewedAt === "string" ? metadata.lastPreviewedAt : "";
+  const lastValidatedAt = typeof metadata.lastValidatedAt === "string" ? metadata.lastValidatedAt : "";
   const lastImportedAt = typeof metadata.lastImportedAt === "string" ? metadata.lastImportedAt : "";
   const lastImportedRowsTotal = typeof metadata.lastImportedRowsTotal === "number" ? metadata.lastImportedRowsTotal : 0;
-  return { sheetId, lastPreviewedAt, lastImportedAt, lastImportedRowsTotal };
+  return { sheetId, lastPreviewedAt, lastValidatedAt, lastImportedAt, lastImportedRowsTotal };
 }
 
 function formatOptionalDate(value: string) {
@@ -83,11 +84,17 @@ function formatOptionalDate(value: string) {
   return Number.isNaN(date.getTime()) ? "" : formatDate(date);
 }
 
-function sourceConfigHref(sourceType: string, app: string, id: string) {
+function toolPageHref(app: string, page: "inputs" | "simulations") {
+  const safeApp = ["lifecycle", "acquisition", "pricing", "retention", "expansion", "auction"].includes(app) ? app : "lifecycle";
+  return `/${safeApp}/${page}?imported=1`;
+}
+
+function sourceConfigHref(sourceType: string, app: string, id: string, action?: "refresh" | "map" | "import") {
   const encodedApp = encodeURIComponent(app);
   const encodedId = encodeURIComponent(id);
-  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}&config=${encodedId}`;
-  return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}`;
+  const actionParam = action ? `&action=${action}` : "";
+  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}&config=${encodedId}${actionParam}`;
+  return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}${actionParam}`;
 }
 
 async function deleteSourceConfig(formData: FormData) {
@@ -225,13 +232,28 @@ export default async function DemoDatasetsPage() {
                             ) : null}
                           </>
                         ) : (
-                          <span className="small">Mapping preset</span>
+                          <>
+                            <span className="small">Mapping preset</span>
+                            {detail.lastValidatedAt ? <p className="small">Validated {formatOptionalDate(detail.lastValidatedAt)}</p> : null}
+                            {detail.lastImportedAt ? (
+                              <p className="small">
+                                Imported {formatOptionalDate(detail.lastImportedAt)}
+                                {detail.lastImportedRowsTotal > 0 ? ` · ${detail.lastImportedRowsTotal.toLocaleString()} rows` : ""}
+                              </p>
+                            ) : null}
+                          </>
                         )}
                       </td>
                       <td>{formatDate(preset.updatedAt)}</td>
                       <td>
                         <div className="importHistoryActions">
-                          <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id)}>Open</Link>
+                          {preset.sourceType === "google_sheets" ? (
+                            <Link className="btn smallBtn primary" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "refresh")}>Refresh</Link>
+                          ) : null}
+                          <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "map")}>Map</Link>
+                          <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "import")}>Import</Link>
+                          <Link className="btn smallBtn" href={toolPageHref(preset.app, "inputs")}>Inputs</Link>
+                          <Link className="btn smallBtn" href={toolPageHref(preset.app, "simulations")}>Simulate</Link>
                           <form action={deleteSourceConfig}>
                             <input type="hidden" name="id" value={preset.id} />
                             <button className="smallBtn" type="submit">Delete</button>

@@ -38,6 +38,10 @@ function isToolKey(value: string | undefined): value is ToolKey {
   return Boolean(value && toolOrder.includes(value as ToolKey));
 }
 
+function isConnectorAction(value: string | undefined): value is "map" | "import" {
+  return value === "map" || value === "import";
+}
+
 function emptyCsvByObject(schema: ToolImportSchema) {
   return Object.fromEntries(schema.objects.map((object) => [object.key, ""])) as Record<string, string>;
 }
@@ -77,7 +81,15 @@ function asFieldMappings(value: unknown, schema: ToolImportSchema) {
   return nextMappings;
 }
 
-export function WorkspaceCsvConnectionFlow({ initialTool, initialConfigId }: { initialTool?: string; initialConfigId?: string }) {
+export function WorkspaceCsvConnectionFlow({
+  initialTool,
+  initialConfigId,
+  initialAction
+}: {
+  initialTool?: string;
+  initialConfigId?: string;
+  initialAction?: string;
+}) {
   const [selectedTool, setSelectedTool] = useState<ToolKey>(isToolKey(initialTool) ? initialTool : "lifecycle");
   const [datasetName, setDatasetName] = useState("Workspace CSV upload");
   const [csvByTool, setCsvByTool] = useState<Record<ToolKey, Record<string, string>>>(initializeCsvState);
@@ -96,6 +108,7 @@ export function WorkspaceCsvConnectionFlow({ initialTool, initialConfigId }: { i
     state: "idle",
     message: "Saved CSV source configs will appear here."
   });
+  const connectorAction = isConnectorAction(initialAction) ? initialAction : undefined;
 
   const schema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === selectedTool) ?? TOOL_IMPORT_SCHEMAS[0];
   const csvByObject = csvByTool[selectedTool];
@@ -131,6 +144,32 @@ export function WorkspaceCsvConnectionFlow({ initialTool, initialConfigId }: { i
     }
   }
 
+  async function patchSelectedSourceConfig(metadataPatch: Record<string, unknown>, successMessage: string, failureMessage: string) {
+    if (!selectedConfigId) return false;
+    try {
+      const response = await fetch("/api/workspace/source-configs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedConfigId,
+          metadataPatch,
+          mappings: mappingsByObject
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error?.message ?? failureMessage);
+      setSaveStatus({ state: "success", message: successMessage });
+      await loadSourceConfigs();
+      return true;
+    } catch (error) {
+      setSaveStatus({
+        state: "error",
+        message: error instanceof Error ? `${failureMessage} ${error.message}` : failureMessage
+      });
+      return false;
+    }
+  }
+
   function selectTool(tool: ToolKey) {
     setSelectedTool(tool);
     setSelectedConfigId("");
@@ -154,10 +193,17 @@ export function WorkspaceCsvConnectionFlow({ initialTool, initialConfigId }: { i
     setMappingsByTool((current) => ({ ...current, [config.app as ToolKey]: asFieldMappings(config.mappings, configSchema) }));
     setImportStatus({
       state: "idle",
-      message: `Loaded "${config.name}". Add or paste CSV rows, then validate and import.`
+      message: connectorAction === "import"
+        ? `Loaded "${config.name}". Add or paste CSV rows, validate them, then import.`
+        : `Loaded "${config.name}". Add or paste CSV rows, then validate and import.`
     });
-    setSaveStatus({ state: "idle", message: "Saved config loaded. Update CSV data or mappings, then save changes if needed." });
-  }, [savedConfigs]);
+    setSaveStatus({
+      state: "idle",
+      message: connectorAction === "map"
+        ? "Saved mapping loaded. Update source columns or mappings, then save the config."
+        : "Saved config loaded. Update CSV data or mappings, then save changes if needed."
+    });
+  }, [connectorAction, savedConfigs]);
 
   useEffect(() => {
     void loadSourceConfigs();
@@ -361,7 +407,21 @@ export function WorkspaceCsvConnectionFlow({ initialTool, initialConfigId }: { i
                 ? `Imported ${imported.campaignsImported ?? 0} campaigns, ${imported.audiencesImported ?? 0} audiences, ${imported.creativesImported ?? 0} creatives, and ${imported.performanceImported ?? 0} performance rows.`
           : `Imported ${imported.usersImported ?? 0} users, ${imported.entitiesImported ?? 0} entities, ${imported.interestEdgesImported ?? 0} interest edges, and ${imported.changeEventsImported ?? 0} change events.`;
       setImportStatus({ state: "success", message });
-      setSaveStatus({ state: "idle", message: "Import complete. Save or update this CSV source config if you want to reuse it." });
+      const rowCounts = Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].rows.length]));
+      await patchSelectedSourceConfig(
+        {
+          lastImportedAt: new Date().toISOString(),
+          lastImportStatus: "success",
+          lastImportedRowCounts: rowCounts,
+          lastImportedRowsTotal: Object.values(rowCounts).reduce((sum, count) => sum + count, 0),
+          lastImportSummary: message
+        },
+        "Import complete. Saved CSV source config metadata updated.",
+        "Import complete, but saved CSV config metadata could not be updated."
+      );
+      if (!selectedConfigId) {
+        setSaveStatus({ state: "idle", message: "Import complete. Save or update this CSV source config if you want to reuse it." });
+      }
     } catch (error) {
       setImportStatus({
         state: "error",

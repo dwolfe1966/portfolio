@@ -16,7 +16,7 @@ export const metadata: Metadata = buildMetadata({
 });
 
 type PageProps = {
-  searchParams: Promise<{ tool?: string; config?: string }>;
+  searchParams: Promise<{ tool?: string; config?: string; action?: string }>;
 };
 
 type CredentialStatus = {
@@ -123,7 +123,7 @@ export default async function WorkspaceGoogleSheetsConnectionPage({ searchParams
       </Section>
 
       <Section title="Sheet preview">
-        <GoogleSheetsConnectionFlow initialTool={params.tool} initialConfigId={params.config} />
+        <GoogleSheetsConnectionFlow initialTool={params.tool} initialConfigId={params.config} initialAction={params.action} />
       </Section>
 
       <Section title="Credential setup">

@@ -50,6 +50,10 @@ function isToolKey(value: string | undefined): value is ToolKey {
   return Boolean(value && toolOrder.includes(value as ToolKey));
 }
 
+function isConnectorAction(value: string | undefined): value is "refresh" | "map" | "import" {
+  return value === "refresh" || value === "map" || value === "import";
+}
+
 function defaultRange(objectTitle: string) {
   return `${objectTitle}!A:Z`;
 }
@@ -126,7 +130,15 @@ function previewMetadata(
   };
 }
 
-export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { initialTool?: string; initialConfigId?: string }) {
+export function GoogleSheetsConnectionFlow({
+  initialTool,
+  initialConfigId,
+  initialAction
+}: {
+  initialTool?: string;
+  initialConfigId?: string;
+  initialAction?: string;
+}) {
   const [selectedTool, setSelectedTool] = useState<ToolKey>(isToolKey(initialTool) ? initialTool : "lifecycle");
   const [datasetName, setDatasetName] = useState("Workspace Google Sheets import");
   const [sheetUrlOrId, setSheetUrlOrId] = useState("");
@@ -155,6 +167,7 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
     state: "idle",
     message: "Load a saved config to refresh live Sheet rows."
   });
+  const connectorAction = isConnectorAction(initialAction) ? initialAction : undefined;
 
   const schema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === selectedTool) ?? TOOL_IMPORT_SCHEMAS[0];
   const ranges = rangesByTool[selectedTool];
@@ -261,12 +274,31 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
     setMappingsByTool((current) => ({ ...current, [config.app as ToolKey]: asFieldMappings(config.mappings, configSchema) }));
     setPreviewStatus({
       state: "idle",
-      message: `Loaded "${config.name}". Preview the Sheet to refresh rows before import.`
+      message: connectorAction === "refresh"
+        ? `Loaded "${config.name}". Click Refresh saved Sheet to pull the latest rows.`
+        : connectorAction === "import"
+          ? `Loaded "${config.name}". Preview or refresh the Sheet, then import the validated rows.`
+          : `Loaded "${config.name}". Preview the Sheet to refresh rows before import.`
     });
-    setImportStatus({ state: "idle", message: "Preview the saved source config before import." });
-    setSaveStatus({ state: "idle", message: "Saved config loaded. Preview, adjust, then save updates if needed." });
-    setRefreshStatus({ state: "idle", message: "Saved config loaded. Refresh live Sheet rows when ready." });
-  }, [savedConfigs]);
+    setImportStatus({
+      state: "idle",
+      message: connectorAction === "import"
+        ? "Import is available after the saved Sheet is previewed and mappings validate."
+        : "Preview the saved source config before import."
+    });
+    setSaveStatus({
+      state: "idle",
+      message: connectorAction === "map"
+        ? "Saved config loaded for mapping updates. Preview rows after you adjust ranges or mappings."
+        : "Saved config loaded. Preview, adjust, then save updates if needed."
+    });
+    setRefreshStatus({
+      state: "idle",
+      message: connectorAction === "refresh"
+        ? "Ready to refresh this saved Google Sheet source."
+        : "Saved config loaded. Refresh live Sheet rows when ready."
+    });
+  }, [connectorAction, savedConfigs]);
 
   useEffect(() => {
     void loadSourceConfigs();
