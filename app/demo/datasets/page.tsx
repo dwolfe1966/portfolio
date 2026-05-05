@@ -1,13 +1,10 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
-import { getDefaultWorkspace } from "@/lib/workspace";
 import { loadWorkspaceDatasetReadiness, summarizeDatasetReadiness } from "@/lib/workspace-datasets";
 
 export const dynamic = "force-dynamic";
@@ -101,12 +98,11 @@ function toolPageHref(app: string, page: "inputs" | "simulations") {
   return `/${safeApp}/${page}?imported=1`;
 }
 
-function sourceConfigHref(sourceType: string, app: string, id: string, action?: "refresh" | "map" | "import") {
+function sourceConfigHref(sourceType: string, app: string, id: string) {
   const encodedApp = encodeURIComponent(app);
   const encodedId = encodeURIComponent(id);
-  const actionParam = action ? `&action=${action}` : "";
-  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}&config=${encodedId}${actionParam}`;
-  return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}${actionParam}`;
+  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}&config=${encodedId}`;
+  return `/workspace/connections/csv?tool=${encodedApp}&config=${encodedId}`;
 }
 
 function sourceDetailHref(id: string) {
@@ -121,18 +117,6 @@ function sourceTypeLabel(sourceType: string) {
 
 function cleanFilter(value: string | undefined) {
   return String(value ?? "").trim().slice(0, 80);
-}
-
-async function deleteSourceConfig(formData: FormData) {
-  "use server";
-
-  if (!isDemoMutationAllowed()) return;
-  const id = String(formData.get("id") ?? "").trim();
-  if (!id) return;
-  const workspace = await getDefaultWorkspace();
-  await db.lifecycleMappingPreset.deleteMany({ where: { id, workspaceId: workspace.id } });
-  revalidatePath("/workspace/datasets");
-  revalidatePath("/demo/datasets");
 }
 
 export default async function DemoDatasetsPage({ searchParams }: PageProps) {
@@ -329,7 +313,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                         <th>Rows</th>
                         <th>Source detail</th>
                         <th>Updated</th>
-                        <th>Manage</th>
+                  <th>Next</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -370,18 +354,8 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                             <td>{formatDate(preset.updatedAt)}</td>
                             <td>
                               <div className="importHistoryActions">
-                                {preset.sourceType === "google_sheets" ? (
-                                  <Link className="btn smallBtn primary" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "refresh")}>Refresh</Link>
-                                ) : null}
-                                <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "map")}>Map</Link>
-                                <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, "import")}>Import</Link>
-                                <Link className="btn smallBtn" href={sourceDetailHref(preset.id)}>Details</Link>
-                                <Link className="btn smallBtn" href={toolPageHref(preset.app, "inputs")}>Inputs</Link>
-                                <Link className="btn smallBtn" href={toolPageHref(preset.app, "simulations")}>Simulate</Link>
-                                <form action={deleteSourceConfig}>
-                                  <input type="hidden" name="id" value={preset.id} />
-                                  <button className="smallBtn" type="submit">Delete</button>
-                                </form>
+                                <Link className="btn smallBtn primary" href={sourceDetailHref(preset.id)}>Manage source</Link>
+                                <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id)}>Open connector</Link>
                               </div>
                             </td>
                           </tr>

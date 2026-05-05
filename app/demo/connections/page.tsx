@@ -184,8 +184,8 @@ export default async function DemoConnectionsPage() {
                     <td>{formatDate(config.updatedAt)}</td>
                     <td>
                       <div className="importHistoryActions">
-                        <Link className="btn smallBtn primary" href={sourceConfigHref(config.sourceType, config.app, config.id)}>Open</Link>
-                        <Link className="btn smallBtn" href={`/workspace/datasets/${encodeURIComponent(config.id)}`}>Details</Link>
+                        <Link className="btn smallBtn primary" href={`/workspace/datasets/${encodeURIComponent(config.id)}`}>Manage source</Link>
+                        <Link className="btn smallBtn" href={sourceConfigHref(config.sourceType, config.app, config.id)}>Open connector</Link>
                       </div>
                     </td>
                   </tr>
