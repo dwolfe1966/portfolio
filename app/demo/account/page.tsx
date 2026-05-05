@@ -5,11 +5,13 @@ import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import {
   ACCOUNT_SESSION_COOKIE,
+  AccountAuthError,
   createAccountSessionToken,
   getAccountSessionUser,
   isValidAccountEmail,
   normalizeAccountEmail,
   normalizeAccountName,
+  normalizeAccountPassword,
   upsertAccountUserWithDefaultWorkspace
 } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -47,11 +49,20 @@ async function saveAccountProfile(formData: FormData) {
 
   const email = normalizeAccountEmail(formData.get("email"));
   if (!isValidAccountEmail(email)) redirect("/workspace/account?error=email");
+  const password = normalizeAccountPassword(formData.get("password"));
 
-  const { accountUser } = await upsertAccountUserWithDefaultWorkspace({
-    email,
-    name: normalizeAccountName(formData.get("name"), email)
-  });
+  let accountUser;
+  try {
+    const result = await upsertAccountUserWithDefaultWorkspace({
+      email,
+      password,
+      name: normalizeAccountName(formData.get("name"), email)
+    });
+    accountUser = result.accountUser;
+  } catch (error) {
+    if (error instanceof AccountAuthError) redirect(`/workspace/account?error=${error.code}`);
+    throw error;
+  }
   const token = createAccountSessionToken({ userId: accountUser.id, email: accountUser.email });
   const cookieStore = await cookies();
   cookieStore.set(ACCOUNT_SESSION_COOKIE, token, {
@@ -105,6 +116,9 @@ export default async function WorkspaceAccountPage({
       <Section title="Profile">
         {params?.saved === "profile" ? <p className="small bandText--healthy">Account profile saved.</p> : null}
         {params?.error === "email" ? <p className="small bandText--unhealthy">Enter a valid email address.</p> : null}
+        {params?.error === "PASSWORD_REQUIRED" ? <p className="small bandText--unhealthy">Enter a password for this account.</p> : null}
+        {params?.error === "PASSWORD_TOO_SHORT" ? <p className="small bandText--unhealthy">Password must be at least 8 characters.</p> : null}
+        {params?.error === "INVALID_PASSWORD" ? <p className="small bandText--unhealthy">The password does not match this account.</p> : null}
         {params?.error === "mutations" ? <p className="small bandText--unhealthy">Account editing is disabled in this environment.</p> : null}
         {compatibilityMode ? (
           <div className="card">
@@ -122,13 +136,17 @@ export default async function WorkspaceAccountPage({
                   <span>Email</span>
                   <input name="email" type="email" defaultValue={accountUser?.email ?? ""} required placeholder="you@example.com" />
                 </label>
-                <button className="btn primary" type="submit">{accountUser ? "Update account" : "Create account"}</button>
+                <label>
+                  <span>Password</span>
+                  <input name="password" type="password" minLength={8} required autoComplete={accountUser ? "current-password" : "new-password"} placeholder="Minimum 8 characters" />
+                </label>
+                <button className="btn primary" type="submit">{accountUser ? "Update / sign in" : "Create account / sign in"}</button>
               </form>
             </div>
             <div className="card accessSessionCard">
               <p className="small">Current account</p>
               <div className="workspaceSettingValue">{accountUser?.email ?? "No account session"}</div>
-              <p>{accountUser ? "This browser has an active signed account session." : "Create or enter an account profile to attach future datasets to a user."}</p>
+              <p>{accountUser ? "This browser has an active signed account session." : "Create an account or sign in to attach future datasets to a user."}</p>
               {accountUser ? (
                 <form action={leaveAccount}>
                   <button className="btn" type="submit">Clear account session</button>

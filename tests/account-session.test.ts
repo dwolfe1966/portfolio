@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createAccountSessionToken,
+  hashAccountPassword,
   isValidAccountEmail,
   normalizeAccountEmail,
   normalizeAccountName,
+  verifyAccountPassword,
   verifyAccountSessionToken
 } from "@/lib/account-session";
 
@@ -26,4 +28,11 @@ test("account session token verifies and rejects tampering", () => {
 
   const [body, signature] = token.split(".");
   assert.equal(verifyAccountSessionToken(`${body}.${signature.slice(0, -2)}xx`), null);
+});
+
+test("account password hashes verify without storing the raw password", () => {
+  const hash = hashAccountPassword("correct horse battery staple");
+  assert.notEqual(hash, "correct horse battery staple");
+  assert.equal(verifyAccountPassword("correct horse battery staple", hash), true);
+  assert.equal(verifyAccountPassword("wrong password", hash), false);
 });

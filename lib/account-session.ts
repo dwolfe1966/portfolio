@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { getDefaultWorkspace } from "@/lib/workspace";
 
@@ -13,6 +13,18 @@ type AccountSessionPayload = {
   email: string;
   exp: number;
 };
+
+const PASSWORD_KEY_LENGTH = 64;
+
+export class AccountAuthError extends Error {
+  code: "INVALID_PASSWORD" | "PASSWORD_REQUIRED" | "PASSWORD_TOO_SHORT";
+
+  constructor(code: AccountAuthError["code"], message: string) {
+    super(message);
+    this.name = "AccountAuthError";
+    this.code = code;
+  }
+}
 
 function base64UrlEncode(value: string) {
   return Buffer.from(value, "utf8").toString("base64url");
@@ -51,6 +63,31 @@ export function isValidAccountEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+export function normalizeAccountPassword(value: unknown) {
+  return String(value ?? "");
+}
+
+export function validateAccountPassword(password: string) {
+  if (!password) throw new AccountAuthError("PASSWORD_REQUIRED", "Password is required.");
+  if (password.length < 8) throw new AccountAuthError("PASSWORD_TOO_SHORT", "Password must be at least 8 characters.");
+}
+
+export function hashAccountPassword(password: string) {
+  validateAccountPassword(password);
+  const salt = randomBytes(16).toString("base64url");
+  const hash = scryptSync(password, salt, PASSWORD_KEY_LENGTH).toString("base64url");
+  return `scrypt$${salt}$${hash}`;
+}
+
+export function verifyAccountPassword(password: string, passwordHash: string | null | undefined) {
+  if (!passwordHash) return false;
+  const [algorithm, salt, storedHash] = passwordHash.split("$");
+  if (algorithm !== "scrypt" || !salt || !storedHash) return false;
+  const candidate = scryptSync(password, salt, PASSWORD_KEY_LENGTH);
+  const stored = Buffer.from(storedHash, "base64url");
+  return candidate.length === stored.length && timingSafeEqual(candidate, stored);
+}
+
 export function createAccountSessionToken(input: { userId: string; email: string }) {
   const payload: AccountSessionPayload = {
     v: SESSION_VERSION,
@@ -78,16 +115,35 @@ export function verifyAccountSessionToken(token: string | undefined) {
   }
 }
 
-export async function upsertAccountUserWithDefaultWorkspace(input: { email: string; name?: string }) {
+export async function upsertAccountUserWithDefaultWorkspace(input: { email: string; name?: string; password: string }) {
   const email = normalizeAccountEmail(input.email);
   if (!isValidAccountEmail(email)) throw new Error("A valid email address is required.");
   const name = normalizeAccountName(input.name, email);
+  const password = normalizeAccountPassword(input.password);
+  validateAccountPassword(password);
   const workspace = await getDefaultWorkspace();
-  const accountUser = await db.accountUser.upsert({
-    where: { email },
-    update: { name },
-    create: { email, name }
-  });
+  const existing = await db.accountUser.findUnique({ where: { email } });
+  if (existing?.passwordHash && !verifyAccountPassword(password, existing.passwordHash)) {
+    throw new AccountAuthError("INVALID_PASSWORD", "Password is incorrect.");
+  }
+  const passwordHash = existing?.passwordHash ?? hashAccountPassword(password);
+  const accountUser = existing
+    ? await db.accountUser.update({
+        where: { id: existing.id },
+        data: {
+          name,
+          passwordHash,
+          passwordSetAt: existing.passwordSetAt ?? new Date()
+        }
+      })
+    : await db.accountUser.create({
+        data: {
+          email,
+          name,
+          passwordHash,
+          passwordSetAt: new Date()
+        }
+      });
   await db.workspaceMembership.upsert({
     where: {
       workspaceId_accountUserId: {

@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { applyLifecycleDatasetSnapshotAction } from "@/app/(demo)/lifecycle/inputs/actions";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
@@ -23,13 +26,32 @@ function sourceLabel(value: string | null | undefined) {
   return value.replaceAll("_", " ");
 }
 
+function rowCountTotal(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return 0;
+  return Object.values(value as Record<string, unknown>).reduce<number>((sum, count) => (
+    sum + (typeof count === "number" ? count : 0)
+  ), 0);
+}
+
 export async function LifecycleWorkspaceDatasetPanel({ compact = false }: LifecycleWorkspaceDatasetPanelProps) {
   try {
-    const [latestImport, latestSource, users, entities, interestEdges, events] = await Promise.all([
+    const cookieStore = await cookies();
+    const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    const [latestImport, latestSource, snapshots, users, entities, interestEdges, events] = await Promise.all([
       db.lifecycleImportLog.findFirst({ orderBy: { createdAt: "desc" } }),
       db.lifecycleMappingPreset.findFirst({
         where: { app: "lifecycle" },
         orderBy: { updatedAt: "desc" }
+      }),
+      db.workspaceDataset.findMany({
+        where: {
+          app: "lifecycle",
+          OR: session
+            ? [{ accountUserId: session.userId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        },
+        orderBy: { createdAt: "desc" },
+        take: 12
       }),
       db.user.count(),
       db.entity.count(),
@@ -63,6 +85,26 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
           <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}{importedRows > 0 ? ` · ${importedRows.toLocaleString()} rows` : ""}</p>
           <p><strong>Workspace source:</strong> {latestSource ? `${latestSource.name} (${sourceLabel(latestSource.sourceType)})` : "None available"}</p>
         </div>
+        {snapshots.length > 0 ? (
+          <form className="lifecycleDatasetSelector" action={applyLifecycleDatasetSnapshotAction}>
+            <label>
+              Use imported dataset
+              <select name="datasetId" defaultValue={snapshots[0]?.id}>
+                {snapshots.map((snapshot) => (
+                  <option key={snapshot.id} value={snapshot.id}>
+                    {snapshot.name} · {sourceLabel(snapshot.sourceType)} · {rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · {formatDate(snapshot.createdAt)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit">Apply dataset to lifecycle app</button>
+            <p className="small">
+              Applying a dataset replaces active lifecycle users, entities, interest edges, events, and generated run output.
+            </p>
+          </form>
+        ) : (
+          <p className="small">No imported lifecycle dataset snapshots are available for this account yet.</p>
+        )}
         <div className="ctaRow">
           <Link className="btn smallBtn primary" href="/lifecycle/simulations">Run with current data</Link>
           <Link className="btn smallBtn" href="/lifecycle/inputs">Review app inputs</Link>
