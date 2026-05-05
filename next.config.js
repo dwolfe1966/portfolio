@@ -19,6 +19,11 @@ const nextConfig = {
         source: "/demo/:path*",
         destination: "/workspace/:path*",
         permanent: false
+      },
+      {
+        source: "/workspace",
+        destination: "/workspace/dashboard",
+        permanent: false
       }
     ];
   },
