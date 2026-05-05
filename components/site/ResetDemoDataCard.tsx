@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 type ResetDemoDataCardProps = {
   appLabel: "Lifecycle" | "Acquisition" | "Auction" | "Pricing" | "Retention" | "Expansion";
   scope?: "all" | "lifecycle" | "acquisition" | "auction" | "pricing" | "retention" | "expansion";
+  variant?: "card" | "embedded";
 };
 
-export function ResetDemoDataCard({ appLabel, scope = "all" }: ResetDemoDataCardProps) {
+export function ResetDemoDataCard({ appLabel, scope = "all", variant = "card" }: ResetDemoDataCardProps) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -42,8 +43,10 @@ export function ResetDemoDataCard({ appLabel, scope = "all" }: ResetDemoDataCard
     ? "Clears lifecycle, acquisition, auction, pricing, retention, and expansion records, then reseeds representative baseline data for all Tools."
     : `Clears ${appLabel.toLowerCase()} workspace records, then reseeds representative ${appLabel.toLowerCase()} baseline data.`;
 
+  const wrapperClass = variant === "embedded" ? "sampleDataResetEmbedded" : "card";
+
   return (
-    <div className="card">
+    <div className={wrapperClass}>
       <h3>Reset workspace data</h3>
       <p className="small">{scopeCopy}</p>
       <label className="small" style={{ display: "block", marginBottom: 8 }}>

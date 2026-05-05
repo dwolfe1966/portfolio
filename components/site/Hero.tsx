@@ -15,7 +15,7 @@ export function Hero() {
         consumer data products, and AI-enabled operating leverage.
       </p>
       <div className="ctaRow">
-        <Link className="btn primary" href="/projects/lifecycle-revenue-engine">View flagship project</Link>
+        <Link className="btn primary" href="/projects/lifecycle-revenue-engine">View flagship product</Link>
         <Link className="btn" href="/writing/ai-revenue-systems">Read point of view</Link>
       </div>
     </section>

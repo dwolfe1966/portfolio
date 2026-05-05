@@ -2279,6 +2279,47 @@ button {
   color: var(--demo-text-muted, var(--muted));
   font-size: 12px;
 }
+.dataSourceModeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.dataSourceModePanel,
+.sampleDataResetEmbedded {
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 94%, #64748b 6%);
+  padding: 10px;
+}
+.dataSourceModePanel {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.sampleDataResetEmbedded {
+  background: color-mix(in oklab, var(--demo-surface, #fff) 92%, #22c55e 8%);
+}
+.sampleDataResetEmbedded h3 {
+  font-size: 14px;
+}
+.sampleDataResetEmbedded label {
+  color: var(--demo-text-muted, var(--muted));
+}
+.sampleDataResetEmbedded button,
+.lifecycleDatasetSelector button {
+  width: 100%;
+}
+.lifecycleDatasetSelector {
+  display: grid;
+  gap: 8px;
+}
+.lifecycleDatasetSelector label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
 .importHistoryActions {
   display: flex;
   flex-wrap: wrap;
@@ -2307,6 +2348,7 @@ button {
   .savedSourceFilters { grid-template-columns: 1fr; }
   .lifecycleDatasetPanel--compact { grid-template-columns: 1fr; }
   .lifecycleDatasetStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dataSourceModeGrid { grid-template-columns: 1fr; }
   .sourceDangerCard { align-items: flex-start; flex-direction: column; }
   .csvMappingGrid,
   .csvPresetControls { grid-template-columns: 1fr; }

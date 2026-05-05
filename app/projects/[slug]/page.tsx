@@ -28,8 +28,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!project) {
     return buildMetadata({
-      title: "Project not found | David Wolfe",
-      description: "The requested project case study could not be found.",
+      title: "Product not found | David Wolfe",
+      description: "The requested product case study could not be found.",
       path: "/projects"
     });
   }
@@ -52,7 +52,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   return (
     <>
-      <Section eyebrow="Project" title={project.title}>
+      <Section eyebrow="Product" title={project.title}>
         <p>{project.summary}</p>
         {project.appHref ? (
           <div style={{ maxWidth: 520, marginTop: 16 }}>
@@ -63,7 +63,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           </div>
         ) : null}
         <div className="ctaRow">
-          <Link className="btn" href="/projects">Back to projects</Link>
+          <Link className="btn" href="/projects">Back to products</Link>
         </div>
       </Section>
       <Section title="The problem"><p className="caseStudyNarrative">{project.problem}</p></Section>
@@ -108,10 +108,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       </Section>
       <Section title="Commercial framing"><p className="caseStudyNarrative">{project.commercialFraming}</p></Section>
       <Section title="What I built"><p className="caseStudyNarrative">{project.whatIBuilt}</p></Section>
-      <Section title="Browse projects">
+      <Section title="Browse products">
         <div className="ctaRow">
-          {prev ? <Link className="btn" href={`/projects/${prev.slug}`}>← {prev.title}</Link> : <span className="small">No previous project</span>}
-          {next ? <Link className="btn" href={`/projects/${next.slug}`}>{next.title} →</Link> : <span className="small">No next project</span>}
+          {prev ? <Link className="btn" href={`/projects/${prev.slug}`}>← {prev.title}</Link> : <span className="small">No previous product</span>}
+          {next ? <Link className="btn" href={`/projects/${next.slug}`}>{next.title} →</Link> : <span className="small">No next product</span>}
         </div>
       </Section>
     </>

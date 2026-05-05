@@ -4,6 +4,7 @@ import { applyLifecycleDatasetSnapshotAction } from "@/app/(demo)/lifecycle/inpu
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
 
 type LifecycleWorkspaceDatasetPanelProps = {
   compact?: boolean;
@@ -81,10 +82,22 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
           <div><span>Events</span><strong>{events.toLocaleString()}</strong></div>
         </div>
         <div className="lifecycleDatasetMeta">
+          <p><strong>Active source:</strong> current lifecycle app tables. Apply an imported dataset below to replace them, or reset to sample data.</p>
           <p><strong>App data:</strong> current lifecycle database rows</p>
           <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}{importedRows > 0 ? ` · ${importedRows.toLocaleString()} rows` : ""}</p>
           <p><strong>Workspace source:</strong> {latestSource ? `${latestSource.name} (${sourceLabel(latestSource.sourceType)})` : "None available"}</p>
         </div>
+        <div className="dataSourceModeGrid">
+          <div className="dataSourceModePanel">
+            <p className="editorKicker">Option A</p>
+            <h3>Use sample data</h3>
+            <p className="small">Resets this tool back to its seeded sample dataset.</p>
+            <ResetDemoDataCard appLabel="Lifecycle" scope="lifecycle" variant="embedded" />
+          </div>
+          <div className="dataSourceModePanel">
+            <p className="editorKicker">Option B</p>
+            <h3>Use imported data</h3>
+            <p className="small">Choose a persisted workspace dataset and apply it to this tool.</p>
         {snapshots.length > 0 ? (
           <form className="lifecycleDatasetSelector" action={applyLifecycleDatasetSnapshotAction}>
             <label>
@@ -105,6 +118,8 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
         ) : (
           <p className="small">No imported lifecycle dataset snapshots are available for this account yet.</p>
         )}
+          </div>
+        </div>
         <div className="ctaRow">
           <Link className="btn smallBtn primary" href="/lifecycle/simulations">Run with current data</Link>
           <Link className="btn smallBtn" href="/lifecycle/inputs">Review app inputs</Link>

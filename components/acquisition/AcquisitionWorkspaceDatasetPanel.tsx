@@ -4,6 +4,7 @@ import { applyAcquisitionDatasetSnapshotAction } from "@/app/(demo)/acquisition/
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
 
 type AcquisitionWorkspaceDatasetPanelProps = {
   compact?: boolean;
@@ -79,10 +80,22 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
           <div><span>Performance</span><strong>{performance.toLocaleString()}</strong></div>
         </div>
         <div className="lifecycleDatasetMeta">
+          <p><strong>Active source:</strong> current acquisition app tables. Apply an imported dataset below to replace them, or reset to sample data.</p>
           <p><strong>App data:</strong> current acquisition database rows</p>
           <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}</p>
           <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
         </div>
+        <div className="dataSourceModeGrid">
+          <div className="dataSourceModePanel">
+            <p className="editorKicker">Option A</p>
+            <h3>Use sample data</h3>
+            <p className="small">Resets this tool back to its seeded sample dataset.</p>
+            <ResetDemoDataCard appLabel="Acquisition" scope="acquisition" variant="embedded" />
+          </div>
+          <div className="dataSourceModePanel">
+            <p className="editorKicker">Option B</p>
+            <h3>Use imported data</h3>
+            <p className="small">Choose a persisted workspace dataset and apply it to this tool.</p>
         {snapshots.length > 0 ? (
           <form className="lifecycleDatasetSelector" action={applyAcquisitionDatasetSnapshotAction}>
             <label>
@@ -103,6 +116,8 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
         ) : (
           <p className="small">No imported acquisition dataset snapshots are available for this account yet.</p>
         )}
+          </div>
+        </div>
         <div className="ctaRow">
           <Link className="btn smallBtn primary" href="/acquisition/simulations">Run with current data</Link>
           <Link className="btn smallBtn" href="/acquisition/inputs">Review app inputs</Link>

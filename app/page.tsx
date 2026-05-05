@@ -107,7 +107,7 @@ export default function HomePage() {
             I build AI-native operating systems that turn product, growth, and customer signals into measurable revenue actions.
           </p>
           <div className="ctaRow">
-            <Link className="btn primary" href="/projects">Explore runnable systems</Link>
+            <Link className="btn primary" href="/projects">Explore runnable products</Link>
             <Link className="btn" href="/about">See leadership profile</Link>
           </div>
         </div>
@@ -176,9 +176,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <Section title="Featured projects">
+      <Section title="Featured products">
         <p>
-          Six runnable Tools backing the case studies — every page below clicks through to
+          Six runnable products backing the case studies — every page below clicks through to
           live software, not screenshots.
         </p>
         <div className="grid grid-3">

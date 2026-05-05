@@ -8,7 +8,7 @@ import { SiteLogo } from "@/components/site/SiteLogo";
 const links = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
-  { href: "/projects", label: "Projects" },
+  { href: "/projects", label: "Products" },
   { href: "/workspace/dashboard", label: "Workspace" },
   { href: "/writing", label: "Writing" },
   { href: "/contact", label: "Contact" }
