@@ -461,6 +461,18 @@ export function parseCsvLine(line: string) {
   return cells;
 }
 
+export function escapeCsvCell(value: string) {
+  return /[",\n\r]/.test(value) ? `"${value.replaceAll("\"", "\"\"")}"` : value;
+}
+
+export function sourceRowsToCsv(headers: string[], sourceRows: Record<string, string>[]) {
+  if (headers.length === 0) return "";
+  return [
+    headers.map(escapeCsvCell).join(","),
+    ...sourceRows.map((row) => headers.map((header) => escapeCsvCell(row[header] ?? "")).join(","))
+  ].join("\n");
+}
+
 export function normalizeHeader(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
 }

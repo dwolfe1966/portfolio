@@ -8,6 +8,7 @@ import {
   inferMapping,
   parseMappedCsvObject,
   parseSourceCsv,
+  sourceRowsToCsv,
   type FieldMappings,
   type ParsedMappedRows,
   type ToolImportSchema,
@@ -256,6 +257,24 @@ export function WorkspaceCsvConnectionFlow({
         ]))
       }
     }));
+  }
+
+  function updateSourceCell(objectKey: string, rowIndex: number, header: string, value: string) {
+    const parsed = parseSourceCsv(csvByObject[objectKey] ?? "");
+    if (!parsed.sourceRows[rowIndex]) return;
+    const nextRows = parsed.sourceRows.map((row, index) => (
+      index === rowIndex ? { ...row, [header]: value } : row
+    ));
+    updateCsv(objectKey, sourceRowsToCsv(parsed.headers, nextRows));
+  }
+
+  function addSourceRow(objectKey: string) {
+    const parsed = parseSourceCsv(csvByObject[objectKey] ?? "");
+    if (parsed.headers.length === 0) return;
+    updateCsv(objectKey, sourceRowsToCsv(parsed.headers, [
+      ...parsed.sourceRows,
+      Object.fromEntries(parsed.headers.map((header) => [header, ""]))
+    ]));
   }
 
   function updateMapping(objectKey: string, field: string, sourceHeader: string) {
@@ -562,16 +581,19 @@ export function WorkspaceCsvConnectionFlow({
               </div>
               <p>{object.description}</p>
               <p className="small">Required app fields: <code>{object.requiredFields.join(", ")}</code></p>
-              <label>
-                CSV data
-                <textarea
-                  ref={object.key === schema.objects[0]?.key ? firstCsvInputRef : undefined}
-                  rows={7}
-                  value={csvByObject[object.key] ?? ""}
-                  onChange={(event) => updateCsv(object.key, event.target.value)}
-                  placeholder={object.sample}
-                />
-              </label>
+              <details className="rawSourceDetails">
+                <summary>Raw CSV text</summary>
+                <label>
+                  CSV data
+                  <textarea
+                    ref={object.key === schema.objects[0]?.key ? firstCsvInputRef : undefined}
+                    rows={7}
+                    value={csvByObject[object.key] ?? ""}
+                    onChange={(event) => updateCsv(object.key, event.target.value)}
+                    placeholder={object.sample}
+                  />
+                </label>
+              </details>
               <label>
                 Upload CSV file
                 <input type="file" accept=".csv,text/csv" onChange={(event) => void loadFile(object.key, event.target.files?.[0] ?? null)} />
@@ -605,6 +627,44 @@ export function WorkspaceCsvConnectionFlow({
                 </div>
               ) : null}
 
+              {parsed.sourceRows.length > 0 ? (
+                <div className="sourceDatasetStack">
+                  <div className="editorHeader">
+                    <div>
+                      <p className="editorKicker">Source preview</p>
+                      <h3>Edit source rows inline</h3>
+                    </div>
+                    <button type="button" onClick={() => addSourceRow(object.key)}>Add row</button>
+                  </div>
+                  <div className="tableScroll editableDataGrid">
+                    <table className="table">
+                      <thead>
+                        <tr>{parsed.headers.slice(0, 6).map((header) => <th key={header}>{header}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {parsed.sourceRows.slice(0, 8).map((row, rowIndex) => (
+                          <tr key={`${object.key}-source-${rowIndex}`}>
+                            {parsed.headers.slice(0, 6).map((header) => (
+                              <td key={header}>
+                                <input
+                                  aria-label={`${object.title} row ${rowIndex + 1} ${header}`}
+                                  value={row[header] ?? ""}
+                                  onChange={(event) => updateSourceCell(object.key, rowIndex, header, event.target.value)}
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="small">
+                    Showing {Math.min(parsed.sourceRows.length, 8)} of {parsed.sourceRows.length} source rows
+                    {parsed.headers.length > 6 ? ` and ${parsed.headers.length - 6} hidden columns` : ""}.
+                  </p>
+                </div>
+              ) : null}
+
               {parsed.errors.length > 0 ? (
                 <div>
                   <p className="small bandText--unhealthy">Validation issues</p>
@@ -617,19 +677,29 @@ export function WorkspaceCsvConnectionFlow({
               ) : null}
 
               {parsed.rows.length > 0 ? (
-                <div className="tableScroll">
-                  <table className="table">
-                    <thead>
-                      <tr>{object.fields.slice(0, 5).map((field) => <th key={field}>{field}</th>)}</tr>
-                    </thead>
-                    <tbody>
-                      {parsed.rows.slice(0, 3).map((row, rowIndex) => (
-                        <tr key={`${object.key}-${rowIndex}`}>
-                          {object.fields.slice(0, 5).map((field) => <td key={field}>{row[field]}</td>)}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="sourceDatasetStack">
+                  <div>
+                    <p className="editorKicker">Dataset preview</p>
+                    <h3>Imported {object.title.toLowerCase()} shape</h3>
+                  </div>
+                  <div className="tableScroll">
+                    <table className="table">
+                      <thead>
+                        <tr>{object.fields.slice(0, 6).map((field) => <th key={field}>{field}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {parsed.rows.slice(0, 8).map((row, rowIndex) => (
+                          <tr key={`${object.key}-${rowIndex}`}>
+                            {object.fields.slice(0, 6).map((field) => <td key={field}>{row[field]}</td>)}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="small">
+                    Showing {Math.min(parsed.rows.length, 8)} of {parsed.rows.length} normalized dataset rows
+                    {object.fields.length > 6 ? ` and ${object.fields.length - 6} hidden fields` : ""}.
+                  </p>
                 </div>
               ) : null}
             </div>

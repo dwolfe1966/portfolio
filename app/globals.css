@@ -2025,6 +2025,29 @@ button {
 .csvPresetActions {
   margin-top: 10px;
 }
+.sourceDatasetStack {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.rawSourceDetails {
+  margin-top: 10px;
+}
+.rawSourceDetails summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+.rawSourceDetails label {
+  margin-top: 8px;
+}
+.editableDataGrid input {
+  min-width: 132px;
+  width: 100%;
+}
+.editableDataGrid td {
+  min-width: 150px;
+}
 .lifecycleImportStatus {
   border-radius: 8px;
   padding: 8px 10px;

@@ -7,6 +7,7 @@ import {
   createEmptyMappings,
   inferMapping,
   parseMappedCsvObject,
+  sourceRowsToCsv,
   type FieldMappings,
   type ParsedMappedRows,
   type ToolImportSchema,
@@ -70,16 +71,9 @@ function initializeMappingState() {
   return Object.fromEntries(TOOL_IMPORT_SCHEMAS.map((schema) => [schema.tool, createEmptyMappings(schema)])) as Record<ToolKey, FieldMappings>;
 }
 
-function escapeCsvCell(value: string) {
-  return /[",\n\r]/.test(value) ? `"${value.replaceAll("\"", "\"\"")}"` : value;
-}
-
 function previewToCsv(previewObject: SheetPreviewObject | undefined) {
   if (!previewObject || previewObject.headers.length === 0) return "";
-  return [
-    previewObject.headers.map(escapeCsvCell).join(","),
-    ...previewObject.rows.map((row) => previewObject.headers.map((header) => escapeCsvCell(row[header] ?? "")).join(","))
-  ].join("\n");
+  return sourceRowsToCsv(previewObject.headers, previewObject.rows);
 }
 
 function summarizeRows(schema: ToolImportSchema, parsedByObject: Record<string, ParsedMappedRows>) {
@@ -318,6 +312,48 @@ export function GoogleSheetsConnectionFlow({
         [objectKey]: { ...current[selectedTool][objectKey], [field]: sourceHeader }
       }
     }));
+  }
+
+  function updatePreviewCell(objectKey: string, rowIndex: number, header: string, value: string) {
+    setPreview((current) => {
+      const previewObject = current?.objects[objectKey];
+      if (!current || !previewObject?.rows[rowIndex]) return current;
+      return {
+        ...current,
+        objects: {
+          ...current.objects,
+          [objectKey]: {
+            ...previewObject,
+            rows: previewObject.rows.map((row, index) => (
+              index === rowIndex ? { ...row, [header]: value } : row
+            ))
+          }
+        }
+      };
+    });
+    setSaveStatus({ state: "idle", message: "Source preview edited locally. Save the source config to keep mappings, then import when validation is ready." });
+  }
+
+  function addPreviewRow(objectKey: string) {
+    setPreview((current) => {
+      const previewObject = current?.objects[objectKey];
+      if (!current || !previewObject || previewObject.headers.length === 0) return current;
+      return {
+        ...current,
+        objects: {
+          ...current.objects,
+          [objectKey]: {
+            ...previewObject,
+            rowCount: previewObject.rowCount + 1,
+            rows: [
+              ...previewObject.rows,
+              Object.fromEntries(previewObject.headers.map((header) => [header, ""]))
+            ]
+          }
+        }
+      };
+    });
+    setSaveStatus({ state: "idle", message: "Added a local source row for import preview. This does not write back to Google Sheets." });
   }
 
   async function previewSheet(mode: "manual" | "refresh" = "manual") {
@@ -766,19 +802,66 @@ export function GoogleSheetsConnectionFlow({
                   <p className="small bandText--healthy">Mapped rows validate successfully.</p>
                 ) : null}
                 {objectPreview.rows.length > 0 ? (
-                  <div className="tableScroll">
-                    <table className="table">
-                      <thead>
-                        <tr>{objectPreview.headers.slice(0, 5).map((header) => <th key={header}>{header}</th>)}</tr>
-                      </thead>
-                      <tbody>
-                        {objectPreview.rows.slice(0, 3).map((row, rowIndex) => (
-                          <tr key={`${object.key}-${rowIndex}`}>
-                            {objectPreview.headers.slice(0, 5).map((header) => <td key={header}>{row[header]}</td>)}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="sourceDatasetStack">
+                    <div className="editorHeader">
+                      <div>
+                        <p className="editorKicker">Source preview</p>
+                        <h3>Edit preview rows inline</h3>
+                      </div>
+                      <button type="button" onClick={() => addPreviewRow(object.key)}>Add row</button>
+                    </div>
+                    <div className="tableScroll editableDataGrid">
+                      <table className="table">
+                        <thead>
+                          <tr>{objectPreview.headers.slice(0, 6).map((header) => <th key={header}>{header}</th>)}</tr>
+                        </thead>
+                        <tbody>
+                          {objectPreview.rows.slice(0, 8).map((row, rowIndex) => (
+                            <tr key={`${object.key}-source-${rowIndex}`}>
+                              {objectPreview.headers.slice(0, 6).map((header) => (
+                                <td key={header}>
+                                  <input
+                                    aria-label={`${object.title} row ${rowIndex + 1} ${header}`}
+                                    value={row[header] ?? ""}
+                                    onChange={(event) => updatePreviewCell(object.key, rowIndex, header, event.target.value)}
+                                  />
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="small">
+                      Showing {Math.min(objectPreview.rows.length, 8)} of {objectPreview.rows.length} source rows
+                      {objectPreview.headers.length > 6 ? ` and ${objectPreview.headers.length - 6} hidden columns` : ""}.
+                    </p>
+                  </div>
+                ) : null}
+                {parsedByObject[object.key]?.rows.length > 0 ? (
+                  <div className="sourceDatasetStack">
+                    <div>
+                      <p className="editorKicker">Dataset preview</p>
+                      <h3>Imported {object.title.toLowerCase()} shape</h3>
+                    </div>
+                    <div className="tableScroll">
+                      <table className="table">
+                        <thead>
+                          <tr>{object.fields.slice(0, 6).map((field) => <th key={field}>{field}</th>)}</tr>
+                        </thead>
+                        <tbody>
+                          {parsedByObject[object.key].rows.slice(0, 8).map((row, rowIndex) => (
+                            <tr key={`${object.key}-dataset-${rowIndex}`}>
+                              {object.fields.slice(0, 6).map((field) => <td key={field}>{row[field]}</td>)}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="small">
+                      Showing {Math.min(parsedByObject[object.key].rows.length, 8)} of {parsedByObject[object.key].rows.length} normalized dataset rows
+                      {object.fields.length > 6 ? ` and ${object.fields.length - 6} hidden fields` : ""}.
+                    </p>
                   </div>
                 ) : null}
               </>

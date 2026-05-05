@@ -6,7 +6,8 @@ import {
   getToolImportSchema,
   inferMapping,
   parseMappedCsvObject,
-  parseSourceCsv
+  parseSourceCsv,
+  sourceRowsToCsv
 } from "@/lib/tool-data-imports";
 
 describe("tool data import schemas", () => {
@@ -62,6 +63,16 @@ describe("tool data import schemas", () => {
     assert.deepEqual(parsed.errors, []);
     assert.equal(parsed.rows[0].fullName, "Lee, Jordan");
     assert.equal(parsed.rows[0].email, "jordan@example.com");
+  });
+
+  it("serializes edited source rows back to CSV", () => {
+    const csv = sourceRowsToCsv(["name", "note"], [
+      { name: "Acme", note: "quoted, comma" },
+      { name: "Beta", note: "plain" }
+    ]);
+
+    assert.equal(csv, "name,note\nAcme,\"quoted, comma\"\nBeta,plain");
+    assert.deepEqual(parseSourceCsv(csv).sourceRows[0], { name: "Acme", note: "quoted, comma" });
   });
 
   it("creates empty mappings for every object and field", () => {
