@@ -105,6 +105,27 @@ function asFieldMappings(value: unknown, schema: ToolImportSchema) {
   return nextMappings;
 }
 
+function previewMetadata(
+  schema: ToolImportSchema,
+  preview: SheetPreview,
+  sheetUrlOrId: string,
+  ranges: Record<string, string>,
+  parsedByObject: Record<string, ParsedMappedRows>,
+  authMode: unknown,
+  mode: "manual" | "refresh"
+) {
+  return {
+    sheetId: preview.sheetId,
+    sheetUrlOrId,
+    ranges,
+    rowCounts: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].rows.length])),
+    headers: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].headers])),
+    authMode: typeof authMode === "string" ? authMode : undefined,
+    lastPreviewedAt: new Date().toISOString(),
+    lastRefreshType: mode
+  };
+}
+
 export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { initialTool?: string; initialConfigId?: string }) {
   const [selectedTool, setSelectedTool] = useState<ToolKey>(isToolKey(initialTool) ? initialTool : "lifecycle");
   const [datasetName, setDatasetName] = useState("Workspace Google Sheets import");
@@ -167,6 +188,35 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
         state: "error",
         message: error instanceof Error ? error.message : "Saved source configs could not be loaded."
       });
+    }
+  }
+
+  async function patchSelectedSourceConfig(
+    metadataPatch: Record<string, unknown>,
+    options: { mappings?: FieldMappings; successMessage: string; failureMessage: string }
+  ) {
+    if (!selectedConfigId) return false;
+    try {
+      const response = await fetch("/api/workspace/source-configs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedConfigId,
+          metadataPatch,
+          ...(options.mappings ? { mappings: options.mappings } : {})
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error?.message ?? options.failureMessage);
+      setSaveStatus({ state: "success", message: options.successMessage });
+      await loadSourceConfigs();
+      return true;
+    } catch (error) {
+      setSaveStatus({
+        state: "error",
+        message: error instanceof Error ? `${options.failureMessage} ${error.message}` : options.failureMessage
+      });
+      return false;
     }
   }
 
@@ -268,19 +318,23 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
       }
       const nextPreview = { sheetId: payload.sheetId, objects: payload.objects ?? {} } as SheetPreview;
       setPreview(nextPreview);
+      const nextMappings = createEmptyMappings(schema);
+      schema.objects.forEach((object) => {
+        const headers = nextPreview.objects[object.key]?.headers ?? [];
+        nextMappings[object.key] = Object.fromEntries(object.fields.map((field) => [
+          field,
+          mappingsByObject[object.key]?.[field] && headers.includes(mappingsByObject[object.key][field])
+            ? mappingsByObject[object.key][field]
+            : inferMapping(headers, field, object)
+        ]));
+      });
       setMappingsByTool((current) => {
-        const nextMappings = createEmptyMappings(schema);
-        schema.objects.forEach((object) => {
-          const headers = nextPreview.objects[object.key]?.headers ?? [];
-          nextMappings[object.key] = Object.fromEntries(object.fields.map((field) => [
-            field,
-            current[selectedTool][object.key]?.[field] && headers.includes(current[selectedTool][object.key][field])
-              ? current[selectedTool][object.key][field]
-              : inferMapping(headers, field, object)
-          ]));
-        });
         return { ...current, [selectedTool]: nextMappings };
       });
+      const nextParsedByObject = Object.fromEntries(schema.objects.map((object) => [
+        object.key,
+        parseMappedCsvObject(previewToCsv(nextPreview.objects[object.key]), object, nextMappings[object.key] ?? {})
+      ])) as Record<string, ParsedMappedRows>;
       setPreviewStatus({
         state: "success",
         message: mode === "refresh"
@@ -289,6 +343,14 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
       });
       setImportStatus({ state: "idle", message: "Preview loaded. Complete field mapping before import." });
       setSaveStatus({ state: "idle", message: "Preview loaded. Save this Sheet config for reuse or refresh." });
+      await patchSelectedSourceConfig(
+        previewMetadata(schema, nextPreview, sheetUrlOrId, ranges, nextParsedByObject, payload.authMode, mode),
+        {
+          mappings: nextMappings,
+          successMessage: "Saved source config metadata updated with the latest Sheet preview.",
+          failureMessage: "Preview succeeded, but saved config metadata could not be updated."
+        }
+      );
       if (mode === "refresh") {
         setRefreshStatus({
           state: "success",
@@ -328,12 +390,7 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
           name: datasetName,
           mappings: mappingsByObject,
           metadata: {
-            sheetId: preview.sheetId,
-            sheetUrlOrId,
-            ranges,
-            rowCounts: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].rows.length])),
-            headers: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].headers])),
-            lastPreviewedAt: new Date().toISOString()
+            ...previewMetadata(schema, preview, sheetUrlOrId, ranges, parsedByObject, undefined, "manual")
           }
         })
       });
@@ -456,7 +513,23 @@ export function GoogleSheetsConnectionFlow({ initialTool, initialConfigId }: { i
           : `Imported ${imported.usersImported ?? 0} users, ${imported.entitiesImported ?? 0} entities, ${imported.interestEdgesImported ?? 0} interest edges, and ${imported.changeEventsImported ?? 0} change events.`;
       setImportStatus({ state: "success", message });
       if (preview) {
-        setSaveStatus({ state: "idle", message: "Import complete. Save or update this source config if you want to reuse it." });
+        const rowCounts = Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].rows.length]));
+        await patchSelectedSourceConfig(
+          {
+            lastImportedAt: new Date().toISOString(),
+            lastImportStatus: "success",
+            lastImportedRowCounts: rowCounts,
+            lastImportedRowsTotal: Object.values(rowCounts).reduce((sum, count) => sum + count, 0),
+            lastImportSummary: message
+          },
+          {
+            successMessage: "Import complete. Saved source config metadata updated.",
+            failureMessage: "Import complete, but saved config metadata could not be updated."
+          }
+        );
+        if (!selectedConfigId) {
+          setSaveStatus({ state: "idle", message: "Import complete. Save or update this source config if you want to reuse it." });
+        }
       }
     } catch (error) {
       setImportStatus({

@@ -26,6 +26,10 @@ function normalizeSourceType(value: unknown) {
   return typeof value === "string" && validSourceTypes.has(value) ? value : null;
 }
 
+function jsonObject(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
 function serializeConfig(config: {
   id: string;
   app: string;
@@ -115,6 +119,54 @@ export async function POST(request: Request) {
         mappings: toJson(body.mappings),
         metadata: toJson(body.metadata)
       }
+    });
+
+    return apiOk({
+      eventId,
+      workspace: { id: workspace.id, name: workspace.name, slug: workspace.slug },
+      config: serializeConfig(config)
+    });
+  } catch (error) {
+    if (isMissingDemoTableError(error)) {
+      return apiError(503, "COMPATIBILITY_MODE", "Workspace source config tables are missing.", { eventId, compatibilityMode: true });
+    }
+    return apiUnhandledError(error, eventId);
+  }
+}
+
+export async function PATCH(request: Request) {
+  const eventId = createEventId("workspace_source_configs_patch");
+  if (!isDemoMutationAllowed()) return apiError(403, "MUTATION_DISABLED", "Workspace source config editing is disabled.", { eventId });
+
+  const body = await request.json().catch(() => ({}));
+  const id = clean(body.id, 80);
+  if (!id) return apiError(400, "VALIDATION_ERROR", "Source config id is required.", { eventId });
+
+  try {
+    const workspace = await getDefaultWorkspace();
+    const existing = await db.lifecycleMappingPreset.findFirst({ where: { id, workspaceId: workspace.id } });
+    if (!existing) return apiError(404, "NOT_FOUND", "Source config was not found.", { eventId });
+
+    const metadataPatch = jsonObject(body.metadataPatch);
+    const updates: Prisma.LifecycleMappingPresetUpdateInput = {};
+    if (Object.keys(metadataPatch).length > 0) {
+      updates.metadata = toJson({ ...jsonObject(existing.metadata), ...metadataPatch });
+    }
+    if (body.mappings !== undefined) {
+      updates.mappings = toJson(body.mappings);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return apiOk({
+        eventId,
+        workspace: { id: workspace.id, name: workspace.name, slug: workspace.slug },
+        config: serializeConfig(existing)
+      });
+    }
+
+    const config = await db.lifecycleMappingPreset.update({
+      where: { id: existing.id },
+      data: updates
     });
 
     return apiOk({

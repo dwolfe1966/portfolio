@@ -73,7 +73,9 @@ function sourceDetail(value: unknown) {
   const metadata = metadataRecord(value);
   const sheetId = typeof metadata.sheetId === "string" ? metadata.sheetId : "";
   const lastPreviewedAt = typeof metadata.lastPreviewedAt === "string" ? metadata.lastPreviewedAt : "";
-  return { sheetId, lastPreviewedAt };
+  const lastImportedAt = typeof metadata.lastImportedAt === "string" ? metadata.lastImportedAt : "";
+  const lastImportedRowsTotal = typeof metadata.lastImportedRowsTotal === "number" ? metadata.lastImportedRowsTotal : 0;
+  return { sheetId, lastPreviewedAt, lastImportedAt, lastImportedRowsTotal };
 }
 
 function formatOptionalDate(value: string) {
@@ -215,6 +217,12 @@ export default async function DemoDatasetsPage() {
                           <>
                             <code>{detail.sheetId}</code>
                             {detail.lastPreviewedAt ? <p className="small">Previewed {formatOptionalDate(detail.lastPreviewedAt)}</p> : null}
+                            {detail.lastImportedAt ? (
+                              <p className="small">
+                                Imported {formatOptionalDate(detail.lastImportedAt)}
+                                {detail.lastImportedRowsTotal > 0 ? ` · ${detail.lastImportedRowsTotal.toLocaleString()} rows` : ""}
+                              </p>
+                            ) : null}
                           </>
                         ) : (
                           <span className="small">Mapping preset</span>
