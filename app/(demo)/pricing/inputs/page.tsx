@@ -3,6 +3,7 @@ import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { PricingExperimentBuilder } from "@/components/pricing/PricingExperimentBuilder";
 import { PricingVariantEditor } from "@/components/pricing/PricingVariantEditor";
+import { PricingWorkspaceDatasetPanel } from "@/components/pricing/PricingWorkspaceDatasetPanel";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,9 @@ export default async function PricingInputsPage() {
     <>
       <Section eyebrow="Inputs" title="Pricing hypotheses, variants, and guardrails">
         <p>Seeded inputs model the pieces a pricing operator needs before exposing any customers to a price or packaging change.</p>
+      </Section>
+      <Section title="Input data mode">
+        <PricingWorkspaceDatasetPanel compact />
       </Section>
       <Section title="Experiments">
         <div className="grid grid-2">

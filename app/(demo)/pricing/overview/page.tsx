@@ -4,6 +4,7 @@ import { Section } from "@/components/site/Section";
 import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { DemoSystemGraph } from "@/components/demo-shell/DemoSystemGraph";
+import { PricingWorkspaceDatasetPanel } from "@/components/pricing/PricingWorkspaceDatasetPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,10 @@ export default async function PricingOverviewPage() {
 
       <Section title="Operating loop">
         <DemoSystemGraph title="Pricing decision loop" nodes={["Hypothesis", "Cohorts", "Guardrails", "Decision"]} />
+      </Section>
+
+      <Section title="Current data mode">
+        <PricingWorkspaceDatasetPanel compact />
       </Section>
 
       <Section title="Readiness">

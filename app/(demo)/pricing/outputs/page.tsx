@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { PricingWorkspaceDatasetPanel } from "@/components/pricing/PricingWorkspaceDatasetPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,9 @@ export default async function PricingOutputsPage() {
     <>
       <Section eyebrow="Outputs" title="Pricing experiment results and guardrails">
         <p>Outputs show whether pricing lift is worth the churn, margin, support, and holdout risk.</p>
+      </Section>
+      <Section title="Output data mode">
+        <PricingWorkspaceDatasetPanel compact />
       </Section>
       {latest ? (
         <>

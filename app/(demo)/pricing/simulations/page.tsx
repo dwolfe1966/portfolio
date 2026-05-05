@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { PricingSimulationButton } from "@/components/pricing/PricingSimulationButton";
 import { PricingSimulationVisuals } from "@/components/pricing/PricingSimulationVisuals";
+import { PricingWorkspaceDatasetPanel } from "@/components/pricing/PricingWorkspaceDatasetPanel";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
@@ -59,6 +60,9 @@ export default async function PricingSimulationsPage() {
       </Section>
       <Section title="Cohort motion">
         <DemoAppMotionVisual app="pricing" />
+      </Section>
+      <Section title="Run data">
+        <PricingWorkspaceDatasetPanel compact />
       </Section>
       <Section title="Simulation control">
         {experiment ? (
