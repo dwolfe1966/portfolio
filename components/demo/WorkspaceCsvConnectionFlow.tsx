@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   TOOL_IMPORT_SCHEMAS,
   createEmptyMappings,
@@ -108,6 +108,8 @@ export function WorkspaceCsvConnectionFlow({
     state: "idle",
     message: "Saved CSV source configs will appear here."
   });
+  const firstCsvInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const focusedConfigRef = useRef("");
   const connectorAction = isConnectorAction(initialAction) ? initialAction : undefined;
 
   const schema = TOOL_IMPORT_SCHEMAS.find((item) => item.tool === selectedTool) ?? TOOL_IMPORT_SCHEMAS[0];
@@ -194,7 +196,7 @@ export function WorkspaceCsvConnectionFlow({
     setImportStatus({
       state: "idle",
       message: connectorAction === "import"
-        ? `Loaded "${config.name}". Add or paste CSV rows, validate them, then import.`
+        ? `Loaded "${config.name}". Paste or upload CSV rows into each required object, then import.`
         : `Loaded "${config.name}". Add or paste CSV rows, then validate and import.`
     });
     setSaveStatus({
@@ -213,6 +215,26 @@ export function WorkspaceCsvConnectionFlow({
     if (!initialConfigId || savedConfigs.length === 0 || selectedConfigId === initialConfigId) return;
     applySourceConfig(initialConfigId);
   }, [applySourceConfig, initialConfigId, savedConfigs, selectedConfigId]);
+
+  useEffect(() => {
+    if (!connectorAction || !selectedConfigId || focusedConfigRef.current === selectedConfigId) return;
+    focusedConfigRef.current = selectedConfigId;
+    window.setTimeout(() => firstCsvInputRef.current?.focus(), 80);
+  }, [connectorAction, selectedConfigId]);
+
+  useEffect(() => {
+    if (connectorAction !== "import" || !selectedConfigId || importStatus.state === "loading" || importStatus.state === "success") return;
+    if (persistentImportReady) {
+      setImportStatus({ state: "success", message: "CSV rows validate successfully. Import is ready." });
+    } else if (totalRows > 0 && totalErrors > 0) {
+      setImportStatus({
+        state: "idle",
+        message: `${totalErrors} validation issue${totalErrors === 1 ? "" : "s"} must be fixed before import.`
+      });
+    } else if (totalRows > 0) {
+      setImportStatus({ state: "idle", message: "Rows are present. Complete all required object data before import." });
+    }
+  }, [connectorAction, importStatus.state, persistentImportReady, selectedConfigId, totalErrors, totalRows]);
 
   function updateCsv(objectKey: string, value: string) {
     const objectSchema = schema.objects.find((object) => object.key === objectKey);
@@ -479,10 +501,31 @@ export function WorkspaceCsvConnectionFlow({
             <input value={datasetName} onChange={(event) => setDatasetName(event.target.value)} />
           </label>
         </div>
+        {connectorAction ? (
+          <div className="lifecycleImportBanner lifecycleImportStatus lifecycleImportStatus--idle">
+            <div>
+              <p className="editorKicker">{connectorAction === "import" ? "Import task" : "Mapping task"}</p>
+              <p className="small">
+                {connectorAction === "import"
+                  ? "Saved mappings are loaded. Paste or upload fresh CSV rows for every required object, then import when validation turns ready."
+                  : "Saved mappings are loaded. Adjust source columns, paste test rows, then save the updated config."}
+              </p>
+            </div>
+            <Link className="btn smallBtn" href="/workspace/datasets">Back to datasets</Link>
+          </div>
+        ) : null}
         <div className="ctaRow csvPresetActions">
           <button type="button" onClick={loadSamples}>Load sample dataset</button>
           <button type="button" disabled={!persistentImportReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
-            {importStatus.state === "loading" ? `Importing ${schema.label.toLowerCase()} data...` : persistentImportReady ? `Import ${schema.label.toLowerCase()} dataset` : "Import endpoint pending"}
+            {importStatus.state === "loading"
+              ? `Importing ${schema.label.toLowerCase()} data...`
+              : persistentImportReady
+                ? connectorAction === "import"
+                  ? `Import validated ${schema.label.toLowerCase()} CSV`
+                  : `Import ${schema.label.toLowerCase()} dataset`
+                : connectorAction === "import"
+                  ? "Paste rows to import"
+                  : "Import endpoint pending"}
           </button>
           <button type="button" disabled={!importReady || saveStatus.state === "loading"} onClick={() => void saveSourceConfig()}>
             {saveStatus.state === "loading" ? "Saving source..." : importReady ? "Save source config" : "Save after validation"}
@@ -522,6 +565,7 @@ export function WorkspaceCsvConnectionFlow({
               <label>
                 CSV data
                 <textarea
+                  ref={object.key === schema.objects[0]?.key ? firstCsvInputRef : undefined}
                   rows={7}
                   value={csvByObject[object.key] ?? ""}
                   onChange={(event) => updateCsv(object.key, event.target.value)}
