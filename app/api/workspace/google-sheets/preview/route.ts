@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       objects[object.key] = {
         range,
         headers: preview.headers,
-        rows: preview.rows.slice(0, 25),
+        rows: preview.rows.slice(0, object.maxRows),
         rowCount: preview.rows.length
       };
     }
