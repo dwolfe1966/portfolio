@@ -30,39 +30,12 @@ export default async function LifecycleConnectionsPage() {
 
   return (
     <>
-      <Section eyebrow="Operations" title="Use your own data">
+      <Section eyebrow="Operations" title="Import history">
         <p>
-          Lifecycle data connections now run through the shared Workspace source layer. Use this page for lifecycle import
-          history; use Workspace Connections and Datasets to create, manage, refresh, and import sources.
+          Lifecycle is designed to run as a self-contained app with sample data. If workspace imports have been created,
+          this page only records their history; source setup is not part of the lifecycle demo flow.
         </p>
-        <div className="ctaRow">
-          <Link className="btn primary" href="/workspace/connections">Workspace connections</Link>
-          <Link className="btn" href="/workspace/datasets?tool=lifecycle">Lifecycle sources</Link>
-          <Link className="btn" href="/lifecycle/inputs">Open current data</Link>
-        </div>
-      </Section>
-
-      <Section title="Lifecycle source actions">
-        <div className="grid grid-3">
-          <div className="card">
-            <p className="editorKicker">Create source</p>
-            <h3>CSV upload</h3>
-            <p>Map users, entities, interest edges, and change events from CSV rows.</p>
-            <Link className="btn smallBtn" href="/workspace/connections/csv?tool=lifecycle">Open CSV connector</Link>
-          </div>
-          <div className="card">
-            <p className="editorKicker">Create source</p>
-            <h3>Google Sheets</h3>
-            <p>Preview live Sheet ranges, map fields, refresh rows, and import the latest lifecycle data.</p>
-            <Link className="btn smallBtn" href="/workspace/connections/google-sheets?tool=lifecycle">Open Sheets connector</Link>
-          </div>
-          <div className="card">
-            <p className="editorKicker">Manage sources</p>
-            <h3>Workspace datasets</h3>
-            <p>Review saved lifecycle source configs, object coverage, mappings, and recommended next actions.</p>
-            <Link className="btn smallBtn primary" href="/workspace/datasets?tool=lifecycle">Manage lifecycle sources</Link>
-          </div>
-        </div>
+        <Link className="btn" href="/lifecycle/inputs">Open current app data</Link>
       </Section>
 
       <Section title="Recent import history">

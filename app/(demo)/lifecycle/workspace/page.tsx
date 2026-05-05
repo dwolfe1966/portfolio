@@ -55,13 +55,12 @@ export default async function LifecycleWorkspacePage() {
     <>
       <Section eyebrow="Workspace" title={summary.workspace?.name ?? "Default Workspace"}>
         <p>
-          Lifecycle uses the shared Workspace layer for source configs, imports, datasets, and model runs.
-          Full account ownership can attach to this structure later.
+          Lifecycle is now presented as a self-contained app. Workspace can still hold imported lifecycle sources,
+          but the app flow keeps users inside Overview, Inputs, Simulations, Outputs, Campaigns, Docs, and Audit.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/workspace/connections/csv?tool=lifecycle">Import CSV data</Link>
-          <Link className="btn" href="/workspace/connections/google-sheets?tool=lifecycle">Import Sheet data</Link>
-          <Link className="btn" href="/workspace/datasets?tool=lifecycle">Manage lifecycle sources</Link>
+          <Link className="btn primary" href="/lifecycle/overview">Open lifecycle overview</Link>
+          <Link className="btn" href="/lifecycle/inputs">Review app inputs</Link>
           <Link className="btn" href="/lifecycle/simulations">Run simulation</Link>
         </div>
       </Section>
@@ -89,9 +88,8 @@ export default async function LifecycleWorkspacePage() {
             <div className="editorHeader">
               <div>
                 <p className="editorKicker">Lifecycle sources</p>
-                <h3>{summary.workspace?.mappingPresets.length ?? 0} saved source configs</h3>
+                <h3>{summary.workspace?.mappingPresets.length ?? 0} workspace source configs</h3>
               </div>
-              <Link className="btn smallBtn" href="/workspace/datasets?tool=lifecycle">Open</Link>
             </div>
             {summary.workspace?.mappingPresets.length ? (
               <ul>
@@ -112,7 +110,6 @@ export default async function LifecycleWorkspacePage() {
                 <p className="editorKicker">Imports</p>
                 <h3>{summary.imports.length} recent imports</h3>
               </div>
-              <Link className="btn smallBtn" href="/lifecycle/connections">History</Link>
             </div>
             <p className="kpi">{totalImportedRows.toLocaleString()}</p>
             <p>Rows imported across the most recent lifecycle uploads.</p>

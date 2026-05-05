@@ -61,7 +61,7 @@ export default async function PricingSimulationsPage() {
       <Section title="Cohort motion">
         <DemoAppMotionVisual app="pricing" />
       </Section>
-      <Section title="Run data">
+      <Section title="Current app data">
         <PricingWorkspaceDatasetPanel compact />
       </Section>
       <Section title="Simulation control">

@@ -42,7 +42,7 @@ export default async function PricingOverviewPage() {
         <DemoSystemGraph title="Pricing decision loop" nodes={["Hypothesis", "Cohorts", "Guardrails", "Decision"]} />
       </Section>
 
-      <Section title="Current data mode">
+      <Section title="Current app data">
         <PricingWorkspaceDatasetPanel compact />
       </Section>
 

@@ -27,7 +27,7 @@ export default async function PricingOutputsPage() {
       <Section eyebrow="Outputs" title="Pricing experiment results and guardrails">
         <p>Outputs show whether pricing lift is worth the churn, margin, support, and holdout risk.</p>
       </Section>
-      <Section title="Output data mode">
+      <Section title="Current app data">
         <PricingWorkspaceDatasetPanel compact />
       </Section>
       {latest ? (

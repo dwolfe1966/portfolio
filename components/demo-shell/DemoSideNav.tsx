@@ -13,13 +13,11 @@ type NavLink = {
 };
 
 const LIFECYCLE_LINKS: NavLink[] = [
-  { href: "/lifecycle/workspace", label: "Workspace", group: "operations" },
   { href: "/lifecycle/overview", label: "Overview", group: "primary" },
   { href: "/lifecycle/inputs", label: "Inputs", group: "primary" },
   { href: "/lifecycle/simulations", label: "Simulations", group: "primary" },
   { href: "/lifecycle/outputs", label: "Outputs", group: "primary" },
   { href: "/lifecycle/campaigns", label: "Campaigns", group: "primary" },
-  { href: "/lifecycle/connections", label: "Connections", group: "operations" },
   { href: "/lifecycle/dashboard", label: "Dashboard", group: "operations" },
   { href: "/lifecycle/docs", label: "Docs", group: "operations" },
   { href: "/lifecycle/audit", label: "Audit", group: "operations" }
@@ -176,18 +174,6 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
         <div className="demoSideNavFooter">
           <Link href="/workspace/dashboard" className="demoSideNavReturn demoSideNavToolset">
             Tools dashboard
-          </Link>
-          <Link href="/workspace/activity" className="demoSideNavReturn">
-            Activity
-          </Link>
-          <Link href="/workspace/connections" className="demoSideNavReturn">
-            Connections hub
-          </Link>
-          <Link href="/workspace/datasets" className="demoSideNavReturn">
-            Datasets
-          </Link>
-          <Link href="/workspace/settings" className="demoSideNavReturn">
-            Workspace settings
           </Link>
           <Link href="/" className="demoSideNavReturn">
             ← Return to portfolio

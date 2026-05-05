@@ -33,7 +33,7 @@ export default async function PricingInputsPage() {
       <Section eyebrow="Inputs" title="Pricing hypotheses, variants, and guardrails">
         <p>Seeded inputs model the pieces a pricing operator needs before exposing any customers to a price or packaging change.</p>
       </Section>
-      <Section title="Input data mode">
+      <Section title="Current app data">
         <PricingWorkspaceDatasetPanel compact />
       </Section>
       <Section title="Experiments">

@@ -39,16 +39,16 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
     const importedRows = latestImport
       ? latestImport.usersImported + latestImport.entitiesImported + latestImport.interestEdgesImported + latestImport.changeEventsImported
       : 0;
-    const usingImportedData = Boolean(latestImport);
+    const hasWorkspaceImport = Boolean(latestImport);
 
     return (
       <div className={`card lifecycleDatasetPanel ${compact ? "lifecycleDatasetPanel--compact" : ""}`}>
         <div>
-          <p className="editorKicker">Current lifecycle data mode</p>
-          <h3>{usingImportedData ? "Workspace dataset active" : "Built-in sample data active"}</h3>
+          <p className="editorKicker">Lifecycle app data</p>
+          <h3>Self-contained sample data is ready</h3>
           <p>
-            {usingImportedData
-              ? `Using the latest imported lifecycle dataset: ${latestImport?.sourceName}.`
+            {hasWorkspaceImport
+              ? `A workspace import exists (${latestImport?.sourceName}), but this app remains usable as a standalone demo with the current app data below.`
               : "Lifecycle can run immediately with seeded sample users, entities, interest edges, and events."}
           </p>
         </div>
@@ -59,14 +59,13 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
           <div><span>Events</span><strong>{events.toLocaleString()}</strong></div>
         </div>
         <div className="lifecycleDatasetMeta">
-          <p><strong>Source:</strong> {sourceLabel(latestImport?.sourceType ?? latestSource?.sourceType)}</p>
-          <p><strong>Last import:</strong> {formatDate(latestImport?.createdAt)}{importedRows > 0 ? ` · ${importedRows.toLocaleString()} rows` : ""}</p>
-          <p><strong>Saved config:</strong> {latestSource?.name ?? "None yet"}</p>
+          <p><strong>App data:</strong> current lifecycle database rows</p>
+          <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}{importedRows > 0 ? ` · ${importedRows.toLocaleString()} rows` : ""}</p>
+          <p><strong>Workspace source:</strong> {latestSource ? `${latestSource.name} (${sourceLabel(latestSource.sourceType)})` : "None available"}</p>
         </div>
         <div className="ctaRow">
           <Link className="btn smallBtn primary" href="/lifecycle/simulations">Run with current data</Link>
-          <Link className="btn smallBtn" href="/workspace/datasets?tool=lifecycle">Manage datasets</Link>
-          <Link className="btn smallBtn" href="/workspace/connections/csv?tool=lifecycle">Use your own data</Link>
+          <Link className="btn smallBtn" href="/lifecycle/inputs">Review app inputs</Link>
         </div>
       </div>
     );
@@ -75,7 +74,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
     return (
       <div className="card lifecycleDatasetPanel lifecycleDatasetPanel--compact">
         <div>
-          <p className="editorKicker">Current lifecycle data mode</p>
+          <p className="editorKicker">Lifecycle app data</p>
           <h3>Sample data available</h3>
           <p>Workspace dataset tables are not available yet, but the lifecycle app remains usable with its self-supporting sample flow.</p>
         </div>

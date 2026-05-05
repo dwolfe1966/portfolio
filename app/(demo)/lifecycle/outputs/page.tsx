@@ -174,7 +174,7 @@ export default async function DemoOutputsPage({ searchParams }: PageProps) {
           </div>
         </Section>
 
-        <Section title="Output data mode">
+        <Section title="Current app data">
           <LifecycleWorkspaceDatasetPanel compact />
         </Section>
 

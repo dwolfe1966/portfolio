@@ -41,7 +41,7 @@ export default async function DemoOverviewPage() {
       <Section title="Live lifecycle flow">
         <DemoSystemGraph title="Signal-to-message loop" nodes={["Entity delta", "Interest graph", "Priority score", "Generated copy"]} />
       </Section>
-      <Section title="Current data mode">
+      <Section title="Current app data">
         <LifecycleWorkspaceDatasetPanel compact />
       </Section>
       <Section

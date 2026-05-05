@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { AssumptionEditorCard } from "@/components/demo/AssumptionEditorCard";
 import { LifecycleScoringSettings } from "@/components/demo/LifecycleScoringSettings";
@@ -14,13 +13,7 @@ import { LifecycleWorkspaceDatasetPanel } from "@/components/demo/LifecycleWorks
 
 export const dynamic = "force-dynamic";
 
-type PageProps = {
-  searchParams: Promise<{ imported?: string }>;
-};
-
-export default async function DemoInputsPage({ searchParams }: PageProps) {
-  const query = await searchParams;
-  const imported = query.imported === "1";
+export default async function DemoInputsPage() {
   const [users, entities, interestEdges, interestEdgeCount] = await Promise.all([
     db.user.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
     db.entity.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
@@ -40,23 +33,9 @@ export default async function DemoInputsPage({ searchParams }: PageProps) {
           and what conversion assumptions drive outcome projections.
         </p>
       </Section>
-      <Section title="Input data mode">
+      <Section title="Current app data">
         <LifecycleWorkspaceDatasetPanel compact />
       </Section>
-      {imported ? (
-        <Section title="Imported data is active">
-          <div className="card lifecycleImportBanner">
-            <div>
-              <p className="editorKicker">CSV import complete</p>
-              <h3>Your imported rows are now part of the lifecycle model.</h3>
-              <p>
-                Review the newest users, entities, and interest relations below, then run a simulation against the current data.
-              </p>
-            </div>
-            <Link className="btn primary" href="/lifecycle/simulations?imported=1">Run simulation</Link>
-          </div>
-        </Section>
-      ) : null}
       <Section title="Input guide: what each control affects">
         <div className="grid grid-3">
           <div className="card">

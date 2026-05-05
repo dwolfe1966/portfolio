@@ -43,17 +43,17 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
       db.pricingExperiment.count(),
       db.pricingExperimentRun.count()
     ]);
-    const usingImportedData = Boolean(latestImport);
+    const hasWorkspaceImport = Boolean(latestImport);
     const rows = importedRows(latestImport?.metadata);
 
     return (
       <div className={`card lifecycleDatasetPanel ${compact ? "lifecycleDatasetPanel--compact" : ""}`}>
         <div>
-          <p className="editorKicker">Current pricing data mode</p>
-          <h3>{usingImportedData ? "Workspace dataset active" : "Built-in sample data active"}</h3>
+          <p className="editorKicker">Pricing app data</p>
+          <h3>Self-contained sample data is ready</h3>
           <p>
-            {usingImportedData
-              ? `Using the latest imported pricing dataset: ${sourceName(latestImport?.metadata)}.`
+            {hasWorkspaceImport
+              ? `A workspace import exists (${sourceName(latestImport?.metadata)}), but this app remains usable as a standalone demo with the current app data below.`
               : "Pricing can run immediately with seeded sample segments, variants, experiments, and guardrails."}
           </p>
         </div>
@@ -64,14 +64,13 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
           <div><span>Runs</span><strong>{runs.toLocaleString()}</strong></div>
         </div>
         <div className="lifecycleDatasetMeta">
-          <p><strong>Source:</strong> {latestSource?.sourceType === "google_sheets" ? "Google Sheets" : latestSource?.sourceType?.toUpperCase() ?? "Sample workspace data"}</p>
-          <p><strong>Last import:</strong> {formatDate(latestImport?.createdAt)}{rows > 0 ? ` · ${rows.toLocaleString()} rows` : ""}</p>
-          <p><strong>Saved config:</strong> {latestSource?.name ?? "None yet"}</p>
+          <p><strong>App data:</strong> current pricing database rows</p>
+          <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}{rows > 0 ? ` · ${rows.toLocaleString()} rows` : ""}</p>
+          <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
         </div>
         <div className="ctaRow">
           <Link className="btn smallBtn primary" href="/pricing/simulations">Run with current data</Link>
-          <Link className="btn smallBtn" href="/workspace/datasets?tool=pricing">Manage datasets</Link>
-          <Link className="btn smallBtn" href="/workspace/connections/csv?tool=pricing">Use your own data</Link>
+          <Link className="btn smallBtn" href="/pricing/inputs">Review app inputs</Link>
         </div>
       </div>
     );
@@ -80,7 +79,7 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
     return (
       <div className="card lifecycleDatasetPanel lifecycleDatasetPanel--compact">
         <div>
-          <p className="editorKicker">Current pricing data mode</p>
+          <p className="editorKicker">Pricing app data</p>
           <h3>Sample data available</h3>
           <p>Pricing tables are not available yet, but the app remains usable after database setup with its self-supporting sample flow.</p>
         </div>
