@@ -1332,6 +1332,21 @@ button {
   display: grid;
   gap: 6px;
 }
+.savedSourceFilters {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(160px, 0.8fr) minmax(160px, 0.8fr) auto;
+}
+.savedSourceFilters .small {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.savedSourceFilterActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .savedSourceGroup {
   display: grid;
   gap: 14px;
@@ -2019,6 +2034,7 @@ button {
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .savedSourceSummaryGrid { grid-template-columns: 1fr; }
+  .savedSourceFilters { grid-template-columns: 1fr; }
   .csvMappingGrid,
   .csvPresetControls { grid-template-columns: 1fr; }
   .homeHero, .aboutIntroGrid, .experienceGrid { grid-template-columns: 1fr; }

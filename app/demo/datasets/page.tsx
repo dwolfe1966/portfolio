@@ -46,6 +46,10 @@ async function loadDatasetInventory() {
   }
 }
 
+type PageProps = {
+  searchParams?: Promise<{ q?: string; tool?: string; source?: string }>;
+};
+
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -111,6 +115,10 @@ function sourceTypeLabel(sourceType: string) {
   return sourceType.toUpperCase();
 }
 
+function cleanFilter(value: string | undefined) {
+  return String(value ?? "").trim().slice(0, 80);
+}
+
 async function deleteSourceConfig(formData: FormData) {
   "use server";
 
@@ -123,12 +131,32 @@ async function deleteSourceConfig(formData: FormData) {
   revalidatePath("/demo/datasets");
 }
 
-export default async function DemoDatasetsPage() {
+export default async function DemoDatasetsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const sourceQuery = cleanFilter(params?.q).toLowerCase();
+  const sourceToolFilter = cleanFilter(params?.tool);
+  const sourceTypeFilter = cleanFilter(params?.source);
   const inventory = await loadDatasetInventory();
   const totalRows = inventory.imports.reduce((sum, log) => sum + importedRows(log), 0);
   const activeWorkspace = inventory.presets[0]?.workspace?.name ?? "Default Workspace";
   const readinessSummary = summarizeDatasetReadiness(inventory.readiness);
-  const savedSourceGroups = Object.values(inventory.presets.reduce<Record<string, {
+  const filteredPresets = inventory.presets.filter((preset) => {
+    const detail = sourceDetail(preset.metadata);
+    const matchesTool = !sourceToolFilter || preset.app === sourceToolFilter;
+    const matchesSource = !sourceTypeFilter || preset.sourceType === sourceTypeFilter;
+    const searchable = [
+      preset.name,
+      preset.app,
+      preset.sourceType,
+      preset.workspace.name,
+      detail.sheetId
+    ].join(" ").toLowerCase();
+    return matchesTool && matchesSource && (!sourceQuery || searchable.includes(sourceQuery));
+  });
+  const savedSourceToolsList = [...new Set(inventory.presets.map((preset) => preset.app))].sort((a, b) => a.localeCompare(b));
+  const savedSourceTypesList = [...new Set(inventory.presets.map((preset) => preset.sourceType))].sort((a, b) => a.localeCompare(b));
+  const hasSourceFilters = Boolean(sourceQuery || sourceToolFilter || sourceTypeFilter);
+  const savedSourceGroups = Object.values(filteredPresets.reduce<Record<string, {
     key: string;
     app: string;
     sourceType: string;
@@ -249,7 +277,38 @@ export default async function DemoDatasetsPage() {
                 </div>
               ))}
             </div>
-            {savedSourceGroups.map((group) => (
+            <form className="card savedSourceFilters" action="/workspace/datasets">
+              <label>
+                Search
+                <input name="q" defaultValue={cleanFilter(params?.q)} placeholder="Source name, Sheet ID, workspace" />
+              </label>
+              <label>
+                Tool
+                <select name="tool" defaultValue={sourceToolFilter}>
+                  <option value="">All tools</option>
+                  {savedSourceToolsList.map((tool) => <option key={tool} value={tool}>{tool}</option>)}
+                </select>
+              </label>
+              <label>
+                Source
+                <select name="source" defaultValue={sourceTypeFilter}>
+                  <option value="">All sources</option>
+                  {savedSourceTypesList.map((sourceType) => (
+                    <option key={sourceType} value={sourceType}>{sourceTypeLabel(sourceType)}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="savedSourceFilterActions">
+                <button type="submit">Apply filters</button>
+                {hasSourceFilters ? <Link className="btn" href="/workspace/datasets">Clear</Link> : null}
+              </div>
+              <p className="small">{filteredPresets.length.toLocaleString()} of {inventory.presets.length.toLocaleString()} saved configs shown.</p>
+            </form>
+            {savedSourceGroups.length === 0 ? (
+              <div className="card">
+                <p>No saved source configs match the current filters.</p>
+              </div>
+            ) : savedSourceGroups.map((group) => (
               <div className="card savedSourceGroup" key={group.key}>
                 <div className="editorHeader">
                   <div>
