@@ -19,7 +19,7 @@ const toolReadiness = [
   {
     name: "Lifecycle Engine",
     readiness: "Workspace-enabled",
-    data: "CSV import, mapping presets, editable lifecycle data",
+    data: "CSV and Sheets source configs, imports, editable lifecycle data",
     workflow: "/lifecycle/workspace",
     simulate: "/lifecycle/simulations",
     docs: "/lifecycle/docs"

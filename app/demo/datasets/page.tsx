@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = buildMetadata({
   title: "Tools Datasets | David Wolfe",
-  description: "Dataset inventory for Tools saved mappings, imports, and recent model runs.",
+  description: "Dataset inventory for Tools source configs, imports, and recent model runs.",
   path: "/workspace/datasets"
 });
 
@@ -166,7 +166,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
   const sourceSummary = [
     { label: "Saved configs", value: inventory.presets.length.toLocaleString(), detail: `${savedSourceTools} tool${savedSourceTools === 1 ? "" : "s"}` },
     { label: "Google Sheets", value: (sourceTypeCounts.google_sheets ?? 0).toLocaleString(), detail: "live spreadsheet sources" },
-    { label: "CSV", value: (sourceTypeCounts.csv ?? 0).toLocaleString(), detail: "mapping presets" },
+    { label: "CSV", value: (sourceTypeCounts.csv ?? 0).toLocaleString(), detail: "saved file sources" },
     { label: "Mapped rows", value: savedSourceRows.toLocaleString(), detail: `${savedSourceImported} imported config${savedSourceImported === 1 ? "" : "s"}` },
     {
       label: "Latest activity",
@@ -180,7 +180,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
       <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Datasets and presets">
         <p>
-          This page inventories the reusable data assets behind Tools: field mapping presets, imported datasets,
+          This page inventories the reusable data assets behind Tools: saved source configs, imported datasets,
           and model runs that can become saved workspace history as the apps mature into tools.
         </p>
       </Section>
@@ -252,7 +252,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
       <Section title="Saved source configs">
         {inventory.presets.length === 0 ? (
           <div className="card">
-            <p>No saved source configs or mapping presets yet. Start with CSV import or Google Sheets preview.</p>
+            <p>No saved source configs yet. Start with CSV import or Google Sheets preview.</p>
           </div>
         ) : (
           <div className="savedSourceGroupList">

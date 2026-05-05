@@ -206,7 +206,7 @@ export default async function DemoSettingsPage({
             <p className="editorKicker">Implemented</p>
             <ul>
               <li>Default workspace record for shared tool configuration.</li>
-              <li>Server-side lifecycle CSV mapping presets.</li>
+              <li>Workspace source configs for CSV and Google Sheets mappings.</li>
               <li>Recent import and model-run activity counts.</li>
             </ul>
           </div>

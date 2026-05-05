@@ -11,7 +11,7 @@ async function loadWorkspaceSummary() {
       where: { slug: "default-demo-workspace" },
       include: {
         mappingPresets: {
-          where: { app: "lifecycle", sourceType: "csv" },
+          where: { app: "lifecycle" },
           orderBy: { updatedAt: "desc" },
           take: 5
         }
@@ -55,13 +55,13 @@ export default async function LifecycleWorkspacePage() {
     <>
       <Section eyebrow="Workspace" title={summary.workspace?.name ?? "Default Workspace"}>
         <p>
-          This is the early workspace layer for saved lifecycle configuration: imports, mapping presets, datasets, and model runs.
+          Lifecycle uses the shared Workspace layer for source configs, imports, datasets, and model runs.
           Full account ownership can attach to this structure later.
         </p>
         <div className="ctaRow">
           <Link className="btn primary" href="/workspace/connections/csv?tool=lifecycle">Import CSV data</Link>
           <Link className="btn" href="/workspace/connections/google-sheets?tool=lifecycle">Import Sheet data</Link>
-          <Link className="btn" href="/workspace/connections">Manage workspace connections</Link>
+          <Link className="btn" href="/workspace/datasets?tool=lifecycle">Manage lifecycle sources</Link>
           <Link className="btn" href="/lifecycle/simulations">Run simulation</Link>
         </div>
       </Section>
@@ -88,22 +88,22 @@ export default async function LifecycleWorkspacePage() {
           <div className="card">
             <div className="editorHeader">
               <div>
-                <p className="editorKicker">CSV presets</p>
-                <h3>{summary.workspace?.mappingPresets.length ?? 0} saved mappings</h3>
+                <p className="editorKicker">Lifecycle sources</p>
+                <h3>{summary.workspace?.mappingPresets.length ?? 0} saved source configs</h3>
               </div>
-              <Link className="btn smallBtn" href="/workspace/connections/csv?tool=lifecycle">Open</Link>
+              <Link className="btn smallBtn" href="/workspace/datasets?tool=lifecycle">Open</Link>
             </div>
             {summary.workspace?.mappingPresets.length ? (
               <ul>
                 {summary.workspace.mappingPresets.map((preset) => (
                   <li key={preset.id}>
                     <strong>{preset.name}</strong>
-                    <p className="small">Updated {formatDate(preset.updatedAt)}</p>
+                    <p className="small">{preset.sourceType.replace("_", " ")} · Updated {formatDate(preset.updatedAt)}</p>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p>No saved mapping presets yet.</p>
+              <p>No saved lifecycle sources yet.</p>
             )}
           </div>
           <div className="card">

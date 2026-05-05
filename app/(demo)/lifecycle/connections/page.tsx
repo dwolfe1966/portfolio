@@ -5,61 +5,6 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
 export const dynamic = "force-dynamic";
 
-const sourceModes = [
-  {
-    title: "Sample data",
-    status: "Available now",
-    detail: "Use the seeded lifecycle dataset: users, entities, interest edges, and change events. Best for exploring the workflow before connecting external data.",
-    action: "Active default",
-    href: "/lifecycle/inputs"
-  },
-  {
-    title: "CSV / spreadsheet upload",
-    status: "Available now",
-    detail: "Use the shared workspace CSV connector to map users, entities, interest edges, and change events, then import them into the lifecycle model.",
-    action: "Import enabled",
-    href: "/workspace/connections/csv?tool=lifecycle"
-  },
-  {
-    title: "Google Sheets",
-    status: "Available now",
-    detail: "Connect a live Sheet through the shared workspace connector, map tabs to lifecycle objects, and refresh rows before import.",
-    action: "Refresh enabled",
-    href: "/workspace/connections/google-sheets?tool=lifecycle"
-  },
-  {
-    title: "Direct data source",
-    status: "Planned connector",
-    detail: "Connect live data through an API, warehouse, or relational database standard. Map source fields into the lifecycle model and run simulations on current operating data.",
-    action: "Design target",
-    href: null
-  }
-];
-
-const directSources = [
-  "REST API",
-  "GraphQL API",
-  "PostgreSQL",
-  "MySQL",
-  "Snowflake",
-  "BigQuery",
-  "Redshift",
-  "Databricks",
-  "Airtable",
-  "HubSpot / Salesforce-style CRM API",
-  "S3 / cloud object store",
-  "Webhook event stream"
-];
-
-const connectionFlow = [
-  "Choose data source",
-  "Map source fields",
-  "Validate required columns and ranges",
-  "Preview normalized rows",
-  "Save named dataset",
-  "Run lifecycle simulation"
-];
-
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -87,33 +32,36 @@ export default async function LifecycleConnectionsPage() {
     <>
       <Section eyebrow="Operations" title="Use your own data">
         <p>
-          Lifecycle supports both the built-in sample dataset and user-owned data through the shared workspace connector
-          layer. Use this page for lifecycle import history; use Workspace Connections to map and refresh sources.
+          Lifecycle data connections now run through the shared Workspace source layer. Use this page for lifecycle import
+          history; use Workspace Connections and Datasets to create, manage, refresh, and import sources.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/workspace/connections/csv?tool=lifecycle">Connect CSV</Link>
-          <Link className="btn" href="/workspace/connections/google-sheets?tool=lifecycle">Connect Sheets</Link>
+          <Link className="btn primary" href="/workspace/connections">Workspace connections</Link>
+          <Link className="btn" href="/workspace/datasets?tool=lifecycle">Lifecycle sources</Link>
           <Link className="btn" href="/lifecycle/inputs">Open current data</Link>
         </div>
       </Section>
 
-      <Section title="Connection modes">
-        <div className="grid grid-4">
-          {sourceModes.map((mode) => (
-            <div className="card" key={mode.title}>
-              <p className={`statusPill ${mode.status === "Available now" ? "live" : "progress"}`}>{mode.status}</p>
-              <h3 style={{ marginTop: 12 }}>{mode.title}</h3>
-              <p>{mode.detail}</p>
-              <p className="small"><strong>{mode.action}</strong></p>
-              {mode.href ? (
-                <Link className="btn" href={mode.href}>
-                  {mode.title === "CSV / spreadsheet upload" ? "Connect CSV" : mode.title === "Google Sheets" ? "Connect Sheets" : "Open data"}
-                </Link>
-              ) : (
-                <button type="button" disabled>Coming soon</button>
-              )}
-            </div>
-          ))}
+      <Section title="Lifecycle source actions">
+        <div className="grid grid-3">
+          <div className="card">
+            <p className="editorKicker">Create source</p>
+            <h3>CSV upload</h3>
+            <p>Map users, entities, interest edges, and change events from CSV rows.</p>
+            <Link className="btn smallBtn" href="/workspace/connections/csv?tool=lifecycle">Open CSV connector</Link>
+          </div>
+          <div className="card">
+            <p className="editorKicker">Create source</p>
+            <h3>Google Sheets</h3>
+            <p>Preview live Sheet ranges, map fields, refresh rows, and import the latest lifecycle data.</p>
+            <Link className="btn smallBtn" href="/workspace/connections/google-sheets?tool=lifecycle">Open Sheets connector</Link>
+          </div>
+          <div className="card">
+            <p className="editorKicker">Manage sources</p>
+            <h3>Workspace datasets</h3>
+            <p>Review saved lifecycle source configs, object coverage, mappings, and recommended next actions.</p>
+            <Link className="btn smallBtn primary" href="/workspace/datasets?tool=lifecycle">Manage lifecycle sources</Link>
+          </div>
         </div>
       </Section>
 
@@ -174,43 +122,6 @@ export default async function LifecycleConnectionsPage() {
             </table>
           </div>
         )}
-      </Section>
-
-      <Section title="Direct data source connector targets">
-        <div className="card">
-          <p>
-            The direct connector is the bridge from Tool to operating tool: pull current lifecycle data from an existing
-            API, warehouse, relational database, CRM, or event stream.
-          </p>
-          <div className="connectorChipGrid" aria-label="Direct datasource connector targets">
-            {directSources.map((source) => (
-              <span className="connectorChip" key={source}>{source}</span>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Connector workflow">
-        <div className="signalStrip">
-          {connectionFlow.map((step, index) => (
-            <div className="signalStep" key={step}>
-              <strong>{index + 1}. {step}</strong>
-              <p>
-                {index === 0
-                  ? "Select sample, CSV, sheet, or direct source."
-                  : index === 1
-                    ? "Map incoming columns or API fields into lifecycle objects in the shared workspace connector."
-                    : index === 2
-                      ? "Check required fields, enums, date formats, and numeric ranges."
-                      : index === 3
-                        ? "Review the normalized rows before they affect simulations."
-                        : index === 4
-                          ? "Persist the mapped source as a reusable dataset."
-                          : "Generate candidates, OpenAI messages, landing previews, and output KPIs."}
-              </p>
-            </div>
-          ))}
-        </div>
       </Section>
     </>
   );
