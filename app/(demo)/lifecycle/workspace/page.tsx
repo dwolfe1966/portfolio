@@ -59,8 +59,9 @@ export default async function LifecycleWorkspacePage() {
           Full account ownership can attach to this structure later.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/lifecycle/connections/csv">Import CSV data</Link>
-          <Link className="btn" href="/lifecycle/connections">Manage connections</Link>
+          <Link className="btn primary" href="/workspace/connections/csv?tool=lifecycle">Import CSV data</Link>
+          <Link className="btn" href="/workspace/connections/google-sheets?tool=lifecycle">Import Sheet data</Link>
+          <Link className="btn" href="/workspace/connections">Manage workspace connections</Link>
           <Link className="btn" href="/lifecycle/simulations">Run simulation</Link>
         </div>
       </Section>
@@ -90,7 +91,7 @@ export default async function LifecycleWorkspacePage() {
                 <p className="editorKicker">CSV presets</p>
                 <h3>{summary.workspace?.mappingPresets.length ?? 0} saved mappings</h3>
               </div>
-              <Link className="btn smallBtn" href="/lifecycle/connections/csv">Open</Link>
+              <Link className="btn smallBtn" href="/workspace/connections/csv?tool=lifecycle">Open</Link>
             </div>
             {summary.workspace?.mappingPresets.length ? (
               <ul>

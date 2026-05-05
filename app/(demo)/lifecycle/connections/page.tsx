@@ -16,16 +16,16 @@ const sourceModes = [
   {
     title: "CSV / spreadsheet upload",
     status: "Available now",
-    detail: "Upload users, entities, interest edges, and change events from CSV, validate rows, import them into the lifecycle model, and run simulations against the imported dataset.",
+    detail: "Use the shared workspace CSV connector to map users, entities, interest edges, and change events, then import them into the lifecycle model.",
     action: "Import enabled",
-    href: "/lifecycle/connections/csv"
+    href: "/workspace/connections/csv?tool=lifecycle"
   },
   {
     title: "Google Sheets",
-    status: "Planned connector",
-    detail: "Connect a live sheet, map tabs to lifecycle objects, and refresh the app from spreadsheet rows without replacing the demo schema.",
-    action: "Design target",
-    href: null
+    status: "Available now",
+    detail: "Connect a live Sheet through the shared workspace connector, map tabs to lifecycle objects, and refresh rows before import.",
+    action: "Refresh enabled",
+    href: "/workspace/connections/google-sheets?tool=lifecycle"
   },
   {
     title: "Direct data source",
@@ -87,12 +87,12 @@ export default async function LifecycleConnectionsPage() {
     <>
       <Section eyebrow="Operations" title="Use your own data">
         <p>
-          Lifecycle should support both the built-in sample dataset and user-owned data.
-          This page defines the connection surface: start with sample data, then move toward spreadsheet uploads,
-          live sheets, and direct datasource connectors.
+          Lifecycle supports both the built-in sample dataset and user-owned data through the shared workspace connector
+          layer. Use this page for lifecycle import history; use Workspace Connections to map and refresh sources.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/lifecycle/connections/csv">Connect CSV</Link>
+          <Link className="btn primary" href="/workspace/connections/csv?tool=lifecycle">Connect CSV</Link>
+          <Link className="btn" href="/workspace/connections/google-sheets?tool=lifecycle">Connect Sheets</Link>
           <Link className="btn" href="/lifecycle/inputs">Open current data</Link>
         </div>
       </Section>
@@ -107,7 +107,7 @@ export default async function LifecycleConnectionsPage() {
               <p className="small"><strong>{mode.action}</strong></p>
               {mode.href ? (
                 <Link className="btn" href={mode.href}>
-                  {mode.title === "CSV / spreadsheet upload" ? "Connect CSV" : "Open data"}
+                  {mode.title === "CSV / spreadsheet upload" ? "Connect CSV" : mode.title === "Google Sheets" ? "Connect Sheets" : "Open data"}
                 </Link>
               ) : (
                 <button type="button" disabled>Coming soon</button>
@@ -197,9 +197,9 @@ export default async function LifecycleConnectionsPage() {
               <strong>{index + 1}. {step}</strong>
               <p>
                 {index === 0
-                  ? "Select demo, upload, sheet, or direct source."
+                  ? "Select sample, CSV, sheet, or direct source."
                   : index === 1
-                    ? "Map incoming columns or API fields into lifecycle objects."
+                    ? "Map incoming columns or API fields into lifecycle objects in the shared workspace connector."
                     : index === 2
                       ? "Check required fields, enums, date formats, and numeric ranges."
                       : index === 3
