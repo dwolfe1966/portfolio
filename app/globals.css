@@ -2017,12 +2017,17 @@ button {
   margin-bottom: 0;
 }
 .connectorSubPanel {
-  background: color-mix(in oklab, var(--demo-surface, #fff) 94%, var(--demo-accent, #2563eb) 6%);
   border: 1px solid var(--demo-divider, var(--line));
   border-radius: 8px;
   display: grid;
   gap: 10px;
   padding: 12px;
+}
+.connectorEntityCard > .connectorSubPanel:nth-of-type(odd) {
+  background: color-mix(in oklab, var(--demo-surface, #fff) 91%, #3b82f6 9%);
+}
+.connectorEntityCard > .connectorSubPanel:nth-of-type(even) {
+  background: color-mix(in oklab, var(--demo-surface, #fff) 88%, #94a3b8 12%);
 }
 .connectorSubPanelHeader {
   align-items: flex-start;
