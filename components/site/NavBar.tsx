@@ -18,6 +18,7 @@ const workspaceLinks = [
   { href: "/workspace/dashboard", label: "Dashboard" },
   { href: "/workspace/datasets", label: "Datasets" },
   { href: "/workspace/connections", label: "Connections" },
+  { href: "/workspace/account", label: "Account" },
   { href: "/workspace/settings", label: "Settings" },
   { href: "/workspace/activity", label: "Activity" }
 ];

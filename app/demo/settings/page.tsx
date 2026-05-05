@@ -207,6 +207,8 @@ export default async function DemoSettingsPage({
           <details>
             <summary>Implemented</summary>
             <ul>
+              <li>Account profile and signed account session.</li>
+              <li>Workspace membership linking account users to workspace ownership.</li>
               <li>Default workspace record for shared tool configuration.</li>
               <li>Workspace source configs for CSV and Google Sheets mappings.</li>
               <li>Recent import and model-run activity counts.</li>
@@ -215,8 +217,8 @@ export default async function DemoSettingsPage({
           <details>
             <summary>Next account layer</summary>
             <ul>
-              <li>User login and workspace membership.</li>
-              <li>Per-tool saved presets and connector credentials scoped to each workspace.</li>
+              <li>Attach imported dataset snapshots to account users and workspaces.</li>
+              <li>Per-tool selected datasets and connector credentials scoped to each workspace.</li>
               <li>Workspace-level activity and billing boundaries.</li>
             </ul>
           </details>
