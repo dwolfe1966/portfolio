@@ -44,6 +44,8 @@ function formatDate(value: Date | string) {
 function sourceTypeLabel(sourceType: string) {
   if (sourceType === "google_sheets") return "Google Sheets";
   if (sourceType === "csv") return "CSV";
+  if (sourceType === "oauth") return "OAuth";
+  if (sourceType === "live") return "Live datasource";
   return sourceType.toUpperCase();
 }
 
@@ -85,6 +87,53 @@ function jsonPreview(value: unknown) {
   return JSON.stringify(value ?? {}, null, 2);
 }
 
+function sourceActionState({
+  sourceType,
+  rows,
+  lastPreviewedAt,
+  lastValidatedAt,
+  lastImportedAt
+}: {
+  sourceType: string;
+  rows: number;
+  lastPreviewedAt: string;
+  lastValidatedAt: string;
+  lastImportedAt: string;
+}) {
+  if (sourceType === "google_sheets" && !lastPreviewedAt) {
+    return {
+      status: "Needs refresh",
+      nextAction: "Refresh source",
+      detail: "Pull live Sheet rows into the preview before mapping or importing.",
+      action: "refresh" as const
+    };
+  }
+  if (rows === 0 && !lastValidatedAt) {
+    return {
+      status: "Needs mapping",
+      nextAction: "Map source",
+      detail: "Open the connector, provide source rows, and save a validated mapping.",
+      action: "map" as const
+    };
+  }
+  if (!lastImportedAt) {
+    return {
+      status: "Ready to import",
+      nextAction: "Import source",
+      detail: "Validated rows are available, but they have not been imported into tool tables yet.",
+      action: "import" as const
+    };
+  }
+  return {
+    status: "Operational",
+    nextAction: sourceType === "google_sheets" ? "Refresh source" : "Import source",
+    detail: sourceType === "google_sheets"
+      ? "This source has been imported. Refresh before the next run when the Sheet changes."
+      : "This source has been imported. Re-import when the underlying CSV data changes.",
+    action: sourceType === "google_sheets" ? "refresh" as const : "import" as const
+  };
+}
+
 async function loadSourceConfig(id: string) {
   const workspace = await getDefaultWorkspace();
   return db.lifecycleMappingPreset.findFirst({
@@ -123,6 +172,13 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
     const rows = rowCount(config.metadata);
     const mappedObjects = objectRows(config.metadata);
     const mappings = mappingRows(config.mappings);
+    const actionState = sourceActionState({
+      sourceType: config.sourceType,
+      rows,
+      lastPreviewedAt,
+      lastValidatedAt,
+      lastImportedAt
+    });
 
     return (
       <>
@@ -186,6 +242,37 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
           </div>
           {lastImportSummary ? <p className="small">{lastImportSummary}</p> : null}
           {sheetId ? <p className="small">Sheet ID: <code>{sheetId}</code></p> : null}
+        </Section>
+
+        <Section title="Workflow state">
+          <div className="grid grid-3">
+            <div className="card">
+              <p className="editorKicker">Recommended next step</p>
+              <h3>{actionState.nextAction}</h3>
+              <p>{actionState.detail}</p>
+              <Link className="btn smallBtn primary" href={sourceConfigHref(config.sourceType, config.app, config.id, actionState.action)}>
+                {actionState.nextAction}
+              </Link>
+            </div>
+            <div className="card">
+              <p className="editorKicker">Source state</p>
+              <h3>{actionState.status}</h3>
+              <p className="small">
+                {config.sourceType === "google_sheets"
+                  ? "Sheets sources refresh live rows, validate mappings, then import into tool tables."
+                  : "CSV sources store reusable mappings; fresh rows are pasted or uploaded during import."}
+              </p>
+            </div>
+            <div className="card">
+              <p className="editorKicker">After import</p>
+              <h3>Run the tool</h3>
+              <p className="small">Review imported inputs, then run the simulation against the owned dataset.</p>
+              <div className="importHistoryActions">
+                <Link className="btn smallBtn" href={toolPageHref(config.app, "inputs")}>Inputs</Link>
+                <Link className="btn smallBtn" href={toolPageHref(config.app, "simulations")}>Simulate</Link>
+              </div>
+            </div>
+          </div>
         </Section>
 
         <Section title="Object coverage">
