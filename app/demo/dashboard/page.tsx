@@ -88,28 +88,7 @@ async function loadToolsetSummary() {
 export default async function DemoDashboardPage() {
   const summary = await loadToolsetSummary();
   const datasetSummary = summarizeDatasetReadiness(summary.datasetReadiness);
-  const quickActions = [
-    {
-      href: "/workspace/datasets",
-      title: "Review datasets",
-      detail: "Inspect source configs, readiness gaps, imports, and model runs."
-    },
-    {
-      href: "/workspace/connections",
-      title: "Connect data",
-      detail: "Create CSV, Google Sheets, OAuth, or future live-data sources."
-    },
-    {
-      href: "#workspace-tools",
-      title: "Open tools",
-      detail: "Launch a revenue tool once the workspace has usable data."
-    },
-    {
-      href: "/workspace/activity",
-      title: "View activity",
-      detail: "Audit recent source, import, model, and tool events."
-    }
-  ];
+  const workspaceFlow = ["Connect source", "Validate dataset", "Run tool", "Review activity"];
 
   return (
     <>
@@ -119,22 +98,22 @@ export default async function DemoDashboardPage() {
           Start from the operating task: review datasets, connect a source, open a tool, or audit recent activity.
           The workspace is the shared data and configuration layer beneath every revenue tool.
         </p>
-        <div className="demoWorkspaceQuickActions">
-          {quickActions.map((action) => (
-            <Link className="demoWorkspaceQuickAction" href={action.href} key={action.href}>
-              <strong>{action.title}</strong>
-              <span>{action.detail}</span>
-            </Link>
+        <div className="workspaceFlowDiagram" aria-label="Workspace operating flow">
+          {workspaceFlow.map((step, index) => (
+            <div className="workspaceFlowStep" key={step}>
+              <span>{index + 1}</span>
+              <strong>{step}</strong>
+            </div>
           ))}
         </div>
       </Section>
 
       <Section title="Workspace status">
-        <div className="grid grid-4">
-          <div className="card"><p className="small">Workspace</p><div className="kpi">{summary.workspace ? "Active" : "Setup"}</div></div>
-          <div className="card"><p className="small">Source configs</p><div className="kpi">{summary.sourceConfigs.toLocaleString()}</div></div>
-          <div className="card"><p className="small">Imports</p><div className="kpi">{summary.imports.toLocaleString()}</div></div>
-          <div className="card"><p className="small">Model runs</p><div className="kpi">{summary.lifecycleRuns.toLocaleString()}</div></div>
+        <div className="grid grid-4 workspaceCompactMetricGrid">
+          <div className="card workspaceCompactMetric"><p className="small">Workspace</p><div className="kpi">{summary.workspace ? "Active" : "Setup"}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Source configs</p><div className="kpi">{summary.sourceConfigs.toLocaleString()}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Imports</p><div className="kpi">{summary.imports.toLocaleString()}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Model runs</p><div className="kpi">{summary.lifecycleRuns.toLocaleString()}</div></div>
         </div>
         {summary.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable workspace persistence.</p>
@@ -146,11 +125,11 @@ export default async function DemoDashboardPage() {
           Readiness shows which tools have enough structured data to run against the current workspace instead of only
           relying on default sample data.
         </p>
-        <div className="grid grid-4">
-          <div className="card"><p className="small">Available</p><div className="kpi">{datasetSummary.available}</div><p>Tools with required objects present.</p></div>
-          <div className="card"><p className="small">Partial</p><div className="kpi">{datasetSummary.partial}</div><p>Tools with some required data but gaps.</p></div>
-          <div className="card"><p className="small">Missing</p><div className="kpi">{datasetSummary.missing}</div><p>Tools without usable data objects yet.</p></div>
-          <div className="card"><p className="small">Imported</p><div className="kpi">{datasetSummary.imported}</div><p>Tools with an import or connector path used.</p></div>
+        <div className="grid grid-4 workspaceCompactMetricGrid">
+          <div className="card workspaceCompactMetric"><p className="small">Available</p><div className="kpi">{datasetSummary.available}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Partial</p><div className="kpi">{datasetSummary.partial}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Missing</p><div className="kpi">{datasetSummary.missing}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Imported</p><div className="kpi">{datasetSummary.imported}</div></div>
         </div>
         <div className="ctaRow">
           <Link className="btn primary" href="/workspace/datasets">Review datasets</Link>

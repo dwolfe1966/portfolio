@@ -1175,6 +1175,7 @@ button {
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: center;
   overflow-x: auto;
   padding: 10px 0 14px;
   margin: -10px 0 8px;
@@ -1200,31 +1201,57 @@ button {
   border-color: var(--accent);
   color: #ffffff;
 }
-.demoWorkspaceQuickActions {
+.workspaceFlowDiagram {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin: 0 0 12px;
 }
-.demoWorkspaceQuickAction {
+.workspaceFlowStep {
+  position: relative;
   display: grid;
-  gap: 5px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: color-mix(in oklab, #ffffff 88%, var(--bg) 12%);
-  padding: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 48px;
 }
-.demoWorkspaceQuickAction:hover {
-  border-color: color-mix(in oklab, var(--blue) 42%, var(--line));
+.workspaceFlowStep:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  width: 8px;
+  height: 2px;
+  background: color-mix(in oklab, var(--blue) 55%, var(--line));
 }
-.demoWorkspaceQuickAction strong {
+.workspaceFlowStep span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+.workspaceFlowStep strong {
   color: var(--text);
   font-size: 13px;
 }
-.demoWorkspaceQuickAction span {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.35;
+.workspaceCompactMetricGrid {
+  gap: 8px;
+}
+.workspaceCompactMetric {
+  padding: 12px;
+}
+.workspaceCompactMetric p,
+.workspaceCompactMetric .kpi {
+  margin-bottom: 0;
+}
+.workspaceCompactMetric .kpi {
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.05;
 }
 .workspaceModuleCard {
   display: grid;
@@ -2068,8 +2095,8 @@ button {
   gap: 14px;
 }
 .connectorEntityCard {
-  background: color-mix(in oklab, var(--demo-surface, #fff) 88%, #a78bfa 12%);
-  border-color: color-mix(in oklab, var(--demo-divider, var(--line)) 72%, #7c3aed 28%);
+  background: var(--demo-surface, #ffffff);
+  border-color: var(--demo-divider, var(--line));
   gap: 12px;
 }
 .connectorEntityHeader {
@@ -2102,6 +2129,9 @@ button {
 .connectorSubPanel--title,
 .connectorSubPanel--message {
   background: color-mix(in oklab, var(--demo-surface, #fff) 88%, #94a3b8 12%);
+}
+.connectorSubPanel--title {
+  background: var(--demo-surface, #ffffff);
 }
 .connectorSubPanel--action,
 .connectorSubPanel--data {
@@ -2309,8 +2339,15 @@ button {
     display: none;
   }
   .navCta { display: none; }
-  .demoWorkspaceQuickActions {
+  .workspaceFlowDiagram {
     grid-template-columns: 1fr;
+  }
+  .workspaceFlowStep:not(:last-child)::after {
+    left: 14px;
+    right: auto;
+    top: calc(100% - 2px);
+    width: 2px;
+    height: 10px;
   }
   .toolReadinessRow {
     grid-template-columns: 1fr;
