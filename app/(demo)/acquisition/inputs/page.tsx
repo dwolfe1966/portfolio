@@ -1,6 +1,7 @@
 import { Section } from "@/components/site/Section";
 import { AcquisitionAssumptionsCard } from "@/components/acquisition/AcquisitionAssumptionsCard";
 import { AcquisitionCampaignBuilder } from "@/components/acquisition/AcquisitionCampaignBuilder";
+import { AcquisitionWorkspaceDatasetPanel } from "@/components/acquisition/AcquisitionWorkspaceDatasetPanel";
 
 export default function AcquisitionInputsPage() {
   return (
@@ -24,6 +25,10 @@ export default function AcquisitionInputsPage() {
             <p>Target CAC, target LTV, max budget shift percentage, and confidence threshold.</p>
           </div>
         </div>
+      </Section>
+
+      <Section title="Current app data">
+        <AcquisitionWorkspaceDatasetPanel compact />
       </Section>
 
       <Section title="Campaign bootstrap (also available in /acquisition/create)">
