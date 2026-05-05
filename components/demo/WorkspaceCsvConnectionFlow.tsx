@@ -71,7 +71,7 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
   const totalRows = summarizeRows(schema, parsedByObject);
   const totalErrors = summarizeErrors(schema, parsedByObject);
   const importReady = totalRows > 0 && totalErrors === 0 && schema.objects.every((object) => parsedByObject[object.key]?.rows.length > 0);
-  const lifecycleImportReady = selectedTool === "lifecycle" && importReady;
+  const persistentImportReady = (selectedTool === "lifecycle" || selectedTool === "pricing") && importReady;
 
   function selectTool(tool: ToolKey) {
     setSelectedTool(tool);
@@ -139,27 +139,47 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
     setImportStatus({ state: "idle", message: `Loaded sample ${schema.label.toLowerCase()} CSV data.` });
   }
 
-  async function importLifecycleDataset() {
-    if (!lifecycleImportReady || importStatus.state === "loading") return;
-    setImportStatus({ state: "loading", message: "Importing validated lifecycle CSV rows into the workspace database..." });
+  async function importDataset() {
+    if (!persistentImportReady || importStatus.state === "loading") return;
+    setImportStatus({
+      state: "loading",
+      message: `Importing validated ${schema.label.toLowerCase()} CSV rows into the workspace database...`
+    });
 
     try {
-      const response = await fetch("/api/lifecycle/import", {
+      const endpoint = selectedTool === "pricing" ? "/api/pricing/import" : "/api/lifecycle/import";
+      const body = selectedTool === "pricing"
+        ? {
+            sourceName: datasetName,
+            sourceMetadata: {
+              sourceFlow: "workspace_csv",
+              mappings: mappingsByObject,
+              headers: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].headers])),
+              rowCounts: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].rows.length]))
+            },
+            segments: parsedByObject.segments.rows,
+            variants: parsedByObject.variants.rows,
+            experiments: parsedByObject.experiments.rows,
+            guardrails: parsedByObject.guardrails.rows
+          }
+        : {
+            sourceName: datasetName,
+            sourceMetadata: {
+              sourceFlow: "workspace_csv",
+              mappings: mappingsByObject,
+              headers: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].headers])),
+              rowCounts: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].rows.length]))
+            },
+            users: parsedByObject.users.rows,
+            entities: parsedByObject.entities.rows,
+            interestEdges: parsedByObject.interestEdges.rows,
+            changeEvents: parsedByObject.changeEvents.rows
+          };
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceName: datasetName,
-          sourceMetadata: {
-            sourceFlow: "workspace_csv",
-            mappings: mappingsByObject,
-            headers: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].headers])),
-            rowCounts: Object.fromEntries(schema.objects.map((object) => [object.key, parsedByObject[object.key].rows.length]))
-          },
-          users: parsedByObject.users.rows,
-          entities: parsedByObject.entities.rows,
-          interestEdges: parsedByObject.interestEdges.rows,
-          changeEvents: parsedByObject.changeEvents.rows
-        })
+        body: JSON.stringify(body)
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -168,10 +188,10 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
         throw new Error(`${payload?.error?.message ?? "Import failed."}${detail}`);
       }
       const imported = payload.import ?? {};
-      setImportStatus({
-        state: "success",
-        message: `Imported ${imported.usersImported ?? 0} users, ${imported.entitiesImported ?? 0} entities, ${imported.interestEdgesImported ?? 0} interest edges, and ${imported.changeEventsImported ?? 0} change events.`
-      });
+      const message = selectedTool === "pricing"
+        ? `Imported ${imported.segmentsImported ?? 0} segments, ${imported.variantsImported ?? 0} variants, ${imported.experimentsImported ?? 0} experiments, and ${imported.guardrailsImported ?? 0} guardrail rows.`
+        : `Imported ${imported.usersImported ?? 0} users, ${imported.entitiesImported ?? 0} entities, ${imported.interestEdgesImported ?? 0} interest edges, and ${imported.changeEventsImported ?? 0} change events.`;
+      setImportStatus({ state: "success", message });
     } catch (error) {
       setImportStatus({
         state: "error",
@@ -210,22 +230,22 @@ export function WorkspaceCsvConnectionFlow({ initialTool }: { initialTool?: stri
         </div>
         <div className="ctaRow csvPresetActions">
           <button type="button" onClick={loadSamples}>Load sample dataset</button>
-          <button type="button" disabled={!lifecycleImportReady || importStatus.state === "loading"} onClick={() => void importLifecycleDataset()}>
-            {importStatus.state === "loading" ? "Importing lifecycle data..." : selectedTool === "lifecycle" ? "Import lifecycle dataset" : "Import endpoint pending"}
+          <button type="button" disabled={!persistentImportReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
+            {importStatus.state === "loading" ? `Importing ${schema.label.toLowerCase()} data...` : persistentImportReady ? `Import ${schema.label.toLowerCase()} dataset` : "Import endpoint pending"}
           </button>
           <Link className="btn" href="/workspace/datasets">Review datasets</Link>
         </div>
         <p className="small">Rows parsed: {totalRows} · validation issues: {totalErrors}</p>
         <p className={`small lifecycleImportStatus lifecycleImportStatus--${importStatus.state}`}>{importStatus.message}</p>
-        {selectedTool !== "lifecycle" && importReady ? (
+        {selectedTool !== "lifecycle" && selectedTool !== "pricing" && importReady ? (
           <p className="small bandText--healthy">
             {schema.label} rows validate successfully. The next backlog item will wire these normalized rows into the tool database tables.
           </p>
         ) : null}
         {importStatus.state === "success" ? (
           <div className="ctaRow lifecycleImportNextSteps">
-            <Link className="btn primary" href="/lifecycle/inputs?imported=1">Review imported inputs</Link>
-            <Link className="btn" href="/lifecycle/simulations?imported=1">Run simulation</Link>
+            <Link className="btn primary" href={selectedTool === "pricing" ? "/pricing/inputs?imported=1" : "/lifecycle/inputs?imported=1"}>Review imported inputs</Link>
+            <Link className="btn" href={selectedTool === "pricing" ? "/pricing/simulations?imported=1" : "/lifecycle/simulations?imported=1"}>Run simulation</Link>
           </div>
         ) : null}
       </div>

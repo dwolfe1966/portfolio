@@ -129,6 +129,7 @@ export async function loadWorkspaceDatasetReadiness() {
     pricingSegments,
     pricingVariants,
     pricingExperiments,
+    pricingImports,
     retentionAccounts,
     retentionPlaybooks,
     retentionInterventions,
@@ -154,6 +155,7 @@ export async function loadWorkspaceDatasetReadiness() {
     db.pricingSegment.count(),
     db.pricingVariant.count(),
     db.pricingExperiment.count(),
+    db.pricingAuditLog.count({ where: { action: "pricing_import" } }),
     db.retentionAccount.count(),
     db.retentionPlaybook.count(),
     db.retentionIntervention.count(),
@@ -182,7 +184,7 @@ export async function loadWorkspaceDatasetReadiness() {
     pricing: {
       objectCounts: [pricingSegments, pricingVariants, pricingExperiments, pricingExperiments],
       recordCount: pricingSegments + pricingVariants + pricingExperiments,
-      importCount: 0,
+      importCount: pricingImports,
       presetCount: 0
     },
     retention: {
