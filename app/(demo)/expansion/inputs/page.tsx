@@ -3,6 +3,7 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
 import { ExpansionOfferEditor } from "@/components/expansion/ExpansionOfferEditor";
 import { ExpansionPolicyEditor } from "@/components/expansion/ExpansionPolicyEditor";
+import { ExpansionWorkspaceDatasetPanel } from "@/components/expansion/ExpansionWorkspaceDatasetPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,9 @@ export default async function ExpansionInputsPage() {
     <>
       <Section eyebrow="Inputs" title="Expansion policy and offer library">
         <p>Inputs define what counts as expansion-ready and which monetization motion should be offered by signal pattern.</p>
+      </Section>
+      <Section title="Current app data">
+        <ExpansionWorkspaceDatasetPanel compact />
       </Section>
       <Section title="Policy">
         {policy ? (
