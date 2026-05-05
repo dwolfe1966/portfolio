@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
+import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 
 type CsvRow = Record<string, unknown>;
 
@@ -205,7 +206,29 @@ export async function POST(request: Request) {
       return { accountsImported, offersImported, policiesImported };
     });
 
-    return apiOk({ eventId, import: result });
+    const rowCounts = {
+      accounts: validation.rows.accounts.length,
+      offers: validation.rows.offers.length,
+      policy: validation.rows.policy.length
+    };
+    const dataset = await createWorkspaceDatasetSnapshot({
+      app: "expansion",
+      sourceType: "csv",
+      name: sourceName,
+      rowData: {
+        source: validation.rows,
+        normalized: validation.normalized
+      },
+      rowCounts,
+      metadata: {
+        eventId,
+        sourceMetadata,
+        imported: result
+      },
+      cookieHeader: request.headers.get("cookie")
+    });
+
+    return apiOk({ eventId, import: { datasetId: dataset?.id ?? null, ...result } });
   } catch (error) {
     if (isMissingDemoTableError(error)) return apiCompatibilityError("Expansion tables are missing.", { eventId });
     return apiUnhandledError(error, eventId);

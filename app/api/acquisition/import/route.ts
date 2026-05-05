@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
+import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 
 type CsvRow = Record<string, unknown>;
 
@@ -366,7 +367,30 @@ export async function POST(request: Request) {
       return { campaignsImported, audiencesImported, creativesImported, performanceImported };
     });
 
-    return apiOk({ eventId, import: result });
+    const rowCounts = {
+      campaigns: validation.rows.campaigns.length,
+      audiences: validation.rows.audiences.length,
+      creatives: validation.rows.creatives.length,
+      performance: validation.rows.performance.length
+    };
+    const dataset = await createWorkspaceDatasetSnapshot({
+      app: "acquisition",
+      sourceType: "csv",
+      name: sourceName,
+      rowData: {
+        source: validation.rows,
+        normalized: validation.normalized
+      },
+      rowCounts,
+      metadata: {
+        eventId,
+        sourceMetadata,
+        imported: result
+      },
+      cookieHeader: request.headers.get("cookie")
+    });
+
+    return apiOk({ eventId, import: { datasetId: dataset?.id ?? null, ...result } });
   } catch (error) {
     if (isMissingDemoTableError(error)) return apiCompatibilityError("Acquisition tables are missing.", { eventId });
     return apiUnhandledError(error, eventId);

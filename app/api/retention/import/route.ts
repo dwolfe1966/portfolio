@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
+import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 import {
   validateRetentionAccountInput,
   validateRetentionPlaybookInput,
@@ -189,7 +190,29 @@ export async function POST(request: Request) {
       return { accountsImported, playbooksImported, policiesImported };
     });
 
-    return apiOk({ eventId, import: result });
+    const rowCounts = {
+      accounts: validation.rows.accounts.length,
+      playbooks: validation.rows.playbooks.length,
+      policy: validation.rows.policy.length
+    };
+    const dataset = await createWorkspaceDatasetSnapshot({
+      app: "retention",
+      sourceType: "csv",
+      name: sourceName,
+      rowData: {
+        source: validation.rows,
+        normalized: validation.normalized
+      },
+      rowCounts,
+      metadata: {
+        eventId,
+        sourceMetadata,
+        imported: result
+      },
+      cookieHeader: request.headers.get("cookie")
+    });
+
+    return apiOk({ eventId, import: { datasetId: dataset?.id ?? null, ...result } });
   } catch (error) {
     if (isMissingDemoTableError(error)) return apiCompatibilityError("Retention tables are missing.", { eventId });
     return apiUnhandledError(error, eventId);
