@@ -1424,41 +1424,49 @@ button {
   gap: 10px;
 }
 .activityFeedItem {
-  align-items: start;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 8px;
-  display: grid;
-  gap: 16px;
-  grid-template-columns: 170px minmax(0, 1fr) auto;
   padding: 14px;
 }
+.activityFeedItem[open],
 .activityFeedItem:hover {
   border-color: color-mix(in oklab, var(--blue) 44%, var(--line));
 }
-.activityFeedTime,
-.activityFeedMeta {
-  align-items: flex-start;
-  display: flex;
-  gap: 8px;
+.activityFeedItem summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 136px 112px minmax(0, 1fr) 120px;
+  list-style: none;
 }
-.activityFeedTime {
-  flex-direction: column;
+.activityFeedItem summary::-webkit-details-marker {
+  display: none;
 }
-.activityFeedTime strong,
-.activityFeedItem h3,
-.activityFeedItem p {
+.activityFeedItem summary strong,
+.activityFeedItem summary span,
+.activityFeedDetail p {
   margin-bottom: 0;
 }
-.activityFeedTime span {
+.activityFeedDate,
+.activityFeedItem summary span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
 }
-.activityFeedMeta {
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
+.activityFeedKind {
+  color: var(--text);
+}
+.activityFeedDetail {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.activityFeedDetail .btn {
+  justify-self: start;
 }
 .retentionEditorCard {
   display: grid;
@@ -2267,8 +2275,11 @@ button {
     justify-content: flex-start;
   }
   .activityFeedItem {
+    padding: 12px;
+  }
+  .activityFeedItem summary {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 6px;
   }
   .demoAppShell {
     grid-template-columns: 1fr;

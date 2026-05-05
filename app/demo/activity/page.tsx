@@ -25,39 +25,12 @@ type ActivityItem = {
   createdAt: Date;
 };
 
-const activityLanes = [
-  {
-    title: "Source work",
-    detail: "CSV and Sheets configs, connector changes, OAuth connections, and saved mappings.",
-    href: "/workspace/connections",
-    action: "Review connections"
-  },
-  {
-    title: "Dataset work",
-    detail: "Imports, validation results, row counts, and source readiness for tool runs.",
-    href: "/workspace/datasets",
-    action: "Review datasets"
-  },
-  {
-    title: "Tool work",
-    detail: "Model runs, simulations, pricing decisions, campaign audits, and operating logs.",
-    href: "/workspace/dashboard",
-    action: "Open workspace"
-  }
-];
-
 function sourceTypeLabel(sourceType: string) {
   if (sourceType === "google_sheets") return "Google Sheets";
   if (sourceType === "csv") return "CSV";
   if (sourceType === "oauth") return "OAuth";
   if (sourceType === "live") return "Live datasource";
   return sourceType.toUpperCase();
-}
-
-function activityTone(kind: string) {
-  if (kind === "Import" || kind === "Model run") return "live";
-  if (kind === "Audit") return "progress";
-  return "idle";
 }
 
 async function loadActivity() {
@@ -232,18 +205,6 @@ export default async function DemoActivityPage() {
         ) : null}
       </Section>
 
-      <Section title="Activity lanes">
-        <div className="grid grid-3">
-          {activityLanes.map((lane) => (
-            <div className="card sourceWorkflowCard" key={lane.title}>
-              <p className="editorKicker">{lane.title}</p>
-              <p>{lane.detail}</p>
-              <Link className="btn smallBtn" href={lane.href}>{lane.action}</Link>
-            </div>
-          ))}
-        </div>
-      </Section>
-
       <Section title="Event log">
         {activity.items.length === 0 ? (
           <div className="card">
@@ -252,21 +213,19 @@ export default async function DemoActivityPage() {
         ) : (
           <div className="activityFeed">
             {activity.items.map((item) => (
-              <Link className="activityFeedItem" href={item.href} key={item.id}>
-                <div className="activityFeedTime">
-                  <strong>{formatDate(item.createdAt)}</strong>
+              <details className="activityFeedItem" key={item.id}>
+                <summary>
+                  <span className="activityFeedDate">{formatDate(item.createdAt)}</span>
+                  <span className="activityFeedKind">{item.kind}</span>
+                  <strong>{item.title}</strong>
                   <span>{item.app}</span>
-                </div>
-                <div>
-                  <div className="activityFeedMeta">
-                    <span className={`statusPill ${activityTone(item.kind)}`}>{item.kind}</span>
-                    <span className="small">{item.actor}</span>
-                  </div>
-                  <h3>{item.title}</h3>
+                </summary>
+                <div className="activityFeedDetail">
                   <p>{item.detail}</p>
+                  <p className="small">Actor: {item.actor}</p>
+                  <Link className="btn smallBtn" href={item.href}>Inspect event</Link>
                 </div>
-                <span className="btn smallBtn">Inspect</span>
-              </Link>
+              </details>
             ))}
           </div>
         )}
