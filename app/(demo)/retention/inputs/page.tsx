@@ -3,6 +3,7 @@ import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { RetentionPlaybookEditor } from "@/components/retention/RetentionPlaybookEditor";
 import { RetentionPolicyEditor } from "@/components/retention/RetentionPolicyEditor";
+import { RetentionWorkspaceDatasetPanel } from "@/components/retention/RetentionWorkspaceDatasetPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,10 @@ export default async function RetentionInputsPage() {
     <>
       <Section eyebrow="Inputs" title="Risk policy and intervention playbooks">
         <p>Inputs are editable so the operator can tune risk thresholds, save economics, discount exposure, and SLA expectations before running the simulation.</p>
+      </Section>
+
+      <Section title="Current app data">
+        <RetentionWorkspaceDatasetPanel compact />
       </Section>
 
       <Section title="Editable policy">
