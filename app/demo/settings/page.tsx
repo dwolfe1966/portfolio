@@ -104,8 +104,8 @@ export default async function DemoSettingsPage({
       <DemoWorkspaceTabs />
       <Section eyebrow="Account" title="Workspace settings">
         <p>
-          This is the first shared settings surface for Tools: workspace identity, saved configuration,
-          connector state, and the account capabilities that will later sit behind login.
+          Settings control workspace identity, access state, and saved configuration inventory. Connections handle data
+          setup; datasets show readiness and imported data.
         </p>
       </Section>
 
@@ -134,7 +134,7 @@ export default async function DemoSettingsPage({
             <div className="workspaceSettingValue">{formatDate(settings.workspace?.updatedAt)}</div>
           </div>
         </div>
-        <div className="card" style={{ marginTop: 16 }}>
+        <div className="card workspaceSettingsFormCard">
           <form action={saveWorkspaceIdentity} className="demoLoginForm">
             <label>
               <span>Workspace name</span>
@@ -159,12 +159,12 @@ export default async function DemoSettingsPage({
           <div className="card">
             <p className="small">Access mode</p>
             <div className="workspaceSettingValue">{accessConfigured ? "Protected" : "Open"}</div>
-            <p>{accessConfigured ? "A shared Tools password is configured." : "No shared password is configured for this environment."}</p>
+            <p>{accessConfigured ? "A shared workspace password is configured." : "Workspace access is open in this environment."}</p>
           </div>
           <div className="card">
             <p className="small">Current session</p>
             <div className="workspaceSettingValue">{accessConfigured ? (hasValidSession ? "Active" : "Not signed in") : "Not required"}</div>
-            <p>{accessConfigured ? "Access is stored in an HTTP-only browser cookie." : "Workspace routes do not require a demo session."}</p>
+            <p>{accessConfigured ? "Access is stored in an HTTP-only browser cookie." : "Workspace routes and tools are available without a password."}</p>
           </div>
           <div className="card accessSessionCard">
             <p className="small">Session controls</p>
@@ -176,17 +176,19 @@ export default async function DemoSettingsPage({
         </div>
       </Section>
 
-      <Section title="Saved configuration">
+      <Section title="Configuration inventory">
         <div className="grid grid-3">
           <div className="card">
             <p className="small">Source configs</p>
             <div className="kpi">{sourceConfigs.length.toLocaleString()}</div>
             <p>Reusable source mappings saved from CSV and Google Sheets flows.</p>
+            <Link className="btn smallBtn" href="/workspace/datasets">Review datasets</Link>
           </div>
           <div className="card">
             <p className="small">Configured apps</p>
             <div className="kpi">{(uniqueApps.size + (settings.workspacePresets > 0 ? 1 : 0)).toLocaleString()}</div>
             <p>Tools with at least one workspace-scoped saved configuration.</p>
+            <Link className="btn smallBtn" href="/workspace/connections">Review connections</Link>
           </div>
           <div className="card">
             <p className="small">Tool presets</p>
@@ -197,23 +199,27 @@ export default async function DemoSettingsPage({
       </Section>
 
       <Section title="Account readiness">
-        <div className="grid grid-2">
-          <div className="card">
-            <p className="editorKicker">Implemented</p>
+        <div className="card sourceMetadataDisclosure">
+          <p>
+            Account management is intentionally lightweight for now. The next layer is user identity, workspace membership,
+            and per-workspace credentials.
+          </p>
+          <details>
+            <summary>Implemented</summary>
             <ul>
               <li>Default workspace record for shared tool configuration.</li>
               <li>Workspace source configs for CSV and Google Sheets mappings.</li>
               <li>Recent import and model-run activity counts.</li>
             </ul>
-          </div>
-          <div className="card">
-            <p className="editorKicker">Next account layer</p>
+          </details>
+          <details>
+            <summary>Next account layer</summary>
             <ul>
               <li>User login and workspace membership.</li>
               <li>Per-tool saved presets and connector credentials scoped to each workspace.</li>
               <li>Workspace-level activity and billing boundaries.</li>
             </ul>
-          </div>
+          </details>
         </div>
       </Section>
     </>
