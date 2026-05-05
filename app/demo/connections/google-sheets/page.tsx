@@ -27,15 +27,6 @@ type CredentialStatus = {
 };
 
 async function loadCredentialStatus(): Promise<CredentialStatus> {
-  if (process.env.GOOGLE_SHEETS_API_KEY) {
-    return {
-      configured: true,
-      mode: "api_key",
-      serviceAccountEmail: "",
-      message: "Google Sheets API key is configured for public or link-accessible Sheets."
-    };
-  }
-
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     try {
       const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON) as { client_email?: unknown };
@@ -79,6 +70,15 @@ async function loadCredentialStatus(): Promise<CredentialStatus> {
         message: "GOOGLE_APPLICATION_CREDENTIALS is set, but the file could not be read as JSON."
       };
     }
+  }
+
+  if (process.env.GOOGLE_SHEETS_API_KEY) {
+    return {
+      configured: true,
+      mode: "api_key",
+      serviceAccountEmail: "",
+      message: "Google Sheets API key is configured for public or link-accessible Sheets."
+    };
   }
 
   return {
