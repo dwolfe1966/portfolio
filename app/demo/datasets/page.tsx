@@ -17,11 +17,19 @@ export const metadata: Metadata = buildMetadata({
 
 async function loadDatasetInventory() {
   try {
-    const [presets, imports, runs, readiness] = await Promise.all([
+    const [presets, snapshots, imports, runs, readiness] = await Promise.all([
       db.lifecycleMappingPreset.findMany({
         orderBy: [{ updatedAt: "desc" }],
         take: 40,
         include: { workspace: true }
+      }),
+      db.workspaceDataset.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: {
+          accountUser: { select: { email: true, name: true } },
+          workspace: { select: { name: true } }
+        }
       }),
       db.lifecycleImportLog.findMany({
         orderBy: { createdAt: "desc" },
@@ -34,10 +42,10 @@ async function loadDatasetInventory() {
       loadWorkspaceDatasetReadiness()
     ]);
 
-    return { presets, imports, runs, readiness, compatibilityMode: false };
+    return { presets, snapshots, imports, runs, readiness, compatibilityMode: false };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return { presets: [], imports: [], runs: [], readiness: [], compatibilityMode: true };
+      return { presets: [], snapshots: [], imports: [], runs: [], readiness: [], compatibilityMode: true };
     }
     throw error;
   }
@@ -67,6 +75,11 @@ function metadataRecord(value: unknown) {
 function sourceRowCount(value: unknown) {
   const metadata = metadataRecord(value);
   const rowCounts = metadataRecord(metadata.rowCounts);
+  return Object.values(rowCounts).reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
+}
+
+function persistedDatasetRows(value: unknown) {
+  const rowCounts = metadataRecord(value);
   return Object.values(rowCounts).reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
 }
 
@@ -161,7 +174,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
   const sourceToolFilter = cleanFilter(params?.tool);
   const sourceTypeFilter = cleanFilter(params?.source);
   const inventory = await loadDatasetInventory();
-  const totalRows = inventory.imports.reduce((sum, log) => sum + importedRows(log), 0);
+  const persistedRows = inventory.snapshots.reduce((sum, dataset) => sum + persistedDatasetRows(dataset.rowCounts), 0);
   const activeWorkspace = inventory.presets[0]?.workspace?.name ?? "Default Workspace";
   const readinessSummary = summarizeDatasetReadiness(inventory.readiness);
   const filteredPresets = inventory.presets.filter((preset) => {
@@ -221,12 +234,12 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
             <div className="kpi">{readinessSummary.available.toLocaleString()}</div>
           </div>
           <div className="card">
-            <p className="small">Imported rows</p>
-            <div className="kpi">{totalRows.toLocaleString()}</div>
+            <p className="small">Persisted rows</p>
+            <div className="kpi">{persistedRows.toLocaleString()}</div>
           </div>
           <div className="card">
-            <p className="small">Imported tools</p>
-            <div className="kpi">{readinessSummary.imported.toLocaleString()}</div>
+            <p className="small">Dataset snapshots</p>
+            <div className="kpi">{inventory.snapshots.length.toLocaleString()}</div>
           </div>
         </div>
         {inventory.compatibilityMode ? (
@@ -331,6 +344,55 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
         )}
       </Section>
 
+      <Section title="Imported dataset snapshots">
+        {inventory.snapshots.length === 0 ? (
+          <div className="card">
+            <p>No persisted dataset snapshots have been recorded yet.</p>
+          </div>
+        ) : (
+          <div className="tableScroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Tool</th>
+                  <th>Rows</th>
+                  <th>Owner</th>
+                  <th>Workspace</th>
+                  <th>Created</th>
+                  <th>Use</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inventory.snapshots.map((dataset) => (
+                  <tr key={dataset.id}>
+                    <td>
+                      <strong>{dataset.name}</strong>
+                      <p className="small">{sourceTypeLabel(dataset.sourceType)} · {dataset.status}</p>
+                    </td>
+                    <td>{dataset.app}</td>
+                    <td>
+                      {persistedDatasetRows(dataset.rowCounts).toLocaleString()}
+                      <p className="small">
+                        {Object.entries(metadataRecord(dataset.rowCounts))
+                          .map(([label, count]) => `${label}: ${typeof count === "number" ? count.toLocaleString() : "0"}`)
+                          .join(" · ")}
+                      </p>
+                    </td>
+                    <td>{dataset.accountUser?.email ?? "No account session"}</td>
+                    <td>{dataset.workspace.name}</td>
+                    <td>{formatDate(dataset.createdAt)}</td>
+                    <td>
+                      <Link className="btn smallBtn" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+
       <Section title="Tool readiness gaps">
         {inventory.readiness.length === 0 ? (
           <div className="card">
@@ -371,10 +433,10 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
         )}
       </Section>
 
-      <Section title="Imported datasets">
+      <Section title="Lifecycle import log">
         {inventory.imports.length === 0 ? (
           <div className="card">
-            <p>No imported datasets have been recorded yet.</p>
+            <p>No lifecycle import events have been recorded yet.</p>
           </div>
         ) : (
           <div className="tableScroll">

@@ -5,6 +5,7 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
 import { getToolImportSchema } from "@/lib/tool-data-imports";
+import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 
 type CsvRow = Record<string, unknown>;
 
@@ -266,8 +267,28 @@ export async function POST(request: Request) {
         }
       }
     });
+    const rowCounts = {
+      users: validation.rows.users.length,
+      entities: validation.rows.entities.length,
+      interestEdges: validation.rows.interestEdges.length,
+      changeEvents: validation.rows.changeEvents.length
+    };
+    const dataset = await createWorkspaceDatasetSnapshot({
+      app: "lifecycle",
+      sourceType: "csv",
+      name: sourceName,
+      rowData: validation.rows,
+      rowCounts,
+      metadata: {
+        eventId,
+        importLogId,
+        sourceMetadata,
+        imported: result
+      },
+      cookieHeader: request.headers.get("cookie")
+    });
 
-    return apiOk({ eventId, import: { id: importLogId, ...result } });
+    return apiOk({ eventId, import: { id: importLogId, datasetId: dataset?.id ?? null, ...result } });
   } catch (error) {
     return apiUnhandledError(error, eventId);
   }

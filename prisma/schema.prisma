@@ -17,6 +17,7 @@ model Workspace {
   mappingPresets LifecycleMappingPreset[]
   presets        WorkspacePreset[]
   memberships    WorkspaceMembership[]
+  datasets       WorkspaceDataset[]
 }
 
 model AccountUser {
@@ -26,6 +27,7 @@ model AccountUser {
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
   memberships WorkspaceMembership[]
+  datasets    WorkspaceDataset[]
 
   @@index([updatedAt])
 }
@@ -43,6 +45,27 @@ model WorkspaceMembership {
   @@unique([workspaceId, accountUserId])
   @@index([accountUserId, updatedAt])
   @@index([workspaceId, role])
+}
+
+model WorkspaceDataset {
+  id            String       @id @default(cuid())
+  workspaceId   String
+  accountUserId String?
+  app           String
+  sourceType    String
+  name          String
+  status        String       @default("imported")
+  rowData       Json
+  rowCounts     Json
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser   AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, app, createdAt])
+  @@index([accountUserId, createdAt])
+  @@index([app, status, createdAt])
 }
 
 enum UserSegment {
