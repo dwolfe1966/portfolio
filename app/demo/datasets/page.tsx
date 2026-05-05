@@ -1,10 +1,13 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
+import { getDefaultWorkspace } from "@/lib/workspace";
 import { loadWorkspaceDatasetReadiness, summarizeDatasetReadiness } from "@/lib/workspace-datasets";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +79,24 @@ function sourceDetail(value: unknown) {
 function formatOptionalDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "" : formatDate(date);
+}
+
+function sourceConfigHref(sourceType: string, app: string) {
+  const encodedApp = encodeURIComponent(app);
+  if (sourceType === "google_sheets") return `/workspace/connections/google-sheets?tool=${encodedApp}`;
+  return `/workspace/connections/csv?tool=${encodedApp}`;
+}
+
+async function deleteSourceConfig(formData: FormData) {
+  "use server";
+
+  if (!isDemoMutationAllowed()) return;
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  const workspace = await getDefaultWorkspace();
+  await db.lifecycleMappingPreset.deleteMany({ where: { id, workspaceId: workspace.id } });
+  revalidatePath("/workspace/datasets");
+  revalidatePath("/demo/datasets");
 }
 
 export default async function DemoDatasetsPage() {
@@ -175,6 +196,7 @@ export default async function DemoDatasetsPage() {
                   <th>Rows</th>
                   <th>Source detail</th>
                   <th>Updated</th>
+                  <th>Manage</th>
                 </tr>
               </thead>
               <tbody>
@@ -198,6 +220,15 @@ export default async function DemoDatasetsPage() {
                         )}
                       </td>
                       <td>{formatDate(preset.updatedAt)}</td>
+                      <td>
+                        <div className="importHistoryActions">
+                          <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app)}>Open</Link>
+                          <form action={deleteSourceConfig}>
+                            <input type="hidden" name="id" value={preset.id} />
+                            <button className="smallBtn" type="submit">Delete</button>
+                          </form>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
