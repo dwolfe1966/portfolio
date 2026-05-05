@@ -737,7 +737,7 @@ export function GoogleSheetsConnectionFlow({
         ) : null}
       </div>
 
-      <div className="grid grid-2">
+      <div className="connectorObjectStack">
         {previewedObjects.map(({ schema: object, preview: objectPreview }) => (
           <div className="card editorCard" key={`${selectedTool}-${object.key}`}>
             <div className="editorHeader">

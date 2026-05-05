@@ -567,7 +567,7 @@ export function WorkspaceCsvConnectionFlow({
         ) : null}
       </div>
 
-      <div className="grid grid-2">
+      <div className="connectorObjectStack">
         {schema.objects.map((object) => {
           const parsed = parsedByObject[object.key];
           return (

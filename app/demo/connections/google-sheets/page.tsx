@@ -101,25 +101,6 @@ export default async function WorkspaceGoogleSheetsConnectionPage({ searchParams
           Connect a Google Sheet, assign tabs or ranges to tool data objects, and preview headers before routing the source
           into the shared mapping and import framework.
         </p>
-        <div className="ctaRow">
-          <Link className="btn" href="/workspace/connections">Back to connections</Link>
-          <Link className="btn" href="/workspace/connections/csv">Open CSV mapping</Link>
-        </div>
-      </Section>
-
-      <Section title="Supported tool schemas">
-        <div className="grid grid-3">
-          {TOOL_IMPORT_SCHEMAS.map((schema) => (
-            <div className="card" key={schema.tool}>
-              <p className="editorKicker">{schema.label}</p>
-              <h3>{schema.objects.length} sheet ranges</h3>
-              <p className="small">{schema.objects.map((object) => object.title).join(" · ")}</p>
-              <Link className="btn smallBtn" href={`/workspace/connections/google-sheets?tool=${schema.tool}`}>
-                Preview {schema.label}
-              </Link>
-            </div>
-          ))}
-        </div>
       </Section>
 
       <Section title="Sheet preview">
@@ -150,6 +131,21 @@ export default async function WorkspaceGoogleSheetsConnectionPage({ searchParams
             service account email.
           </p>
           </div>
+        </div>
+      </Section>
+
+      <Section title="Supported tool schemas">
+        <div className="grid grid-3">
+          {TOOL_IMPORT_SCHEMAS.map((schema) => (
+            <div className="card" key={schema.tool}>
+              <p className="editorKicker">{schema.label}</p>
+              <h3>{schema.objects.length} sheet ranges</h3>
+              <p className="small">{schema.objects.map((object) => object.title).join(" · ")}</p>
+              <Link className="btn smallBtn" href={`/workspace/connections/google-sheets?tool=${schema.tool}`}>
+                Preview {schema.label}
+              </Link>
+            </div>
+          ))}
         </div>
       </Section>
     </>

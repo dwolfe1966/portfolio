@@ -1993,6 +1993,10 @@ button {
   display: grid;
   gap: 14px;
 }
+.connectorObjectStack {
+  display: grid;
+  gap: 14px;
+}
 .lifecycleCsvScaffold textarea {
   font-family: var(--demo-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   font-size: 12px;

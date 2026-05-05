@@ -30,10 +30,10 @@ export default async function WorkspaceCsvConnectionPage({ searchParams }: PageP
           importing. Lifecycle import is wired now; the other tools use the same mapping and validation foundation as their
           persistence endpoints come online.
         </p>
-        <div className="ctaRow">
-          <Link className="btn" href="/workspace/connections">Back to connections</Link>
-          <Link className="btn" href="/workspace/datasets">Open datasets</Link>
-        </div>
+      </Section>
+
+      <Section title="CSV mapping">
+        <WorkspaceCsvConnectionFlow initialTool={params.tool} initialConfigId={params.config} initialAction={params.action} />
       </Section>
 
       <Section title="Supported tool schemas">
@@ -47,10 +47,6 @@ export default async function WorkspaceCsvConnectionPage({ searchParams }: PageP
             </div>
           ))}
         </div>
-      </Section>
-
-      <Section title="CSV mapping">
-        <WorkspaceCsvConnectionFlow initialTool={params.tool} initialConfigId={params.config} initialAction={params.action} />
       </Section>
     </>
   );
