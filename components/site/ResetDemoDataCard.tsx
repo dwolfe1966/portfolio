@@ -39,15 +39,24 @@ export function ResetDemoDataCard({ appLabel, scope = "all", variant = "card" }:
     }
   }
 
+  const isEmbedded = variant === "embedded";
   const scopeCopy = scope === "all"
     ? "Clears lifecycle, acquisition, auction, pricing, retention, and expansion records, then reseeds representative baseline data for all Tools."
-    : `Clears ${appLabel.toLowerCase()} workspace records, then reseeds representative ${appLabel.toLowerCase()} baseline data.`;
+    : isEmbedded
+      ? `Switches this product back to its seeded ${appLabel.toLowerCase()} sample dataset.`
+      : `Clears ${appLabel.toLowerCase()} workspace records, then reseeds representative ${appLabel.toLowerCase()} baseline data.`;
 
-  const wrapperClass = variant === "embedded" ? "sampleDataResetEmbedded" : "card";
+  const wrapperClass = isEmbedded ? "sampleDataResetEmbedded" : "card";
+  const heading = isEmbedded ? "Use Sample Data" : "Reset workspace data";
+  const buttonLabel = isEmbedded ? `Use sample data for ${appLabel}` : "Reset DB + reseed workspace";
+  const loadingLabel = isEmbedded ? "Switching..." : "Resetting...";
+  const confirmLabel = isEmbedded
+    ? "I understand this will replace the current product rows with sample data."
+    : "I understand this will delete current workspace rows and reseed selected workspace data.";
 
   return (
     <div className={wrapperClass}>
-      <h3>Reset workspace data</h3>
+      <h3>{heading}</h3>
       <p className="small">{scopeCopy}</p>
       <label className="small" style={{ display: "block", marginBottom: 8 }}>
         <input
@@ -56,10 +65,10 @@ export function ResetDemoDataCard({ appLabel, scope = "all", variant = "card" }:
           onChange={(event) => setConfirm(event.target.checked)}
           style={{ marginRight: 6 }}
         />
-        I understand this will delete current workspace rows and reseed selected workspace data.
+        {confirmLabel}
       </label>
       <button type="button" onClick={resetAndReseed} disabled={loading || !confirm}>
-        {loading ? "Resetting..." : "Reset DB + reseed workspace"}
+        {loading ? loadingLabel : buttonLabel}
       </button>
       {status && <p className="small" style={{ marginTop: 8 }}>{status}</p>}
     </div>
