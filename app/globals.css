@@ -1644,6 +1644,36 @@ button {
   gap: 18px;
   justify-content: space-between;
 }
+.activitySummaryGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
+}
+.activitySummaryCard {
+  align-content: start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  padding: 16px;
+}
+.activitySummaryCard p,
+.activitySummaryCard strong,
+.activitySummaryCard span {
+  margin-bottom: 0;
+}
+.activitySummaryCard strong {
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.12;
+}
+.activitySummaryCard span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
 .activityFeed {
   display: grid;
   gap: 10px;
@@ -1663,7 +1693,7 @@ button {
   cursor: pointer;
   display: grid;
   gap: 12px;
-  grid-template-columns: 136px 112px minmax(0, 1fr) 120px;
+  grid-template-columns: 132px 112px minmax(0, 1fr) 120px;
   list-style: none;
 }
 .activityFeedItem summary::-webkit-details-marker {
@@ -1675,22 +1705,77 @@ button {
   margin-bottom: 0;
 }
 .activityFeedDate,
-.activityFeedItem summary span {
+.activityFeedApp {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
 }
-.activityFeedKind {
+.activityFeedBadge {
+  align-items: center;
+  background: color-mix(in oklab, var(--line) 68%, var(--card));
+  border: 1px solid var(--line);
+  border-radius: 999px;
   color: var(--text);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  min-height: 28px;
+  padding: 0 10px;
+  text-transform: uppercase;
+}
+.activityFeedBadge--data {
+  background: color-mix(in oklab, #dbeafe 82%, white);
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+.activityFeedBadge--model {
+  background: color-mix(in oklab, #dcfce7 82%, white);
+  border-color: #bbf7d0;
+  color: #166534;
+}
+.activityFeedBadge--audit {
+  background: color-mix(in oklab, #fef3c7 82%, white);
+  border-color: #fde68a;
+  color: #92400e;
+}
+.activityFeedBadge--connection {
+  background: color-mix(in oklab, #ede9fe 82%, white);
+  border-color: #ddd6fe;
+  color: #6d28d9;
+}
+.activityFeedBadge--source {
+  background: color-mix(in oklab, #e0f2fe 82%, white);
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+.activityFeedTitle {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.activityFeedTitle strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.activityFeedTitle span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 .activityFeedDetail {
   border-top: 1px solid var(--line);
-  display: grid;
+  align-items: flex-end;
+  display: flex;
   gap: 8px;
+  justify-content: space-between;
   margin-top: 12px;
   padding-top: 12px;
 }
 .activityFeedDetail .btn {
+  flex: 0 0 auto;
   justify-self: start;
 }
 .retentionEditorCard {
@@ -2808,12 +2893,22 @@ button {
   .toolReadinessActions {
     justify-content: flex-start;
   }
+  .activitySummaryGrid {
+    grid-template-columns: 1fr;
+  }
   .activityFeedItem {
     padding: 12px;
   }
   .activityFeedItem summary {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+  .activityFeedBadge {
+    justify-self: start;
+  }
+  .activityFeedDetail {
+    align-items: start;
+    display: grid;
   }
   .demoAppShell {
     grid-template-columns: 1fr;

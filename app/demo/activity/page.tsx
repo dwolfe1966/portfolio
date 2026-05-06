@@ -17,6 +17,7 @@ export const metadata: Metadata = buildMetadata({
 type ActivityItem = {
   id: string;
   app: string;
+  category: "Data" | "Model" | "Audit" | "Connection" | "Source";
   kind: string;
   title: string;
   detail: string;
@@ -61,6 +62,7 @@ async function loadActivity() {
       ...imports.map((log) => ({
         id: `import-${log.id}`,
         app: "Lifecycle",
+        category: "Data" as const,
         kind: "Import",
         title: log.sourceName,
         detail: `${log.usersImported + log.entitiesImported + log.interestEdgesImported + log.changeEventsImported} rows imported · ${log.validationErrors} validation issues`,
@@ -71,6 +73,7 @@ async function loadActivity() {
       ...lifecycleRuns.map((run) => ({
         id: `lifecycle-run-${run.id}`,
         app: "Lifecycle",
+        category: "Model" as const,
         kind: "Model run",
         title: run.runName,
         detail: `${run.totalHighPriority} high-priority candidates · $${Math.round(run.estimatedRevenue).toLocaleString()} estimated revenue`,
@@ -81,6 +84,7 @@ async function loadActivity() {
       ...acquisition.map((log) => ({
         id: `acquisition-${log.id}`,
         app: "Acquisition",
+        category: "Audit" as const,
         kind: "Audit",
         title: log.action,
         detail: log.campaign?.name ?? "Campaign event",
@@ -91,6 +95,7 @@ async function loadActivity() {
       ...pricing.map((log) => ({
         id: `pricing-${log.id}`,
         app: "Pricing",
+        category: "Audit" as const,
         kind: "Audit",
         title: log.action,
         detail: log.detail || log.experiment?.name || "Pricing event",
@@ -101,6 +106,7 @@ async function loadActivity() {
       ...retention.map((log) => ({
         id: `retention-${log.id}`,
         app: "Retention",
+        category: "Audit" as const,
         kind: "Audit",
         title: log.action,
         detail: log.detail,
@@ -111,6 +117,7 @@ async function loadActivity() {
       ...expansion.map((log) => ({
         id: `expansion-${log.id}`,
         app: "Expansion",
+        category: "Audit" as const,
         kind: "Audit",
         title: log.action,
         detail: log.detail,
@@ -121,6 +128,7 @@ async function loadActivity() {
       ...auction.map((log) => ({
         id: `auction-${log.id}`,
         app: "Auction",
+        category: "Audit" as const,
         kind: "Audit",
         title: log.action,
         detail: "Auction run or reserve event",
@@ -131,6 +139,7 @@ async function loadActivity() {
       ...adConnections.map((connection) => ({
         id: `ad-connection-${connection.id}`,
         app: "Acquisition",
+        category: "Connection" as const,
         kind: "Connection",
         title: connection.accountName,
         detail: `${connection.provider} · ${connection.externalAccountId}`,
@@ -141,6 +150,7 @@ async function loadActivity() {
       ...sourceConfigs.map((config) => ({
         id: `source-config-${config.id}`,
         app: config.app.charAt(0).toUpperCase() + config.app.slice(1),
+        category: "Source" as const,
         kind: "Source config",
         title: config.name,
         detail: `${sourceTypeLabel(config.sourceType)} mapping in ${config.workspace.name}`,
@@ -181,8 +191,19 @@ function formatDate(value: Date) {
   }).format(value);
 }
 
+function formatFullDate(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(value);
+}
+
 export default async function DemoActivityPage() {
   const activity = await loadActivity();
+  const latestEvent = activity.items[0];
 
   return (
     <>
@@ -193,12 +214,28 @@ export default async function DemoActivityPage() {
         </p>
       </Section>
 
-      <Section title="Event volume">
-        <div className="grid grid-4">
-          <div className="card"><p className="small">Imports</p><div className="kpi">{activity.counts.imports}</div></div>
-          <div className="card"><p className="small">Model runs</p><div className="kpi">{activity.counts.lifecycleRuns}</div></div>
-          <div className="card"><p className="small">Audit events</p><div className="kpi">{activity.counts.audits}</div></div>
-          <div className="card"><p className="small">Connections</p><div className="kpi">{activity.counts.connections}</div></div>
+      <Section title="Activity summary">
+        <div className="activitySummaryGrid">
+          <div className="activitySummaryCard">
+            <p className="small">Latest event</p>
+            <strong>{latestEvent ? latestEvent.title : "No activity yet"}</strong>
+            <span>{latestEvent ? `${latestEvent.kind} · ${formatFullDate(latestEvent.createdAt)}` : "Run a tool or import data to start the feed."}</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Imports</p>
+            <strong>{activity.counts.imports}</strong>
+            <span>Dataset and source ingest events.</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Model runs</p>
+            <strong>{activity.counts.lifecycleRuns}</strong>
+            <span>Simulation and campaign generation runs.</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Audit + connection events</p>
+            <strong>{activity.counts.audits + activity.counts.connections}</strong>
+            <span>Tool actions, saved sources, and provider links.</span>
+          </div>
         </div>
         {activity.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable workspace activity history.</p>
@@ -216,13 +253,18 @@ export default async function DemoActivityPage() {
               <details className="activityFeedItem" key={item.id}>
                 <summary>
                   <span className="activityFeedDate">{formatDate(item.createdAt)}</span>
-                  <span className="activityFeedKind">{item.kind}</span>
-                  <strong>{item.title}</strong>
-                  <span>{item.app}</span>
+                  <span className={`activityFeedBadge activityFeedBadge--${item.category.toLowerCase()}`}>{item.category}</span>
+                  <span className="activityFeedTitle">
+                    <strong>{item.title}</strong>
+                    <span>{item.kind}</span>
+                  </span>
+                  <span className="activityFeedApp">{item.app}</span>
                 </summary>
                 <div className="activityFeedDetail">
-                  <p>{item.detail}</p>
-                  <p className="small">Actor: {item.actor}</p>
+                  <div>
+                    <p>{item.detail}</p>
+                    <p className="small">Actor: {item.actor} · Event time: {formatFullDate(item.createdAt)}</p>
+                  </div>
                   <Link className="btn smallBtn" href={item.href}>Inspect event</Link>
                 </div>
               </details>
