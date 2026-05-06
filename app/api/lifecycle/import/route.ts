@@ -101,8 +101,15 @@ function readSourceMetadata(value: unknown): Prisma.InputJsonValue | undefined {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
+function readSourceType(sourceMetadata: Prisma.InputJsonValue | undefined) {
+  if (!sourceMetadata || typeof sourceMetadata !== "object" || Array.isArray(sourceMetadata)) return "csv";
+  const sourceFlow = (sourceMetadata as Record<string, unknown>).sourceFlow;
+  return sourceFlow === "workspace_google_sheets" ? "google_sheets" : "csv";
+}
+
 async function recordImportLog(data: {
   sourceName: string;
+  sourceType: string;
   status: string;
   usersImported?: number;
   entitiesImported?: number;
@@ -114,7 +121,7 @@ async function recordImportLog(data: {
   try {
     const log = await db.lifecycleImportLog.create({
       data: {
-        sourceType: "csv",
+        sourceType: data.sourceType,
         sourceName: data.sourceName,
         status: data.status,
         usersImported: data.usersImported ?? 0,
@@ -140,9 +147,11 @@ export async function POST(request: Request) {
   const validation = validatePayload(body);
   const sourceName = clean(body.sourceName, 120) || "CSV upload";
   const sourceMetadata = readSourceMetadata(body.sourceMetadata);
+  const sourceType = readSourceType(sourceMetadata);
   if (validation.errors.length > 0) {
     await recordImportLog({
       sourceName,
+      sourceType,
       status: "validation_failed",
       validationErrors: validation.errors.length,
       metadata: {
@@ -266,6 +275,7 @@ export async function POST(request: Request) {
 
     const importLogId = await recordImportLog({
       sourceName,
+      sourceType,
       status: "imported",
       ...result,
       metadata: {
@@ -287,7 +297,7 @@ export async function POST(request: Request) {
     };
     const dataset = await createWorkspaceDatasetSnapshot({
       app: "lifecycle",
-      sourceType: "csv",
+      sourceType,
       name: sourceName,
       rowData: validation.rows,
       rowCounts,
