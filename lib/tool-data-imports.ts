@@ -117,7 +117,7 @@ export const TOOL_IMPORT_SCHEMAS: ToolImportSchema[] = [
         sample: "entityName,changeType,oldValue,newValue,deltaSummary,detectedAt\n123 Main St,ADDRESS_CHANGE,Old address,New address,A new address update was detected.,2026-05-01\nAcme Holdings,EMAIL_ADDED,,ops@example.com,A new email was added.,2026-05-02",
         fieldAliases: lifecycleAliases,
         validations: {
-          changeType: [{ kind: "enum", values: ["ADDRESS_CHANGE", "PHONE_ADDED", "PHONE_CHANGED", "EMAIL_ADDED", "ASSOCIATE_ADDED", "LEGAL_RECORD_ADDED"] }],
+          changeType: [{ kind: "enum", values: ["ADDRESS_CHANGE", "PHONE_ADDED", "PHONE_CHANGED", "EMAIL_ADDED", "ASSOCIATE_ADDED", "EMPLOYEE_RECORD_ADDED", "LEGAL_RECORD_ADDED", "OTHER_RECORD_ADDED"] }],
           detectedAt: [{ kind: "date" }]
         }
       }
@@ -442,6 +442,11 @@ export function describeFieldValidation(validation: FieldValidation) {
   return `${validation.min} to ${validation.max}`;
 }
 
+export function normalizeEnumValue(value: string, values: string[]) {
+  const normalized = normalizeHeader(value);
+  return values.find((candidate) => normalizeHeader(candidate) === normalized) ?? value;
+}
+
 export function describeObjectConstraints(objectSchema: ToolDataObjectSchema) {
   const rules = [
     `Maximum ${objectSchema.maxRows.toLocaleString()} rows.`,
@@ -527,7 +532,13 @@ export function normalizeRows(
   objectSchema: ToolDataObjectSchema
 ) {
   return sourceRows.slice(0, objectSchema.maxRows).map((sourceRow) => Object.fromEntries(
-    objectSchema.fields.map((field) => [field, mappings[field] ? sourceRow[mappings[field]] ?? "" : ""])
+    objectSchema.fields.map((field) => {
+      const rawValue = mappings[field] ? sourceRow[mappings[field]] ?? "" : "";
+      const enumValidation = objectSchema.validations?.[field]?.find((validation): validation is Extract<FieldValidation, { kind: "enum" }> => (
+        validation.kind === "enum"
+      ));
+      return [field, enumValidation ? normalizeEnumValue(rawValue, enumValidation.values) : rawValue];
+    })
   ));
 }
 
@@ -539,7 +550,11 @@ function validateField(value: string, validation: FieldValidation) {
   if (!value && validation.kind === "date") return null;
   if (validation.kind === "email") return value.includes("@") ? null : "does not look valid";
   if (validation.kind === "date") return isValidDate(value) ? null : "must be a date";
-  if (validation.kind === "enum") return validation.values.includes(value) ? null : `must be ${validation.values.join(", ")}`;
+  if (validation.kind === "enum") {
+    return validation.values.some((candidate) => normalizeHeader(candidate) === normalizeHeader(value))
+      ? null
+      : `must be ${validation.values.join(", ")}`;
+  }
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue) || numericValue < validation.min || numericValue > validation.max) {
     return `must be between ${validation.min} and ${validation.max}`;

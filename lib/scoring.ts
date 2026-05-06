@@ -5,7 +5,9 @@ export type ChangeType =
   | "PHONE_CHANGED"
   | "EMAIL_ADDED"
   | "ASSOCIATE_ADDED"
-  | "LEGAL_RECORD_ADDED";
+  | "EMPLOYEE_RECORD_ADDED"
+  | "LEGAL_RECORD_ADDED"
+  | "OTHER_RECORD_ADDED";
 
 const segmentWeights: Record<Segment, number> = {
   FREE: 0.6,
@@ -20,7 +22,9 @@ const changeWeights: Record<ChangeType, number> = {
   PHONE_CHANGED: 0.75,
   EMAIL_ADDED: 0.65,
   ASSOCIATE_ADDED: 0.5,
-  LEGAL_RECORD_ADDED: 0.95
+  EMPLOYEE_RECORD_ADDED: 0.8,
+  LEGAL_RECORD_ADDED: 0.95,
+  OTHER_RECORD_ADDED: 0.55
 };
 
 const INTEREST_WEIGHT = 0.45;

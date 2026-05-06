@@ -90,6 +90,8 @@ test("changeType ordering is preserved: LEGAL_RECORD_ADDED is highest, ASSOCIATE
     "PHONE_CHANGED",
     "EMAIL_ADDED",
     "ASSOCIATE_ADDED",
+    "EMPLOYEE_RECORD_ADDED",
+    "OTHER_RECORD_ADDED",
     "LEGAL_RECORD_ADDED"
   ];
 
@@ -111,6 +113,8 @@ test("breakdown contributions always sum to totalScore for any valid input", () 
     "PHONE_CHANGED",
     "EMAIL_ADDED",
     "ASSOCIATE_ADDED",
+    "EMPLOYEE_RECORD_ADDED",
+    "OTHER_RECORD_ADDED",
     "LEGAL_RECORD_ADDED"
   ];
 

@@ -8,6 +8,7 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { recordImportedDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
+import { normalizeEnumValue } from "@/lib/tool-data-imports";
 
 type CsvRow = Record<string, unknown>;
 
@@ -24,6 +25,18 @@ function clean(value: unknown, max = 180) {
 
 function normalizeEmail(value: unknown) {
   return clean(value).toLowerCase();
+}
+
+function normalizeUserSegment(value: unknown) {
+  return normalizeEnumValue(clean(value), Object.values(UserSegment)) as UserSegment;
+}
+
+function normalizeSubscriptionStatus(value: unknown) {
+  return normalizeEnumValue(clean(value), Object.values(SubscriptionStatus)) as SubscriptionStatus;
+}
+
+function normalizeDeltaChangeType(value: unknown) {
+  return normalizeEnumValue(clean(value), Object.values(DeltaChangeType)) as DeltaChangeType;
 }
 
 function isLifecycleSnapshotRows(value: unknown): value is LifecycleSnapshotRows {
@@ -77,8 +90,8 @@ export async function applyLifecycleDatasetSnapshotAction(formData: FormData) {
         data: {
           fullName: clean(row.fullName, 120) || email,
           email,
-          segment: clean(row.segment) as UserSegment,
-          subscriptionStatus: clean(row.subscriptionStatus) as SubscriptionStatus,
+          segment: normalizeUserSegment(row.segment),
+          subscriptionStatus: normalizeSubscriptionStatus(row.subscriptionStatus),
           lastActiveAt: clean(row.lastActiveAt) ? new Date(clean(row.lastActiveAt)) : null
         }
       });
@@ -121,7 +134,7 @@ export async function applyLifecycleDatasetSnapshotAction(formData: FormData) {
       await tx.entityDelta.create({
         data: {
           entityId,
-          changeType: clean(row.changeType) as DeltaChangeType,
+          changeType: normalizeDeltaChangeType(row.changeType),
           oldValue: clean(row.oldValue, 180) || null,
           newValue: clean(row.newValue, 180) || null,
           deltaSummary: clean(row.deltaSummary, 240) || "Imported lifecycle event",

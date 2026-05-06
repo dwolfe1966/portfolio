@@ -65,6 +65,31 @@ describe("tool data import schemas", () => {
     assert.equal(parsed.rows[0].email, "jordan@example.com");
   });
 
+  it("normalizes enum-like imported values regardless of case", () => {
+    const schema = getToolImportSchema("lifecycle");
+    const users = schema.objects.find((object) => object.key === "users");
+    const changeEvents = schema.objects.find((object) => object.key === "changeEvents");
+    assert.ok(users);
+    assert.ok(changeEvents);
+
+    const parsedUser = parseMappedCsvObject(
+      "Name,Email,Segment,Status\nJordan Lee,jordan@example.com,trial,trialing",
+      users,
+      { fullName: "Name", email: "Email", segment: "Segment", subscriptionStatus: "Status", lastActiveAt: "" }
+    );
+    assert.deepEqual(parsedUser.errors, []);
+    assert.equal(parsedUser.rows[0].segment, "TRIAL");
+    assert.equal(parsedUser.rows[0].subscriptionStatus, "TRIALING");
+
+    const parsedEvent = parseMappedCsvObject(
+      "Entity,Type,Summary,Date\nAcme,employee_record_added,Employee record added,2026-05-01",
+      changeEvents,
+      { entityName: "Entity", changeType: "Type", oldValue: "", newValue: "", deltaSummary: "Summary", detectedAt: "Date" }
+    );
+    assert.deepEqual(parsedEvent.errors, []);
+    assert.equal(parsedEvent.rows[0].changeType, "EMPLOYEE_RECORD_ADDED");
+  });
+
   it("serializes edited source rows back to CSV", () => {
     const csv = sourceRowsToCsv(["name", "note"], [
       { name: "Acme", note: "quoted, comma" },

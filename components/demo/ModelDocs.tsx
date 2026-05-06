@@ -35,7 +35,7 @@ const DOCS: Record<DemoDocApp, { title: string; summary: string; inputFields: In
       { field: "entity.city / state", meaning: "Optional location context for the tracked entity.", example: "Austin / TX", usedBy: "Message specificity and landing context" },
       { field: "interestEdge.interestScore", meaning: "Strength of the user's demonstrated relationship to an entity.", example: "0.72", usedBy: "Interest contribution to priority score" },
       { field: "interestEdge.source", meaning: "Where the relationship signal came from.", example: "search, view, saved", usedBy: "Auditability and operator interpretation" },
-      { field: "entityDelta.changeType", meaning: "The type of change detected on the tracked entity.", example: "ADDRESS_CHANGE, LEGAL_RECORD_ADDED", usedBy: "Change-type contribution and message angle" },
+      { field: "entityDelta.changeType", meaning: "The type of change detected on the tracked entity.", example: "ADDRESS_CHANGE, EMPLOYEE_RECORD_ADDED, OTHER_RECORD_ADDED", usedBy: "Change-type contribution and message angle" },
       { field: "entityDelta.oldValue / newValue / deltaSummary", meaning: "Before/after values and plain-language explanation of the change.", example: "Old phone -> new phone; phone added", usedBy: "Generated message evidence and landing copy" },
       { field: "simulation.topN / deltaCount", meaning: "Operator controls for how many opportunities to generate and how many new deltas to inject.", example: "Top 20, 8-20 deltas", usedBy: "Simulation volume and campaign run size" }
     ],

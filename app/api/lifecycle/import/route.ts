@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
-import { getToolImportSchema } from "@/lib/tool-data-imports";
+import { getToolImportSchema, normalizeEnumValue } from "@/lib/tool-data-imports";
 import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 
 type CsvRow = Record<string, unknown>;
@@ -31,6 +31,18 @@ function normalizeEmail(value: unknown) {
   return clean(value).toLowerCase();
 }
 
+function normalizeUserSegment(value: unknown) {
+  return normalizeEnumValue(clean(value), Object.values(UserSegment)) as UserSegment;
+}
+
+function normalizeSubscriptionStatus(value: unknown) {
+  return normalizeEnumValue(clean(value), Object.values(SubscriptionStatus)) as SubscriptionStatus;
+}
+
+function normalizeDeltaChangeType(value: unknown) {
+  return normalizeEnumValue(clean(value), Object.values(DeltaChangeType)) as DeltaChangeType;
+}
+
 function isValidDate(value: string) {
   return value.length > 0 && !Number.isNaN(new Date(value).getTime());
 }
@@ -52,8 +64,8 @@ function validatePayload(payload: LifecycleImportPayload) {
     const email = normalizeEmail(row.email);
     if (!clean(row.fullName, 120)) errors.push(`${label}: fullName is required.`);
     if (!email.includes("@")) errors.push(`${label}: valid email is required.`);
-    if (!Object.values(UserSegment).includes(clean(row.segment) as UserSegment)) errors.push(`${label}: segment is invalid.`);
-    if (!Object.values(SubscriptionStatus).includes(clean(row.subscriptionStatus) as SubscriptionStatus)) errors.push(`${label}: subscriptionStatus is invalid.`);
+    if (!Object.values(UserSegment).includes(normalizeUserSegment(row.segment))) errors.push(`${label}: segment is invalid.`);
+    if (!Object.values(SubscriptionStatus).includes(normalizeSubscriptionStatus(row.subscriptionStatus))) errors.push(`${label}: subscriptionStatus is invalid.`);
     const lastActiveAt = clean(row.lastActiveAt);
     if (lastActiveAt && !isValidDate(lastActiveAt)) errors.push(`${label}: lastActiveAt must be a date.`);
   });
@@ -76,7 +88,7 @@ function validatePayload(payload: LifecycleImportPayload) {
   changeEvents.forEach((row, index) => {
     const label = `changeEvents row ${index + 1}`;
     if (!clean(row.entityName, 120)) errors.push(`${label}: entityName is required.`);
-    if (!Object.values(DeltaChangeType).includes(clean(row.changeType) as DeltaChangeType)) errors.push(`${label}: changeType is invalid.`);
+    if (!Object.values(DeltaChangeType).includes(normalizeDeltaChangeType(row.changeType))) errors.push(`${label}: changeType is invalid.`);
     if (!clean(row.deltaSummary, 240)) errors.push(`${label}: deltaSummary is required.`);
     if (!isValidDate(clean(row.detectedAt))) errors.push(`${label}: detectedAt must be a date.`);
   });
@@ -163,15 +175,15 @@ export async function POST(request: Request) {
           where: { email },
           update: {
             fullName: clean(row.fullName, 120),
-            segment: clean(row.segment) as UserSegment,
-            subscriptionStatus: clean(row.subscriptionStatus) as SubscriptionStatus,
+            segment: normalizeUserSegment(row.segment),
+            subscriptionStatus: normalizeSubscriptionStatus(row.subscriptionStatus),
             lastActiveAt: clean(row.lastActiveAt) ? new Date(clean(row.lastActiveAt)) : null
           },
           create: {
             fullName: clean(row.fullName, 120),
             email,
-            segment: clean(row.segment) as UserSegment,
-            subscriptionStatus: clean(row.subscriptionStatus) as SubscriptionStatus,
+            segment: normalizeUserSegment(row.segment),
+            subscriptionStatus: normalizeSubscriptionStatus(row.subscriptionStatus),
             lastActiveAt: clean(row.lastActiveAt) ? new Date(clean(row.lastActiveAt)) : null
           }
         });
@@ -230,7 +242,7 @@ export async function POST(request: Request) {
         if (!entityId) continue;
         const data = {
           entityId,
-          changeType: clean(row.changeType) as DeltaChangeType,
+          changeType: normalizeDeltaChangeType(row.changeType),
           oldValue: clean(row.oldValue, 180) || null,
           newValue: clean(row.newValue, 180) || null,
           deltaSummary: clean(row.deltaSummary, 240),
