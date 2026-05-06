@@ -246,8 +246,8 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
       <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Data sources and readiness">
         <p>
-          Datasets are the operating layer: review saved sources, inspect what has been validated or imported, and see
-          whether each tool has enough data to run.
+          Datasets are the operating inventory: saved source configs show where data comes from, imported snapshots show
+          the validated data a tool can actually select, and readiness gaps show what each tool still needs.
         </p>
       </Section>
 

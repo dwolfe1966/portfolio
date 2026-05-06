@@ -1254,6 +1254,49 @@ button {
   font-size: clamp(22px, 2vw, 30px);
   line-height: 1.05;
 }
+.workspaceActionGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.workspaceActionCard {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+}
+.workspaceActionCard h3,
+.workspaceActionCard p {
+  margin-bottom: 0;
+}
+.workspaceActiveSourceList {
+  display: grid;
+  gap: 10px;
+}
+.workspaceActiveSourceRow {
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+}
+.workspaceActiveSourceRow h3,
+.workspaceActiveSourceRow p {
+  margin-bottom: 0;
+}
+.workspaceActiveSourceMeta {
+  align-items: flex-end;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  min-width: 120px;
+}
+.workspaceActiveSourceMeta strong {
+  color: var(--text);
+  font-size: 14px;
+}
 .workspaceModuleCard {
   display: grid;
   gap: 10px;
@@ -2506,6 +2549,15 @@ button {
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .savedSourceSummaryGrid { grid-template-columns: 1fr; }
+  .workspaceActionGrid { grid-template-columns: 1fr; }
+  .workspaceActiveSourceRow {
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+  }
+  .workspaceActiveSourceMeta {
+    align-items: flex-start;
+    justify-items: start;
+  }
   .savedSourceCardGrid { grid-template-columns: 1fr; }
   .savedSourceCardStats { grid-template-columns: 1fr; }
   .savedSourceFilters { grid-template-columns: 1fr; }

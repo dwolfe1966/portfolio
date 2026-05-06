@@ -123,7 +123,8 @@ export default async function DemoConnectionsPage() {
       <Section eyebrow="Workspace" title="Connect data">
         <p>
           Connections are the setup layer: choose where data comes from, configure credentials or uploads, map external
-          fields into a tool schema, and save a reusable source.
+          fields into a tool schema, and save a reusable source config. A connection does not become usable tool data
+          until it is validated and imported as a dataset snapshot.
         </p>
       </Section>
 
@@ -132,12 +133,12 @@ export default async function DemoConnectionsPage() {
           <div className="card connectionModeCard">
             <p className="editorKicker">Connections</p>
             <h3>Source setup</h3>
-            <p>Use this page to create or refresh the link to external data: files, Sheets, OAuth accounts, and future live sources.</p>
+            <p>Create or refresh the link to external data: files, Sheets, OAuth accounts, and future live sources.</p>
           </div>
           <div className="card connectionModeCard">
             <p className="editorKicker">Datasets</p>
-            <h3>Operating inventory</h3>
-            <p>Use Datasets after setup to inspect saved sources, imported rows, readiness gaps, and the next action for each tool.</p>
+            <h3>Usable snapshots</h3>
+            <p>Inspect validated imports, row coverage, readiness gaps, and which snapshots are ready to select inside a tool.</p>
             <Link className="btn smallBtn" href="/workspace/datasets">Review datasets</Link>
           </div>
         </div>
