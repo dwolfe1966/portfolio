@@ -42,7 +42,12 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
     const [latestImport, latestSource, snapshots, activeSelection, users, entities, interestEdges, events] = await Promise.all([
       db.lifecycleImportLog.findFirst({ orderBy: { createdAt: "desc" } }),
       db.lifecycleMappingPreset.findFirst({
-        where: { app: "lifecycle" },
+        where: {
+          app: "lifecycle",
+          OR: session
+            ? [{ accountUserId: session.userId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        },
         orderBy: { updatedAt: "desc" }
       }),
       db.workspaceDataset.findMany({

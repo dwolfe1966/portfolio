@@ -1,7 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
@@ -95,14 +97,20 @@ function sourceRowCount(value: unknown) {
   return Object.values(rowCounts).reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
 }
 
-async function loadConnectionSummary() {
+async function currentAccountUserId() {
+  const cookieStore = await cookies();
+  return verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+}
+
+async function loadConnectionSummary(accountUserId: string | null) {
   try {
     const [sourceConfigs, csvConfigs, sheetConfigs, adConnections, recentSourceConfigs] = await Promise.all([
-      db.lifecycleMappingPreset.count(),
-      db.lifecycleMappingPreset.count({ where: { sourceType: "csv" } }),
-      db.lifecycleMappingPreset.count({ where: { sourceType: "google_sheets" } }),
+      db.lifecycleMappingPreset.count({ where: { accountUserId } }),
+      db.lifecycleMappingPreset.count({ where: { accountUserId, sourceType: "csv" } }),
+      db.lifecycleMappingPreset.count({ where: { accountUserId, sourceType: "google_sheets" } }),
       db.adAccountConnection.count(),
       db.lifecycleMappingPreset.findMany({
+        where: { accountUserId },
         orderBy: { updatedAt: "desc" },
         take: 6,
         include: { workspace: true }
@@ -119,7 +127,8 @@ async function loadConnectionSummary() {
 }
 
 export default async function DemoConnectionsPage() {
-  const summary = await loadConnectionSummary();
+  const accountUserId = await currentAccountUserId();
+  const summary = await loadConnectionSummary(accountUserId);
   const connectorSummary = [
     { label: "Saved configs", value: summary.sourceConfigs.toLocaleString(), detail: "Reusable mappings" },
     { label: "CSV", value: summary.csvConfigs.toLocaleString(), detail: "File sources" },
@@ -133,7 +142,7 @@ export default async function DemoConnectionsPage() {
       <Section eyebrow="Workspace" title="Connect data">
         <p>
           Connections are the setup layer: choose where data comes from, configure credentials or uploads, map external
-          fields into a tool schema, and save a reusable source config. A connection does not become usable tool data
+          fields into a tool schema, and save a reusable source config to your account. A connection does not become usable tool data
           until it is validated and imported as a dataset snapshot.
         </p>
       </Section>

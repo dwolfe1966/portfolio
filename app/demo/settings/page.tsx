@@ -24,13 +24,14 @@ export const metadata: Metadata = buildMetadata({
   path: "/workspace/settings"
 });
 
-async function loadWorkspaceSettings() {
+async function loadWorkspaceSettings(accountUserId: string | null) {
   try {
     await getDefaultWorkspace();
     const workspace = await db.workspace.findUnique({
       where: { slug: DEFAULT_WORKSPACE.slug },
       include: {
         mappingPresets: {
+          where: { accountUserId },
           orderBy: [{ app: "asc" }, { updatedAt: "desc" }]
         }
       }
@@ -87,12 +88,12 @@ export default async function DemoSettingsPage({
 }: {
   searchParams?: Promise<SettingsSearchParams>;
 }) {
-  const settings = await loadWorkspaceSettings();
   const params = await searchParams;
-  const sourceConfigs = settings.workspace?.mappingPresets ?? [];
-  const uniqueApps = new Set(sourceConfigs.map((config) => config.app));
   const cookieStore = await cookies();
   const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+  const settings = await loadWorkspaceSettings(accountUser?.id ?? null);
+  const sourceConfigs = settings.workspace?.mappingPresets ?? [];
+  const uniqueApps = new Set(sourceConfigs.map((config) => config.app));
 
   return (
     <>

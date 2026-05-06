@@ -43,7 +43,12 @@ export async function RetentionWorkspaceDatasetPanel({ compact = false }: Retent
     const [latestImport, latestSource, snapshots, activeSelection, accounts, playbooks, policy, runs] = await Promise.all([
       db.retentionAuditLog.findFirst({ where: { action: "retention_import" }, orderBy: { createdAt: "desc" } }),
       db.lifecycleMappingPreset.findFirst({
-        where: { app: "retention" },
+        where: {
+          app: "retention",
+          OR: session
+            ? [{ accountUserId: session.userId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        },
         orderBy: { updatedAt: "desc" }
       }),
       db.workspaceDataset.findMany({

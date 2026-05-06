@@ -43,7 +43,12 @@ export async function ExpansionWorkspaceDatasetPanel({ compact = false }: Expans
     const [latestImport, latestSource, snapshots, activeSelection, accounts, offers, policy, runs] = await Promise.all([
       db.expansionAuditLog.findFirst({ where: { action: "expansion_import" }, orderBy: { createdAt: "desc" } }),
       db.lifecycleMappingPreset.findFirst({
-        where: { app: "expansion" },
+        where: {
+          app: "expansion",
+          OR: session
+            ? [{ accountUserId: session.userId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        },
         orderBy: { updatedAt: "desc" }
       }),
       db.workspaceDataset.findMany({

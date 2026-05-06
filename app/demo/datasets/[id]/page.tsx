@@ -1,10 +1,12 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { redirect } from "next/navigation";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -125,10 +127,15 @@ function sourceActionState({
   };
 }
 
-async function loadSourceConfig(id: string) {
+async function currentAccountUserId() {
+  const cookieStore = await cookies();
+  return verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+}
+
+async function loadSourceConfig(id: string, accountUserId: string | null) {
   const workspace = await getDefaultWorkspace();
   return db.lifecycleMappingPreset.findFirst({
-    where: { id, workspaceId: workspace.id },
+    where: { id, workspaceId: workspace.id, accountUserId },
     include: { workspace: true }
   });
 }
@@ -139,8 +146,8 @@ async function deleteSourceConfig(formData: FormData) {
   if (!isDemoMutationAllowed()) return;
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
-  const workspace = await getDefaultWorkspace();
-  await db.lifecycleMappingPreset.deleteMany({ where: { id, workspaceId: workspace.id } });
+  const [workspace, accountUserId] = await Promise.all([getDefaultWorkspace(), currentAccountUserId()]);
+  await db.lifecycleMappingPreset.deleteMany({ where: { id, workspaceId: workspace.id, accountUserId } });
   revalidatePath("/workspace/datasets");
   revalidatePath("/demo/datasets");
   redirect("/workspace/datasets");
@@ -150,7 +157,8 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
   const { id } = await params;
 
   try {
-    const config = await loadSourceConfig(id);
+    const accountUserId = await currentAccountUserId();
+    const config = await loadSourceConfig(id, accountUserId);
     if (!config) notFound();
 
     const metadata = metadataRecord(config.metadata);

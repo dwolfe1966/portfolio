@@ -43,7 +43,12 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
     const [latestImport, latestSource, snapshots, activeSelection, campaigns, audiences, creatives, performance] = await Promise.all([
       db.acquisitionAuditLog.findFirst({ where: { action: "acquisition_import" }, orderBy: { createdAt: "desc" } }),
       db.lifecycleMappingPreset.findFirst({
-        where: { app: "acquisition" },
+        where: {
+          app: "acquisition",
+          OR: session
+            ? [{ accountUserId: session.userId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        },
         orderBy: { updatedAt: "desc" }
       }),
       db.workspaceDataset.findMany({

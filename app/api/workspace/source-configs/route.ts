@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -30,11 +31,27 @@ function jsonObject(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function readCookie(cookieHeader: string | null | undefined, name: string) {
+  if (!cookieHeader) return undefined;
+  const value = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+  return value ? decodeURIComponent(value) : undefined;
+}
+
+function accountUserIdFromRequest(request: Request) {
+  const token = readCookie(request.headers.get("cookie"), ACCOUNT_SESSION_COOKIE);
+  return verifyAccountSessionToken(token)?.userId ?? null;
+}
+
 function serializeConfig(config: {
   id: string;
   app: string;
   sourceType: string;
   name: string;
+  accountUserId?: string | null;
   mappings: Prisma.JsonValue;
   metadata: Prisma.JsonValue | null;
   createdAt: Date;
@@ -45,6 +62,7 @@ function serializeConfig(config: {
     app: config.app,
     sourceType: config.sourceType,
     name: config.name,
+    accountUserId: config.accountUserId ?? null,
     mappings: config.mappings,
     metadata: config.metadata,
     createdAt: config.createdAt.toISOString(),
@@ -60,9 +78,13 @@ export async function GET(request: Request) {
 
   try {
     const workspace = await getDefaultWorkspace();
+    const accountUserId = accountUserIdFromRequest(request);
     const configs = await db.lifecycleMappingPreset.findMany({
       where: {
         workspaceId: workspace.id,
+        OR: accountUserId
+          ? [{ accountUserId }, { accountUserId: null }]
+          : [{ accountUserId: null }],
         ...(app ? { app } : {}),
         ...(sourceType ? { sourceType } : {})
       },
@@ -98,28 +120,35 @@ export async function POST(request: Request) {
 
   try {
     const workspace = await getDefaultWorkspace();
-    const config = await db.lifecycleMappingPreset.upsert({
+    const accountUserId = accountUserIdFromRequest(request);
+    const existing = await db.lifecycleMappingPreset.findFirst({
       where: {
-        workspaceId_app_sourceType_name: {
-          workspaceId: workspace.id,
-          app,
-          sourceType,
-          name
-        }
-      },
-      update: {
-        mappings: toJson(body.mappings),
-        metadata: toJson(body.metadata)
-      },
-      create: {
         workspaceId: workspace.id,
+        accountUserId,
         app,
         sourceType,
-        name,
-        mappings: toJson(body.mappings),
-        metadata: toJson(body.metadata)
+        name
       }
     });
+    const config = existing
+      ? await db.lifecycleMappingPreset.update({
+          where: { id: existing.id },
+          data: {
+            mappings: toJson(body.mappings),
+            metadata: toJson(body.metadata)
+          }
+        })
+      : await db.lifecycleMappingPreset.create({
+          data: {
+            workspaceId: workspace.id,
+            accountUserId,
+            app,
+            sourceType,
+            name,
+            mappings: toJson(body.mappings),
+            metadata: toJson(body.metadata)
+          }
+        });
 
     return apiOk({
       eventId,
@@ -144,7 +173,16 @@ export async function PATCH(request: Request) {
 
   try {
     const workspace = await getDefaultWorkspace();
-    const existing = await db.lifecycleMappingPreset.findFirst({ where: { id, workspaceId: workspace.id } });
+    const accountUserId = accountUserIdFromRequest(request);
+    const existing = await db.lifecycleMappingPreset.findFirst({
+      where: {
+        id,
+        workspaceId: workspace.id,
+        OR: accountUserId
+          ? [{ accountUserId }, { accountUserId: null }]
+          : [{ accountUserId: null }]
+      }
+    });
     if (!existing) return apiError(404, "NOT_FOUND", "Source config was not found.", { eventId });
 
     const metadataPatch = jsonObject(body.metadataPatch);
@@ -192,7 +230,8 @@ export async function DELETE(request: Request) {
 
   try {
     const workspace = await getDefaultWorkspace();
-    await db.lifecycleMappingPreset.deleteMany({ where: { id, workspaceId: workspace.id } });
+    const accountUserId = accountUserIdFromRequest(request);
+    await db.lifecycleMappingPreset.deleteMany({ where: { id, workspaceId: workspace.id, accountUserId } });
     return apiOk({ eventId, deleted: true });
   } catch (error) {
     if (isMissingDemoTableError(error)) {

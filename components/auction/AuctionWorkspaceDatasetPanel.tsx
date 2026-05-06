@@ -43,7 +43,12 @@ export async function AuctionWorkspaceDatasetPanel({ compact = false }: AuctionW
     const [latestImport, latestSource, snapshots, activeSelection, advertisers, slots, bids, runs] = await Promise.all([
       db.auctionAuditLog.findFirst({ where: { action: "auction_import" }, orderBy: { createdAt: "desc" } }),
       db.lifecycleMappingPreset.findFirst({
-        where: { app: "auction" },
+        where: {
+          app: "auction",
+          OR: session
+            ? [{ accountUserId: session.userId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        },
         orderBy: { updatedAt: "desc" }
       }),
       db.workspaceDataset.findMany({

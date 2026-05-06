@@ -1,7 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
@@ -34,7 +36,12 @@ function sourceTypeLabel(sourceType: string) {
   return sourceType.toUpperCase();
 }
 
-async function loadActivity() {
+async function currentAccountUserId() {
+  const cookieStore = await cookies();
+  return verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+}
+
+async function loadActivity(accountUserId: string | null) {
   try {
     const [
       imports,
@@ -55,7 +62,7 @@ async function loadActivity() {
       db.expansionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.auctionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.adAccountConnection.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
-      db.lifecycleMappingPreset.findMany({ orderBy: { updatedAt: "desc" }, take: 12, include: { workspace: true } })
+      db.lifecycleMappingPreset.findMany({ where: { accountUserId }, orderBy: { updatedAt: "desc" }, take: 12, include: { workspace: true } })
     ]);
 
     const items: ActivityItem[] = [
@@ -202,7 +209,8 @@ function formatFullDate(value: Date) {
 }
 
 export default async function DemoActivityPage() {
-  const activity = await loadActivity();
+  const accountUserId = await currentAccountUserId();
+  const activity = await loadActivity(accountUserId);
   const latestEvent = activity.items[0];
 
   return (

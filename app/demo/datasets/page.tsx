@@ -30,6 +30,7 @@ async function loadDatasetInventory(accountUserId: string | null) {
   try {
     const [presets, snapshots, imports, runs, readiness] = await Promise.all([
       db.lifecycleMappingPreset.findMany({
+        where: { accountUserId },
         orderBy: [{ updatedAt: "desc" }],
         take: 40,
         include: { workspace: true }
