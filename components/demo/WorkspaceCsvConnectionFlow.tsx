@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   TOOL_IMPORT_SCHEMAS,
   createEmptyMappings,
+  describeObjectConstraints,
   inferMapping,
   parseMappedCsvObject,
   parseSourceCsv,
@@ -584,6 +585,17 @@ export function WorkspaceCsvConnectionFlow({
               <div className="connectorEntityIntro connectorSubPanel--title">
                 <p>{object.description}</p>
                 <p className="small">Required app fields: <code>{object.requiredFields.join(", ")}</code></p>
+              </div>
+              <div className="connectorSubPanel connectorSubPanel--rules">
+                <div className="connectorSubPanelHeader">
+                  <div>
+                    <p className="editorKicker">Validation rules</p>
+                    <h4>Import constraints</h4>
+                  </div>
+                </div>
+                <ul className="connectorRuleList">
+                  {describeObjectConstraints(object).map((rule) => <li key={rule}>{rule}</li>)}
+                </ul>
               </div>
 
               <div className="connectorSubPanel connectorSubPanel--action">

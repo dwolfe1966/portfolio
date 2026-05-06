@@ -435,6 +435,24 @@ export function getToolImportSchema(tool: ToolKey) {
   return schema;
 }
 
+export function describeFieldValidation(validation: FieldValidation) {
+  if (validation.kind === "email") return "valid email";
+  if (validation.kind === "date") return "valid date or ISO timestamp";
+  if (validation.kind === "enum") return `one of: ${validation.values.join(", ")}`;
+  return `${validation.min} to ${validation.max}`;
+}
+
+export function describeObjectConstraints(objectSchema: ToolDataObjectSchema) {
+  const rules = [
+    `Maximum ${objectSchema.maxRows.toLocaleString()} rows.`,
+    `Required fields: ${objectSchema.requiredFields.join(", ")}.`
+  ];
+  Object.entries(objectSchema.validations ?? {}).forEach(([field, validations]) => {
+    rules.push(`${field}: ${validations.map(describeFieldValidation).join("; ")}.`);
+  });
+  return rules;
+}
+
 export function parseCsvLine(line: string) {
   const cells: string[] = [];
   let value = "";
