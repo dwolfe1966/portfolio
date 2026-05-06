@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
@@ -20,7 +22,14 @@ function formatMetadata(metadata: unknown) {
 }
 
 export default async function LifecycleConnectionsPage() {
+  const cookieStore = await cookies();
+  const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
   const importLogs = await db.lifecycleImportLog.findMany({
+    where: {
+      OR: session
+        ? [{ accountUserId: session.userId }, { accountUserId: null }]
+        : [{ accountUserId: null }]
+    },
     orderBy: { createdAt: "desc" },
     take: 8
   }).catch((error) => {

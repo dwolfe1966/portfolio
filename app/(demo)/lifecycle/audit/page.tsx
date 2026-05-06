@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { Section } from "@/components/site/Section";
@@ -7,13 +9,22 @@ export const dynamic = "force-dynamic";
 
 export default async function LifecycleAuditPage() {
   try {
+    const cookieStore = await cookies();
+    const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    const runScope = {
+      OR: session
+        ? [{ accountUserId: session.userId }, { accountUserId: null }]
+        : [{ accountUserId: null }]
+    };
     const [runs, messages, fallbackCount] = await Promise.all([
       db.campaignRun.findMany({
+        where: runScope,
         orderBy: { createdAt: "desc" },
         take: 50,
         include: { _count: { select: { candidates: true } } }
       }),
       db.generatedMessage.findMany({
+        where: { campaignCandidate: { campaignRun: runScope } },
         orderBy: { createdAt: "desc" },
         take: 50,
         include: {
@@ -26,7 +37,7 @@ export default async function LifecycleAuditPage() {
           }
         }
       }),
-      db.generatedMessage.count({ where: { modelName: "fallback-template" } })
+      db.generatedMessage.count({ where: { modelName: "fallback-template", campaignCandidate: { campaignRun: runScope } } })
     ]);
 
     return (

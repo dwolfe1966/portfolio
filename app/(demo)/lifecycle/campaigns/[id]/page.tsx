@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -14,8 +16,15 @@ export default async function CampaignRunPage({ params }: PageProps) {
   const { id } = await params;
 
   try {
-    const run = await db.campaignRun.findUnique({
-      where: { id },
+    const cookieStore = await cookies();
+    const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    const run = await db.campaignRun.findFirst({
+      where: {
+        id,
+        OR: session
+          ? [{ accountUserId: session.userId }, { accountUserId: null }]
+          : [{ accountUserId: null }]
+      },
       include: {
         assumptionSet: true,
         candidates: {

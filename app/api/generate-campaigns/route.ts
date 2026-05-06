@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { calculatePriorityBreakdown } from "@/lib/scoring";
 import { generateLifecycleCopy, LifecycleCopyGenerationError } from "@/lib/ai";
 import { CampaignStatus } from "@prisma/client";
@@ -12,6 +13,10 @@ import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
+
+function accountUserIdFromRequest(req: NextRequest) {
+  return verifyAccountSessionToken(req.cookies.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+}
 
 export async function POST(req: NextRequest) {
   const eventId = createEventId("gen_campaign");
@@ -27,6 +32,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
+  const accountUserId = accountUserIdFromRequest(req);
   try {
     const requestedSetId = body.assumptionSetId ? String(body.assumptionSetId) : null;
     const selectedSet = requestedSetId
@@ -50,6 +56,7 @@ export async function POST(req: NextRequest) {
 
     const run = await db.campaignRun.create({
       data: {
+        accountUserId,
         runName: String(body.runName ?? "Daily Demo Run"),
         assumptionSetId: selectedSet?.id,
         assumptionsSnapshot: assumptions,

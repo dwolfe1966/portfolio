@@ -78,8 +78,8 @@ async function loadToolsetSummary(accountUserId: string | null) {
     const [workspace, sourceConfigs, imports, lifecycleRuns, datasetSnapshots, activeSelections, recentDatasets, datasetReadiness] = await Promise.all([
       db.workspace.findUnique({ where: { slug: "default-demo-workspace" } }),
       db.lifecycleMappingPreset.count({ where: { accountUserId } }),
-      db.lifecycleImportLog.count(),
-      db.campaignRun.count(),
+      db.lifecycleImportLog.count({ where: { accountUserId } }),
+      db.campaignRun.count({ where: { accountUserId } }),
       db.workspaceDataset.count({ where: { accountUserId } }),
       db.appDataSourceSelection.findMany({
         where: { accountUserId },

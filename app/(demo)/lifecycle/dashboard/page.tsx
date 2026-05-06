@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
@@ -14,6 +16,13 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   try {
+    const cookieStore = await cookies();
+    const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    const ownedOrLegacy = {
+      OR: session
+        ? [{ accountUserId: session.userId }, { accountUserId: null }]
+        : [{ accountUserId: null }]
+    };
     const [
       deltas,
       candidates,
@@ -30,9 +39,9 @@ export default async function DashboardPage() {
       activeAssumptions
     ] = await Promise.all([
       db.entityDelta.count(),
-      db.campaignCandidate.count(),
-      db.generatedMessage.count(),
-      db.campaignRun.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
+      db.campaignCandidate.count({ where: { campaignRun: ownedOrLegacy } }),
+      db.generatedMessage.count({ where: { campaignCandidate: { campaignRun: ownedOrLegacy } } }),
+      db.campaignRun.findMany({ where: ownedOrLegacy, orderBy: { createdAt: "desc" }, take: 5 }),
       db.user.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.entity.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.interestEdge.findMany({
@@ -46,6 +55,7 @@ export default async function DashboardPage() {
         include: { entity: true }
       }),
       db.generatedMessage.findMany({
+        where: { campaignCandidate: { campaignRun: ownedOrLegacy } },
         orderBy: { createdAt: "desc" },
         take: 8,
         include: {

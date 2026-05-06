@@ -54,8 +54,8 @@ async function loadActivity(accountUserId: string | null) {
       adConnections,
       sourceConfigs
     ] = await Promise.all([
-      db.lifecycleImportLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
-      db.campaignRun.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+      db.lifecycleImportLog.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
+      db.campaignRun.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
       db.acquisitionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { campaign: true } }),
       db.pricingAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { experiment: true } }),
       db.retentionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),

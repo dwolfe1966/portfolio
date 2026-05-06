@@ -1,18 +1,31 @@
 import { db } from "@/lib/db";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { createEventId, logApiEvent } from "@/lib/logging";
 
 export async function GET(
-  _: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const eventId = createEventId("run_get");
   const { id } = await params;
+  const cookieHeader = request.headers.get("cookie") ?? "";
+  const token = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${ACCOUNT_SESSION_COOKIE}=`))
+    ?.slice(ACCOUNT_SESSION_COOKIE.length + 1);
+  const accountUserId = verifyAccountSessionToken(token ? decodeURIComponent(token) : undefined)?.userId ?? null;
 
   try {
-    const run = await db.campaignRun.findUnique({
-      where: { id },
+    const run = await db.campaignRun.findFirst({
+      where: {
+        id,
+        OR: accountUserId
+          ? [{ accountUserId }, { accountUserId: null }]
+          : [{ accountUserId: null }]
+      },
       include: { assumptionSet: true }
     });
 

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { DeltaChangeType, Prisma, UserSegment } from "@prisma/client";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
@@ -27,8 +29,15 @@ export default async function CampaignsPage({ searchParams }: PageProps) {
     const maxScore = Number(firstValue(query.maxScore) ?? 1);
     const sortBy = firstValue(query.sortBy) ?? "createdAt";
     const sortDir = firstValue(query.sortDir) === "asc" ? "asc" : "desc";
+    const cookieStore = await cookies();
+    const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
 
     const where: Prisma.CampaignCandidateWhereInput = {
+      campaignRun: {
+        OR: session
+          ? [{ accountUserId: session.userId }, { accountUserId: null }]
+          : [{ accountUserId: null }]
+      },
       ...(segment ? { segmentAtGeneration: segment } : {}),
       ...(changeType ? { entityDelta: { changeType } } : {}),
       priorityScore: {

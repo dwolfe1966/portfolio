@@ -40,7 +40,14 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
     const cookieStore = await cookies();
     const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
     const [latestImport, latestSource, snapshots, activeSelection, users, entities, interestEdges, events] = await Promise.all([
-      db.lifecycleImportLog.findFirst({ orderBy: { createdAt: "desc" } }),
+      db.lifecycleImportLog.findFirst({
+        where: {
+          OR: session
+            ? [{ accountUserId: session.userId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        },
+        orderBy: { createdAt: "desc" }
+      }),
       db.lifecycleMappingPreset.findFirst({
         where: {
           app: "lifecycle",

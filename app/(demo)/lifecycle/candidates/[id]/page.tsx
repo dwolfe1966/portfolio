@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -13,8 +15,17 @@ export default async function CandidateDetailPage({ params }: PageProps) {
   const { id } = await params;
 
   try {
-    const candidate = await db.campaignCandidate.findUnique({
-      where: { id },
+    const cookieStore = await cookies();
+    const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    const candidate = await db.campaignCandidate.findFirst({
+      where: {
+        id,
+        campaignRun: {
+          OR: session
+            ? [{ accountUserId: session.userId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        }
+      },
       include: { user: true, entity: true, entityDelta: true, campaignRun: true, generatedMessage: true }
     });
 

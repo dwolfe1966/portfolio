@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Prisma } from "@prisma/client";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { DemoSetupNotice } from "@/components/site/DemoSetupNotice";
@@ -20,10 +22,24 @@ type OutputRunRow = {
   createdAt: Date;
 };
 
-async function loadRunsWithLegacyFallback() {
+async function currentAccountUserId() {
+  const cookieStore = await cookies();
+  return verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+}
+
+function ownedOrLegacyWhere(accountUserId: string | null) {
+  return {
+    OR: accountUserId
+      ? [{ accountUserId }, { accountUserId: null }]
+      : [{ accountUserId: null }]
+  };
+}
+
+async function loadRunsWithLegacyFallback(accountUserId: string | null) {
   try {
     return {
       runs: await db.campaignRun.findMany({
+        where: ownedOrLegacyWhere(accountUserId),
         orderBy: { createdAt: "desc" },
         take: 25,
         select: {
@@ -80,6 +96,8 @@ function presetEmptyMessage(preset: string) {
 export default async function DemoOutputsPage({ searchParams }: PageProps) {
   try {
     const query = await searchParams;
+    const accountUserId = await currentAccountUserId();
+    const runScope = ownedOrLegacyWhere(accountUserId);
     const activePreset = query.preset ?? "all";
     const [
       { runs, usingLegacyFallback },
@@ -94,9 +112,10 @@ export default async function DemoOutputsPage({ searchParams }: PageProps) {
       generatedCount,
       segmentBreakdown
     ] = await Promise.all([
-      loadRunsWithLegacyFallback(),
+      loadRunsWithLegacyFallback(accountUserId),
       db.entityDelta.findMany({ orderBy: { detectedAt: "desc" }, take: 10, include: { entity: true } }),
       db.generatedMessage.findMany({
+        where: { campaignCandidate: { campaignRun: runScope } },
         orderBy: { createdAt: "desc" },
         take: 10,
         include: { campaignCandidate: { include: { user: true, entity: true, entityDelta: true } } }
@@ -109,9 +128,10 @@ export default async function DemoOutputsPage({ searchParams }: PageProps) {
       db.entity.count(),
       db.interestEdge.count(),
       db.entityDelta.count(),
-      db.campaignCandidate.count(),
-      db.generatedMessage.count(),
+      db.campaignCandidate.count({ where: { campaignRun: runScope } }),
+      db.generatedMessage.count({ where: { campaignCandidate: { campaignRun: runScope } } }),
       db.campaignCandidate.groupBy({
+        where: { campaignRun: runScope },
         by: ["segmentAtGeneration"],
         _count: { _all: true },
         _avg: { priorityScore: true }

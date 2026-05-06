@@ -1,29 +1,55 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
 export const dynamic = "force-dynamic";
 
-async function loadWorkspaceSummary() {
+async function currentAccountUserId() {
+  const cookieStore = await cookies();
+  return verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+}
+
+async function loadWorkspaceSummary(accountUserId: string | null) {
   try {
     const workspace = await db.workspace.findUnique({
       where: { slug: "default-demo-workspace" },
       include: {
         mappingPresets: {
-          where: { app: "lifecycle" },
+          where: {
+            app: "lifecycle",
+            OR: accountUserId
+              ? [{ accountUserId }, { accountUserId: null }]
+              : [{ accountUserId: null }]
+          },
           orderBy: { updatedAt: "desc" },
           take: 5
         }
       }
     });
     const [imports, users, entities, edges, events, runs] = await Promise.all([
-      db.lifecycleImportLog.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
+      db.lifecycleImportLog.findMany({
+        where: {
+          OR: accountUserId
+            ? [{ accountUserId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5
+      }),
       db.user.count(),
       db.entity.count(),
       db.interestEdge.count(),
       db.entityDelta.count(),
-      db.campaignRun.count()
+      db.campaignRun.count({
+        where: {
+          OR: accountUserId
+            ? [{ accountUserId }, { accountUserId: null }]
+            : [{ accountUserId: null }]
+        }
+      })
     ]);
 
     return { workspace, imports, counts: { users, entities, edges, events, runs }, compatibilityMode: false };
@@ -45,7 +71,8 @@ function formatDate(value: Date) {
 }
 
 export default async function LifecycleWorkspacePage() {
-  const summary = await loadWorkspaceSummary();
+  const accountUserId = await currentAccountUserId();
+  const summary = await loadWorkspaceSummary(accountUserId);
   const totalImportedRows = summary.imports.reduce(
     (sum, item) => sum + item.usersImported + item.entitiesImported + item.interestEdgesImported + item.changeEventsImported,
     0

@@ -45,10 +45,12 @@ async function loadDatasetInventory(accountUserId: string | null) {
         }
       }),
       db.lifecycleImportLog.findMany({
+        where: { accountUserId },
         orderBy: { createdAt: "desc" },
         take: 8
       }),
       db.campaignRun.findMany({
+        where: { accountUserId },
         orderBy: { createdAt: "desc" },
         take: 6
       }),

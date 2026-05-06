@@ -1,5 +1,6 @@
 import { DeltaChangeType, Prisma, SubscriptionStatus, UserSegment } from "@prisma/client";
 import { apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -25,6 +26,21 @@ const maxRowsByObject = Object.fromEntries(
 
 function clean(value: unknown, max = 180) {
   return String(value ?? "").trim().slice(0, max);
+}
+
+function readCookie(cookieHeader: string | null | undefined, name: string) {
+  if (!cookieHeader) return undefined;
+  const value = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+  return value ? decodeURIComponent(value) : undefined;
+}
+
+function accountUserIdFromRequest(request: Request) {
+  const token = readCookie(request.headers.get("cookie"), ACCOUNT_SESSION_COOKIE);
+  return verifyAccountSessionToken(token)?.userId ?? null;
 }
 
 function normalizeEmail(value: unknown) {
@@ -108,6 +124,7 @@ function readSourceType(sourceMetadata: Prisma.InputJsonValue | undefined) {
 }
 
 async function recordImportLog(data: {
+  accountUserId?: string | null;
   sourceName: string;
   sourceType: string;
   status: string;
@@ -121,6 +138,7 @@ async function recordImportLog(data: {
   try {
     const log = await db.lifecycleImportLog.create({
       data: {
+        accountUserId: data.accountUserId ?? null,
         sourceType: data.sourceType,
         sourceName: data.sourceName,
         status: data.status,
@@ -144,6 +162,7 @@ export async function POST(request: Request) {
   if (!isDemoMutationAllowed()) return apiError(403, "MUTATION_DISABLED", "Lifecycle data import is disabled.", { eventId });
 
   const body = await request.json().catch(() => ({})) as LifecycleImportPayload;
+  const accountUserId = accountUserIdFromRequest(request);
   const validation = validatePayload(body);
   const sourceName = clean(body.sourceName, 120) || "CSV upload";
   const sourceMetadata = readSourceMetadata(body.sourceMetadata);
@@ -151,6 +170,7 @@ export async function POST(request: Request) {
   if (validation.errors.length > 0) {
     await recordImportLog({
       sourceName,
+      accountUserId,
       sourceType,
       status: "validation_failed",
       validationErrors: validation.errors.length,
@@ -275,6 +295,7 @@ export async function POST(request: Request) {
 
     const importLogId = await recordImportLog({
       sourceName,
+      accountUserId,
       sourceType,
       status: "imported",
       ...result,

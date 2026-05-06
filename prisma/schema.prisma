@@ -33,6 +33,8 @@ model AccountUser {
   dataSourceSelections AppDataSourceSelection[]
   sourceConfigs LifecycleMappingPreset[]
   presets     WorkspacePreset[]
+  lifecycleImportLogs LifecycleImportLog[]
+  campaignRuns CampaignRun[]
 
   @@index([updatedAt])
 }
@@ -920,6 +922,7 @@ model GeneratedMessage {
 
 model CampaignRun {
   id                      String              @id @default(cuid())
+  accountUserId           String?
   runName                 String
   assumptionSetId         String?
   assumptionsSnapshot     Json
@@ -931,8 +934,11 @@ model CampaignRun {
   estimatedConversionRate Float
   estimatedRevenue        Float
   createdAt               DateTime            @default(now())
+  accountUser             AccountUser?        @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
   assumptionSet           AssumptionSet?      @relation(fields: [assumptionSetId], references: [id])
   candidates              CampaignCandidate[]
+
+  @@index([accountUserId, createdAt])
 }
 
 model AssumptionSet {
@@ -956,6 +962,7 @@ model AssumptionSet {
 
 model LifecycleImportLog {
   id                    String   @id @default(cuid())
+  accountUserId         String?
   sourceType            String
   sourceName            String
   status                String
@@ -966,9 +973,11 @@ model LifecycleImportLog {
   validationErrors      Int      @default(0)
   metadata              Json?
   createdAt             DateTime @default(now())
+  accountUser           AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
 
   @@index([sourceType, createdAt])
   @@index([status, createdAt])
+  @@index([accountUserId, createdAt])
 }
 
 model LifecycleMappingPreset {
