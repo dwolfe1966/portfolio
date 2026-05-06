@@ -87,6 +87,15 @@ function persistedDatasetRows(value: unknown) {
   return Object.values(rowCounts).reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
 }
 
+function objectRowSummary(value: unknown) {
+  const entries = Object.entries(metadataRecord(value))
+    .filter((entry): entry is [string, number] => typeof entry[1] === "number")
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  return entries.length > 0
+    ? entries.map(([label, count]) => `${label}: ${count.toLocaleString()}`).join(" · ")
+    : "No row counts recorded";
+}
+
 function sourceDetail(value: unknown) {
   const metadata = metadataRecord(value);
   const sheetId = typeof metadata.sheetId === "string" ? metadata.sheetId : "";
@@ -240,6 +249,29 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
       detail: "preview, validate, or import"
     }
   ];
+  const inventoryMap = [
+    {
+      label: "1. Source configs",
+      title: "Where data comes from",
+      detail: "Saved CSV, Sheets, OAuth, and future live-source mappings. Refresh or import from here.",
+      value: inventory.presets.length.toLocaleString(),
+      href: "/workspace/connections"
+    },
+    {
+      label: "2. Imported snapshots",
+      title: "Validated data at a point in time",
+      detail: "Persisted rows that tools can select as imported data instead of sample data.",
+      value: inventory.snapshots.length.toLocaleString(),
+      href: "#imported-snapshots"
+    },
+    {
+      label: "3. Readiness",
+      title: "What each tool can run",
+      detail: "Required object coverage and gaps across the current workspace data inventory.",
+      value: `${readinessSummary.available}/${inventory.readiness.length || 0}`,
+      href: "#readiness"
+    }
+  ];
 
   return (
     <>
@@ -273,6 +305,22 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
         {inventory.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable workspace dataset inventory.</p>
         ) : null}
+      </Section>
+
+      <Section title="Inventory map">
+        <div className="datasetInventoryMap">
+          {inventoryMap.map((item) => (
+            <div className="card datasetInventoryCard" key={item.label}>
+              <p className="editorKicker">{item.label}</p>
+              <div className="datasetInventoryCardHeader">
+                <h3>{item.title}</h3>
+                <strong>{item.value}</strong>
+              </div>
+              <p>{item.detail}</p>
+              <Link className="btn smallBtn" href={item.href}>Open</Link>
+            </div>
+          ))}
+        </div>
       </Section>
 
       <Section title="Saved sources">
@@ -372,62 +420,55 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
         )}
       </Section>
 
-      <Section title="Imported dataset snapshots">
+      <Section title="Imported dataset snapshots" id="imported-snapshots">
         {inventory.snapshots.length === 0 ? (
           <div className="card">
             <p>No persisted dataset snapshots have been recorded yet.</p>
           </div>
         ) : (
-          <div className="tableScroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Dataset</th>
-                  <th>Tool</th>
-                  <th>Rows</th>
-                  <th>Owner</th>
-                  <th>Workspace</th>
-                  <th>Created</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventory.snapshots.map((dataset) => (
-                  <tr key={dataset.id}>
-                    <td>
-                      <strong>{dataset.name}</strong>
-                      <p className="small">{sourceTypeLabel(dataset.sourceType)} · {dataset.status}</p>
-                    </td>
-                    <td>{dataset.app}</td>
-                    <td>
-                      {persistedDatasetRows(dataset.rowCounts).toLocaleString()}
-                      <p className="small">
-                        {Object.entries(metadataRecord(dataset.rowCounts))
-                          .map(([label, count]) => `${label}: ${typeof count === "number" ? count.toLocaleString() : "0"}`)
-                          .join(" · ")}
-                      </p>
-                    </td>
-                    <td>{dataset.accountUser?.email ?? "No account session"}</td>
-                    <td>{dataset.workspace.name}</td>
-                    <td>{formatDate(dataset.createdAt)}</td>
-                    <td>
-                      <div className="importHistoryActions">
-                        <Link className="btn smallBtn" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
-                        <form action={deleteDatasetSnapshot}>
-                          <input type="hidden" name="id" value={dataset.id} />
-                          <button className="btn smallBtn" type="submit">Delete snapshot</button>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="datasetSnapshotGrid">
+            {inventory.snapshots.map((dataset) => (
+              <div className="card datasetSnapshotCard" key={dataset.id}>
+                <div className="editorHeader">
+                  <div>
+                    <p className="editorKicker">{dataset.app} · {sourceTypeLabel(dataset.sourceType)}</p>
+                    <h3>{dataset.name}</h3>
+                  </div>
+                  <span className="statusPill live">{dataset.status}</span>
+                </div>
+                <div className="datasetSnapshotMetric">
+                  <span>Rows</span>
+                  <strong>{persistedDatasetRows(dataset.rowCounts).toLocaleString()}</strong>
+                </div>
+                <p className="small">{objectRowSummary(dataset.rowCounts)}</p>
+                <div className="datasetSnapshotFacts">
+                  <div>
+                    <span className="small">Owner</span>
+                    <strong>{dataset.accountUser?.email ?? "No account session"}</strong>
+                  </div>
+                  <div>
+                    <span className="small">Workspace</span>
+                    <strong>{dataset.workspace.name}</strong>
+                  </div>
+                  <div>
+                    <span className="small">Created</span>
+                    <strong>{formatDate(dataset.createdAt)}</strong>
+                  </div>
+                </div>
+                <div className="importHistoryActions">
+                  <Link className="btn smallBtn primary" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
+                  <form action={deleteDatasetSnapshot}>
+                    <input type="hidden" name="id" value={dataset.id} />
+                    <button className="btn smallBtn" type="submit">Delete snapshot</button>
+                  </form>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </Section>
 
-      <Section title="Tool readiness gaps">
+      <Section title="Tool readiness gaps" id="readiness">
         {inventory.readiness.length === 0 ? (
           <div className="card">
             <p>Dataset readiness is unavailable until workspace tables are migrated.</p>

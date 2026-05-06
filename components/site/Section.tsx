@@ -1,8 +1,13 @@
 import React from "react";
 
-export function Section({ eyebrow, title, children }: { eyebrow?: string; title?: React.ReactNode; children: React.ReactNode }) {
+type SectionProps = Omit<React.ComponentPropsWithoutRef<"section">, "title"> & {
+  eyebrow?: string;
+  title?: React.ReactNode;
+};
+
+export function Section({ eyebrow, title, children, ...props }: SectionProps) {
   return (
-    <section>
+    <section {...props}>
       {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
       {title ? <h2>{title}</h2> : null}
       {children}

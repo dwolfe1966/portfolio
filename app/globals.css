@@ -1406,6 +1406,84 @@ button {
   display: grid;
   gap: 18px;
 }
+.datasetInventoryMap {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.datasetInventoryCard {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+}
+.datasetInventoryCard h3,
+.datasetInventoryCard p {
+  margin-bottom: 0;
+}
+.datasetInventoryCardHeader {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.datasetInventoryCardHeader strong {
+  color: var(--accent);
+  font-size: 26px;
+  line-height: 1;
+}
+.datasetSnapshotGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.datasetSnapshotCard {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+}
+.datasetSnapshotCard h3,
+.datasetSnapshotCard p {
+  margin-bottom: 0;
+}
+.datasetSnapshotCard .statusPill {
+  justify-self: end;
+}
+.datasetSnapshotMetric {
+  align-items: baseline;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+.datasetSnapshotMetric span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+.datasetSnapshotMetric strong {
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1;
+}
+.datasetSnapshotFacts {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.datasetSnapshotFacts div {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+}
+.datasetSnapshotFacts strong {
+  color: var(--text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
 .savedSourceSummaryGrid {
   display: grid;
   gap: 12px;
@@ -2549,6 +2627,9 @@ button {
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .savedSourceSummaryGrid { grid-template-columns: 1fr; }
+  .datasetInventoryMap { grid-template-columns: 1fr; }
+  .datasetSnapshotGrid { grid-template-columns: 1fr; }
+  .datasetSnapshotFacts { grid-template-columns: 1fr; }
   .workspaceActionGrid { grid-template-columns: 1fr; }
   .workspaceActiveSourceRow {
     align-items: flex-start;
