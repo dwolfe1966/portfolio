@@ -1397,6 +1397,69 @@ button {
 .connectionModeCard .statusPill {
   justify-self: start;
 }
+.connectionChooserGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.connectionChooserCard {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+}
+.connectionChooserCard h3,
+.connectionChooserCard p {
+  margin-bottom: 0;
+}
+.connectionChooserHeader {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.connectionChooserFooter {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  padding-top: 10px;
+}
+.connectionChooserFooter span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+.connectionInventoryGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.connectionInventoryCard {
+  align-content: start;
+  display: grid;
+  gap: 6px;
+}
+.connectionInventoryCard p,
+.connectionInventoryCard .workspaceSettingValue {
+  margin-bottom: 0;
+}
+.connectionDefinitionGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+.connectionDefinitionCard {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+}
+.connectionDefinitionCard h3,
+.connectionDefinitionCard p {
+  margin-bottom: 0;
+}
 .datasetRunCard {
   display: grid;
   gap: 10px;
@@ -2626,6 +2689,9 @@ button {
 }
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .connectionChooserGrid,
+  .connectionInventoryGrid,
+  .connectionDefinitionGrid { grid-template-columns: 1fr; }
   .savedSourceSummaryGrid { grid-template-columns: 1fr; }
   .datasetInventoryMap { grid-template-columns: 1fr; }
   .datasetSnapshotGrid { grid-template-columns: 1fr; }

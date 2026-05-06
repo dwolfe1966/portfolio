@@ -18,6 +18,7 @@ const connectionModes = [
   {
     title: "CSV / spreadsheet upload",
     status: "Available now",
+    category: "File source",
     detail: "Upload files, map source columns to app entities, validate rows, and prepare tool-ready datasets.",
     tools: "All tools; lifecycle import wired now",
     href: "/workspace/connections/csv",
@@ -26,6 +27,7 @@ const connectionModes = [
   {
     title: "Google Sheets",
     status: "Available now",
+    category: "Live spreadsheet",
     detail: "Map sheet tabs to app entities, refresh live rows, validate mappings, and import without replacing files.",
     tools: "All tools",
     href: "/workspace/connections/google-sheets",
@@ -34,6 +36,7 @@ const connectionModes = [
   {
     title: "Ad platform OAuth",
     status: "Available now",
+    category: "OAuth account",
     detail: "Connect read-only advertising accounts for acquisition analysis, with OAuth state, encryption checks, and connected-account history.",
     tools: "Acquisition",
     href: "/acquisition/connections",
@@ -42,6 +45,7 @@ const connectionModes = [
   {
     title: "Live datasource connector",
     status: "Planned",
+    category: "API / database",
     detail: "Connect APIs, relational databases, warehouses, CRMs, and event streams into the same mapping and validation pipeline.",
     tools: "All tools",
     href: "/workspace/settings",
@@ -116,6 +120,12 @@ async function loadConnectionSummary() {
 
 export default async function DemoConnectionsPage() {
   const summary = await loadConnectionSummary();
+  const connectorSummary = [
+    { label: "Saved configs", value: summary.sourceConfigs.toLocaleString(), detail: "Reusable mappings" },
+    { label: "CSV", value: summary.csvConfigs.toLocaleString(), detail: "File sources" },
+    { label: "Sheets", value: summary.sheetConfigs.toLocaleString(), detail: "Refreshable spreadsheet sources" },
+    { label: "Ad OAuth", value: summary.adConnections.toLocaleString(), detail: "Connected ad accounts" }
+  ];
 
   return (
     <>
@@ -128,58 +138,38 @@ export default async function DemoConnectionsPage() {
         </p>
       </Section>
 
-      <Section title="Connections vs. datasets">
-        <div className="grid grid-2">
-          <div className="card connectionModeCard">
-            <p className="editorKicker">Connections</p>
-            <h3>Source setup</h3>
-            <p>Create or refresh the link to external data: files, Sheets, OAuth accounts, and future live sources.</p>
-          </div>
-          <div className="card connectionModeCard">
-            <p className="editorKicker">Datasets</p>
-            <h3>Usable snapshots</h3>
-            <p>Inspect validated imports, row coverage, readiness gaps, and which snapshots are ready to select inside a tool.</p>
-            <Link className="btn smallBtn" href="/workspace/datasets">Review datasets</Link>
-          </div>
+      <Section title="Choose connector">
+        <div className="connectionChooserGrid">
+          {connectionModes.map((mode) => (
+            <div className="card connectionChooserCard" key={mode.title}>
+              <div className="connectionChooserHeader">
+                <p className="editorKicker">{mode.category}</p>
+                <span className={`statusPill ${mode.status === "Available now" ? "live" : "progress"}`}>{mode.status}</span>
+              </div>
+              <h3>{mode.title}</h3>
+              <p>{mode.detail}</p>
+              <div className="connectionChooserFooter">
+                <span>{mode.tools}</span>
+                <Link className={`btn smallBtn ${mode.status === "Available now" ? "primary" : ""}`} href={mode.href}>{mode.action}</Link>
+              </div>
+            </div>
+          ))}
         </div>
       </Section>
 
-      <Section title="Connection status">
-        <div className="grid grid-4">
-          <div className="card">
-            <p className="small">Source configs</p>
-            <div className="kpi">{summary.sourceConfigs.toLocaleString()}</div>
-          </div>
-          <div className="card">
-            <p className="small">CSV configs</p>
-            <div className="kpi">{summary.csvConfigs.toLocaleString()}</div>
-          </div>
-          <div className="card">
-            <p className="small">Sheet configs</p>
-            <div className="kpi">{summary.sheetConfigs.toLocaleString()}</div>
-          </div>
-          <div className="card">
-            <p className="small">Ad connections</p>
-            <div className="kpi">{summary.adConnections.toLocaleString()}</div>
-          </div>
+      <Section title="Connection inventory">
+        <div className="connectionInventoryGrid">
+          {connectorSummary.map((item) => (
+            <div className="card connectionInventoryCard" key={item.label}>
+              <p className="small">{item.label}</p>
+              <div className="workspaceSettingValue">{item.value}</div>
+              <p className="small">{item.detail}</p>
+            </div>
+          ))}
         </div>
         {summary.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable connection persistence.</p>
         ) : null}
-      </Section>
-
-      <Section title="Connector options">
-        <div className="grid grid-4">
-          {connectionModes.map((mode) => (
-            <div className="card connectionModeCard" key={mode.title}>
-              <p className={`statusPill ${mode.status === "Available now" ? "live" : "progress"}`}>{mode.status}</p>
-              <h3>{mode.title}</h3>
-              <p>{mode.detail}</p>
-              <p className="small"><strong>{mode.tools}</strong></p>
-              <Link className="btn smallBtn" href={mode.href}>{mode.action}</Link>
-            </div>
-          ))}
-        </div>
       </Section>
 
       <Section title="Recent saved sources">
@@ -223,6 +213,19 @@ export default async function DemoConnectionsPage() {
       </Section>
 
       <Section title="How sources become tool-ready">
+        <div className="connectionDefinitionGrid">
+          <div className="card connectionDefinitionCard">
+            <p className="editorKicker">Connections</p>
+            <h3>Source setup</h3>
+            <p>Create or refresh the link to external data: files, Sheets, OAuth accounts, and future live sources.</p>
+          </div>
+          <div className="card connectionDefinitionCard">
+            <p className="editorKicker">Datasets</p>
+            <h3>Usable snapshots</h3>
+            <p>Inspect validated imports, row coverage, readiness gaps, and which snapshots are ready to select inside a tool.</p>
+            <Link className="btn smallBtn" href="/workspace/datasets">Review datasets</Link>
+          </div>
+        </div>
         <div className="signalStrip">
           {rolloutSteps.map((step, index) => (
             <div className="signalStep" key={step}>
