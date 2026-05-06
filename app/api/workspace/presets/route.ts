@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
@@ -20,6 +21,45 @@ function clean(value: unknown, max = 80) {
   return String(value ?? "").trim().slice(0, max);
 }
 
+function readCookie(cookieHeader: string | null | undefined, name: string) {
+  if (!cookieHeader) return undefined;
+  const value = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+  return value ? decodeURIComponent(value) : undefined;
+}
+
+function accountUserIdFromRequest(request: Request) {
+  const token = readCookie(request.headers.get("cookie"), ACCOUNT_SESSION_COOKIE);
+  return verifyAccountSessionToken(token)?.userId ?? null;
+}
+
+function serializePreset(preset: {
+  id: string;
+  app: string;
+  presetType: string;
+  name: string;
+  accountUserId?: string | null;
+  values: Prisma.JsonValue;
+  metadata: Prisma.JsonValue | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: preset.id,
+    app: preset.app,
+    presetType: preset.presetType,
+    name: preset.name,
+    accountUserId: preset.accountUserId ?? null,
+    values: preset.values,
+    metadata: preset.metadata,
+    createdAt: preset.createdAt.toISOString(),
+    updatedAt: preset.updatedAt.toISOString()
+  };
+}
+
 export async function GET(request: Request) {
   const eventId = createEventId("workspace_presets_get");
   const url = new URL(request.url);
@@ -32,8 +72,16 @@ export async function GET(request: Request) {
 
   try {
     const workspace = await getDefaultWorkspace();
+    const accountUserId = accountUserIdFromRequest(request);
     const presets = await db.workspacePreset.findMany({
-      where: { workspaceId: workspace.id, app, presetType },
+      where: {
+        workspaceId: workspace.id,
+        app,
+        presetType,
+        OR: accountUserId
+          ? [{ accountUserId }, { accountUserId: null }]
+          : [{ accountUserId: null }]
+      },
       orderBy: { updatedAt: "desc" },
       take: 30
     });
@@ -41,16 +89,7 @@ export async function GET(request: Request) {
     return apiOk({
       eventId,
       workspace: { id: workspace.id, name: workspace.name, slug: workspace.slug },
-      presets: presets.map((preset) => ({
-        id: preset.id,
-        app: preset.app,
-        presetType: preset.presetType,
-        name: preset.name,
-        values: preset.values,
-        metadata: preset.metadata,
-        createdAt: preset.createdAt.toISOString(),
-        updatedAt: preset.updatedAt.toISOString()
-      }))
+      presets: presets.map(serializePreset)
     });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
@@ -79,41 +118,39 @@ export async function POST(request: Request) {
 
   try {
     const workspace = await getDefaultWorkspace();
-    const preset = await db.workspacePreset.upsert({
+    const accountUserId = accountUserIdFromRequest(request);
+    const existing = await db.workspacePreset.findFirst({
       where: {
-        workspaceId_app_presetType_name: {
-          workspaceId: workspace.id,
-          app: parsed.value.app,
-          presetType: parsed.value.presetType,
-          name: parsed.value.name
-        }
-      },
-      update: {
-        values: toJson(parsed.value.values),
-        metadata: parsed.value.metadata ? toJson(parsed.value.metadata) : Prisma.JsonNull
-      },
-      create: {
         workspaceId: workspace.id,
+        accountUserId,
         app: parsed.value.app,
         presetType: parsed.value.presetType,
-        name: parsed.value.name,
-        values: toJson(parsed.value.values),
-        metadata: parsed.value.metadata ? toJson(parsed.value.metadata) : Prisma.JsonNull
+        name: parsed.value.name
       }
     });
+    const preset = existing
+      ? await db.workspacePreset.update({
+          where: { id: existing.id },
+          data: {
+            values: toJson(parsed.value.values),
+            metadata: parsed.value.metadata ? toJson(parsed.value.metadata) : Prisma.JsonNull
+          }
+        })
+      : await db.workspacePreset.create({
+          data: {
+            workspaceId: workspace.id,
+            accountUserId,
+            app: parsed.value.app,
+            presetType: parsed.value.presetType,
+            name: parsed.value.name,
+            values: toJson(parsed.value.values),
+            metadata: parsed.value.metadata ? toJson(parsed.value.metadata) : Prisma.JsonNull
+          }
+        });
 
     return apiOk({
       eventId,
-      preset: {
-        id: preset.id,
-        app: preset.app,
-        presetType: preset.presetType,
-        name: preset.name,
-        values: preset.values,
-        metadata: preset.metadata,
-        createdAt: preset.createdAt.toISOString(),
-        updatedAt: preset.updatedAt.toISOString()
-      }
+      preset: serializePreset(preset)
     });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
@@ -133,7 +170,8 @@ export async function DELETE(request: Request) {
 
   try {
     const workspace = await getDefaultWorkspace();
-    await db.workspacePreset.deleteMany({ where: { id, workspaceId: workspace.id } });
+    const accountUserId = accountUserIdFromRequest(request);
+    await db.workspacePreset.deleteMany({ where: { id, workspaceId: workspace.id, accountUserId } });
     return apiOk({ eventId, deleted: true });
   } catch (error) {
     if (isMissingDemoTableError(error)) {

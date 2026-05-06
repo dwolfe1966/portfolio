@@ -36,7 +36,7 @@ async function loadWorkspaceSettings(accountUserId: string | null) {
         }
       }
     });
-    const workspacePresets = await db.workspacePreset.count();
+    const workspacePresets = await db.workspacePreset.count({ where: { accountUserId } });
 
     return { workspace, workspacePresets, compatibilityMode: false };
   } catch (error) {

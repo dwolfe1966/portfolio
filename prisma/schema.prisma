@@ -32,6 +32,7 @@ model AccountUser {
   datasets    WorkspaceDataset[]
   dataSourceSelections AppDataSourceSelection[]
   sourceConfigs LifecycleMappingPreset[]
+  presets     WorkspacePreset[]
 
   @@index([updatedAt])
 }
@@ -991,6 +992,7 @@ model LifecycleMappingPreset {
 model WorkspacePreset {
   id          String    @id @default(cuid())
   workspaceId String
+  accountUserId String?
   app         String
   presetType  String
   name        String
@@ -999,7 +1001,8 @@ model WorkspacePreset {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, app, presetType, updatedAt])
-  @@unique([workspaceId, app, presetType, name])
+  @@index([accountUserId, updatedAt])
 }
