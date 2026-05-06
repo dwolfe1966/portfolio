@@ -94,6 +94,24 @@ function asStringRecord(value: unknown) {
   return Object.fromEntries(Object.entries(record).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
 }
 
+function formatApiError(payload: unknown, fallback: string) {
+  const error = asRecord(asRecord(payload).error);
+  if (Object.keys(error).length === 0) return fallback;
+  const message = typeof error.message === "string" ? error.message : fallback;
+  const details = asRecord(error.details);
+  const validationErrors = Array.isArray(details.errors)
+    ? details.errors.filter((item): item is string => typeof item === "string")
+    : [];
+  const serverMessage = typeof details.message === "string" && details.message !== message ? details.message : "";
+  const eventId = typeof details.eventId === "string" ? details.eventId : "";
+  return [
+    message,
+    serverMessage,
+    validationErrors.slice(0, 3).join(" "),
+    eventId ? `Event id: ${eventId}` : ""
+  ].filter(Boolean).join(" ");
+}
+
 function asFieldMappings(value: unknown, schema: ToolImportSchema) {
   const source = asRecord(value);
   const nextMappings = createEmptyMappings(schema);
@@ -597,9 +615,7 @@ export function GoogleSheetsConnectionFlow({
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const serverErrors = payload?.error?.details?.errors;
-        const detail = Array.isArray(serverErrors) && serverErrors.length > 0 ? ` ${serverErrors.slice(0, 3).join(" ")}` : "";
-        throw new Error(`${payload?.error?.message ?? "Import failed."}${detail}`);
+        throw new Error(formatApiError(payload, "Import failed."));
       }
       const imported = payload.import ?? {};
       const message = selectedTool === "pricing"
