@@ -2753,7 +2753,7 @@ button {
 .toolDataSourceSelector {
   display: grid;
   grid-column: 1 / -1;
-  gap: 12px;
+  gap: 14px;
 }
 .toolDataSourceStatus {
   display: grid;
@@ -2762,6 +2762,17 @@ button {
   border-radius: 6px;
   background: color-mix(in oklab, var(--demo-surface, #fff) 94%, #22c55e 6%);
   padding: 12px;
+}
+.toolDataSourceStatusHeader {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.toolDataSourceStatusHeader > div {
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 92%, #64748b 8%);
+  padding: 10px;
+  min-width: 0;
 }
 .toolDataSourceStatus span,
 .toolDataSourceCounts span {
@@ -2778,6 +2789,7 @@ button {
   margin: 2px 0 0;
   color: var(--demo-text-muted, var(--muted));
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 .toolDataSourceCounts {
   display: grid;
@@ -2792,7 +2804,7 @@ button {
 .toolDataSourceOptions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 .toolDataSourceOption {
   display: flex;
@@ -2803,6 +2815,7 @@ button {
   background: color-mix(in oklab, var(--demo-surface, #fff) 94%, #64748b 6%);
   padding: 12px;
   cursor: pointer;
+  min-width: 0;
 }
 .toolDataSourceOption.isSelected {
   border-color: var(--demo-accent, #2563eb);
@@ -2822,16 +2835,22 @@ button {
 }
 .toolDataSourceDataset {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 95%, #64748b 5%);
+  padding: 12px;
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
 }
 .toolDataSourceDataset select {
+  width: 100%;
   text-transform: none;
 }
 .toolDataSourceSelector button {
   width: 100%;
+  justify-content: center;
 }
 .toolDataSourceProgress,
 .toolDataSourceMessage {
@@ -2999,6 +3018,7 @@ button {
   .savedSourceFilters { grid-template-columns: 1fr; }
   .lifecycleDatasetPanel--compact { grid-template-columns: 1fr; }
   .lifecycleDatasetStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolDataSourceStatusHeader,
   .toolDataSourceCounts,
   .toolDataSourceOptions { grid-template-columns: 1fr; }
   .dataSourceModeGrid { grid-template-columns: 1fr; }
