@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId } from "@/lib/logging";
-import { getToolImportSchema, normalizeEnumValue } from "@/lib/tool-data-imports";
+import { getToolImportSchema, normalizeEnumValue, parseImportDate } from "@/lib/tool-data-imports";
 import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 
 type CsvRow = Record<string, unknown>;
@@ -44,7 +44,7 @@ function normalizeDeltaChangeType(value: unknown) {
 }
 
 function isValidDate(value: string) {
-  return value.length > 0 && !Number.isNaN(new Date(value).getTime());
+  return parseImportDate(value) !== null;
 }
 
 function validatePayload(payload: LifecycleImportPayload) {
@@ -186,14 +186,14 @@ export async function POST(request: Request) {
             fullName: clean(row.fullName, 120),
             segment: normalizeUserSegment(row.segment),
             subscriptionStatus: normalizeSubscriptionStatus(row.subscriptionStatus),
-            lastActiveAt: clean(row.lastActiveAt) ? new Date(clean(row.lastActiveAt)) : null
+            lastActiveAt: parseImportDate(row.lastActiveAt)
           },
           create: {
             fullName: clean(row.fullName, 120),
             email,
             segment: normalizeUserSegment(row.segment),
             subscriptionStatus: normalizeSubscriptionStatus(row.subscriptionStatus),
-            lastActiveAt: clean(row.lastActiveAt) ? new Date(clean(row.lastActiveAt)) : null
+            lastActiveAt: parseImportDate(row.lastActiveAt)
           }
         });
         userByEmail.set(email, user.id);
@@ -255,7 +255,7 @@ export async function POST(request: Request) {
           oldValue: clean(row.oldValue, 180) || null,
           newValue: clean(row.newValue, 180) || null,
           deltaSummary: clean(row.deltaSummary, 240),
-          detectedAt: new Date(clean(row.detectedAt))
+          detectedAt: parseImportDate(row.detectedAt) as Date
         };
         const existingDelta = await tx.entityDelta.findFirst({
           where: {

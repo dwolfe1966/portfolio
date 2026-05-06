@@ -542,8 +542,30 @@ export function normalizeRows(
   ));
 }
 
+export function parseImportDate(value: unknown) {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+
+  const monthFirstMatch = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (monthFirstMatch) {
+    const month = Number(monthFirstMatch[1]);
+    const day = Number(monthFirstMatch[2]);
+    const year = Number(monthFirstMatch[3]);
+    if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+    return date;
+  }
+
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getUTCFullYear();
+  if (year < 1900 || year > 2100) return null;
+  return date;
+}
+
 function isValidDate(value: string) {
-  return value.length > 0 && !Number.isNaN(new Date(value).getTime());
+  return parseImportDate(value) !== null;
 }
 
 function validateField(value: string, validation: FieldValidation) {

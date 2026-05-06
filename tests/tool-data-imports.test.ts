@@ -90,6 +90,26 @@ describe("tool data import schemas", () => {
     assert.equal(parsedEvent.rows[0].changeType, "EMPLOYEE_RECORD_ADDED");
   });
 
+  it("rejects out-of-range spreadsheet dates instead of relying on JavaScript date rollover", () => {
+    const schema = getToolImportSchema("lifecycle");
+    const changeEvents = schema.objects.find((object) => object.key === "changeEvents");
+    assert.ok(changeEvents);
+
+    const parsedValidDate = parseMappedCsvObject(
+      "Entity,Type,Summary,Date\nAcme,EMPLOYEE_RECORD_ADDED,Employee record added,5-1-2026",
+      changeEvents,
+      { entityName: "Entity", changeType: "Type", oldValue: "", newValue: "", deltaSummary: "Summary", detectedAt: "Date" }
+    );
+    assert.deepEqual(parsedValidDate.errors, []);
+
+    const parsedInvalidDate = parseMappedCsvObject(
+      "Entity,Type,Summary,Date\nAcme,EMPLOYEE_RECORD_ADDED,Employee record added,5-1-20206",
+      changeEvents,
+      { entityName: "Entity", changeType: "Type", oldValue: "", newValue: "", deltaSummary: "Summary", detectedAt: "Date" }
+    );
+    assert.deepEqual(parsedInvalidDate.errors, ["Row 2: detectedAt must be a date."]);
+  });
+
   it("serializes edited source rows back to CSV", () => {
     const csv = sourceRowsToCsv(["name", "note"], [
       { name: "Acme", note: "quoted, comma" },
