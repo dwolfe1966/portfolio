@@ -1,7 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
@@ -66,20 +68,27 @@ const toolReadiness = [
   }
 ];
 
-async function loadToolsetSummary() {
+async function currentAccountUserId() {
+  const cookieStore = await cookies();
+  return verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+}
+
+async function loadToolsetSummary(accountUserId: string | null) {
   try {
     const [workspace, sourceConfigs, imports, lifecycleRuns, datasetSnapshots, activeSelections, recentDatasets, datasetReadiness] = await Promise.all([
       db.workspace.findUnique({ where: { slug: "default-demo-workspace" } }),
       db.lifecycleMappingPreset.count(),
       db.lifecycleImportLog.count(),
       db.campaignRun.count(),
-      db.workspaceDataset.count(),
+      db.workspaceDataset.count({ where: { accountUserId } }),
       db.appDataSourceSelection.findMany({
+        where: { accountUserId },
         orderBy: [{ app: "asc" }, { updatedAt: "desc" }],
         take: 12,
         include: { dataset: { select: { name: true, sourceType: true } } }
       }),
       db.workspaceDataset.findMany({
+        where: { accountUserId },
         orderBy: { createdAt: "desc" },
         take: 5,
         select: {
@@ -142,7 +151,8 @@ function toolLabel(app: string) {
 }
 
 export default async function DemoDashboardPage() {
-  const summary = await loadToolsetSummary();
+  const accountUserId = await currentAccountUserId();
+  const summary = await loadToolsetSummary(accountUserId);
   const datasetSummary = summarizeDatasetReadiness(summary.datasetReadiness);
   const workspaceFlow = ["Connect source", "Import snapshot", "Choose source in tool", "Run and review"];
   const activeSelectionsByApp = new Map<string, (typeof summary.activeSelections)[number]>();
@@ -176,8 +186,8 @@ export default async function DemoDashboardPage() {
       <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Workspace command center">
         <p>
-          The workspace is the shared control plane for sources, imported dataset snapshots, selected tool data, and
-          operating activity. Tools still run with sample data by default; the workspace lets a user bring their own data
+          The workspace is the account control plane for sources, imported dataset snapshots, selected tool data, and
+          operating activity. Tools still run with sample data by default; the workspace lets you bring your own data
           into the same product flows.
         </p>
         <div className="workspaceFlowDiagram" aria-label="Workspace operating flow">
@@ -194,7 +204,7 @@ export default async function DemoDashboardPage() {
         <div className="grid grid-4 workspaceCompactMetricGrid">
           <div className="card workspaceCompactMetric"><p className="small">Workspace</p><div className="kpi">{summary.workspace ? "Active" : "Setup"}</div></div>
           <div className="card workspaceCompactMetric"><p className="small">Source configs</p><div className="kpi">{summary.sourceConfigs.toLocaleString()}</div></div>
-          <div className="card workspaceCompactMetric"><p className="small">Dataset snapshots</p><div className="kpi">{summary.datasetSnapshots.toLocaleString()}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">My snapshots</p><div className="kpi">{summary.datasetSnapshots.toLocaleString()}</div></div>
           <div className="card workspaceCompactMetric"><p className="small">Model runs</p><div className="kpi">{summary.lifecycleRuns.toLocaleString()}</div></div>
         </div>
         {summary.compatibilityMode ? (

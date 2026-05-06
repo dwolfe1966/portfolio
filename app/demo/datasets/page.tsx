@@ -2,8 +2,10 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -19,7 +21,12 @@ export const metadata: Metadata = buildMetadata({
   path: "/workspace/datasets"
 });
 
-async function loadDatasetInventory() {
+async function currentAccountUserId() {
+  const cookieStore = await cookies();
+  return verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+}
+
+async function loadDatasetInventory(accountUserId: string | null) {
   try {
     const [presets, snapshots, imports, runs, readiness] = await Promise.all([
       db.lifecycleMappingPreset.findMany({
@@ -28,6 +35,7 @@ async function loadDatasetInventory() {
         include: { workspace: true }
       }),
       db.workspaceDataset.findMany({
+        where: { accountUserId },
         orderBy: { createdAt: "desc" },
         take: 20,
         include: {
@@ -188,10 +196,10 @@ async function deleteDatasetSnapshot(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
-  const workspace = await getDefaultWorkspace();
+  const [workspace, accountUserId] = await Promise.all([getDefaultWorkspace(), currentAccountUserId()]);
   await db.$transaction(async (tx) => {
-    await tx.appDataSourceSelection.deleteMany({ where: { datasetId: id } });
-    await tx.workspaceDataset.deleteMany({ where: { id, workspaceId: workspace.id } });
+    await tx.appDataSourceSelection.deleteMany({ where: { datasetId: id, accountUserId } });
+    await tx.workspaceDataset.deleteMany({ where: { id, workspaceId: workspace.id, accountUserId } });
   });
 
   revalidatePath("/workspace/datasets");
@@ -210,7 +218,8 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
   const sourceQuery = cleanFilter(params?.q).toLowerCase();
   const sourceToolFilter = cleanFilter(params?.tool);
   const sourceTypeFilter = cleanFilter(params?.source);
-  const inventory = await loadDatasetInventory();
+  const accountUserId = await currentAccountUserId();
+  const inventory = await loadDatasetInventory(accountUserId);
   const persistedRows = inventory.snapshots.reduce((sum, dataset) => sum + persistedDatasetRows(dataset.rowCounts), 0);
   const activeWorkspace = inventory.presets[0]?.workspace?.name ?? "Default Workspace";
   const readinessSummary = summarizeDatasetReadiness(inventory.readiness);
@@ -279,7 +288,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
       <Section eyebrow="Workspace" title="Data sources and readiness">
         <p>
           Datasets are the operating inventory: saved source configs show where data comes from, imported snapshots show
-          the validated data a tool can actually select, and readiness gaps show what each tool still needs.
+          the validated data owned by your account, and readiness gaps show what each tool still needs.
         </p>
       </Section>
 
@@ -298,7 +307,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
             <div className="kpi">{persistedRows.toLocaleString()}</div>
           </div>
           <div className="card">
-            <p className="small">Dataset snapshots</p>
+            <p className="small">My snapshots</p>
             <div className="kpi">{inventory.snapshots.length.toLocaleString()}</div>
           </div>
         </div>
@@ -423,7 +432,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
       <Section title="Imported dataset snapshots" id="imported-snapshots">
         {inventory.snapshots.length === 0 ? (
           <div className="card">
-            <p>No persisted dataset snapshots have been recorded yet.</p>
+            <p>No imported dataset snapshots are attached to your account yet.</p>
           </div>
         ) : (
           <div className="datasetSnapshotGrid">
@@ -444,7 +453,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                 <div className="datasetSnapshotFacts">
                   <div>
                     <span className="small">Owner</span>
-                    <strong>{dataset.accountUser?.email ?? "No account session"}</strong>
+                    <strong>{dataset.accountUser?.email ?? "Current account"}</strong>
                   </div>
                   <div>
                     <span className="small">Workspace</span>
