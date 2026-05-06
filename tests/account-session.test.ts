@@ -9,6 +9,7 @@ import {
   verifyAccountPassword,
   verifyAccountSessionToken
 } from "@/lib/account-session";
+import { verifyAccountSessionTokenEdge } from "@/lib/account-session-edge";
 
 test("normalizes account identity fields", () => {
   assert.equal(normalizeAccountEmail("  USER@Example.COM  "), "user@example.com");
@@ -28,6 +29,12 @@ test("account session token verifies and rejects tampering", () => {
 
   const [body, signature] = token.split(".");
   assert.equal(verifyAccountSessionToken(`${body}.${signature.slice(0, -2)}xx`), null);
+});
+
+test("edge account session verifier accepts node-created tokens", async () => {
+  const token = createAccountSessionToken({ userId: "user_456", email: "edge@example.com" });
+  assert.deepEqual(await verifyAccountSessionTokenEdge(token), { userId: "user_456", email: "edge@example.com" });
+  assert.equal(await verifyAccountSessionTokenEdge(`${token.slice(0, -2)}xx`), null);
 });
 
 test("account password hashes verify without storing the raw password", () => {

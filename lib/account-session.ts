@@ -17,7 +17,7 @@ type AccountSessionPayload = {
 const PASSWORD_KEY_LENGTH = 64;
 
 export class AccountAuthError extends Error {
-  code: "INVALID_PASSWORD" | "PASSWORD_REQUIRED" | "PASSWORD_TOO_SHORT";
+  code: "ACCOUNT_EXISTS" | "ACCOUNT_NOT_FOUND" | "INVALID_PASSWORD" | "PASSWORD_REQUIRED" | "PASSWORD_TOO_SHORT";
 
   constructor(code: AccountAuthError["code"], message: string) {
     super(message);
@@ -36,7 +36,6 @@ function base64UrlDecode(value: string) {
 
 function sessionSecret() {
   return process.env.ACCOUNT_SESSION_SECRET?.trim()
-    || process.env.DEMO_PASSWORD?.trim()
     || "local-account-session-secret";
 }
 
@@ -144,6 +143,42 @@ export async function upsertAccountUserWithDefaultWorkspace(input: { email: stri
           passwordSetAt: new Date()
         }
       });
+  await db.workspaceMembership.upsert({
+    where: {
+      workspaceId_accountUserId: {
+        workspaceId: workspace.id,
+        accountUserId: accountUser.id
+      }
+    },
+    update: {},
+    create: {
+      workspaceId: workspace.id,
+      accountUserId: accountUser.id,
+      role: "owner"
+    }
+  });
+  return { accountUser, workspace };
+}
+
+export async function registerAccountUserWithDefaultWorkspace(input: { email: string; name?: string; password: string }) {
+  const email = normalizeAccountEmail(input.email);
+  if (!isValidAccountEmail(email)) throw new Error("A valid email address is required.");
+  const existing = await db.accountUser.findUnique({ where: { email } });
+  if (existing) throw new AccountAuthError("ACCOUNT_EXISTS", "An account already exists for this email.");
+  return upsertAccountUserWithDefaultWorkspace(input);
+}
+
+export async function authenticateAccountUserWithDefaultWorkspace(input: { email: string; password: string }) {
+  const email = normalizeAccountEmail(input.email);
+  if (!isValidAccountEmail(email)) throw new Error("A valid email address is required.");
+  const password = normalizeAccountPassword(input.password);
+  validateAccountPassword(password);
+  const accountUser = await db.accountUser.findUnique({ where: { email } });
+  if (!accountUser) throw new AccountAuthError("ACCOUNT_NOT_FOUND", "No account exists for this email.");
+  if (!verifyAccountPassword(password, accountUser.passwordHash)) {
+    throw new AccountAuthError("INVALID_PASSWORD", "Password is incorrect.");
+  }
+  const workspace = await getDefaultWorkspace();
   await db.workspaceMembership.upsert({
     where: {
       workspaceId_accountUserId: {

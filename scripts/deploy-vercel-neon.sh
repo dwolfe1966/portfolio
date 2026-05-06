@@ -8,7 +8,7 @@ required_vars=(
   DATABASE_URL
   DATABASE_URL_UNPOOLED
   NEXT_PUBLIC_SITE_URL
-  DEMO_PASSWORD
+  ACCOUNT_SESSION_SECRET
 )
 
 for name in "${required_vars[@]}"; do
@@ -62,7 +62,7 @@ upsert_vercel_env() {
 
 upsert_vercel_env "DATABASE_URL" "$DATABASE_URL"
 upsert_vercel_env "DATABASE_URL_UNPOOLED" "$DATABASE_URL_UNPOOLED"
-upsert_vercel_env "DEMO_PASSWORD" "$DEMO_PASSWORD"
+upsert_vercel_env "ACCOUNT_SESSION_SECRET" "$ACCOUNT_SESSION_SECRET"
 upsert_vercel_env "NEXT_PUBLIC_SITE_URL" "$NEXT_PUBLIC_SITE_URL"
 
 run "vercel pull --yes --environment=production --token '$VERCEL_TOKEN' --scope '$VERCEL_ORG_ID'"

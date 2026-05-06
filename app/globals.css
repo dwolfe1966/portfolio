@@ -1351,6 +1351,38 @@ button {
 .demoLoginCard {
   max-width: 460px;
 }
+.workspaceAuthPanel {
+  align-items: stretch;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(280px, 460px) minmax(0, 1fr);
+}
+.workspaceAuthAside {
+  align-content: start;
+  background: color-mix(in oklab, var(--card) 88%, var(--accent) 12%);
+  border: 1px solid color-mix(in oklab, var(--blue) 34%, var(--line));
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+.workspaceAuthAside p,
+.workspaceAuthAside strong,
+.workspaceAuthAside span {
+  margin-bottom: 0;
+}
+.workspaceAuthAside strong {
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.15;
+}
+.workspaceAuthAside span {
+  color: var(--muted);
+  line-height: 1.55;
+}
+.workspaceAuthAside .btn {
+  justify-self: start;
+}
 .demoLoginForm {
   display: grid;
   gap: 14px;
@@ -2932,7 +2964,8 @@ button {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .connectionChooserGrid,
   .connectionInventoryGrid,
-  .connectionDefinitionGrid { grid-template-columns: 1fr; }
+  .connectionDefinitionGrid,
+  .workspaceAuthPanel { grid-template-columns: 1fr; }
   .workspaceSettingsPanel,
   .workspaceSettingsFacts,
   .workspaceInventoryStrip,

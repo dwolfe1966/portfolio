@@ -22,7 +22,7 @@ Set at least:
 
 - `DATABASE_URL` (pooled Neon connection)
 - `DATABASE_URL_UNPOOLED` (direct Neon connection)
-- `DEMO_PASSWORD`
+- `ACCOUNT_SESSION_SECRET`
 - `NEXT_PUBLIC_SITE_URL`
 - `OPENAI_API_KEY` (optional; fallback mode works without it)
 
@@ -66,7 +66,7 @@ In **Project Settings → Environment Variables**, add for Production (and Previ
 - `DATABASE_URL`
 - `DATABASE_URL_UNPOOLED`
 - `OPENAI_API_KEY` (optional)
-- `DEMO_PASSWORD`
+- `ACCOUNT_SESSION_SECRET`
 - `NEXT_PUBLIC_SITE_URL` (set to your Vercel domain, e.g. `https://your-app.vercel.app`)
 
 ## 6) Production migration workflow
@@ -116,7 +116,7 @@ vercel login
 vercel link
 vercel env add DATABASE_URL
 vercel env add DATABASE_URL_UNPOOLED
-vercel env add DEMO_PASSWORD
+vercel env add ACCOUNT_SESSION_SECRET
 vercel env add NEXT_PUBLIC_SITE_URL
 vercel --prod
 ```
@@ -136,7 +136,7 @@ export VERCEL_ORG_ID=...
 export VERCEL_PROJECT_ID=...
 export DATABASE_URL=...
 export DATABASE_URL_UNPOOLED=...
-export DEMO_PASSWORD=...
+export ACCOUNT_SESSION_SECRET=...
 export NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
 export SEED_PROD=yes
 

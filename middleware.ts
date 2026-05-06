@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DEMO_ACCESS_COOKIE, isDemoAccessConfigured, isValidDemoAccessToken } from "@/lib/demo-access";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionTokenEdge } from "@/lib/account-session-edge";
 
-const PUBLIC_PREFIXES = ["/projects"];
+const PUBLIC_PREFIXES = ["/projects", "/workspace/login", "/workspace/register", "/workspace/landing"];
 
-const PROTECTED_PREFIXES: string[] = [];
+const PROTECTED_PREFIXES = [
+  "/workspace/account",
+  "/workspace/activity",
+  "/workspace/connections",
+  "/workspace/dashboard",
+  "/workspace/datasets",
+  "/workspace/settings"
+];
 
 function isProtectedPath(pathname: string) {
   if (PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) return false;
@@ -11,13 +18,11 @@ function isProtectedPath(pathname: string) {
 }
 
 export async function middleware(request: NextRequest) {
-  if (!isDemoAccessConfigured()) return NextResponse.next();
-
   const { pathname } = request.nextUrl;
   if (!isProtectedPath(pathname)) return NextResponse.next();
 
-  const token = request.cookies.get(DEMO_ACCESS_COOKIE)?.value;
-  if (await isValidDemoAccessToken(token)) return NextResponse.next();
+  const token = request.cookies.get(ACCOUNT_SESSION_COOKIE)?.value;
+  if (await verifyAccountSessionTokenEdge(token)) return NextResponse.next();
 
   const loginUrl = request.nextUrl.clone();
   loginUrl.pathname = "/workspace/login";
@@ -27,6 +32,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/workspace/settings/:path*"
+    "/workspace/:path*"
   ]
 };

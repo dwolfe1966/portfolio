@@ -4,12 +4,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, getAccountSessionUser } from "@/lib/account-session";
 import { db } from "@/lib/db";
-import {
-  DEMO_ACCESS_COOKIE,
-  isDemoAccessConfigured,
-  isValidDemoAccessToken
-} from "@/lib/demo-access";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
@@ -65,7 +61,7 @@ async function leaveDemoWorkspace() {
   "use server";
 
   const cookieStore = await cookies();
-  cookieStore.delete(DEMO_ACCESS_COOKIE);
+  cookieStore.delete(ACCOUNT_SESSION_COOKIE);
   redirect("/workspace/login");
 }
 
@@ -96,8 +92,7 @@ export default async function DemoSettingsPage({
   const sourceConfigs = settings.workspace?.mappingPresets ?? [];
   const uniqueApps = new Set(sourceConfigs.map((config) => config.app));
   const cookieStore = await cookies();
-  const accessConfigured = isDemoAccessConfigured();
-  const hasValidSession = await isValidDemoAccessToken(cookieStore.get(DEMO_ACCESS_COOKIE)?.value);
+  const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
 
   return (
     <>
@@ -161,18 +156,18 @@ export default async function DemoSettingsPage({
         <div className="grid grid-3">
           <div className="card">
             <p className="small">Access mode</p>
-            <div className="workspaceSettingValue">{accessConfigured ? "Protected" : "Open"}</div>
-            <p>{accessConfigured ? "A shared workspace password is configured." : "Workspace access is open in this environment."}</p>
+            <div className="workspaceSettingValue">Account based</div>
+            <p>Workspace pages use account registration and login instead of a shared workspace password.</p>
           </div>
           <div className="card">
             <p className="small">Current session</p>
-            <div className="workspaceSettingValue">{accessConfigured ? (hasValidSession ? "Active" : "Not signed in") : "Not required"}</div>
-            <p>{accessConfigured ? "Access is stored in an HTTP-only browser cookie." : "Workspace routes and tools are available without a password."}</p>
+            <div className="workspaceSettingValue">{accountUser?.email ?? "Not signed in"}</div>
+            <p>Account access is stored in an HTTP-only browser cookie. Tools remain public with sample data.</p>
           </div>
           <div className="card accessSessionCard">
             <p className="small">Session controls</p>
             <form action={leaveDemoWorkspace}>
-              <button className="btn" type="submit">Leave workspace</button>
+              <button className="btn" type="submit">Sign out</button>
             </form>
             <Link className="btn smallBtn" href="/workspace/login">Open login page</Link>
           </div>

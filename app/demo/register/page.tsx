@@ -5,22 +5,23 @@ import { cookies } from "next/headers";
 import {
   ACCOUNT_SESSION_COOKIE,
   AccountAuthError,
-  authenticateAccountUserWithDefaultWorkspace,
   createAccountSessionToken,
   isValidAccountEmail,
   normalizeAccountEmail,
-  normalizeAccountPassword
+  normalizeAccountName,
+  normalizeAccountPassword,
+  registerAccountUserWithDefaultWorkspace
 } from "@/lib/account-session";
 import { Section } from "@/components/site/Section";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Workspace Login | David Wolfe",
-  description: "Sign in to the Tools workspace.",
-  path: "/workspace/login"
+  title: "Workspace Registration | David Wolfe",
+  description: "Create an account for the Tools workspace.",
+  path: "/workspace/register"
 });
 
-type SearchParams = { error?: string; next?: string; registered?: string };
+type SearchParams = { error?: string; next?: string };
 
 function sanitizeNext(value: string | undefined) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return "/workspace/dashboard";
@@ -30,31 +31,31 @@ function sanitizeNext(value: string | undefined) {
 
 function errorMessage(code: string | undefined) {
   if (code === "email") return "Enter a valid email address.";
-  if (code === "ACCOUNT_NOT_FOUND") return "No account exists for that email.";
-  if (code === "INVALID_PASSWORD") return "The password does not match this account.";
-  if (code === "PASSWORD_REQUIRED") return "Enter your password.";
+  if (code === "ACCOUNT_EXISTS") return "An account already exists for that email. Sign in instead.";
+  if (code === "PASSWORD_REQUIRED") return "Create a password for this account.";
   if (code === "PASSWORD_TOO_SHORT") return "Password must be at least 8 characters.";
-  if (code === "mutations") return "Account login is disabled in this environment.";
+  if (code === "mutations") return "Account registration is disabled in this environment.";
   return null;
 }
 
-async function loginAccount(formData: FormData) {
+async function registerAccount(formData: FormData) {
   "use server";
 
   const next = sanitizeNext(String(formData.get("next") ?? ""));
   const email = normalizeAccountEmail(formData.get("email"));
-  if (!isValidAccountEmail(email)) redirect(`/workspace/login?error=email&next=${encodeURIComponent(next)}`);
+  if (!isValidAccountEmail(email)) redirect(`/workspace/register?error=email&next=${encodeURIComponent(next)}`);
 
   let accountUser;
   try {
-    const result = await authenticateAccountUserWithDefaultWorkspace({
+    const result = await registerAccountUserWithDefaultWorkspace({
       email,
+      name: normalizeAccountName(formData.get("name"), email),
       password: normalizeAccountPassword(formData.get("password"))
     });
     accountUser = result.accountUser;
   } catch (error) {
     if (error instanceof AccountAuthError) {
-      redirect(`/workspace/login?error=${error.code}&next=${encodeURIComponent(next)}`);
+      redirect(`/workspace/register?error=${error.code}&next=${encodeURIComponent(next)}`);
     }
     throw error;
   }
@@ -72,7 +73,7 @@ async function loginAccount(formData: FormData) {
   redirect(next);
 }
 
-export default async function DemoLoginPage({
+export default async function WorkspaceRegisterPage({
   searchParams
 }: {
   searchParams: Promise<SearchParams>;
@@ -83,36 +84,38 @@ export default async function DemoLoginPage({
 
   return (
     <>
-      <Section eyebrow="Workspace" title="Sign in">
+      <Section eyebrow="Workspace" title="Create account">
         <p>
-          Sign in to manage workspace datasets, source connections, saved selections, and account-scoped activity.
-          Product tools remain available with sample data outside the workspace.
+          Create an account to own imported datasets, saved source mappings, selected tool data, and workspace activity.
         </p>
       </Section>
 
-      <Section title="Workspace login">
+      <Section title="Workspace registration">
         <div className="workspaceAuthPanel">
           <div className="card demoLoginCard">
-            <form action={loginAccount} className="demoLoginForm">
+            <form action={registerAccount} className="demoLoginForm">
               <input type="hidden" name="next" value={next} />
+              <label>
+                <span>Name</span>
+                <input name="name" type="text" autoComplete="name" maxLength={80} placeholder="Workspace user" />
+              </label>
               <label>
                 <span>Email</span>
                 <input name="email" type="email" autoComplete="email" required />
               </label>
               <label>
                 <span>Password</span>
-                <input name="password" type="password" autoComplete="current-password" minLength={8} required />
+                <input name="password" type="password" autoComplete="new-password" minLength={8} required />
               </label>
-              {params.registered ? <p className="small bandText--healthy">Account created. Sign in to continue.</p> : null}
               {error ? <p className="small bandText--unhealthy">{error}</p> : null}
-              <button className="btn primary" type="submit">Sign in</button>
+              <button className="btn primary" type="submit">Create account</button>
             </form>
           </div>
           <div className="workspaceAuthAside">
-            <p className="small">New workspace user</p>
-            <strong>Create an account first.</strong>
-            <span>Registration creates your account session and links it to the default workspace.</span>
-            <Link className="btn" href={`/workspace/register?next=${encodeURIComponent(next)}`}>Create account</Link>
+            <p className="small">Already registered</p>
+            <strong>Sign in to your workspace.</strong>
+            <span>Existing accounts keep their saved workspace membership and future dataset ownership.</span>
+            <Link className="btn" href={`/workspace/login?next=${encodeURIComponent(next)}`}>Sign in</Link>
           </div>
         </div>
       </Section>
