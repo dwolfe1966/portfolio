@@ -54,7 +54,7 @@ async function loadDatasetInventory(accountUserId: string | null) {
         orderBy: { createdAt: "desc" },
         take: 6
       }),
-      loadWorkspaceDatasetReadiness()
+      loadWorkspaceDatasetReadiness(accountUserId)
     ]);
 
     return { presets, snapshots, imports, runs, readiness, compatibilityMode: false };

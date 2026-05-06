@@ -113,7 +113,7 @@ function gapFor(status: DatasetReadinessStatus, importCount: number) {
   return "Seeded or editable data exists; imported dataset flow still needs to be connected.";
 }
 
-export async function loadWorkspaceDatasetReadiness() {
+export async function loadWorkspaceDatasetReadiness(accountUserId: string | null = null) {
   const [
     lifecycleUsers,
     lifecycleEntities,
@@ -149,13 +149,13 @@ export async function loadWorkspaceDatasetReadiness() {
     db.entity.count(),
     db.interestEdge.count(),
     db.entityDelta.count(),
-    db.lifecycleImportLog.count(),
-    db.lifecycleMappingPreset.count({ where: { app: "lifecycle" } }),
+    db.lifecycleImportLog.count({ where: { accountUserId } }),
+    db.lifecycleMappingPreset.count({ where: { accountUserId, app: "lifecycle" } }),
     db.acquisitionCampaign.count(),
     db.audienceSegment.count(),
     db.adCreative.count(),
     db.adPerformance.count(),
-    db.adAccountConnection.count(),
+    db.adAccountConnection.count({ where: { accountUserId } }),
     db.acquisitionAuditLog.count({ where: { action: "acquisition_import" } }),
     db.pricingSegment.count(),
     db.pricingVariant.count(),

@@ -61,7 +61,7 @@ async function loadActivity(accountUserId: string | null) {
       db.retentionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.expansionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.auctionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
-      db.adAccountConnection.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+      db.adAccountConnection.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
       db.lifecycleMappingPreset.findMany({ where: { accountUserId }, orderBy: { updatedAt: "desc" }, take: 12, include: { workspace: true } })
     ]);
 

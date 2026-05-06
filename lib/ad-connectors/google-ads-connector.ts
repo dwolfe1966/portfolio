@@ -53,6 +53,16 @@ type StoredConnection = {
 export class GoogleAdsConnector implements AdConnector {
   readonly provider: AdProvider = "google_ads";
 
+  constructor(private readonly accountUserId: string | null = null) {}
+
+  private ownedOrLegacyWhere() {
+    return {
+      OR: this.accountUserId
+        ? [{ accountUserId: this.accountUserId }, { accountUserId: null }]
+        : [{ accountUserId: null }]
+    };
+  }
+
   async fetchAccounts(): Promise<RemoteAdAccount[]> {
     if (!isOAuthEncryptionAvailable()) {
       throw new GoogleAdsConnectorError("OAUTH_ENCRYPTION_KEY is not configured");
@@ -60,7 +70,7 @@ export class GoogleAdsConnector implements AdConnector {
 
     const config = loadGoogleOAuthConfig();
     const connections = await db.adAccountConnection.findMany({
-      where: { provider: "google_ads" },
+      where: { provider: "google_ads", ...this.ownedOrLegacyWhere() },
       orderBy: { createdAt: "asc" }
     });
 
@@ -212,8 +222,9 @@ export class GoogleAdsConnector implements AdConnector {
       throw new GoogleAdsConnectorError("OAUTH_ENCRYPTION_KEY is not configured");
     }
     const config = loadGoogleOAuthConfig();
-    const connection = await db.adAccountConnection.findUnique({
-      where: { provider_externalAccountId: { provider: "google_ads", externalAccountId } }
+    const connection = await db.adAccountConnection.findFirst({
+      where: { provider: "google_ads", externalAccountId, ...this.ownedOrLegacyWhere() },
+      orderBy: { createdAt: "desc" }
     });
     if (!connection) {
       throw new GoogleAdsConnectorError(`No Google Ads connection for customer ${externalAccountId}`);

@@ -108,7 +108,7 @@ async function loadConnectionSummary(accountUserId: string | null) {
       db.lifecycleMappingPreset.count({ where: { accountUserId } }),
       db.lifecycleMappingPreset.count({ where: { accountUserId, sourceType: "csv" } }),
       db.lifecycleMappingPreset.count({ where: { accountUserId, sourceType: "google_sheets" } }),
-      db.adAccountConnection.count(),
+      db.adAccountConnection.count({ where: { accountUserId } }),
       db.lifecycleMappingPreset.findMany({
         where: { accountUserId },
         orderBy: { updatedAt: "desc" },

@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { isGoogleOAuthConfigured } from "@/lib/ad-connectors/google-oauth";
@@ -24,12 +26,20 @@ export default async function ConnectionsPage({
   const params = await searchParams;
   const encryptionReady = isOAuthEncryptionAvailable();
   const googleReady = isGoogleOAuthConfigured();
+  const cookieStore = await cookies();
+  const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+  const ownedOrLegacy = {
+    OR: accountUserId
+      ? [{ accountUserId }, { accountUserId: null }]
+      : [{ accountUserId: null }]
+  };
 
   let connections: Awaited<ReturnType<typeof db.adAccountConnection.findMany>> = [];
   let tableMissing = false;
 
   try {
     connections = await db.adAccountConnection.findMany({
+      where: ownedOrLegacy,
       orderBy: { createdAt: "desc" }
     });
   } catch (error) {

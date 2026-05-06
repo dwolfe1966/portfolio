@@ -5,6 +5,7 @@ import {
   isGoogleOAuthConfigured,
   listAccessibleCustomers
 } from "@/lib/ad-connectors/google-oauth";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { verifyOAuthState } from "@/lib/oauth-state";
 import { encryptOAuthToken, isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { createEventId, logApiEvent } from "@/lib/logging";
@@ -30,6 +31,7 @@ function redirectWithSuccess(connectedCount: number): NextResponse {
 
 export async function GET(req: NextRequest) {
   const eventId = createEventId("conn_g_cb");
+  const accountUserId = verifyAccountSessionToken(req.cookies.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
 
   if (!isOAuthEncryptionAvailable() || !isGoogleOAuthConfigured()) {
     logApiEvent("warn", eventId, "connections.google.callback.not_configured");
@@ -96,27 +98,36 @@ export async function GET(req: NextRequest) {
   // Store one connection row per accessible customer. The isTestAccount
   // flag stays true at this stage because our scope is test-tier; a Phase 3
   // verification step before any data fetch confirms test_account=true.
-  const upserts = customerIds.map((customerId) =>
-    db.adAccountConnection.upsert({
-      where: { provider_externalAccountId: { provider: "google_ads", externalAccountId: customerId } },
-      create: {
-        provider: "google_ads",
-        externalAccountId: customerId,
-        accountName: `Google Ads ${customerId}`,
-        isTestAccount: true,
-        scopes,
-        encryptedAccessToken,
-        encryptedRefreshToken,
-        expiresAt: tokens.expiresAt
-      },
-      update: {
-        scopes,
-        encryptedAccessToken,
-        encryptedRefreshToken: encryptedRefreshToken ?? undefined,
-        expiresAt: tokens.expiresAt
-      }
-    })
-  );
+  const upserts = customerIds.map(async (customerId) => {
+    const existing = await db.adAccountConnection.findFirst({
+      where: { accountUserId, provider: "google_ads", externalAccountId: customerId },
+      select: { id: true }
+    });
+
+    return existing
+      ? db.adAccountConnection.update({
+          where: { id: existing.id },
+          data: {
+            scopes,
+            encryptedAccessToken,
+            encryptedRefreshToken: encryptedRefreshToken ?? undefined,
+            expiresAt: tokens.expiresAt
+          }
+        })
+      : db.adAccountConnection.create({
+          data: {
+            accountUserId,
+            provider: "google_ads",
+            externalAccountId: customerId,
+            accountName: `Google Ads ${customerId}`,
+            isTestAccount: true,
+            scopes,
+            encryptedAccessToken,
+            encryptedRefreshToken,
+            expiresAt: tokens.expiresAt
+          }
+        });
+  });
 
   await Promise.all(upserts);
   logApiEvent("info", eventId, "connections.google.callback.completed", {

@@ -1,13 +1,16 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
 
-export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const eventId = createEventId("conn_delete");
   const { id } = await params;
+  const token = request.cookies.get(ACCOUNT_SESSION_COOKIE)?.value;
+  const accountUserId = verifyAccountSessionToken(token)?.userId ?? null;
 
   if (!isDemoMutationAllowed()) {
     return apiError(
@@ -19,7 +22,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   }
 
   try {
-    const existing = await db.adAccountConnection.findUnique({ where: { id } });
+    const existing = await db.adAccountConnection.findFirst({ where: { id, accountUserId } });
     if (!existing) return apiError(404, "CONNECTION_NOT_FOUND", "Connection not found", { eventId });
 
     await db.adAccountConnection.delete({ where: { id } });

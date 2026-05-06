@@ -35,6 +35,7 @@ model AccountUser {
   presets     WorkspacePreset[]
   lifecycleImportLogs LifecycleImportLog[]
   campaignRuns CampaignRun[]
+  adAccountConnections AdAccountConnection[]
 
   @@index([updatedAt])
 }
@@ -723,6 +724,7 @@ model ExpansionAuditLog {
 
 model AdAccountConnection {
   id                  String   @id @default(cuid())
+  accountUserId       String?
   provider            String
   externalAccountId   String
   accountName         String
@@ -734,8 +736,10 @@ model AdAccountConnection {
   lastFetchedAt       DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  accountUser         AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
 
-  @@unique([provider, externalAccountId])
+  @@index([accountUserId, createdAt])
+  @@index([accountUserId, provider])
   @@index([provider])
   @@index([createdAt])
 }

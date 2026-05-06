@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { GoogleAdsConnector, GoogleAdsNotTestAccountError } from "@/lib/ad-connectors";
 import type { RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
@@ -24,11 +26,11 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-async function loadGoogleAdsLiveData(externalAccountId: string): Promise<{
+async function loadGoogleAdsLiveData(externalAccountId: string, accountUserId: string | null): Promise<{
   campaigns: CampaignWithPerformance[];
   error: string | null;
 }> {
-  const connector = new GoogleAdsConnector();
+  const connector = new GoogleAdsConnector(accountUserId);
   try {
     const campaigns = await connector.fetchCampaigns(externalAccountId);
     const end = new Date();
@@ -66,10 +68,17 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function ConnectionDetailPage({ params }: PageProps) {
   const { id } = await params;
+  const cookieStore = await cookies();
+  const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+  const ownedOrLegacy = {
+    OR: accountUserId
+      ? [{ accountUserId }, { accountUserId: null }]
+      : [{ accountUserId: null }]
+  };
 
   let connection;
   try {
-    connection = await db.adAccountConnection.findUnique({ where: { id } });
+    connection = await db.adAccountConnection.findFirst({ where: { id, ...ownedOrLegacy } });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
       return (
@@ -86,7 +95,7 @@ export default async function ConnectionDetailPage({ params }: PageProps) {
   if (!connection) notFound();
 
   const isGoogle = connection.provider === "google_ads";
-  const live = isGoogle ? await loadGoogleAdsLiveData(connection.externalAccountId) : null;
+  const live = isGoogle ? await loadGoogleAdsLiveData(connection.externalAccountId, accountUserId) : null;
 
   return (
     <>

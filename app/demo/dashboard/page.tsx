@@ -100,7 +100,7 @@ async function loadToolsetSummary(accountUserId: string | null) {
           createdAt: true
         }
       }),
-      loadWorkspaceDatasetReadiness()
+      loadWorkspaceDatasetReadiness(accountUserId)
     ]);
 
     return { workspace, sourceConfigs, imports, lifecycleRuns, datasetSnapshots, activeSelections, recentDatasets, datasetReadiness, compatibilityMode: false };
