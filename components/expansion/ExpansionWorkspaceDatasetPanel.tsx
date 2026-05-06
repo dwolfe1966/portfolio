@@ -40,8 +40,7 @@ export async function ExpansionWorkspaceDatasetPanel({ compact = false }: Expans
   try {
     const cookieStore = await cookies();
     const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
-    const [latestImport, latestSource, snapshots, activeSelection, accounts, offers, policy, runs] = await Promise.all([
-      db.expansionAuditLog.findFirst({ where: { action: "expansion_import" }, orderBy: { createdAt: "desc" } }),
+    const [latestSource, snapshots, activeSelection, accounts, offers, policy, runs] = await Promise.all([
       db.lifecycleMappingPreset.findFirst({
         where: {
           app: "expansion",
@@ -74,8 +73,8 @@ export async function ExpansionWorkspaceDatasetPanel({ compact = false }: Expans
           <p className="editorKicker">Expansion app data</p>
           <h3>Self-contained sample data is ready</h3>
           <p>
-            {latestImport
-              ? "A workspace import exists, but this app remains usable as a standalone demo with the current app data below."
+            {snapshots.length > 0
+              ? "Account-owned imported datasets are available, but this app remains usable as a standalone demo with the current app data below."
               : "Expansion can run immediately with seeded accounts, offers, and readiness policy."}
           </p>
         </div>
@@ -88,7 +87,7 @@ export async function ExpansionWorkspaceDatasetPanel({ compact = false }: Expans
         <div className="lifecycleDatasetMeta">
           <p><strong>Active source:</strong> current expansion app tables. Apply an imported dataset below to replace them, or reset to sample data.</p>
           <p><strong>App data:</strong> current expansion database rows</p>
-          <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}</p>
+          <p><strong>Available imported datasets:</strong> {snapshots.length.toLocaleString()}</p>
           <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
         </div>
         <ToolDataSourceSelector

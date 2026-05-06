@@ -40,8 +40,7 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
   try {
     const cookieStore = await cookies();
     const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
-    const [latestImport, latestSource, snapshots, activeSelection, campaigns, audiences, creatives, performance] = await Promise.all([
-      db.acquisitionAuditLog.findFirst({ where: { action: "acquisition_import" }, orderBy: { createdAt: "desc" } }),
+    const [latestSource, snapshots, activeSelection, campaigns, audiences, creatives, performance] = await Promise.all([
       db.lifecycleMappingPreset.findFirst({
         where: {
           app: "acquisition",
@@ -74,8 +73,8 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
           <p className="editorKicker">Acquisition app data</p>
           <h3>Self-contained sample data is ready</h3>
           <p>
-            {latestImport
-              ? "A workspace import exists, but this app remains usable as a standalone demo with the current app data below."
+            {snapshots.length > 0
+              ? "Account-owned imported datasets are available, but this app remains usable as a standalone demo with the current app data below."
               : "Acquisition can run immediately with campaign briefs, audiences, creatives, and simulated performance data."}
           </p>
         </div>
@@ -88,7 +87,7 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
         <div className="lifecycleDatasetMeta">
           <p><strong>Active source:</strong> current acquisition app tables. Apply an imported dataset below to replace them, or reset to sample data.</p>
           <p><strong>App data:</strong> current acquisition database rows</p>
-          <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}</p>
+          <p><strong>Available imported datasets:</strong> {snapshots.length.toLocaleString()}</p>
           <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
         </div>
         <ToolDataSourceSelector
