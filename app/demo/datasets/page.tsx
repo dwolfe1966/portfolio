@@ -1,10 +1,14 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
+import { getDefaultWorkspace } from "@/lib/workspace";
 import { loadWorkspaceDatasetReadiness, summarizeDatasetReadiness } from "@/lib/workspace-datasets";
 
 export const dynamic = "force-dynamic";
@@ -166,6 +170,30 @@ function sourceActionState(sourceType: string, metadata: unknown) {
     detail: "Imported data is available for tool runs.",
     connectorAction: sourceType === "google_sheets" ? "refresh" as const : "import" as const
   };
+}
+
+async function deleteDatasetSnapshot(formData: FormData) {
+  "use server";
+
+  if (!isDemoMutationAllowed()) return;
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  const workspace = await getDefaultWorkspace();
+  await db.$transaction(async (tx) => {
+    await tx.appDataSourceSelection.deleteMany({ where: { datasetId: id } });
+    await tx.workspaceDataset.deleteMany({ where: { id, workspaceId: workspace.id } });
+  });
+
+  revalidatePath("/workspace/datasets");
+  revalidatePath("/demo/datasets");
+  revalidatePath("/lifecycle/inputs");
+  revalidatePath("/acquisition/inputs");
+  revalidatePath("/pricing/inputs");
+  revalidatePath("/retention/inputs");
+  revalidatePath("/expansion/inputs");
+  revalidatePath("/auction/inputs");
+  redirect("/workspace/datasets");
 }
 
 export default async function DemoDatasetsPage({ searchParams }: PageProps) {
@@ -360,7 +388,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                   <th>Owner</th>
                   <th>Workspace</th>
                   <th>Created</th>
-                  <th>Use</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -383,7 +411,13 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                     <td>{dataset.workspace.name}</td>
                     <td>{formatDate(dataset.createdAt)}</td>
                     <td>
-                      <Link className="btn smallBtn" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
+                      <div className="importHistoryActions">
+                        <Link className="btn smallBtn" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
+                        <form action={deleteDatasetSnapshot}>
+                          <input type="hidden" name="id" value={dataset.id} />
+                          <button className="btn smallBtn" type="submit">Delete snapshot</button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}
