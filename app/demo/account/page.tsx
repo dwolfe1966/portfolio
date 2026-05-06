@@ -125,8 +125,9 @@ export default async function WorkspaceAccountPage({
             <p>Account tables are not available yet. Run the latest Prisma migration to enable account ownership.</p>
           </div>
         ) : (
-          <div className="grid grid-2">
-            <div className="card">
+          <div className="workspaceAccountPanel">
+            <div className="card workspaceAccountFormCard">
+              <p className="small">Sign in or create account</p>
               <form action={saveAccountProfile} className="demoLoginForm">
                 <label>
                   <span>Name</span>
@@ -143,10 +144,12 @@ export default async function WorkspaceAccountPage({
                 <button className="btn primary" type="submit">{accountUser ? "Update / sign in" : "Create account / sign in"}</button>
               </form>
             </div>
-            <div className="card accessSessionCard">
-              <p className="small">Current account</p>
-              <div className="workspaceSettingValue">{accountUser?.email ?? "No account session"}</div>
-              <p>{accountUser ? "This browser has an active signed account session." : "Create an account or sign in to attach future datasets to a user."}</p>
+            <div className="workspaceAccountStateCard">
+              <div>
+                <p className="small">Current account</p>
+                <strong>{accountUser?.email ?? "No account session"}</strong>
+                <span>{accountUser ? "This browser has an active signed account session." : "Create an account or sign in to attach future datasets to a user."}</span>
+              </div>
               {accountUser ? (
                 <form action={leaveAccount}>
                   <button className="btn" type="submit">Clear account session</button>
@@ -158,33 +161,33 @@ export default async function WorkspaceAccountPage({
       </Section>
 
       <Section title="Workspace membership">
-        <div className="grid grid-3">
-          <div className="card">
+        <div className="workspaceMembershipGrid">
+          <div className="workspaceMembershipCard">
             <p className="small">Workspace</p>
-            <div className="workspaceSettingValue">{membership?.workspace.name ?? "Default Workspace"}</div>
+            <strong>{membership?.workspace.name ?? "Default Workspace"}</strong>
           </div>
-          <div className="card">
+          <div className="workspaceMembershipCard">
             <p className="small">Role</p>
-            <div className="workspaceSettingValue">{membership?.role ?? "Not assigned"}</div>
+            <strong>{membership?.role ?? "Not assigned"}</strong>
           </div>
-          <div className="card">
+          <div className="workspaceMembershipCard">
             <p className="small">Joined</p>
-            <div className="workspaceSettingValue">{formatDate(membership?.createdAt)}</div>
+            <strong>{formatDate(membership?.createdAt)}</strong>
           </div>
         </div>
       </Section>
 
       <Section title="Why this matters">
-        <div className="grid grid-3">
-          <div className="card">
+        <div className="workspaceAccountReasonGrid">
+          <div>
             <h3>Dataset ownership</h3>
             <p>Imported datasets can be attached to the account and workspace that created them.</p>
           </div>
-          <div className="card">
+          <div>
             <h3>Saved selections</h3>
             <p>Each user can later choose which dataset a tool should run against without changing the demo defaults.</p>
           </div>
-          <div className="card">
+          <div>
             <h3>Connector scope</h3>
             <p>OAuth tokens and live datasource credentials need account and workspace boundaries before production use.</p>
           </div>

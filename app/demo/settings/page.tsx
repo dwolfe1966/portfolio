@@ -104,8 +104,8 @@ export default async function DemoSettingsPage({
       <DemoWorkspaceTabs />
       <Section eyebrow="Account" title="Workspace settings">
         <p>
-          Settings control workspace identity, access state, and saved configuration inventory. Connections handle data
-          setup; datasets show readiness and imported data.
+          Settings control workspace identity and session state. Connections handle source setup; datasets show imported
+          snapshots and tool readiness.
         </p>
       </Section>
 
@@ -116,38 +116,41 @@ export default async function DemoSettingsPage({
         {params?.error === "mutations" ? (
           <p className="small bandText--unhealthy">Workspace editing is disabled in this environment.</p>
         ) : null}
-        <div className="grid grid-4">
-          <div className="card">
-            <p className="small">Workspace</p>
-            <div className="workspaceSettingValue">{settings.workspace?.name ?? "Default Workspace"}</div>
+        <div className="workspaceSettingsPanel">
+          <div className="card workspaceSettingsFormCard">
+            <p className="small">Editable identity</p>
+            <form action={saveWorkspaceIdentity} className="demoLoginForm">
+              <label>
+                <span>Workspace name</span>
+                <input
+                  name="workspaceName"
+                  type="text"
+                  defaultValue={settings.workspace?.name ?? DEFAULT_WORKSPACE.name}
+                  maxLength={80}
+                  required
+                />
+              </label>
+              <button className="btn primary" type="submit">Save workspace name</button>
+            </form>
           </div>
-          <div className="card">
-            <p className="small">Slug</p>
-            <div className="workspaceSettingValue">{settings.workspace?.slug ?? "default-demo-workspace"}</div>
+          <div className="workspaceSettingsFacts">
+            <div className="workspaceSettingsFact">
+              <p className="small">Workspace</p>
+              <strong>{settings.workspace?.name ?? "Default Workspace"}</strong>
+            </div>
+            <div className="workspaceSettingsFact">
+              <p className="small">Slug</p>
+              <strong>{settings.workspace?.slug ?? "default-demo-workspace"}</strong>
+            </div>
+            <div className="workspaceSettingsFact">
+              <p className="small">Created</p>
+              <strong>{formatDate(settings.workspace?.createdAt)}</strong>
+            </div>
+            <div className="workspaceSettingsFact">
+              <p className="small">Last updated</p>
+              <strong>{formatDate(settings.workspace?.updatedAt)}</strong>
+            </div>
           </div>
-          <div className="card">
-            <p className="small">Created</p>
-            <div className="workspaceSettingValue">{formatDate(settings.workspace?.createdAt)}</div>
-          </div>
-          <div className="card">
-            <p className="small">Last updated</p>
-            <div className="workspaceSettingValue">{formatDate(settings.workspace?.updatedAt)}</div>
-          </div>
-        </div>
-        <div className="card workspaceSettingsFormCard">
-          <form action={saveWorkspaceIdentity} className="demoLoginForm">
-            <label>
-              <span>Workspace name</span>
-              <input
-                name="workspaceName"
-                type="text"
-                defaultValue={settings.workspace?.name ?? DEFAULT_WORKSPACE.name}
-                maxLength={80}
-                required
-              />
-            </label>
-            <button className="btn primary" type="submit">Save workspace name</button>
-          </form>
         </div>
         {settings.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable saved workspace settings.</p>
@@ -177,23 +180,23 @@ export default async function DemoSettingsPage({
       </Section>
 
       <Section title="Configuration inventory">
-        <div className="grid grid-3">
-          <div className="card">
+        <div className="workspaceInventoryStrip">
+          <div className="workspaceInventoryItem">
             <p className="small">Source configs</p>
-            <div className="kpi">{sourceConfigs.length.toLocaleString()}</div>
-            <p>Reusable source mappings saved from CSV and Google Sheets flows.</p>
+            <strong>{sourceConfigs.length.toLocaleString()}</strong>
+            <span>Reusable CSV and Google Sheets mappings.</span>
             <Link className="btn smallBtn" href="/workspace/datasets">Review datasets</Link>
           </div>
-          <div className="card">
+          <div className="workspaceInventoryItem">
             <p className="small">Configured apps</p>
-            <div className="kpi">{(uniqueApps.size + (settings.workspacePresets > 0 ? 1 : 0)).toLocaleString()}</div>
-            <p>Tools with at least one workspace-scoped saved configuration.</p>
+            <strong>{(uniqueApps.size + (settings.workspacePresets > 0 ? 1 : 0)).toLocaleString()}</strong>
+            <span>Tools with saved workspace configuration.</span>
             <Link className="btn smallBtn" href="/workspace/connections">Review connections</Link>
           </div>
-          <div className="card">
+          <div className="workspaceInventoryItem">
             <p className="small">Tool presets</p>
-            <div className="kpi">{settings.workspacePresets.toLocaleString()}</div>
-            <p>Reusable scenario and configuration presets saved to the workspace.</p>
+            <strong>{settings.workspacePresets.toLocaleString()}</strong>
+            <span>Scenario and configuration presets.</span>
           </div>
         </div>
       </Section>
