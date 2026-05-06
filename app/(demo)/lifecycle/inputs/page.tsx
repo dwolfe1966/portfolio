@@ -4,6 +4,7 @@ import { AssumptionEditorCard } from "@/components/demo/AssumptionEditorCard";
 import { LifecycleScoringSettings } from "@/components/demo/LifecycleScoringSettings";
 import { VariableDefinitions } from "@/components/demo/VariableDefinitions";
 import { InfoTooltip } from "@/components/site/InfoTooltip";
+import { ToolDataSourceNotice } from "@/components/site/ToolDataSourceNotice";
 import {
   LifecycleEntityEditor,
   LifecycleInterestEdgeEditor,
@@ -13,7 +14,12 @@ import { LifecycleWorkspaceDatasetPanel } from "@/components/demo/LifecycleWorks
 
 export const dynamic = "force-dynamic";
 
-export default async function DemoInputsPage() {
+type PageProps = {
+  searchParams?: Promise<{ datasetApplied?: string; datasetError?: string }>;
+};
+
+export default async function DemoInputsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   const [users, entities, interestEdges, interestEdgeCount] = await Promise.all([
     db.user.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
     db.entity.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
@@ -34,6 +40,7 @@ export default async function DemoInputsPage() {
         </p>
       </Section>
       <Section title="Current app data">
+        <ToolDataSourceNotice datasetApplied={params?.datasetApplied} datasetError={params?.datasetError} />
         <LifecycleWorkspaceDatasetPanel compact />
       </Section>
       <Section title="Input guide: what each control affects">

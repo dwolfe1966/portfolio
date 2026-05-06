@@ -2902,6 +2902,29 @@ button {
 .toolDataSourceProgress li {
   color: var(--demo-text-muted, var(--muted));
 }
+.toolDataSourceNotice {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 6px;
+  margin-top: 14px;
+  padding: 12px;
+}
+.toolDataSourceNotice strong {
+  color: var(--demo-text, var(--text));
+}
+.toolDataSourceNotice span {
+  color: var(--demo-text-muted, var(--muted));
+  font-size: 13px;
+}
+.toolDataSourceNotice--success {
+  background: color-mix(in oklab, var(--demo-surface, #fff) 90%, #22c55e 10%);
+  border-color: color-mix(in oklab, var(--demo-divider, var(--line)) 70%, #22c55e 30%);
+}
+.toolDataSourceNotice--error {
+  background: color-mix(in oklab, var(--demo-surface, #fff) 90%, #ef4444 10%);
+  border-color: color-mix(in oklab, var(--demo-divider, var(--line)) 70%, #ef4444 30%);
+}
 .dataSourceModeGrid {
   display: grid;
   grid-template-columns: 1fr;

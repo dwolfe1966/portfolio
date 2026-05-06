@@ -5,10 +5,16 @@ import { AuctionAdvertiserEditor } from "@/components/auction/AuctionAdvertiserE
 import { AuctionSlotEditor } from "@/components/auction/AuctionSlotEditor";
 import { AuctionBidMatrix } from "@/components/auction/AuctionBidMatrix";
 import { AuctionWorkspaceDatasetPanel } from "@/components/auction/AuctionWorkspaceDatasetPanel";
+import { ToolDataSourceNotice } from "@/components/site/ToolDataSourceNotice";
 
 export const dynamic = "force-dynamic";
 
-export default async function AuctionInputsPage() {
+type PageProps = {
+  searchParams?: Promise<{ datasetApplied?: string; datasetError?: string }>;
+};
+
+export default async function AuctionInputsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   try {
     const [advertisers, slots, bids] = await Promise.all([
       db.auctionAdvertiser.findMany({ orderBy: { createdAt: "asc" } }),
@@ -27,6 +33,7 @@ export default async function AuctionInputsPage() {
         </Section>
 
         <Section title="Current app data">
+          <ToolDataSourceNotice datasetApplied={params?.datasetApplied} datasetError={params?.datasetError} />
           <AuctionWorkspaceDatasetPanel compact />
         </Section>
 

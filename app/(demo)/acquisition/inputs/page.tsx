@@ -2,8 +2,14 @@ import { Section } from "@/components/site/Section";
 import { AcquisitionAssumptionsCard } from "@/components/acquisition/AcquisitionAssumptionsCard";
 import { AcquisitionCampaignBuilder } from "@/components/acquisition/AcquisitionCampaignBuilder";
 import { AcquisitionWorkspaceDatasetPanel } from "@/components/acquisition/AcquisitionWorkspaceDatasetPanel";
+import { ToolDataSourceNotice } from "@/components/site/ToolDataSourceNotice";
 
-export default function AcquisitionInputsPage() {
+type PageProps = {
+  searchParams?: Promise<{ datasetApplied?: string; datasetError?: string }>;
+};
+
+export default async function AcquisitionInputsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   return (
     <>
       <Section title="Inputs: campaign brief and optimization guardrails">
@@ -28,6 +34,7 @@ export default function AcquisitionInputsPage() {
       </Section>
 
       <Section title="Current app data">
+        <ToolDataSourceNotice datasetApplied={params?.datasetApplied} datasetError={params?.datasetError} />
         <AcquisitionWorkspaceDatasetPanel compact />
       </Section>
 

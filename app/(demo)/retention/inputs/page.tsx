@@ -4,6 +4,7 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { RetentionPlaybookEditor } from "@/components/retention/RetentionPlaybookEditor";
 import { RetentionPolicyEditor } from "@/components/retention/RetentionPolicyEditor";
 import { RetentionWorkspaceDatasetPanel } from "@/components/retention/RetentionWorkspaceDatasetPanel";
+import { ToolDataSourceNotice } from "@/components/site/ToolDataSourceNotice";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,12 @@ function pct(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-export default async function RetentionInputsPage() {
+type PageProps = {
+  searchParams?: Promise<{ datasetApplied?: string; datasetError?: string }>;
+};
+
+export default async function RetentionInputsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   let playbooks: Awaited<ReturnType<typeof db.retentionPlaybook.findMany>> = [];
   let policy: Awaited<ReturnType<typeof db.retentionPolicy.findFirst>> = null;
   try {
@@ -30,6 +36,7 @@ export default async function RetentionInputsPage() {
       </Section>
 
       <Section title="Current app data">
+        <ToolDataSourceNotice datasetApplied={params?.datasetApplied} datasetError={params?.datasetError} />
         <RetentionWorkspaceDatasetPanel compact />
       </Section>
 

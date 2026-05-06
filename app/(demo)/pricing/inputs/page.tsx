@@ -4,11 +4,17 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { PricingExperimentBuilder } from "@/components/pricing/PricingExperimentBuilder";
 import { PricingVariantEditor } from "@/components/pricing/PricingVariantEditor";
 import { PricingWorkspaceDatasetPanel } from "@/components/pricing/PricingWorkspaceDatasetPanel";
+import { ToolDataSourceNotice } from "@/components/site/ToolDataSourceNotice";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-export default async function PricingInputsPage() {
+type PageProps = {
+  searchParams?: Promise<{ datasetApplied?: string; datasetError?: string }>;
+};
+
+export default async function PricingInputsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   let experiments: Prisma.PricingExperimentGetPayload<{
     include: { segments: true; variants: true };
   }>[] = [];
@@ -34,6 +40,7 @@ export default async function PricingInputsPage() {
         <p>Seeded inputs model the pieces a pricing operator needs before exposing any customers to a price or packaging change.</p>
       </Section>
       <Section title="Current app data">
+        <ToolDataSourceNotice datasetApplied={params?.datasetApplied} datasetError={params?.datasetError} />
         <PricingWorkspaceDatasetPanel compact />
       </Section>
       <Section title="Experiments">

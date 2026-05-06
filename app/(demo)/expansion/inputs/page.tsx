@@ -4,6 +4,7 @@ import { Section } from "@/components/site/Section";
 import { ExpansionOfferEditor } from "@/components/expansion/ExpansionOfferEditor";
 import { ExpansionPolicyEditor } from "@/components/expansion/ExpansionPolicyEditor";
 import { ExpansionWorkspaceDatasetPanel } from "@/components/expansion/ExpansionWorkspaceDatasetPanel";
+import { ToolDataSourceNotice } from "@/components/site/ToolDataSourceNotice";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,12 @@ function pct(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-export default async function ExpansionInputsPage() {
+type PageProps = {
+  searchParams?: Promise<{ datasetApplied?: string; datasetError?: string }>;
+};
+
+export default async function ExpansionInputsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   let offers: Awaited<ReturnType<typeof db.expansionOffer.findMany>> = [];
   let policy: Awaited<ReturnType<typeof db.expansionPolicy.findFirst>> = null;
   try {
@@ -29,6 +35,7 @@ export default async function ExpansionInputsPage() {
         <p>Inputs define what counts as expansion-ready and which monetization motion should be offered by signal pattern.</p>
       </Section>
       <Section title="Current app data">
+        <ToolDataSourceNotice datasetApplied={params?.datasetApplied} datasetError={params?.datasetError} />
         <ExpansionWorkspaceDatasetPanel compact />
       </Section>
       <Section title="Policy">
