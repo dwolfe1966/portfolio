@@ -17,6 +17,8 @@ Enterprise ingestion should let a customer connect existing systems and produce 
 - create normalized workspace dataset snapshots for replay and audit;
 - expose sync health, row counts, freshness, rejected rows, and dead-letter records.
 
+This layer is the primary source of lifecycle truth. ESPs may contain useful profile, list, journey, and suppression data, but most customers will keep the full user graph, entities, user-entity interest relationships, and triggering events outside the ESP. L2 should therefore prioritize direct connectors to the systems where those objects actually live.
+
 ## Source Types
 
 | Source type | Examples | Best for | Ingestion mode |
@@ -28,6 +30,9 @@ Enterprise ingestion should let a customer connect existing systems and produce 
 | Reverse ETL | Hightouch, Census, RudderStack | prepared audience tables and computed attributes | destination table/API push |
 | Webhook | customer apps, partner systems, billing events | near-real-time deltas | signed HTTP events |
 | Event stream | Kafka, Kinesis, Pub/Sub, SQS/SNS | high-volume behavioral or entity changes | consumer group, checkpoint cursor |
+| ESP profile export | Braze, Iterable, Klaviyo, Customer.io, HubSpot | auxiliary profile, list, journey, and suppression enrichment | API polling, export, webhook |
+
+ESP profile export is intentionally listed as auxiliary. It can fill provider-specific ids, subscription topics, and delivery history, but it should not be the only ingestion path unless the customer's ESP truly owns users, entities, edges, and lifecycle events.
 
 ## Normalized Lifecycle Objects
 
@@ -37,6 +42,8 @@ All sources must map into the existing Lifecycle import contract:
 - `entities`: companies, people, properties, products, accounts, or objects that can experience meaningful changes.
 - `interestEdges`: evidence that a user has a relationship to an entity.
 - `changeEvents`: detected events or deltas that may trigger lifecycle action.
+
+Those four object classes should be connected independently when needed. A customer may provide users from a CRM, entities from a product database, interest edges from analytics/warehouse tables, and change events from webhooks or streams. The ingestion layer should allow multiple source configs to contribute to one normalized lifecycle snapshot with source provenance preserved per object and row.
 
 Production ingestion should add metadata around these objects before expanding the core app schema:
 
@@ -57,7 +64,8 @@ type IngestionSourceKind =
   | "object_store"
   | "reverse_etl"
   | "webhook"
-  | "event_stream";
+  | "event_stream"
+  | "esp_profile_export";
 
 type SyncMode = "full_refresh" | "incremental" | "streaming" | "hybrid";
 
@@ -115,6 +123,7 @@ Use for production lifecycle programs: scheduled full or incremental refresh for
 Mapping should be explicit and versioned. A source config should store:
 
 - source provider and source kind;
+- lifecycle object ownership: users, entities, interest edges, change events, consent, or enrichment only;
 - object mappings for users, entities, interest edges, and change events;
 - field-level transforms and enum normalization;
 - required field coverage;
@@ -161,6 +170,8 @@ Replay must not double-trigger messages. Replayed data can update normalized sna
 10. Optionally enqueue downstream identity/consent resolution and scoring.
 
 The connector should never mutate active product tables directly. It writes a normalized snapshot first; the existing app selection/import path can apply that snapshot into the Lifecycle tool.
+
+When multiple connectors contribute to one lifecycle run, the job pipeline should compose object-level outputs into a snapshot manifest. The manifest should state which connector supplied users, entities, interest edges, events, consent, and enrichment data, plus the cursor/version for each contributor. Agent scoring should require the manifest to satisfy the program's minimum object coverage before it can proceed.
 
 ## Freshness And Health
 

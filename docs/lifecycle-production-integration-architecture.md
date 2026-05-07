@@ -16,6 +16,8 @@ Lifecycle should plug into a partner's infrastructure without forcing them into 
 - observe outcomes, suppressions, bounces, unsubscribes, and revenue events;
 - maintain a durable audit trail that supports approval, compliance, and performance-based fees.
 
+The source-of-truth boundary matters: the Lifecycle app should not assume an ESP contains the complete customer graph. Users, entities, interest edges, and captured lifecycle events usually live in warehouses, CRMs, product databases, analytics tools, webhooks, object stores, or event streams. ESPs can enrich profile, suppression, campaign, and delivery state, but direct data connectors should be the primary path for customer users, entities, user-entity relationships, and event capture.
+
 ## Integration Layers
 
 | Layer | Responsibility | Examples |
@@ -69,6 +71,8 @@ type ConnectorHealth = {
 
 Connector implementations must be idempotent, scoped to one workspace, and backed by a credential grant rather than raw session state. Mutating connectors must support dry-run or sandbox mode before production sends are enabled.
 
+Use connector capabilities to separate source systems from delivery systems. `read_users`, `read_entities`, `read_events`, and `read_consent` belong primarily to data connectors. ESP connectors may expose `read_profile`, `read_suppressions`, or `read_delivery_events`, but those reads should not be treated as complete lifecycle source data unless the customer explicitly proves the ESP is their system of record.
+
 ## ESP And SMTP Requirements
 
 ESP connectors need a common abstraction even though providers differ. The minimum contract:
@@ -83,6 +87,8 @@ ESP connectors need a common abstraction even though providers differ. The minim
 - provider delivery id returned for every send attempt;
 - test-send support to internal seed recipients;
 - rate-limit and retry behavior surfaced to the job queue.
+
+ESP profile reads are auxiliary. They can confirm provider ids, template/journey state, suppressions, and message history, but lifecycle scoring should be driven by normalized users, entities, interest edges, and change events from direct data connectors.
 
 SMTP should be treated as a lower-level delivery connector. It can send messages, but it cannot be assumed to know profile state, consent, templates, suppressions, or revenue outcomes. SMTP requires a stronger local suppression store and bounce processor.
 

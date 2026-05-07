@@ -26,6 +26,8 @@ The delivery layer should:
 - expose delivery health and failure reasons;
 - make every send replay-safe and audit-ready.
 
+Delivery connectors are not the default source of lifecycle truth. They may read provider profiles, suppressions, templates, campaign state, and delivery events, but users, entities, interest edges, and captured business/product events should usually come from direct data connectors defined in L2. Treat ESP data as delivery/enrichment data unless the customer explicitly designates that provider as the system of record for a specific object class.
+
 ## Provider Types
 
 | Provider type | Examples | Strengths | Constraints |
@@ -36,6 +38,8 @@ The delivery layer should:
 | SMTP | customer SMTP relay, SES SMTP, Google Workspace relay | broad compatibility, simple send contract | weak profile/suppression visibility, bounce processing must be local |
 
 Prefer ESP APIs when the customer already uses an ESP for lifecycle marketing. Use SMTP only when the customer wants raw message delivery and accepts the added responsibility for local suppression, bounce, and unsubscribe handling.
+
+Do not use "can read ESP profiles" as a substitute for proper user/entity/event ingestion. ESP profile reads are valuable for provider ids, list/topic state, and delivery eligibility, but they rarely include the full entity graph or all business events needed by the Lifecycle scoring model.
 
 ## Connector Capabilities
 
