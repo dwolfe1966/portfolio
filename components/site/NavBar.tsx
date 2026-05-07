@@ -46,6 +46,7 @@ export function NavBar() {
   const [accountStatus, setAccountStatus] = useState<AccountSessionStatus | null>(null);
   const pathname = usePathname();
   const isAuthenticated = accountStatus?.authenticated === true;
+  const sessionLoaded = accountStatus !== null;
   const accountLabel = accountStatus?.account?.email
     ? `Workspace account: ${accountStatus.account.email}`
     : "Workspace account";
@@ -112,6 +113,12 @@ export function NavBar() {
             <AccountIcon label={accountLabel} />
             <span>Account</span>
           </Link>
+        ) : sessionLoaded ? (
+          <div className="mobileAuthLinks" aria-label="Workspace account actions">
+            <Link href="/workspace/login" onClick={() => setOpen(false)}>Login</Link>
+            <span aria-hidden="true">|</span>
+            <Link href="/workspace/register" onClick={() => setOpen(false)}>Signup</Link>
+          </div>
         ) : null}
         {links.map((link) => {
           const active = isActive(link.href);
@@ -159,6 +166,12 @@ export function NavBar() {
           >
             <AccountIcon label={accountLabel} />
           </Link>
+        ) : sessionLoaded ? (
+          <div className="authLinkSet" aria-label="Workspace account actions">
+            <Link href="/workspace/login" onClick={() => setOpen(false)}>Login</Link>
+            <span aria-hidden="true">|</span>
+            <Link href="/workspace/register" onClick={() => setOpen(false)}>Signup</Link>
+          </div>
         ) : null}
       </div>
     </nav>

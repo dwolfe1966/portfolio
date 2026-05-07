@@ -100,6 +100,25 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 80px; }
   display: inline-flex;
   align-items: center;
 }
+.authLinkSet,
+.mobileAuthLinks {
+  align-items: center;
+  gap: 7px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.authLinkSet {
+  display: inline-flex;
+}
+.authLinkSet a:hover {
+  color: var(--blue);
+}
+.authLinkSet span,
+.mobileAuthLinks span {
+  color: #9ca3af;
+}
 .accountIconLink {
   justify-content: center;
   width: 36px;
@@ -142,6 +161,9 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 80px; }
   background: var(--green);
 }
 .mobileAccountLink {
+  display: none;
+}
+.mobileAuthLinks {
   display: none;
 }
 .menuToggle {
@@ -3158,6 +3180,23 @@ button {
     display: inline-flex;
     gap: 8px;
     margin-bottom: 4px;
+  }
+  .mobileAuthLinks {
+    display: inline-flex;
+    padding: 11px 10px;
+    margin-bottom: 4px;
+    border: 1px solid #dbeafe;
+    border-radius: 6px;
+    background: #f8fbff;
+    color: #1d4ed8;
+  }
+  .mobileAuthLinks a {
+    padding: 0;
+    color: inherit;
+  }
+  .mobileAuthLinks a:hover {
+    background: transparent;
+    color: #0f172a;
   }
   .siteNav .links a.mobileAccountLink {
     align-items: center;
