@@ -5,6 +5,7 @@ import { accountOwnedImportWhere, canUseImportedData, resolveActiveDataSourceMod
 import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
 import { ToolDataSourceSelector } from "@/components/site/ToolDataSourceSelector";
 
 type PricingWorkspaceDatasetPanelProps = {
@@ -100,10 +101,13 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
             { label: "Experiments", value: experiments },
             { label: "Runs", value: runs }
           ]}
-          datasets={snapshots.map((snapshot) => ({
-            id: snapshot.id,
-            label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
-          }))}
+          datasets={snapshots.map((snapshot) => {
+            const visibility = workspaceVisibilityLabel(snapshot.accountUserId, session?.userId);
+            return {
+              id: snapshot.id,
+              label: `${visibility.label} · ${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
+            };
+          })}
           canUseImportedData={canUseImportedData(session?.userId)}
           applyDatasetAction={applyPricingDatasetSnapshotAction}
         />

@@ -5,6 +5,7 @@ import { accountOwnedImportWhere, canUseImportedData, resolveActiveDataSourceMod
 import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
 import { ToolDataSourceSelector } from "@/components/site/ToolDataSourceSelector";
 
 type AcquisitionWorkspaceDatasetPanelProps = {
@@ -101,10 +102,13 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
             { label: "Creatives", value: creatives },
             { label: "Performance", value: performance }
           ]}
-          datasets={snapshots.map((snapshot) => ({
-            id: snapshot.id,
-            label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
-          }))}
+          datasets={snapshots.map((snapshot) => {
+            const visibility = workspaceVisibilityLabel(snapshot.accountUserId, session?.userId);
+            return {
+              id: snapshot.id,
+              label: `${visibility.label} · ${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
+            };
+          })}
           canUseImportedData={canUseImportedData(session?.userId)}
           applyDatasetAction={applyAcquisitionDatasetSnapshotAction}
         />

@@ -2,8 +2,10 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { accountOwnedImportWhere } from "@/lib/account-data-scope";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +27,7 @@ export default async function LifecycleConnectionsPage() {
   const cookieStore = await cookies();
   const session = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
   const importLogs = await db.lifecycleImportLog.findMany({
-    where: {
-      OR: session
-        ? [{ accountUserId: session.userId }, { accountUserId: null }]
-        : [{ accountUserId: null }]
-    },
+    where: accountOwnedImportWhere(session?.userId),
     orderBy: { createdAt: "desc" },
     take: 8
   }).catch((error) => {
@@ -58,6 +56,7 @@ export default async function LifecycleConnectionsPage() {
               <thead>
                 <tr>
                   <th>Dataset</th>
+                  <th>Visibility</th>
                   <th>Status</th>
                   <th>Rows imported</th>
                   <th>Validation issues</th>
@@ -72,11 +71,16 @@ export default async function LifecycleConnectionsPage() {
                     log.entitiesImported +
                     log.interestEdgesImported +
                     log.changeEventsImported;
+                  const visibility = workspaceVisibilityLabel(log.accountUserId, session?.userId);
                   return (
                     <tr key={log.id}>
                       <td>
                         <strong>{log.sourceName}</strong>
                         <p className="small">{log.sourceType.toUpperCase()}</p>
+                      </td>
+                      <td>
+                        <span className={`statusPill ${visibility.statusClass}`}>{visibility.label}</span>
+                        <p className="small">{visibility.detail}</p>
                       </td>
                       <td><span className={`statusPill ${log.status === "imported" ? "live" : "progress"}`}>{log.status}</span></td>
                       <td>

@@ -38,6 +38,7 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | K7 | Product-app source panels | DW | M | S10 | ✅ | Each product app exposes sample data, account-owned imported datasets, active source status, and switch feedback. |
 | K8 | End-to-end workspace data verification | DW | M | S10 | 🟡 | Walk each product app anonymously and logged in; verify sample fallback, imported dataset apply flow, and no cross-account leakage. |
 | K9 | Account-scope regression tests | DW | M | S10 | ✅ | Add tests for datasets, presets, source configs, active selections, ad connections, and import logs with logged-in and anonymous paths. |
+| K10 | Workspace ownership and visibility labels | DW | S | S10 | ✅ | Workspace inventories and product selectors label shared sample/default data, personal account-owned data, and future team/shared visibility. |
 | D15 | Product-oriented website language pass | DW | S | S10 | ✅ | Public copy describes the surfaces as tools/products/apps rather than demos, while internal route names remain stable. |
 | L1 | Lifecycle production integration architecture | DW | L | S11 | ⏳ | Define connector model for ESPs, enterprise data stores, event ingestion, identity resolution, consent, and outbound delivery. |
 | L2 | Acquisition production integration architecture | DW | L | S11 | ⏳ | Define connector model for Google Ads, Microsoft Ads, Meta Ads, budget operations, campaign state sync, and policy-bounded agent actions. |
@@ -261,10 +262,10 @@ Cross-product platform layer that turns the product apps from seeded examples in
 - ✅ K6. Added per-app data-source selections for Lifecycle, Acquisition, Auction, Pricing, Retention, and Expansion.
 - ✅ K7. Added product source panels that show sample data availability, account-owned imported datasets, active source status, and switch feedback.
 - ✅ K9. Added account-scope regression tests and shared policy helpers for anonymous sample fallback, account-owned imports, active source selection, and import snapshot ownership.
+- ✅ K10. Added ownership and visibility labels across workspace inventories, source detail pages, lifecycle import history, dashboard active selections, and product imported dataset selectors.
 
 ### To do
 - 🟡 K8. Verify each product app end to end in both anonymous sample mode and logged-in imported-data mode.
-- ⏳ K10. Add explicit ownership and visibility labels to workspace tables so users can distinguish shared samples, personal imports, and future team/shared datasets.
 - ⏳ K11. Define future multi-workspace/team account model before adding collaboration or client account hierarchies.
 
 ---
@@ -348,7 +349,7 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ A6
 
 ### Sprint S10 (account-aware product apps)
-- ✅ K1, K2, K3, K4, K5, K6, K7, K9
+- ✅ K1, K2, K3, K4, K5, K6, K7, K9, K10
 - 🟡 K8
 
 ### Sprint S11 (production integrations and performance model)

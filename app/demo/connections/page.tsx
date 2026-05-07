@@ -7,6 +7,7 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
+import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -188,35 +189,45 @@ export default async function DemoConnectionsPage() {
           </div>
         ) : (
           <div className="savedSourceCardGrid">
-            {summary.recentSourceConfigs.map((config) => (
-              <div className="card savedSourceCard" key={config.id}>
-                <div className="editorHeader">
-                  <div>
-                    <p className="editorKicker">{config.app} · {sourceTypeLabel(config.sourceType)}</p>
-                    <h3>{config.name}</h3>
+            {summary.recentSourceConfigs.map((config) => {
+              const visibility = workspaceVisibilityLabel(config.accountUserId, accountUserId);
+              return (
+                <div className="card savedSourceCard" key={config.id}>
+                  <div className="editorHeader">
+                    <div>
+                      <p className="editorKicker">{config.app} · {sourceTypeLabel(config.sourceType)}</p>
+                      <h3>{config.name}</h3>
+                    </div>
+                    <div className="statusPillStack">
+                      <span className="statusPill progress">{sourceRowCount(config.metadata).toLocaleString()} rows</span>
+                      <span className={`statusPill ${visibility.statusClass}`}>{visibility.label}</span>
+                    </div>
                   </div>
-                  <span className="statusPill progress">{sourceRowCount(config.metadata).toLocaleString()} rows</span>
+                  <div className="savedSourceCardStats">
+                    <div>
+                      <span className="small">Workspace</span>
+                      <strong>{config.workspace.name}</strong>
+                    </div>
+                    <div>
+                      <span className="small">Visibility</span>
+                      <strong>{visibility.detail}</strong>
+                    </div>
+                    <div>
+                      <span className="small">Updated</span>
+                      <strong>{formatDate(config.updatedAt)}</strong>
+                    </div>
+                    <div>
+                      <span className="small">Source</span>
+                      <strong>{sourceTypeLabel(config.sourceType)}</strong>
+                    </div>
+                  </div>
+                  <div className="importHistoryActions">
+                    <Link className="btn smallBtn primary" href={sourceConfigHref(config.sourceType, config.app, config.id)}>Open connector</Link>
+                    <Link className="btn smallBtn" href={`/workspace/datasets/${encodeURIComponent(config.id)}`}>Manage source</Link>
+                  </div>
                 </div>
-                <div className="savedSourceCardStats">
-                  <div>
-                    <span className="small">Workspace</span>
-                    <strong>{config.workspace.name}</strong>
-                  </div>
-                  <div>
-                    <span className="small">Updated</span>
-                    <strong>{formatDate(config.updatedAt)}</strong>
-                  </div>
-                  <div>
-                    <span className="small">Source</span>
-                    <strong>{sourceTypeLabel(config.sourceType)}</strong>
-                  </div>
-                </div>
-                <div className="importHistoryActions">
-                  <Link className="btn smallBtn primary" href={sourceConfigHref(config.sourceType, config.app, config.id)}>Open connector</Link>
-                  <Link className="btn smallBtn" href={`/workspace/datasets/${encodeURIComponent(config.id)}`}>Manage source</Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Section>

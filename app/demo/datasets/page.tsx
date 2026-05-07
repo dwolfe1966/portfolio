@@ -12,6 +12,7 @@ import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { getDefaultWorkspace } from "@/lib/workspace";
 import { loadWorkspaceDatasetReadiness, summarizeDatasetReadiness } from "@/lib/workspace-datasets";
+import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -397,6 +398,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                   const rows = sourceRowCount(preset.metadata);
                   const state = sourceActionState(preset.sourceType, preset.metadata);
                   const latestActivity = sourceActivityTime(preset.metadata);
+                  const visibility = workspaceVisibilityLabel(preset.accountUserId, accountUserId);
                   return (
                     <div className="card savedSourceCard" key={preset.id}>
                       <div className="editorHeader">
@@ -404,7 +406,10 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                           <p className="editorKicker">{preset.app} · {sourceTypeLabel(preset.sourceType)}</p>
                           <h3>{preset.name}</h3>
                         </div>
-                        <span className={`statusPill ${state.label === "Operational" ? "live" : "progress"}`}>{state.label}</span>
+                        <div className="statusPillStack">
+                          <span className={`statusPill ${state.label === "Operational" ? "live" : "progress"}`}>{state.label}</span>
+                          <span className={`statusPill ${visibility.statusClass}`}>{visibility.label}</span>
+                        </div>
                       </div>
                       <p>{state.detail}</p>
                       <div className="savedSourceCardStats">
@@ -419,6 +424,10 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                         <div>
                           <span className="small">Latest activity</span>
                           <strong>{latestActivity > 0 ? formatOptionalDate(new Date(latestActivity).toISOString()) : "None"}</strong>
+                        </div>
+                        <div>
+                          <span className="small">Visibility</span>
+                          <strong>{visibility.detail}</strong>
                         </div>
                       </div>
                       {detail.sheetId ? <p className="small">Sheet ID: <code>{detail.sheetId}</code></p> : null}
@@ -443,43 +452,53 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
           </div>
         ) : (
           <div className="datasetSnapshotGrid">
-            {inventory.snapshots.map((dataset) => (
-              <div className="card datasetSnapshotCard" key={dataset.id}>
-                <div className="editorHeader">
-                  <div>
-                    <p className="editorKicker">{dataset.app} · {sourceTypeLabel(dataset.sourceType)}</p>
-                    <h3>{dataset.name}</h3>
+            {inventory.snapshots.map((dataset) => {
+              const visibility = workspaceVisibilityLabel(dataset.accountUserId, accountUserId);
+              return (
+                <div className="card datasetSnapshotCard" key={dataset.id}>
+                  <div className="editorHeader">
+                    <div>
+                      <p className="editorKicker">{dataset.app} · {sourceTypeLabel(dataset.sourceType)}</p>
+                      <h3>{dataset.name}</h3>
+                    </div>
+                    <div className="statusPillStack">
+                      <span className="statusPill live">{dataset.status}</span>
+                      <span className={`statusPill ${visibility.statusClass}`}>{visibility.label}</span>
+                    </div>
                   </div>
-                  <span className="statusPill live">{dataset.status}</span>
-                </div>
-                <div className="datasetSnapshotMetric">
-                  <span>Rows</span>
-                  <strong>{persistedDatasetRows(dataset.rowCounts).toLocaleString()}</strong>
-                </div>
-                <p className="small">{objectRowSummary(dataset.rowCounts)}</p>
-                <div className="datasetSnapshotFacts">
-                  <div>
-                    <span className="small">Owner</span>
-                    <strong>{dataset.accountUser?.email ?? "Current account"}</strong>
+                  <div className="datasetSnapshotMetric">
+                    <span>Rows</span>
+                    <strong>{persistedDatasetRows(dataset.rowCounts).toLocaleString()}</strong>
                   </div>
-                  <div>
-                    <span className="small">Workspace</span>
-                    <strong>{dataset.workspace.name}</strong>
+                  <p className="small">{objectRowSummary(dataset.rowCounts)}</p>
+                  <div className="datasetSnapshotFacts">
+                    <div>
+                      <span className="small">Owner</span>
+                      <strong>{dataset.accountUser?.email ?? visibility.detail}</strong>
+                    </div>
+                    <div>
+                      <span className="small">Visibility</span>
+                      <strong>{visibility.detail}</strong>
+                    </div>
+                    <div>
+                      <span className="small">Workspace</span>
+                      <strong>{dataset.workspace.name}</strong>
+                    </div>
+                    <div>
+                      <span className="small">Created</span>
+                      <strong>{formatDate(dataset.createdAt)}</strong>
+                    </div>
                   </div>
-                  <div>
-                    <span className="small">Created</span>
-                    <strong>{formatDate(dataset.createdAt)}</strong>
+                  <div className="importHistoryActions">
+                    <Link className="btn smallBtn primary" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
+                    <form action={deleteDatasetSnapshot}>
+                      <input type="hidden" name="id" value={dataset.id} />
+                      <button className="btn smallBtn" type="submit">Delete snapshot</button>
+                    </form>
                   </div>
                 </div>
-                <div className="importHistoryActions">
-                  <Link className="btn smallBtn primary" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
-                  <form action={deleteDatasetSnapshot}>
-                    <input type="hidden" name="id" value={dataset.id} />
-                    <button className="btn smallBtn" type="submit">Delete snapshot</button>
-                  </form>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Section>
@@ -535,6 +554,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
               <thead>
                 <tr>
                   <th>Dataset</th>
+                  <th>Visibility</th>
                   <th>Status</th>
                   <th>Rows</th>
                   <th>Validation issues</th>
@@ -543,29 +563,36 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {inventory.imports.map((log) => (
-                  <tr key={log.id}>
-                    <td>
-                      <strong>{log.sourceName}</strong>
-                      <p className="small">{log.sourceType.toUpperCase()}</p>
-                    </td>
-                    <td><span className={`statusPill ${log.status === "imported" ? "live" : "progress"}`}>{log.status}</span></td>
-                    <td>
-                      {importedRows(log).toLocaleString()}
-                      <p className="small">
-                        {log.usersImported} users · {log.entitiesImported} entities · {log.interestEdgesImported} edges · {log.changeEventsImported} events
-                      </p>
-                    </td>
-                    <td>{log.validationErrors}</td>
-                    <td>{formatDate(log.createdAt)}</td>
-                    <td>
-                      <div className="importHistoryActions">
-                        <Link className="btn smallBtn" href="/lifecycle/inputs?imported=1">Inputs</Link>
-                        <Link className="btn smallBtn primary" href="/lifecycle/simulations?imported=1">Simulate</Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {inventory.imports.map((log) => {
+                  const visibility = workspaceVisibilityLabel(log.accountUserId, accountUserId);
+                  return (
+                    <tr key={log.id}>
+                      <td>
+                        <strong>{log.sourceName}</strong>
+                        <p className="small">{log.sourceType.toUpperCase()}</p>
+                      </td>
+                      <td>
+                        <span className={`statusPill ${visibility.statusClass}`}>{visibility.label}</span>
+                        <p className="small">{visibility.detail}</p>
+                      </td>
+                      <td><span className={`statusPill ${log.status === "imported" ? "live" : "progress"}`}>{log.status}</span></td>
+                      <td>
+                        {importedRows(log).toLocaleString()}
+                        <p className="small">
+                          {log.usersImported} users · {log.entitiesImported} entities · {log.interestEdgesImported} edges · {log.changeEventsImported} events
+                        </p>
+                      </td>
+                      <td>{log.validationErrors}</td>
+                      <td>{formatDate(log.createdAt)}</td>
+                      <td>
+                        <div className="importHistoryActions">
+                          <Link className="btn smallBtn" href="/lifecycle/inputs?imported=1">Inputs</Link>
+                          <Link className="btn smallBtn primary" href="/lifecycle/simulations?imported=1">Simulate</Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

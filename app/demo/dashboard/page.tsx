@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
 import { loadWorkspaceDatasetReadiness, summarizeDatasetReadiness } from "@/lib/workspace-datasets";
+import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -232,22 +233,27 @@ export default async function DemoDashboardPage() {
           </div>
         ) : (
           <div className="workspaceActiveSourceList">
-            {activeSelections.map((selection) => (
-              <div className="workspaceActiveSourceRow" key={selection.id}>
-                <div>
-                  <p className="editorKicker">{toolLabel(selection.app)}</p>
-                  <h3>{selection.label}</h3>
-                  <p className="small">
-                    {selection.mode === "sample" ? "Sample data" : `${sourceTypeLabel(selection.sourceType)} snapshot`}
-                    {selection.dataset?.name ? ` · ${selection.dataset.name}` : ""}
-                  </p>
+            {activeSelections.map((selection) => {
+              const visibility = workspaceVisibilityLabel(selection.mode === "sample" ? null : selection.accountUserId, accountUserId);
+              return (
+                <div className="workspaceActiveSourceRow" key={selection.id}>
+                  <div>
+                    <p className="editorKicker">{toolLabel(selection.app)}</p>
+                    <h3>{selection.label}</h3>
+                    <p className="small">
+                      {selection.mode === "sample" ? "Sample data" : `${sourceTypeLabel(selection.sourceType)} snapshot`}
+                      {selection.dataset?.name ? ` · ${selection.dataset.name}` : ""}
+                    </p>
+                    <p className="small">{visibility.detail}</p>
+                  </div>
+                  <div className="workspaceActiveSourceMeta">
+                    <span className={`statusPill ${selection.mode === "sample" ? "progress" : "live"}`}>{selection.mode}</span>
+                    <span className={`statusPill ${visibility.statusClass}`}>{visibility.label}</span>
+                    <strong>{rowCountTotal(selection.rowCounts).toLocaleString()} rows</strong>
+                  </div>
                 </div>
-                <div className="workspaceActiveSourceMeta">
-                  <span className={`statusPill ${selection.mode === "sample" ? "progress" : "live"}`}>{selection.mode}</span>
-                  <strong>{rowCountTotal(selection.rowCounts).toLocaleString()} rows</strong>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Section>

@@ -12,6 +12,7 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { getDefaultWorkspace } from "@/lib/workspace";
+import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -170,6 +171,7 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
     const lastImportedRowsTotal = typeof metadata.lastImportedRowsTotal === "number" ? metadata.lastImportedRowsTotal : 0;
     const rows = rowCount(config.metadata);
     const mappedObjects = objectRows(config.metadata);
+    const visibility = workspaceVisibilityLabel(config.accountUserId, accountUserId);
     const actionState = sourceActionState({
       sourceType: config.sourceType,
       rows,
@@ -186,6 +188,10 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
             Saved {sourceTypeLabel(config.sourceType).toLowerCase()} source configuration for {config.app}. Review the
             current mapping, source metadata, and operational activity before refreshing or importing.
           </p>
+          <div className="workspaceVisibilityLine">
+            <span className={`statusPill ${visibility.statusClass}`}>{visibility.label}</span>
+            <span>{visibility.detail}</span>
+          </div>
           <div className="ctaRow">
             <Link className="btn" href="/workspace/datasets">Back to datasets</Link>
             <Link className="btn" href="/workspace/connections">Back to connections</Link>
@@ -244,6 +250,11 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
             <div className="card">
               <p className="small">Mapped rows</p>
               <div className="kpi">{rows.toLocaleString()}</div>
+            </div>
+            <div className="card">
+              <p className="small">Visibility</p>
+              <div className="workspaceSettingValue">{visibility.label}</div>
+              <p className="small">{visibility.detail}</p>
             </div>
             <div className="card">
               <p className="small">Workspace</p>
