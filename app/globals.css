@@ -1746,6 +1746,42 @@ button {
   font-size: 13px;
   font-weight: 800;
 }
+.lifecycleOpsIntro {
+  align-items: flex-end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.lifecycleOpsIntro h3,
+.lifecycleOpsIntro p {
+  margin-bottom: 0;
+}
+.lifecycleOpsIntro > div {
+  max-width: 760px;
+}
+.lifecycleOpsGrid,
+.lifecycleOpsExecutionGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.lifecycleOpsExecutionGrid {
+  margin-top: 12px;
+}
+.lifecycleOpsCard {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+}
+.lifecycleOpsCard h3,
+.lifecycleOpsCard p {
+  margin-bottom: 0;
+}
+.lifecycleOpsCard h3 {
+  font-size: 16px;
+  line-height: 1.25;
+}
 .connectionInventoryGrid {
   display: grid;
   gap: 12px;
@@ -3188,8 +3224,14 @@ button {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .connectionChooserGrid,
   .connectionInventoryGrid,
+  .lifecycleOpsGrid,
+  .lifecycleOpsExecutionGrid,
   .connectionDefinitionGrid,
   .workspaceAuthPanel { grid-template-columns: 1fr; }
+  .lifecycleOpsIntro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .workspaceSettingsPanel,
   .workspaceSettingsFacts,
   .workspaceAccountProfileFacts,

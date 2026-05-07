@@ -64,6 +64,60 @@ const rolloutSteps = [
   "Run a model with owned data"
 ];
 
+const lifecycleObjectConnectors = [
+  {
+    object: "Users",
+    systems: "Postgres, CRM, ESP profile store, warehouse",
+    requirement: "Resolve the person, contact channel, account membership, consent, and suppression state."
+  },
+  {
+    object: "Entities",
+    systems: "Warehouse, CRM, product database, catalog, marketplace data store",
+    requirement: "Keep companies, products, properties, records, locations, or assets fresh enough for triggered programs."
+  },
+  {
+    object: "Interest edges",
+    systems: "Product analytics, Redis, Spark/Databricks, feature store, graph store",
+    requirement: "Persist the relationship between a user and an entity so agents can explain why a message is relevant."
+  },
+  {
+    object: "Events",
+    systems: "Webhook, event stream, CDC feed, Segment, app instrumentation",
+    requirement: "Capture changes, visits, usage, milestones, purchases, cancellations, and other trigger events."
+  }
+];
+
+const lifecycleExecutionConnectors = [
+  {
+    layer: "Delivery",
+    connectors: "ESP journey trigger, transactional API, outbound SMTP",
+    requirement: "Publish approved messages, return provider delivery ids, and enforce idempotency before sending."
+  },
+  {
+    layer: "Engagement",
+    connectors: "ESP webhooks, click redirect, landing-page pixel, reply processor",
+    requirement: "Observe sends, deliveries, opens, clicks, visits, replies, unsubscribes, complaints, and bounces."
+  },
+  {
+    layer: "Conversion",
+    connectors: "Product events, billing system, commerce platform, CRM opportunity updates, warehouse",
+    requirement: "Attach signup, purchase, upgrade, renewal, retention, refund, and cancellation events to the message or holdout."
+  },
+  {
+    layer: "Revenue proof",
+    connectors: "Holdout assignment, baseline window, attribution model, customer-visible dashboard",
+    requirement: "Show incremental revenue, confidence flags, risk events, and the fee basis for performance engagements."
+  }
+];
+
+const lifecycleHardeningSteps = [
+  "Generalize saved source configs into connector configs with provider, capability, auth state, sync health, and workspace visibility.",
+  "Add fake warehouse, webhook, ESP, SMTP, engagement, and conversion connectors before provider-specific integrations.",
+  "Build AI-assisted mapping against users, entities, interest edges, events, consent, engagement, and revenue schemas.",
+  "Create durable sync jobs with cursors, replay, rejected-row repair, dead-letter review, and freshness gates.",
+  "Add policy gates for consent, suppression, frequency caps, holdouts, approval, and production send enablement."
+];
+
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -167,6 +221,39 @@ export default async function DemoConnectionsPage() {
         </div>
       </Section>
 
+      <Section title="Lifecycle operations blueprint">
+        <div className="lifecycleOpsIntro">
+          <div>
+            <p className="editorKicker">Production integration target</p>
+            <h3>Persistent object connectors plus delivery and outcome observation</h3>
+            <p>
+              Lifecycle cannot depend on an ESP as the only source of truth. Users, entities, interest edges, and
+              triggering events may live in different customer systems, while delivery, engagement, and conversion
+              evidence may come from another set of providers.
+            </p>
+          </div>
+          <Link className="btn smallBtn" href="/lifecycle/connections">Open lifecycle import history</Link>
+        </div>
+        <div className="lifecycleOpsGrid">
+          {lifecycleObjectConnectors.map((item) => (
+            <div className="card lifecycleOpsCard" key={item.object}>
+              <p className="editorKicker">{item.object}</p>
+              <h3>{item.systems}</h3>
+              <p>{item.requirement}</p>
+            </div>
+          ))}
+        </div>
+        <div className="lifecycleOpsExecutionGrid">
+          {lifecycleExecutionConnectors.map((item) => (
+            <div className="card lifecycleOpsCard" key={item.layer}>
+              <p className="editorKicker">{item.layer}</p>
+              <h3>{item.connectors}</h3>
+              <p>{item.requirement}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       <Section title="Connection inventory">
         <div className="connectionInventoryGrid">
           {connectorSummary.map((item) => (
@@ -261,6 +348,34 @@ export default async function DemoConnectionsPage() {
                         ? "Persist the map so the user does not repeat setup work."
                         : "Route normalized data into the selected tool and generate outputs."}
               </p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Lifecycle hardening path">
+        <div className="connectionDefinitionGrid">
+          <div className="card connectionDefinitionCard">
+            <p className="editorKicker">Near-term build</p>
+            <h3>Connector contracts before provider sprawl</h3>
+            <p>
+              The next production step is to make the connector model explicit enough that fake connectors,
+              tests, health states, mapping previews, and audit events can stabilize before we add real providers.
+            </p>
+          </div>
+          <div className="card connectionDefinitionCard">
+            <p className="editorKicker">Operating goal</p>
+            <h3>Agents can run lifecycle programs inside partner infrastructure</h3>
+            <p>
+              The customer connects source systems and messaging providers; David Wolfe agents capture events,
+              trigger approved messages, observe outcomes, and prove revenue lift.
+            </p>
+          </div>
+        </div>
+        <div className="signalStrip">
+          {lifecycleHardeningSteps.map((step, index) => (
+            <div className="signalStep" key={step}>
+              <strong>{index + 1}. {step}</strong>
             </div>
           ))}
         </div>
