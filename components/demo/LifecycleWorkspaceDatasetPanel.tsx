@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { applyLifecycleDatasetSnapshotAction } from "@/app/(demo)/lifecycle/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { accountOwnedImportWhere, canUseImportedData, resolveActiveDataSourceMode } from "@/lib/account-data-scope";
 import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -41,7 +42,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
     const [latestImport, latestSource, snapshots, activeSelection, users, entities, interestEdges, events] = await Promise.all([
       db.lifecycleImportLog.findFirst({
         where: {
-          accountUserId: session?.userId ?? "__anonymous_no_imports__"
+          ...accountOwnedImportWhere(session?.userId)
         },
         orderBy: { createdAt: "desc" }
       }),
@@ -57,7 +58,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
       db.workspaceDataset.findMany({
         where: {
           app: "lifecycle",
-          accountUserId: session?.userId ?? "__anonymous_no_imports__"
+          ...accountOwnedImportWhere(session?.userId)
         },
         orderBy: { createdAt: "desc" },
         take: 12
@@ -98,7 +99,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
         <ToolDataSourceSelector
           appLabel="Lifecycle"
           scope="lifecycle"
-          activeMode={session && activeSelection?.mode === "imported" ? "imported" : "sample"}
+          activeMode={resolveActiveDataSourceMode(session?.userId, activeSelection?.mode)}
           activeLabel={activeSelection?.label ?? "Lifecycle sample data"}
           activeDatasetId={activeSelection?.datasetId}
           stats={[
@@ -111,7 +112,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
             id: snapshot.id,
             label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
           }))}
-          canUseImportedData={Boolean(session)}
+          canUseImportedData={canUseImportedData(session?.userId)}
           applyDatasetAction={applyLifecycleDatasetSnapshotAction}
         />
       </div>

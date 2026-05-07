@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { shouldCreateAccountOwnedImportSnapshot } from "@/lib/account-data-scope";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { getDefaultWorkspace } from "@/lib/workspace";
@@ -37,6 +38,7 @@ export async function createWorkspaceDatasetSnapshot(input: WorkspaceDatasetSnap
     const accountUser = session
       ? await db.accountUser.findUnique({ where: { id: session.userId }, select: { id: true } })
       : null;
+    if (!shouldCreateAccountOwnedImportSnapshot(accountUser?.id)) return null;
 
     return await db.workspaceDataset.create({
       data: {

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { applyRetentionDatasetSnapshotAction } from "@/app/(demo)/retention/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { accountOwnedImportWhere, canUseImportedData, resolveActiveDataSourceMode } from "@/lib/account-data-scope";
 import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -53,7 +54,7 @@ export async function RetentionWorkspaceDatasetPanel({ compact = false }: Retent
       db.workspaceDataset.findMany({
         where: {
           app: "retention",
-          accountUserId: session?.userId ?? "__anonymous_no_imports__"
+          ...accountOwnedImportWhere(session?.userId)
         },
         orderBy: { createdAt: "desc" },
         take: 12
@@ -91,7 +92,7 @@ export async function RetentionWorkspaceDatasetPanel({ compact = false }: Retent
         <ToolDataSourceSelector
           appLabel="Retention"
           scope="retention"
-          activeMode={session && activeSelection?.mode === "imported" ? "imported" : "sample"}
+          activeMode={resolveActiveDataSourceMode(session?.userId, activeSelection?.mode)}
           activeLabel={activeSelection?.label ?? "Retention sample data"}
           activeDatasetId={activeSelection?.datasetId}
           stats={[
@@ -104,7 +105,7 @@ export async function RetentionWorkspaceDatasetPanel({ compact = false }: Retent
             id: snapshot.id,
             label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
           }))}
-          canUseImportedData={Boolean(session)}
+          canUseImportedData={canUseImportedData(session?.userId)}
           applyDatasetAction={applyRetentionDatasetSnapshotAction}
         />
       </div>
