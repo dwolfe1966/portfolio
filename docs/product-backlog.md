@@ -39,6 +39,7 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | K8 | End-to-end workspace data verification | DW | M | S10 | 🟡 | Walk each product app anonymously and logged in; verify sample fallback, imported dataset apply flow, and no cross-account leakage. |
 | K9 | Account-scope regression tests | DW | M | S10 | ✅ | Add tests for datasets, presets, source configs, active selections, ad connections, and import logs with logged-in and anonymous paths. |
 | K10 | Workspace ownership and visibility labels | DW | S | S10 | ✅ | Workspace inventories and product selectors label shared sample/default data, personal account-owned data, and future team/shared visibility. |
+| K11 | Multi-workspace/team account model | DW | S | S10 | ✅ | Define future workspace membership, roles, visibility, credential grants, and client hierarchy direction before collaboration work begins. |
 | D15 | Product-oriented website language pass | DW | S | S10 | ✅ | Public copy describes the surfaces as tools/products/apps rather than demos, while internal route names remain stable. |
 | L1 | Lifecycle production integration architecture | DW | L | S11 | ⏳ | Define connector model for ESPs, enterprise data stores, event ingestion, identity resolution, consent, and outbound delivery. |
 | L2 | Acquisition production integration architecture | DW | L | S11 | ⏳ | Define connector model for Google Ads, Microsoft Ads, Meta Ads, budget operations, campaign state sync, and policy-bounded agent actions. |
@@ -50,7 +51,7 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 |---|---|---|---|
 | S8 | C8, C9, C10, C18, C19, C20, E6, E7 | — | — |
 | S9 | A6, B7, B13, B14, D6, D8, D9, D12, E8 | D7 | — |
-| S10 | K1, K2, K3, K4, K5, K6, K7, D15 | K8 | K9 |
+| S10 | K1, K2, K3, K4, K5, K6, K7, K9, K10, K11, D15 | K8 | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -263,10 +264,10 @@ Cross-product platform layer that turns the product apps from seeded examples in
 - ✅ K7. Added product source panels that show sample data availability, account-owned imported datasets, active source status, and switch feedback.
 - ✅ K9. Added account-scope regression tests and shared policy helpers for anonymous sample fallback, account-owned imports, active source selection, and import snapshot ownership.
 - ✅ K10. Added ownership and visibility labels across workspace inventories, source detail pages, lifecycle import history, dashboard active selections, and product imported dataset selectors.
+- ✅ K11. Defined the future multi-workspace/team account model in [`docs/multi-workspace-account-model.md`](./multi-workspace-account-model.md), including roles, visibility scopes, credential grants, audit boundaries, and migration path.
 
 ### To do
 - 🟡 K8. Verify each product app end to end in both anonymous sample mode and logged-in imported-data mode.
-- ⏳ K11. Define future multi-workspace/team account model before adding collaboration or client account hierarchies.
 
 ---
 
@@ -349,7 +350,7 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ A6
 
 ### Sprint S10 (account-aware product apps)
-- ✅ K1, K2, K3, K4, K5, K6, K7, K9, K10
+- ✅ K1, K2, K3, K4, K5, K6, K7, K9, K10, K11
 - 🟡 K8
 
 ### Sprint S11 (production integrations and performance model)
