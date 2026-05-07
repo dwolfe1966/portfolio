@@ -42,7 +42,8 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | K11 | Multi-workspace/team account model | DW | S | S10 | ✅ | Define future workspace membership, roles, visibility, credential grants, and client hierarchy direction before collaboration work begins. |
 | D15 | Product-oriented website language pass | DW | S | S10 | ✅ | Public copy describes the surfaces as tools/products/apps rather than demos, while internal route names remain stable. |
 | L1 | Lifecycle production integration architecture | DW | L | S11 | ✅ | Define connector model for ESPs, enterprise data stores, event ingestion, identity resolution, consent, and outbound delivery. |
-| L2 | Acquisition production integration architecture | DW | L | S11 | ⏳ | Define connector model for Google Ads, Microsoft Ads, Meta Ads, budget operations, campaign state sync, and policy-bounded agent actions. |
+| L2 | Lifecycle enterprise ingestion architecture | DW | M | S11 | ✅ | Define source contracts, sync modes, mapping validation, cursoring, replay, dead-letter handling, and health states for enterprise data ingestion. |
+| L6 | Acquisition production integration architecture | DW | L | S11 | ⏳ | Define connector model for Google Ads, Microsoft Ads, Meta Ads, budget operations, campaign state sync, and policy-bounded agent actions. |
 | M1 | Performance business operating model | DW | M | S11 | ⏳ | Define customer onboarding, baseline measurement, attribution, lift calculation, fee triggers, and risk controls for revenue-share engagements. |
 
 ### S8-S10 status snapshot (2026-05-07)
@@ -277,7 +278,7 @@ Robustness workstream for moving from product tools to production customer infra
 
 ### Lifecycle tool robustness
 - ✅ L1. Defined lifecycle production integration architecture in [`docs/lifecycle-production-integration-architecture.md`](./lifecycle-production-integration-architecture.md), including source ingestion, ESP/SMTP contracts, identity/consent controls, durable agent runbook, policy gates, and audit events.
-- ⏳ L2. Define enterprise data-store ingestion for warehouses, CRMs, product analytics, webhooks, S3/GCS files, reverse ETL, and event streams.
+- ✅ L2. Defined enterprise ingestion architecture in [`docs/lifecycle-enterprise-ingestion-architecture.md`](./lifecycle-enterprise-ingestion-architecture.md), including source kinds, sync modes, mapping validation, cursoring, replay, dead-letter handling, and source health.
 - ⏳ L3. Define outbound delivery connectors for SMTP and ESP campaign/message APIs, including sandbox, test-send, suppression, bounce, and unsubscribe handling.
 - ⏳ L4. Add identity resolution and consent controls so user/entity matching respects customer IDs, hashed emails, permissions, geography, opt-out state, and channel eligibility.
 - ⏳ L5. Add lifecycle agent runbooks: detect event, score opportunity, draft message, request approval when needed, trigger send, observe result, and update the audit trail.
@@ -354,7 +355,7 @@ Business-model workstream for using the tools and agents to operate customer rev
 - 🟡 K8
 
 ### Sprint S11 (production integrations and performance model)
-- ✅ L1
-- ⏳ L2, L3, L4, L5
+- ✅ L1, L2
+- ⏳ L3, L4, L5
 - ⏳ L6, L7, L8, L9, L10
 - ⏳ M1, M2, M3, M4
