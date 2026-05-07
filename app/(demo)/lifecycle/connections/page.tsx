@@ -42,7 +42,7 @@ export default async function LifecycleConnectionsPage() {
       <Section eyebrow="Operations" title="Import history">
         <p>
           Lifecycle is designed to run as a self-contained app with sample data. If workspace imports have been created,
-          this page only records their history; source setup is not part of the lifecycle demo flow.
+          this page only records their history; source setup is handled in the workspace connection flow.
         </p>
         <Link className="btn" href="/lifecycle/inputs">Open current app data</Link>
       </Section>

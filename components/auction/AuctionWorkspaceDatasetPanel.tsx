@@ -74,7 +74,7 @@ export async function AuctionWorkspaceDatasetPanel({ compact = false }: AuctionW
           <h3>Self-contained sample data is ready</h3>
           <p>
             {snapshots.length > 0
-              ? "Account-owned imported datasets are available, but this app remains usable as a standalone demo with the current app data below."
+              ? "Account-owned imported datasets are available, but this app remains usable as a standalone tool with the current app data below."
               : "Auction can run immediately with seeded advertisers, inventory slots, and bids."}
           </p>
         </div>

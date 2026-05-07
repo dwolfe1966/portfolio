@@ -74,7 +74,7 @@ export async function ExpansionWorkspaceDatasetPanel({ compact = false }: Expans
           <h3>Self-contained sample data is ready</h3>
           <p>
             {snapshots.length > 0
-              ? "Account-owned imported datasets are available, but this app remains usable as a standalone demo with the current app data below."
+              ? "Account-owned imported datasets are available, but this app remains usable as a standalone tool with the current app data below."
               : "Expansion can run immediately with seeded accounts, offers, and readiness policy."}
           </p>
         </div>

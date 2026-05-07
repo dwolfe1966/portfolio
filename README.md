@@ -1,6 +1,6 @@
 # David Wolfe Portfolio + Lifecycle Revenue Engine
 
-This is a starter Next.js App Router portfolio site and demo app for an AI-driven Lifecycle Revenue Engine.
+This is a Next.js App Router portfolio site with account-aware AI revenue product apps.
 
 ## Local setup
 
@@ -32,7 +32,7 @@ Open `http://localhost:3000`.
 - `/writing/product-discovery-ai-loops`
 - `/contact`
 
-### Demo
+### Workspace and product app routes
 - `/demo`
 - `/demo/overview`
 - `/demo/inputs`
@@ -63,7 +63,7 @@ Open `http://localhost:3000`.
 ## Notes
 - `lib/ai.ts` uses the OpenAI Responses API when `OPENAI_API_KEY` is present.
 - If no API key is set, the app falls back to deterministic template output.
-- The demo password gate is intentionally left lightweight for refinement in Codex.
+- Account login, registration, and workspace-scoped data flows are available under `/demo/login`, `/demo/register`, and `/demo/dashboard`.
 - Set `CONTACT_WEBHOOK_URL` to deliver contact form submissions to your webhook endpoint.
 
 

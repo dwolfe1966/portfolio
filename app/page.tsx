@@ -33,7 +33,7 @@ const differentiators = [
 const proofStats = [
   { label: "Operating range", value: "Product · Data · Growth · Engineering" },
   { label: "Public + venture-backed contexts", value: "Napster · Interactive One · Goldbelly · MyLife" },
-  { label: "Portfolio proof", value: "6 runnable AI revenue Tools" }
+  { label: "Portfolio proof", value: "6 runnable AI revenue tools" }
 ];
 
 type FeaturedProject = {

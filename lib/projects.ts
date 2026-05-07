@@ -64,7 +64,7 @@ export const projects: ProjectEntry[] = [
         { label: "Campaign opportunities", href: "/lifecycle/campaigns", detail: "Shows candidate filtering, scoring evidence, and generated campaign runs." }
       ],
       guardrails: [
-        { label: "Schema fallback", detail: "Pages and APIs degrade with compatibility messaging when demo tables are missing." },
+        { label: "Schema fallback", detail: "Pages and APIs degrade with compatibility messaging when product tables are missing." },
         { label: "Mutation gating", detail: "Seed and simulation endpoints are controlled by environment flags." },
         { label: "Auditability", detail: "Run details connect assumptions, candidates, score components, and generated messages." }
       ]

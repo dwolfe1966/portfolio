@@ -1,8 +1,8 @@
 # Product Backlog (Execution Plan)
 
-Last updated: 2026-05-02
+Last updated: 2026-05-07
 
-This backlog is the canonical source of truth for workstreams A–E.
+This backlog is the canonical source of truth for the portfolio, product-app, workspace, and performance-business workstreams.
 
 ## Workstream map
 - **A**: Backlog governance and planning discipline
@@ -10,6 +10,14 @@ This backlog is the canonical source of truth for workstreams A–E.
 - **C**: Acquisition app maturity
 - **D**: Website/content expansion
 - **E**: Operations and deployment consistency
+- **F**: Product app design system
+- **G**: Auction Desk product app
+- **H**: Pricing Experimentation Control Tower product app
+- **I**: Retention Risk Command Center product app
+- **J**: Expansion Revenue Intelligence product app
+- **K**: Account-aware workspace platform
+- **L**: Production integration and agent execution robustness
+- **M**: Performance-based revenue business model
 
 ## Status legend
 - ✅ Completed
@@ -17,25 +25,31 @@ This backlog is the canonical source of truth for workstreams A–E.
 - ⏳ To do
 - 🚧 Blocked (waiting on dependency)
 
-## Active sprint: S9 (content, conversion, and polish)
+## Active sprint: S10 (account-aware product apps and robustness planning)
 
 | ID | Item | Owner | Size | Sprint | Status | Acceptance criteria |
 |---|---|---|---|---|---|---|
-| C18 | Campaign workflow pages (`/acquisition/campaigns`, `/acquisition/create`, `/acquisition/campaigns/[id]`) | DW | M | S8 | ✅ | Operators can list campaigns, create new campaigns, and inspect campaign detail state/cell/activity data. |
-| C19 | Operator override controls (budget locks + max-shift tuning) | DW | M | S8 | ✅ | Dashboard exposes explicit override controls and persists operator actions in audit log. |
-| C20 | Scenario-level controls + Monte Carlo distribution outputs | DW | M | S8 | ✅ | Acquisition simulation supports scenario settings and distribution results for planning confidence. |
-| C8 | Guardrails UI (approval threshold/max-shift/cooldown) | DW | S | S8 | ✅ | Guardrail controls are editable and reflected in run behavior. |
-| C9 | Manual override controls + persisted override logs | DW | S | S8 | ✅ | Override actions are visible, reversible, and audit-logged. |
-| C10 | Scenario save/load presets | DW | S | S8 | ✅ | Users can save named acquisition scenarios and rerun them reliably. |
-| E6 | Environment-specific endpoint guardrails | DW | S | S8 | ✅ | Seed/simulation mutator endpoints are environment-gated. |
-| E7 | Structured API error contract | DW | S | S8 | ✅ | API responses follow consistent JSON error shape across lifecycle/acquisition routes, including legacy endpoints and compatibility-mode fallbacks. |
+| K1 | Account login and registration | DW | M | S10 | ✅ | Users can register, log in, receive a signed account session, and attach to the default workspace. |
+| K2 | Account-scoped datasets | DW | M | S10 | ✅ | Imported workspace datasets are associated with the account that created them while anonymous users can still use shared sample data. |
+| K3 | Account-scoped workspace source configs and presets | DW | M | S10 | ✅ | Mapping configs, saved presets, and source setup are visible to their owner plus shared defaults. |
+| K4 | Account-scoped lifecycle activity and import logs | DW | S | S10 | ✅ | Lifecycle imports and activity can be filtered to the logged-in account. |
+| K5 | Account-scoped ad connections | DW | S | S10 | ✅ | Google Ads connection rows are attached to the account session. |
+| K6 | Per-app data source selection | DW | M | S10 | ✅ | Lifecycle, Acquisition, Auction, Pricing, Retention, and Expansion can track sample vs imported active data source per account. |
+| K7 | Product-app source panels | DW | M | S10 | ✅ | Each product app exposes sample data, account-owned imported datasets, active source status, and switch feedback. |
+| K8 | End-to-end workspace data verification | DW | M | S10 | 🟡 | Walk each product app anonymously and logged in; verify sample fallback, imported dataset apply flow, and no cross-account leakage. |
+| K9 | Account-scope regression tests | DW | M | S10 | ⏳ | Add tests for datasets, presets, source configs, active selections, ad connections, and import logs with logged-in and anonymous paths. |
+| D15 | Product-oriented website language pass | DW | S | S10 | ✅ | Public copy describes the surfaces as tools/products/apps rather than demos, while internal route names remain stable. |
+| L1 | Lifecycle production integration architecture | DW | L | S11 | ⏳ | Define connector model for ESPs, enterprise data stores, event ingestion, identity resolution, consent, and outbound delivery. |
+| L2 | Acquisition production integration architecture | DW | L | S11 | ⏳ | Define connector model for Google Ads, Microsoft Ads, Meta Ads, budget operations, campaign state sync, and policy-bounded agent actions. |
+| M1 | Performance business operating model | DW | M | S11 | ⏳ | Define customer onboarding, baseline measurement, attribution, lift calculation, fee triggers, and risk controls for revenue-share engagements. |
 
-### S8 & S9 status snapshot (2026-04-28)
+### S8-S10 status snapshot (2026-05-07)
 
 | Sprint | Completed | In progress | Remaining |
 |---|---|---|---|
 | S8 | C8, C9, C10, C18, C19, C20, E6, E7 | — | — |
 | S9 | A6, B7, B13, B14, D6, D8, D9, D12, E8 | D7 | — |
+| S10 | K1, K2, K3, K4, K5, K6, K7, D15 | K8 | K9 |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -66,7 +80,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 | Contact form + anti-spam + UX states | D8 (existing, now priority raised) |
 | Copy cleanup + contextual tooltips + first-run intro modal | D12, B13 (new) |
 | About section informed by LinkedIn profile | D14 (new) |
-| Richer business context + advanced graph visuals in demo explanations | B14, B15 (new) |
+| Richer business context + advanced graph visuals in product-app explanations | B14, B15 (new) |
 
 ---
 
@@ -90,7 +104,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ### Completed
 - ✅ B1. Workspace IA exists with dedicated pages for overview/inputs/simulations/outputs.
 - ✅ B2. Outputs page includes schema compatibility handling and graceful fallback.
-- ✅ B3. Health endpoint exists for demo DB readiness checks.
+- ✅ B3. Health endpoint exists for product-app DB readiness checks.
 - ✅ B4. Scoring explainability UI and assumptions persistence baseline are present.
 
 ### Completed
@@ -104,8 +118,8 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ B10. Implement interactive `ScoringSettings` panel (slider + numeric + lock + auto-rebalance).
 - ✅ B11. Add `VariableDefinitions` panel (input/output definitions with examples).
 - ✅ B12. Add simulation visualizations (pipeline bars + funnel + trend chart) with low-clutter styling.
-- ✅ B13. Add contextual tooltips and first-run intro modal in demo workspace.
-- ✅ B14. Add business-context explanation blocks in demo flows (why users/entities/change-events matter commercially).
+- ✅ B13. Add contextual tooltips and first-run intro modal in product workspace.
+- ✅ B14. Add business-context explanation blocks in product flows (why users/entities/change-events matter commercially).
 - ✅ B15. Explore advanced graph-based dataflow visualizations beyond current topology map (multi-hop relationships, influence paths, and cluster views).
 - ✅ B16. Improve Monte Carlo UX feedback in simulations (visible run count, refresh confirmation, and distribution summary cues).
 - ✅ B17. Add interest relations visibility on Lifecycle Inputs alongside sample users and entities.
@@ -164,16 +178,16 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ D8. Add contact form delivery path with spam mitigation and success/error UX.
 - ✅ D9. Perform metadata/OG pass on all key pages.
 - ✅ D10. Add responsive mobile hamburger behavior to top nav while preserving 5-item IA.
-- ✅ D11. Embed lifecycle pipeline diagram on project/demo overview and acquisition flow diagram on project page.
-- ✅ D12. Copy de-duplication pass across Home/About/Projects/Demo pages to remove repeated phrasing.
+- ✅ D11. Embed lifecycle pipeline diagram on project/product overview and acquisition flow diagram on project page.
+- ✅ D12. Copy de-duplication pass across Home/About/Projects/Product pages to remove repeated phrasing.
 - ✅ D13. Run visual design review for Home/About/Lifecycle/Acquisition and apply hierarchy, focus-state, card, status, and infographic polish.
 - ✅ D14. Enrich About section with LinkedIn profile context (career highlights, credibility signals, and profile linkage).
 
 ---
 
-## G) Auction Desk demo (Tier C)
+## G) Auction Desk Product App (Tier C)
 
-Third demo app — interactive Vickrey-style auction simulator for a closed advertising ecosystem. Spec at [`docs/auction-demo-spec.md`](./auction-demo-spec.md).
+Third product app — interactive Vickrey-style auction simulator for a closed advertising ecosystem. Spec at [`docs/auction-demo-spec.md`](./auction-demo-spec.md).
 
 ### Completed
 - ✅ G1. Phase A — pure auction engine (`lib/auction-engine.ts`) + 8-model schema + migration + 22 unit tests covering ranking, reserve, pacing, behavior modes, KPI math, suggestReserve, and HHI/churn (`706c1a5`).
@@ -184,9 +198,9 @@ Third demo app — interactive Vickrey-style auction simulator for a closed adve
 
 ---
 
-## H) Pricing Experimentation Control Tower demo
+## H) Pricing Experimentation Control Tower Product App
 
-Fourth demo app — pricing experiment operating system for segmented price/packaging tests with margin, churn, support-load, and holdout guardrails. Spec at [`docs/pricing-demo-spec.md`](./pricing-demo-spec.md).
+Fourth product app — pricing experiment operating system for segmented price/packaging tests with margin, churn, support-load, and holdout guardrails. Spec at [`docs/pricing-demo-spec.md`](./pricing-demo-spec.md).
 
 ### Completed
 - ✅ H1. Phase A — pure pricing experiment engine + schema + validation/tests.
@@ -197,40 +211,102 @@ Fourth demo app — pricing experiment operating system for segmented price/pack
 
 ---
 
-## I) Retention Risk Command Center demo
+## I) Retention Risk Command Center Product App
 
-Fifth demo app — account retention risk operating system for churn prediction, intervention planning, SLA ownership, and save-rate economics. Spec at [`docs/retention-demo-spec.md`](./retention-demo-spec.md).
+Fifth product app — account retention risk operating system for churn prediction, intervention planning, SLA ownership, and save-rate economics. Spec at [`docs/retention-demo-spec.md`](./retention-demo-spec.md).
 
 ### Completed
 - ✅ I1. Phase A — pure retention risk engine, schema, migration, seeded account/playbook/policy data, and unit tests.
-- ✅ I2. Phase B — run and intervention APIs with mutation guardrails, reset support, and demo health endpoint.
+- ✅ I2. Phase B — run and intervention APIs with mutation guardrails, reset support, and product health endpoint.
 - ✅ I3. Phase C — shell wiring plus overview, inputs, accounts, simulations, outputs, interventions, and audit pages.
-- ✅ I4. Phase D — portfolio project integration, home-page launch card, and evidence links to live demo surfaces.
+- ✅ I4. Phase D — portfolio project integration, home-page launch card, and evidence links to live product surfaces.
 
 ---
 
-## J) Expansion Revenue Intelligence demo
+## J) Expansion Revenue Intelligence Product App
 
-Sixth demo app — installed-base revenue intelligence system for expansion readiness, upsell motion selection, ARR economics, and auditability. Spec at [`docs/expansion-demo-spec.md`](./expansion-demo-spec.md).
+Sixth product app — installed-base revenue intelligence system for expansion readiness, upsell motion selection, ARR economics, and auditability. Spec at [`docs/expansion-demo-spec.md`](./expansion-demo-spec.md).
 
 ### Completed
 - ✅ J1. Phase A — pure expansion engine, schema, migration, seeded account/offer/policy data, and unit tests.
-- ✅ J2. Phase B — run API, reset support, and demo health endpoint.
+- ✅ J2. Phase B — run API, reset support, and product health endpoint.
 - ✅ J3. Phase C — shell wiring plus overview, inputs, accounts, simulations, outputs, and audit pages.
-- ✅ J4. Phase D — portfolio project integration, home-page launch card, and evidence links to live demo surfaces.
+- ✅ J4. Phase D — portfolio project integration, home-page launch card, and evidence links to live product surfaces.
 
 ---
 
-## F) Demo app design system
+## F) Product app design system
 
-Cross-cutting UX/IA workstream covering both lifecycle and acquisition demo apps. Goal: make the demo experience visually and structurally distinct from the portfolio site (which today only differs by background color).
+Cross-cutting UX/IA workstream covering the revenue product apps. Goal: make the tool experience visually and structurally distinct from the portfolio site.
 
 Design direction: **Mission Control with monospace KPIs**. Full spec: [`docs/demo-design-system.md`](./demo-design-system.md).
 
 ### Completed
-- ✅ F1. Persistent left vertical navigation rail and DemoAppShell wrapping for `/lifecycle/*` and `/acquisition/*` routes. Marketing chrome suppressed inside demo routes.
+- ✅ F1. Persistent left vertical navigation rail and app shell wrapping for `/lifecycle/*` and `/acquisition/*` routes. Marketing chrome suppressed inside product routes.
 - ✅ F2. Visual differentiation system shipped: design tokens scoped under `.demoAppShell`, monospace KPIs, denser typography/tables, status colors mapped to policy-engine bands, StatusDot/MetricChip/Breadcrumbs primitives, optional global status indicator in app header.
-- ✅ F3. Portfolio↔demo entry/exit treatment: `DemoAppLaunchCard` on home and project detail pages establishes intentional handoff; demo breadcrumbs lead with `Portfolio` for one-click return.
+- ✅ F3. Portfolio↔product entry/exit treatment: launch cards on home and project detail pages establish intentional handoff; product breadcrumbs lead with `Portfolio` for one-click return.
+
+---
+
+## K) Account-aware workspace platform
+
+Cross-product platform layer that turns the product apps from seeded examples into account-aware tools. The core product promise is: logged-in users can use their own workspace data, while anonymous visitors can still use sample data immediately.
+
+### Completed
+- ✅ K1. Replaced the lightweight workspace password flow with account registration, login, signed sessions, password hashing, and default workspace membership.
+- ✅ K2. Added account ownership to imported workspace datasets so CSV and Google Sheets snapshots can belong to the user who created them.
+- ✅ K3. Scoped workspace source configs, mapping presets, and saved app presets by account while preserving shared defaults.
+- ✅ K4. Scoped lifecycle import logs and activity to account sessions.
+- ✅ K5. Scoped ad account connections to account sessions.
+- ✅ K6. Added per-app data-source selections for Lifecycle, Acquisition, Auction, Pricing, Retention, and Expansion.
+- ✅ K7. Added product source panels that show sample data availability, account-owned imported datasets, active source status, and switch feedback.
+
+### To do
+- 🟡 K8. Verify each product app end to end in both anonymous sample mode and logged-in imported-data mode.
+- ⏳ K9. Add account-scope regression tests for datasets, presets, source configs, active selections, ad connections, and import logs.
+- ⏳ K10. Add explicit ownership and visibility labels to workspace tables so users can distinguish shared samples, personal imports, and future team/shared datasets.
+- ⏳ K11. Define future multi-workspace/team account model before adding collaboration or client account hierarchies.
+
+---
+
+## L) Production integration and agent execution robustness
+
+Robustness workstream for moving from product tools to production customer infrastructure. The goal is to let customers connect their systems, define policy, and have David Wolfe agents operate revenue programs under measurable controls.
+
+### Lifecycle tool robustness
+- ⏳ L1. Define connector contracts for arbitrary email service providers (Iterable, Braze, Klaviyo, Customer.io, HubSpot, Salesforce Marketing Cloud, Mailchimp).
+- ⏳ L2. Define enterprise data-store ingestion for warehouses, CRMs, product analytics, webhooks, S3/GCS files, reverse ETL, and event streams.
+- ⏳ L3. Define outbound delivery connectors for SMTP and ESP campaign/message APIs, including sandbox, test-send, suppression, bounce, and unsubscribe handling.
+- ⏳ L4. Add identity resolution and consent controls so user/entity matching respects customer IDs, hashed emails, permissions, geography, opt-out state, and channel eligibility.
+- ⏳ L5. Add lifecycle agent runbooks: detect event, score opportunity, draft message, request approval when needed, trigger send, observe result, and update the audit trail.
+
+### Acquisition tool robustness
+- ⏳ L6. Expand ad connector abstraction from read-only Google test accounts to production-safe Google Ads, Microsoft Ads, and Meta Ads integrations.
+- ⏳ L7. Add write-operation safety for campaign creation, budget edits, pause/resume, creative upload, audience sync, and rollback.
+- ⏳ L8. Add policy gates for spend caps, max daily shift, CAC/LTV thresholds, confidence, cooldowns, approvals, and emergency stop.
+- ⏳ L9. Add cross-channel normalization for spend, impressions, clicks, conversions, attribution windows, campaign states, and naming conventions.
+- ⏳ L10. Add acquisition agent runbooks: observe performance, diagnose cell movement, propose action, apply approved action, monitor reversal conditions, and log revenue impact.
+
+### Cross-tool agent platform
+- ⏳ L11. Add connector health checks, permission audits, sync status, credential rotation, and customer-visible integration diagnostics.
+- ⏳ L12. Add durable job queues for ingestion, scoring, generation, send/apply actions, retries, idempotency, and dead-letter review.
+- ⏳ L13. Add human approval queues and escalation paths for high-risk revenue actions.
+- ⏳ L14. Add tenant isolation, secrets management, audit export, and compliance posture needed for partner/customer infrastructure.
+
+---
+
+## M) Performance-based revenue business model
+
+Business-model workstream for using the tools and agents to operate customer revenue programs and earn compensation when measurable performance improves.
+
+### To do
+- ⏳ M1. Define the performance contract: baseline period, eligible revenue, attribution logic, incrementality method, exclusions, clawbacks, reporting cadence, and payout schedule.
+- ⏳ M2. Define customer onboarding: system access, data permissions, channel credentials, consent review, billing data, historical baselines, and initial policy constraints.
+- ⏳ M3. Define measurement for lifecycle: triggered users, messages sent, conversions, incremental revenue, unsubscribe/spam risk, and holdout/control methodology.
+- ⏳ M4. Define measurement for acquisition: spend under management, CAC, LTV/CAC, ROAS, conversion quality, budget saved, and incremental profitable revenue.
+- ⏳ M5. Define operating packages: audit-only, recommendation-only, human-approved execution, and agent-managed execution.
+- ⏳ M6. Define risk controls: spending limits, customer approvals, kill switches, compliance review, channel reputation limits, and revenue-quality checks.
+- ⏳ M7. Define pricing model options: setup fee plus revenue share, managed-spend fee plus performance kicker, or success fee against agreed revenue lift.
 
 ---
 
@@ -270,3 +346,13 @@ Design direction: **Mission Control with monospace KPIs**. Full spec: [`docs/dem
 - ✅ B13, B14
 - ✅ B7, E7, E8
 - ✅ A6
+
+### Sprint S10 (account-aware product apps)
+- ✅ K1, K2, K3, K4, K5, K6, K7
+- 🟡 K8
+- ⏳ K9
+
+### Sprint S11 (production integrations and performance model)
+- ⏳ L1, L2, L3, L4, L5
+- ⏳ L6, L7, L8, L9, L10
+- ⏳ M1, M2, M3, M4

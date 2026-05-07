@@ -89,7 +89,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
           <h3>Self-contained sample data is ready</h3>
           <p>
             {hasWorkspaceImport
-              ? `A workspace import exists (${latestImport?.sourceName}), but this app remains usable as a standalone demo with the current app data below.`
+              ? `A workspace import exists (${latestImport?.sourceName}), but this app remains usable as a standalone tool with the current app data below.`
               : "Lifecycle can run immediately with seeded sample users, entities, interest edges, and events."}
           </p>
         </div>

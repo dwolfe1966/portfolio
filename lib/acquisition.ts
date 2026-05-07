@@ -174,7 +174,7 @@ export function validateAudienceTemplateInput(
 export function buildCreativeVariants(channels: AcquisitionChannel[]) {
   const base = [
     { headline: "Catch change signals before your competitors", description: "Turn external entity updates into revenue-ready outreach.", callToAction: "Book a walkthrough" },
-    { headline: "Increase winback revenue with AI lifecycle loops", description: "Prioritize the right users with explainable scoring and generated copy.", callToAction: "See live demo" },
+    { headline: "Increase winback revenue with AI lifecycle loops", description: "Prioritize the right users with explainable scoring and generated copy.", callToAction: "Open lifecycle tool" },
     { headline: "Reduce wasted spend with agent-managed growth", description: "Continuously rebalance budgets toward best-performing audiences.", callToAction: "Start pilot" }
   ];
 
