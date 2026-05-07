@@ -47,7 +47,8 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | L3 | Lifecycle delivery connector architecture | DW | M | S11 | ✅ | Define SMTP and ESP delivery contracts, send modes, suppression/bounce/unsubscribe handling, engagement/conversion event capture, idempotency, and delivery health. |
 | L4 | Lifecycle operations connector surface | DW | M | S11 | ✅ | Workspace Connections explains the production lifecycle object connectors, delivery connectors, engagement/conversion observation, revenue proof, and hardening path. |
 | L5 | Lifecycle connector contracts and fake providers | DW | L | S11 | ✅ | Add typed connector interfaces and fake warehouse, webhook, ESP, SMTP, engagement, and conversion providers with health, sync, preview, and audit behavior. |
-| L5.1 | Lifecycle connector health and preview API | DW | M | S11 | ⏳ | Expose fake lifecycle connector health, schema discovery, preview rows, sync dry-run, delivery test-send, and observation preview through account-aware workspace APIs. |
+| L5.1 | Lifecycle connector health and preview API | DW | M | S11 | ✅ | Expose fake lifecycle connector health, schema discovery, preview rows, sync dry-run, delivery test-send, and observation preview through account-aware workspace APIs. |
+| L5.2 | Persist lifecycle connector configs and audit events | DW | L | S11 | ⏳ | Add workspace-scoped connector config, health snapshot, credential-grant placeholder, sync run, and connector audit event persistence before real providers. |
 | L6 | Acquisition production integration architecture | DW | L | S11 | ⏳ | Define connector model for Google Ads, Microsoft Ads, Meta Ads, budget operations, campaign state sync, and policy-bounded agent actions. |
 | M1 | Performance business operating model | DW | M | S11 | ⏳ | Define customer onboarding, baseline measurement, attribution, lift calculation, fee triggers, and risk controls for revenue-share engagements. |
 

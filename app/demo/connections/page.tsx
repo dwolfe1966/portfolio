@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
+import { LifecycleConnectorLab } from "@/components/demo/LifecycleConnectorLab";
 import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
@@ -252,6 +253,10 @@ export default async function DemoConnectionsPage() {
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section title="Connector lab">
+        <LifecycleConnectorLab />
       </Section>
 
       <Section title="Connection inventory">

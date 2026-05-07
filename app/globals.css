@@ -1782,6 +1782,84 @@ button {
   font-size: 16px;
   line-height: 1.25;
 }
+.lifecycleConnectorLab {
+  display: grid;
+  gap: 14px;
+}
+.lifecycleConnectorLabHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+.lifecycleConnectorLabHeader h3,
+.lifecycleConnectorLabHeader p {
+  margin-bottom: 0;
+}
+.lifecycleConnectorLabHeader > div {
+  max-width: 760px;
+}
+.connectorLabStatus {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.connectorLabStatus strong {
+  color: var(--text);
+}
+.connectorLabStatus span {
+  color: var(--muted);
+}
+.connectorLabStatus--success {
+  border-color: color-mix(in oklab, var(--green) 36%, var(--line));
+}
+.connectorLabStatus--error {
+  border-color: color-mix(in oklab, #dc2626 42%, var(--line));
+}
+.connectorLabHealthGrid,
+.connectorLabActionGrid {
+  display: grid;
+  gap: 12px;
+}
+.connectorLabHealthGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.connectorLabActionGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.connectorLabHealthCard,
+.connectorLabActionCard {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+}
+.connectorLabHealthCard h3,
+.connectorLabHealthCard p,
+.connectorLabActionCard h3,
+.connectorLabActionCard p {
+  margin-bottom: 0;
+}
+.connectorLabActionCard button {
+  justify-self: start;
+}
+.connectorLabResult {
+  display: grid;
+  gap: 10px;
+}
+.connectorLabResult pre {
+  background: #0f172a;
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 12px;
+  max-height: 360px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+}
 .connectionInventoryGrid {
   display: grid;
   gap: 12px;
@@ -3226,10 +3304,15 @@ button {
   .connectionInventoryGrid,
   .lifecycleOpsGrid,
   .lifecycleOpsExecutionGrid,
+  .connectorLabHealthGrid,
+  .connectorLabActionGrid,
   .connectionDefinitionGrid,
   .workspaceAuthPanel { grid-template-columns: 1fr; }
   .lifecycleOpsIntro {
     align-items: flex-start;
+    flex-direction: column;
+  }
+  .lifecycleConnectorLabHeader {
     flex-direction: column;
   }
   .workspaceSettingsPanel,
