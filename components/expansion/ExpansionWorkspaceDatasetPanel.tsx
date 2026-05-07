@@ -85,7 +85,7 @@ export async function ExpansionWorkspaceDatasetPanel({ compact = false }: Expans
           <div><span>Runs</span><strong>{runs.toLocaleString()}</strong></div>
         </div>
         <div className="lifecycleDatasetMeta">
-          <p><strong>Active source:</strong> current expansion app tables. Apply an imported dataset below to replace them, or reset to sample data.</p>
+          <p><strong>Active source:</strong> {session ? "current expansion app tables. Apply an imported dataset below to replace them, or reset to sample data." : "current expansion sample app tables. Sign in to apply imported workspace data."}</p>
           <p><strong>App data:</strong> current expansion database rows</p>
           <p><strong>Available imported datasets:</strong> {snapshots.length.toLocaleString()}</p>
           <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
@@ -93,7 +93,7 @@ export async function ExpansionWorkspaceDatasetPanel({ compact = false }: Expans
         <ToolDataSourceSelector
           appLabel="Expansion"
           scope="expansion"
-          activeMode={activeSelection?.mode === "imported" ? "imported" : "sample"}
+          activeMode={session && activeSelection?.mode === "imported" ? "imported" : "sample"}
           activeLabel={activeSelection?.label ?? "Expansion sample data"}
           activeDatasetId={activeSelection?.datasetId}
           stats={[
@@ -106,6 +106,7 @@ export async function ExpansionWorkspaceDatasetPanel({ compact = false }: Expans
             id: snapshot.id,
             label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
           }))}
+          canUseImportedData={Boolean(session)}
           applyDatasetAction={applyExpansionDatasetSnapshotAction}
         />
       </div>

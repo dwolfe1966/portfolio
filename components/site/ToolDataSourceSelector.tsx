@@ -21,6 +21,7 @@ type ToolDataSourceSelectorProps = {
   activeMode: Mode;
   activeLabel: string;
   activeDatasetId?: string | null;
+  canUseImportedData?: boolean;
   stats: ToolDataSourceStat[];
   datasets: ToolDatasetOption[];
   applyDatasetAction: (formData: FormData) => void | Promise<void>;
@@ -38,12 +39,14 @@ export function ToolDataSourceSelector({
   activeMode,
   activeLabel,
   activeDatasetId,
+  canUseImportedData = true,
   stats,
   datasets,
   applyDatasetAction
 }: ToolDataSourceSelectorProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>(activeMode);
+  const resolvedActiveMode = canUseImportedData ? activeMode : "sample";
+  const [mode, setMode] = useState<Mode>(resolvedActiveMode);
   const [datasetId, setDatasetId] = useState(activeDatasetId ?? datasets[0]?.id ?? "");
   const [status, setStatus] = useState("");
   const [detail, setDetail] = useState("");
@@ -68,9 +71,9 @@ export function ToolDataSourceSelector({
   }, []);
 
   useEffect(() => {
-    setMode(activeMode);
+    setMode(canUseImportedData ? activeMode : "sample");
     setDatasetId(activeDatasetId ?? datasets[0]?.id ?? "");
-  }, [activeDatasetId, activeMode, datasets]);
+  }, [activeDatasetId, activeMode, canUseImportedData, datasets]);
 
   function clearProgressTimers() {
     timers.current.forEach((timer) => window.clearTimeout(timer));
@@ -181,7 +184,7 @@ export function ToolDataSourceSelector({
     startProgress(importedStages());
   }
 
-  const canApply = mode === "sample" || Boolean(datasetId);
+  const canApply = mode === "sample" || (canUseImportedData && Boolean(datasetId));
   const cta = "Apply selected source";
 
   return (
@@ -190,8 +193,8 @@ export function ToolDataSourceSelector({
         <div className="toolDataSourceStatusHeader">
           <div>
             <span>Active source</span>
-            <strong>{activeMode === "sample" ? "Sample Data" : "Imported Data"}</strong>
-            <p>{activeLabel}</p>
+            <strong>{resolvedActiveMode === "sample" ? "Sample Data" : "Imported Data"}</strong>
+            <p>{canUseImportedData ? activeLabel : `${appLabel} sample data`}</p>
           </div>
           <div>
             <span>Pending selection</span>
@@ -223,22 +226,24 @@ export function ToolDataSourceSelector({
             <small>Reset this tool to seeded sample rows.</small>
           </span>
         </label>
-        <label className={`toolDataSourceOption ${mode === "imported" ? "isSelected" : ""}`}>
-          <input
-            type="radio"
-            name="dataSourceMode"
-            value="imported"
-            checked={mode === "imported"}
-            onChange={() => setMode("imported")}
-          />
-          <span>
-            <strong>Option B: Use Imported Data</strong>
-            <small>Apply one of your imported dataset snapshots.</small>
-          </span>
-        </label>
+        {canUseImportedData ? (
+          <label className={`toolDataSourceOption ${mode === "imported" ? "isSelected" : ""}`}>
+            <input
+              type="radio"
+              name="dataSourceMode"
+              value="imported"
+              checked={mode === "imported"}
+              onChange={() => setMode("imported")}
+            />
+            <span>
+              <strong>Option B: Use Imported Data</strong>
+              <small>Apply one of your imported dataset snapshots.</small>
+            </span>
+          </label>
+        ) : null}
       </div>
 
-      {mode === "imported" && (
+      {canUseImportedData && mode === "imported" && (
         <label className="toolDataSourceDataset">
           Imported dataset
           <select name="datasetId" value={datasetId} onChange={(event) => setDatasetId(event.target.value)}>

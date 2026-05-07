@@ -84,7 +84,7 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
           <div><span>Runs</span><strong>{runs.toLocaleString()}</strong></div>
         </div>
         <div className="lifecycleDatasetMeta">
-          <p><strong>Active source:</strong> current pricing app tables. Apply an imported dataset below to replace them, or reset to sample data.</p>
+          <p><strong>Active source:</strong> {session ? "current pricing app tables. Apply an imported dataset below to replace them, or reset to sample data." : "current pricing sample app tables. Sign in to apply imported workspace data."}</p>
           <p><strong>App data:</strong> current pricing database rows</p>
           <p><strong>Available imported datasets:</strong> {snapshots.length.toLocaleString()}</p>
           <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
@@ -92,7 +92,7 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
         <ToolDataSourceSelector
           appLabel="Pricing"
           scope="pricing"
-          activeMode={activeSelection?.mode === "imported" ? "imported" : "sample"}
+          activeMode={session && activeSelection?.mode === "imported" ? "imported" : "sample"}
           activeLabel={activeSelection?.label ?? "Pricing sample data"}
           activeDatasetId={activeSelection?.datasetId}
           stats={[
@@ -105,6 +105,7 @@ export async function PricingWorkspaceDatasetPanel({ compact = false }: PricingW
             id: snapshot.id,
             label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
           }))}
+          canUseImportedData={Boolean(session)}
           applyDatasetAction={applyPricingDatasetSnapshotAction}
         />
       </div>

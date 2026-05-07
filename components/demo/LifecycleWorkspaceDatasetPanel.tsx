@@ -100,7 +100,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
           <div><span>Events</span><strong>{events.toLocaleString()}</strong></div>
         </div>
         <div className="lifecycleDatasetMeta">
-          <p><strong>Active source:</strong> current lifecycle app tables. Apply an imported dataset below to replace them, or reset to sample data.</p>
+          <p><strong>Active source:</strong> {session ? "current lifecycle app tables. Apply an imported dataset below to replace them, or reset to sample data." : "current lifecycle sample app tables. Sign in to apply imported workspace data."}</p>
           <p><strong>App data:</strong> current lifecycle database rows</p>
           <p><strong>Workspace import:</strong> {formatDate(latestImport?.createdAt)}{importedRows > 0 ? ` · ${importedRows.toLocaleString()} rows` : ""}</p>
           <p><strong>Workspace source:</strong> {latestSource ? `${latestSource.name} (${sourceLabel(latestSource.sourceType)})` : "None available"}</p>
@@ -108,7 +108,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
         <ToolDataSourceSelector
           appLabel="Lifecycle"
           scope="lifecycle"
-          activeMode={activeSelection?.mode === "imported" ? "imported" : "sample"}
+          activeMode={session && activeSelection?.mode === "imported" ? "imported" : "sample"}
           activeLabel={activeSelection?.label ?? "Lifecycle sample data"}
           activeDatasetId={activeSelection?.datasetId}
           stats={[
@@ -121,6 +121,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
             id: snapshot.id,
             label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
           }))}
+          canUseImportedData={Boolean(session)}
           applyDatasetAction={applyLifecycleDatasetSnapshotAction}
         />
       </div>
