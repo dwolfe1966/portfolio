@@ -586,6 +586,7 @@ section { padding: 36px 0; border-bottom: 1px solid var(--line); }
 }
 .statusPill.live { color: var(--green); border-color: color-mix(in oklab, var(--green) 35%, var(--line)); }
 .statusPill.progress { color: var(--amber); border-color: color-mix(in oklab, var(--amber) 35%, var(--line)); }
+.statusPill.warning { color: #b91c1c; border-color: color-mix(in oklab, #b91c1c 35%, var(--line)); }
 .statusPillStack {
   align-items: flex-end;
   display: flex;
@@ -2792,6 +2793,47 @@ button {
   color: var(--demo-text, var(--text));
   font-size: 12px;
   font-weight: 700;
+}
+.connectorChip.live {
+  border-color: color-mix(in oklab, var(--green) 34%, var(--demo-divider, var(--line)));
+  color: var(--green);
+}
+.connectorChip.progress {
+  border-color: color-mix(in oklab, var(--amber) 34%, var(--demo-divider, var(--line)));
+  color: var(--amber);
+}
+.connectorChip.warning {
+  border-color: color-mix(in oklab, #b91c1c 34%, var(--demo-divider, var(--line)));
+  color: #b91c1c;
+}
+.connectorDiagnosticList {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.connectorDiagnosticList li {
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+}
+.connectorDiagnosticList strong,
+.connectorDiagnosticList span {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.agentApprovalActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.agentApprovalActions form {
+  margin: 0;
 }
 .lifecycleCsvScaffold {
   display: grid;

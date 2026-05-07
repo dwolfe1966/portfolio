@@ -1,0 +1,145 @@
+"use server";
+
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { canApplyApprovalDecision } from "@/lib/agent-approval-queue";
+import { buildAgentJobRetryDecision, evaluateAgentJobManualAction } from "@/lib/agent-job-queue";
+import { db } from "@/lib/db";
+
+export async function decideAgentApprovalAction(formData: FormData) {
+  const cookieStore = await cookies();
+  const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+  if (!accountUserId) return;
+
+  const id = String(formData.get("id") ?? "");
+  const status = String(formData.get("status") ?? "");
+  if (!id || !["approved", "rejected", "cancelled"].includes(status)) return;
+
+  const workspace = await db.workspace.findUnique({ where: { slug: "default-demo-workspace" } });
+  if (!workspace) return;
+
+  const request = await db.agentApprovalRequest.findFirst({
+    where: {
+      id,
+      workspaceId: workspace.id,
+      OR: [{ requestedByAccountUserId: accountUserId }, { requestedByAccountUserId: null }]
+    }
+  });
+  if (!request || !canApplyApprovalDecision(request.status)) return;
+
+  await db.agentApprovalRequest.update({
+    where: { id: request.id },
+    data: {
+      status,
+      decidedByAccountUserId: accountUserId,
+      decisionReason: status === "approved" ? "Approved from workspace agent operations." : "Closed from workspace agent operations.",
+      decidedAt: new Date()
+    }
+  });
+
+  revalidatePath("/workspace/agents");
+  revalidatePath("/demo/agents");
+}
+
+export async function decideAgentJobAction(formData: FormData) {
+  const cookieStore = await cookies();
+  const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+  if (!accountUserId) return;
+
+  const id = String(formData.get("id") ?? "");
+  const action = String(formData.get("action") ?? "");
+  if (!id || !["claim", "complete", "fail", "cancel", "requeue"].includes(action)) return;
+
+  const workspace = await db.workspace.findUnique({ where: { slug: "default-demo-workspace" } });
+  if (!workspace) return;
+
+  const job = await db.agentJob.findFirst({
+    where: {
+      id,
+      workspaceId: workspace.id,
+      OR: [{ accountUserId }, { accountUserId: null }]
+    }
+  });
+  if (!job) return;
+
+  const decision = evaluateAgentJobManualAction({ status: job.status, action });
+  if (!decision.allowed) return;
+
+  const now = new Date();
+  if (action === "claim") {
+    await db.agentJob.update({
+      where: { id: job.id },
+      data: {
+        status: "running",
+        lockedAt: now,
+        lockedBy: accountUserId,
+        errorCode: null,
+        errorMessage: null
+      }
+    });
+  } else if (action === "complete") {
+    await db.agentJob.update({
+      where: { id: job.id },
+      data: {
+        status: "completed",
+        result: { completedFrom: "workspace_agent_operations" },
+        completedAt: now,
+        lockedAt: null,
+        lockedBy: null
+      }
+    });
+  } else if (action === "fail") {
+    const retry = buildAgentJobRetryDecision({
+      attemptCount: job.attemptCount,
+      maxAttempts: job.maxAttempts,
+      errorCode: "MANUAL_JOB_FAILURE",
+      errorMessage: "Failed from workspace agent operations.",
+      now
+    });
+    await db.agentJob.update({
+      where: { id: job.id },
+      data: {
+        status: retry.status,
+        attemptCount: retry.attemptCount,
+        runAfter: retry.runAfter ?? undefined,
+        deadLetteredAt: retry.deadLetteredAt,
+        failedAt: retry.status === "dead_lettered" ? retry.deadLetteredAt : now,
+        errorCode: retry.errorCode,
+        errorMessage: retry.errorMessage,
+        lockedAt: null,
+        lockedBy: null
+      }
+    });
+  } else if (action === "cancel") {
+    await db.agentJob.update({
+      where: { id: job.id },
+      data: {
+        status: "cancelled",
+        failedAt: now,
+        errorCode: "MANUAL_CANCEL",
+        errorMessage: "Cancelled from workspace agent operations.",
+        lockedAt: null,
+        lockedBy: null
+      }
+    });
+  } else if (action === "requeue") {
+    await db.agentJob.update({
+      where: { id: job.id },
+      data: {
+        status: "queued",
+        runAfter: now,
+        lockedAt: null,
+        lockedBy: null,
+        completedAt: null,
+        failedAt: null,
+        deadLetteredAt: null,
+        errorCode: null,
+        errorMessage: null
+      }
+    });
+  }
+
+  revalidatePath("/workspace/agents");
+  revalidatePath("/demo/agents");
+}

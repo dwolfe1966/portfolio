@@ -13,6 +13,8 @@ import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
+import { buildAgentExecutionPlan, persistAgentExecutionPlan } from "@/lib/agent-execution-plan";
+import { getDefaultWorkspace } from "@/lib/workspace";
 
 function accountUserIdFromRequest(req: NextRequest) {
   return verifyAccountSessionToken(req.cookies.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
@@ -34,6 +36,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const accountUserId = accountUserIdFromRequest(req);
   try {
+    const workspace = await getDefaultWorkspace();
     const requestedSetId = body.assumptionSetId ? String(body.assumptionSetId) : null;
     const selectedSet = requestedSetId
       ? await db.assumptionSet.findUnique({ where: { id: requestedSetId } })
@@ -109,6 +112,7 @@ export async function POST(req: NextRequest) {
 
     candidates.sort((a, b) => b.score - a.score);
     const selected = candidates.slice(0, topN);
+    let queuedAgentJobs = 0;
     for (const item of selected) {
       const candidate = await db.campaignCandidate.findUnique({
         where: { id: item.id },
@@ -145,7 +149,7 @@ export async function POST(req: NextRequest) {
         detectedAt: candidate.entityDelta.detectedAt.toISOString(),
         offerFraming: "Unlock the latest update with a paid subscription."
       });
-      await db.generatedMessage.create({
+      const message = await db.generatedMessage.create({
         data: {
           campaignCandidateId: candidate.id,
           subjectLine: copy.subjectLine,
@@ -161,6 +165,31 @@ export async function POST(req: NextRequest) {
         where: { id: candidate.id },
         data: { status: CampaignStatus.GENERATED }
       });
+      const plan = buildAgentExecutionPlan({
+        workspaceId: workspace.id,
+        accountUserId,
+        app: "lifecycle",
+        runbookId: `lifecycle:${run.id}:${candidate.id}`,
+        currentStep: "trigger_delivery",
+        steps: [
+          {
+            key: "trigger_delivery",
+            status: "ready",
+            auditEvent: "delivery.test_sent",
+            summary: "Queue delivery execution for the generated lifecycle message.",
+            reasons: []
+          }
+        ],
+        payload: {
+          campaignRunId: run.id,
+          campaignCandidateId: candidate.id,
+          generatedMessageId: message.id,
+          recipientEmail: candidate.user.email
+        },
+        now: new Date()
+      });
+      const persistedPlan = await persistAgentExecutionPlan(plan);
+      queuedAgentJobs += persistedPlan.jobsCreated;
     }
 
     const highPriority = candidates.filter((c) => c.score >= assumptions.highPriorityThreshold).length;
@@ -196,6 +225,7 @@ export async function POST(req: NextRequest) {
       totalMatches,
       totalHighPriority: highPriority,
       generated: selected.length,
+      queuedAgentJobs,
       estimatedRevenue,
       assumptions: {
         ...assumptions

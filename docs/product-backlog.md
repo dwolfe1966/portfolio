@@ -25,7 +25,7 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 - ⏳ To do
 - 🚧 Blocked (waiting on dependency)
 
-## Active sprint: S10 (account-aware product apps and robustness planning)
+## Active sprint: S13 (agent operations control loop)
 
 | ID | Item | Owner | Size | Sprint | Status | Acceptance criteria |
 |---|---|---|---|---|---|---|
@@ -63,6 +63,15 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | M5 | Performance operating packages | DW | M | S11 | ✅ | Define audit-only, recommendation-only, human-approved execution, and agent-managed execution packages, transition gates, downgrade triggers, and reporting. |
 | M6 | Performance risk controls | DW | M | S11 | ✅ | Define spending limits, customer approvals, kill switches, compliance review, channel reputation limits, revenue-quality checks, rollback controls, and control states. |
 | M7 | Performance pricing options | DW | M | S11 | ✅ | Define setup fee plus revenue share, managed-spend fee plus performance kicker, success fee against agreed lift, advisory retainer options, fee caps, floors, and adjustments. |
+| L11 | Connector diagnostics surface | DW | M | S11 | ✅ | Add customer-visible connector health, permission audit, sync status, credential-rotation placeholder, and diagnostic state checks for lifecycle connectors. |
+| L12 | Durable agent job queue | DW | L | S11 | ✅ | Add workspace-scoped durable job queue primitives for ingestion, scoring, generation, delivery, provider writes, observation, measurement, retries, idempotency, and dead-letter review. |
+| L13 | Human approval queue and escalation | DW | M | S11 | ✅ | Add workspace-scoped approval request primitives for high-risk revenue actions, approver metadata, proposed action payloads, due/expiry policy, escalation state, and decision audit fields. |
+| L14 | Agent platform governance posture | DW | M | S11 | ✅ | Add tenant access decisions, secret redaction and rotation posture, audit export row shaping, and compliance posture checks for partner/customer infrastructure readiness. |
+| L15 | Runbook-to-queue execution planner | DW | M | S12 | ✅ | Convert lifecycle/acquisition runbook current steps into durable job queue payloads, approval request payloads, wait/block states, priorities, and idempotency keys before worker orchestration. |
+| L16 | Persist execution plans from app flows | DW | M | S12 | ✅ | Wire lifecycle generation and acquisition iteration flows to persist planned `AgentJob` and `AgentApprovalRequest` records from runbook execution plans. |
+| L17 | Agent operations workspace view | DW | M | S12 | ✅ | Add customer-visible workspace view for queued jobs, pending approvals, dead-letter items, and governance posture with protected navigation. |
+| L18 | Agent approval decision controls | DW | S | S13 | ✅ | Add workspace-scoped approve, reject, and cancel controls for open agent approval requests from the protected operations view. |
+| L19 | Agent job transition controls | DW | M | S13 | ✅ | Add worker-safe manual claim, complete, fail, cancel, and requeue controls for queued/running/terminal agent jobs from the protected operations view. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -71,6 +80,9 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | S8 | C8, C9, C10, C18, C19, C20, E6, E7 | — | — |
 | S9 | A6, B7, B13, B14, D6, D8, D9, D12, E8 | D7 | — |
 | S10 | K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, D15 | — | — |
+| S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
+| S12 | L15, L16, L17 | — | — |
+| S13 | L18, L19 | — | L20 |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -315,10 +327,16 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L10. Added a tested acquisition agent runbook planner covering performance observation, cell diagnosis, action proposal, policy checks, approval waits, approved provider writes, reversal monitoring, and revenue attribution.
 
 ### Cross-tool agent platform
-- ⏳ L11. Add connector health checks, permission audits, sync status, credential rotation, and customer-visible integration diagnostics.
-- ⏳ L12. Add durable job queues for ingestion, scoring, generation, send/apply actions, retries, idempotency, and dead-letter review.
-- ⏳ L13. Add human approval queues and escalation paths for high-risk revenue actions.
-- ⏳ L14. Add tenant isolation, secrets management, audit export, and compliance posture needed for partner/customer infrastructure.
+- ✅ L11. Added customer-visible lifecycle connector diagnostics covering health checks, permission audits, sync status, credential-rotation placeholder state, missing capabilities, diagnostic severity, API payloads, connector lab UI, and unit coverage.
+- ✅ L12. Added durable agent job queue primitives with `AgentJob` persistence, workspace/account ownership, queue/action metadata, idempotency keys, priority/run timing, claim/complete/fail helpers, retry backoff, max-attempt dead-letter decisions, and unit coverage.
+- ✅ L13. Added human approval queue primitives with `AgentApprovalRequest` persistence, workspace/requester/decider/job ownership, proposed action and policy payloads, due/expiry windows, approver role metadata, escalation decisions, terminal decision checks, and unit coverage.
+- ✅ L14. Added tested agent platform governance primitives covering workspace/account tenant access decisions, operator role gates, nested secret redaction, encryption/token/rotation posture, chronological audit export rows, and compliance readiness status.
+- ✅ L15. Added a tested runbook-to-queue execution planner that converts lifecycle/acquisition current steps into durable job queue payloads, approval request payloads, wait/block outcomes, provider-write priority, and stable idempotency keys.
+- ✅ L16. Wired the execution planner into lifecycle generation and acquisition iteration flows, persisting generated-message delivery jobs, over-cap budget-shift approval requests, duplicate-safe pending approvals, and idempotent queued jobs.
+- ✅ L17. Added a protected workspace agent operations view for queued/recent jobs, pending approvals, dead-letter counts, governance posture, workspace tab navigation, and dashboard discovery.
+- ✅ L18. Added workspace-scoped approval decision controls so authenticated users can approve, reject, or cancel open agent approval requests from the operations view.
+- ✅ L19. Added tested worker-safe job transition policy plus protected operations controls for manual claim, complete, fail, cancel, and requeue of scoped agent jobs.
+- ⏳ L20. Add approval-to-job continuation so approved acquisition actions enqueue provider-write jobs with the original proposed action payload.
 
 ---
 
@@ -378,4 +396,11 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11
 
 ### Sprint S11 (production integrations and performance model)
-- ✅ L0, L1, L2, L3, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, M1, M2, M3, M4, M5, M6, M7
+- ✅ L0, L1, L2, L3, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7
+
+### Sprint S12 (agent execution wiring and operational readiness)
+- ✅ L15, L16, L17
+
+### Sprint S13 (agent operations control loop)
+- ✅ L18, L19
+- ⏳ L20

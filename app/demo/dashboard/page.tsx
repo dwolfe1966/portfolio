@@ -179,6 +179,12 @@ export default async function DemoDashboardPage() {
       detail: "See imports, source config updates, model runs, and connector events in chronological order.",
       href: "/workspace/activity",
       primary: false
+    },
+    {
+      label: "Inspect agent operations",
+      detail: "Review queued jobs, pending approvals, dead-letter items, and governance posture.",
+      href: "/workspace/agents",
+      primary: false
     }
   ];
 

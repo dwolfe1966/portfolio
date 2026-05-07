@@ -10,6 +10,8 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
+import { buildAgentExecutionPlan, persistAgentExecutionPlan } from "@/lib/agent-execution-plan";
+import { getDefaultWorkspace } from "@/lib/workspace";
 
 function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -37,6 +39,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
       logApiEvent("warn", eventId, "acquisition.iteration.not_found", { campaignId: id });
       return apiError(404, "CAMPAIGN_NOT_FOUND", "Campaign not found", { eventId });
     }
+    const workspace = await getDefaultWorkspace();
 
     const cells = await db.testCell.findMany({
       where: { campaignId: id },
@@ -135,6 +138,37 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
 
           if (!decision.approved) {
             pendingApprovalCount++;
+            const runbookId = `acquisition:${campaign.id}:${loser.id}:${winner.id}:${amount}`;
+            const plan = buildAgentExecutionPlan({
+              workspaceId: workspace.id,
+              app: "acquisition",
+              runbookId,
+              currentStep: "request_approval",
+              steps: [
+                {
+                  key: "request_approval",
+                  status: "approval_required",
+                  auditEvent: "approval.requested",
+                  summary: "Approve a proposed acquisition budget shift before the provider write is applied.",
+                  reasons: ["Shift exceeds auto-approval cap; operator review required."]
+                }
+              ],
+              proposedAction: {
+                campaignId: campaign.id,
+                fromTestCellId: loser.id,
+                toTestCellId: winner.id,
+                amountCents: amount,
+                shiftPct: Number(decision.shiftPct.toFixed(4))
+              },
+              approvalPolicy: {
+                approvalCapPct: campaign.approvalCapPct,
+                maxBudgetShiftPct: campaign.maxBudgetShiftPct,
+                reason: "Shift exceeds auto-approval cap; operator review required"
+              },
+              requiredApproverRole: "owner",
+              now: new Date()
+            });
+            await persistAgentExecutionPlan(plan, tx);
             await tx.acquisitionAuditLog.create({
               data: {
                 campaignId: campaign.id,

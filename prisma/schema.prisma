@@ -22,6 +22,8 @@ model Workspace {
   lifecycleConnectorHealthSnapshots LifecycleConnectorHealthSnapshot[]
   lifecycleConnectorSyncRuns LifecycleConnectorSyncRun[]
   lifecycleConnectorAuditEvents LifecycleConnectorAuditEvent[]
+  agentJobs     AgentJob[]
+  agentApprovalRequests AgentApprovalRequest[]
 }
 
 model AccountUser {
@@ -46,6 +48,9 @@ model AccountUser {
   lifecycleConnectorConfigs LifecycleConnectorConfig[]
   lifecycleConnectorSyncRuns LifecycleConnectorSyncRun[]
   lifecycleConnectorAuditEvents LifecycleConnectorAuditEvent[]
+  agentJobs    AgentJob[]
+  requestedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalRequester")
+  decidedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalDecider")
 
   @@index([updatedAt])
 }
@@ -854,6 +859,78 @@ model LifecycleConnectorAuditEvent {
   @@index([connectorConfigId, occurredAt])
   @@index([syncRunId, occurredAt])
   @@index([provider, eventType, occurredAt])
+}
+
+model AgentJob {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  accountUserId   String?
+  app             String
+  queueName       String
+  jobType         String
+  status          String   @default("queued")
+  priority        Int      @default(100)
+  idempotencyKey  String?
+  payload         Json
+  result          Json?
+  errorCode       String?
+  errorMessage    String?
+  attemptCount    Int      @default(0)
+  maxAttempts     Int      @default(3)
+  runAfter        DateTime @default(now())
+  lockedAt        DateTime?
+  lockedBy        String?
+  completedAt     DateTime?
+  failedAt        DateTime?
+  deadLetteredAt  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser     AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  approvalRequests AgentApprovalRequest[]
+
+  @@unique([workspaceId, queueName, idempotencyKey])
+  @@index([workspaceId, status, runAfter, priority])
+  @@index([accountUserId, createdAt])
+  @@index([app, jobType, status])
+  @@index([queueName, status, runAfter])
+  @@index([deadLetteredAt])
+}
+
+model AgentApprovalRequest {
+  id                       String   @id @default(cuid())
+  workspaceId              String
+  requestedByAccountUserId String?
+  decidedByAccountUserId   String?
+  agentJobId               String?
+  app                      String
+  actionType               String
+  riskLevel                String   @default("medium")
+  status                   String   @default("pending")
+  title                    String
+  summary                  String
+  proposedAction           Json
+  approvalPolicy           Json?
+  decisionReason           String?
+  requiredApproverRole     String?
+  escalationLevel          Int      @default(0)
+  dueAt                    DateTime?
+  escalatedAt              DateTime?
+  decidedAt                DateTime?
+  expiresAt                DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  workspace                Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  requestedBy              AccountUser? @relation("AgentApprovalRequester", fields: [requestedByAccountUserId], references: [id], onDelete: SetNull)
+  decidedBy                AccountUser? @relation("AgentApprovalDecider", fields: [decidedByAccountUserId], references: [id], onDelete: SetNull)
+  agentJob                 AgentJob? @relation(fields: [agentJobId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status, dueAt])
+  @@index([requestedByAccountUserId, createdAt])
+  @@index([decidedByAccountUserId, decidedAt])
+  @@index([agentJobId, status])
+  @@index([app, actionType, status])
+  @@index([riskLevel, status])
 }
 
 model AudienceTemplate {

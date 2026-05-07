@@ -5,6 +5,7 @@ const PUBLIC_PREFIXES = ["/projects", "/workspace/login", "/workspace/register",
 
 const PROTECTED_PREFIXES = [
   "/workspace/account",
+  "/workspace/agents",
   "/workspace/activity",
   "/workspace/connections",
   "/workspace/dashboard",
