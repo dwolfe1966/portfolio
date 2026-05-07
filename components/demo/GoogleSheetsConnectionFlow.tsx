@@ -657,6 +657,19 @@ export function GoogleSheetsConnectionFlow({
     }
   }
 
+  const validationStatus = !preview
+    ? "Waiting for preview"
+    : totalErrors > 0
+      ? `${totalErrors} issue${totalErrors === 1 ? "" : "s"} to fix`
+      : importReady
+        ? `${totalRows.toLocaleString()} rows ready`
+        : "Required ranges incomplete";
+  const saveConfigStatus = selectedConfigId
+    ? "Saved config selected"
+    : preview
+      ? "Optional after preview"
+      : "Optional after preview";
+
   return (
     <div className="lifecycleCsvScaffold workspaceCsvFlow">
       <div className="card">
@@ -673,6 +686,28 @@ export function GoogleSheetsConnectionFlow({
           Use Google Sheets as a live spreadsheet source, map tabs or ranges to tool objects, and reuse the same validated
           entity schemas that power CSV imports.
         </p>
+        <div className="connectorStepRail" aria-label="Google Sheets import sequence">
+          <div className={`connectorStep ${preview ? "isDone" : "isActive"}`}>
+            <span>1</span>
+            <strong>Preview sheet</strong>
+            <small>{preview ? "Headers detected" : "Start here"}</small>
+          </div>
+          <div className={`connectorStep ${importReady ? "isDone" : preview ? "isActive" : ""}`}>
+            <span>2</span>
+            <strong>Review validation</strong>
+            <small>{validationStatus}</small>
+          </div>
+          <div className={`connectorStep ${importStatus.state === "success" ? "isDone" : importReady ? "isActive" : ""}`}>
+            <span>3</span>
+            <strong>Import rows</strong>
+            <small>{importReady ? "Enabled" : "Locked until valid"}</small>
+          </div>
+          <div className={`connectorStep ${selectedConfigId ? "isDone" : preview ? "isOptional" : ""}`}>
+            <span>+</span>
+            <strong>Save config</strong>
+            <small>{saveConfigStatus}</small>
+          </div>
+        </div>
         <div className="csvPresetPanel">
           <div className="editorHeader">
             <div>
@@ -694,7 +729,7 @@ export function GoogleSheetsConnectionFlow({
           </div>
           <div className="ctaRow csvPresetActions">
             <button type="button" disabled={!selectedConfigId || !sheetUrlOrId.trim() || previewStatus.state === "loading"} onClick={() => void previewSheet("refresh")}>
-              {refreshStatus.state === "loading" ? "Refreshing saved Sheet..." : "Refresh saved Sheet"}
+              {refreshStatus.state === "loading" ? "Refreshing saved config..." : "Refresh saved config preview"}
             </button>
           </div>
           <p className={`small lifecycleImportStatus lifecycleImportStatus--${configStatus.state}`}>{configStatus.message}</p>
@@ -723,8 +758,8 @@ export function GoogleSheetsConnectionFlow({
           </label>
         </div>
         <div className="ctaRow csvPresetActions">
-          <button type="button" disabled={!sheetUrlOrId.trim() || previewStatus.state === "loading"} onClick={() => void previewSheet()}>
-            {previewStatus.state === "loading" ? "Previewing sheet..." : "Preview Google Sheet"}
+          <button className="btn primary" type="button" disabled={!sheetUrlOrId.trim() || previewStatus.state === "loading"} onClick={() => void previewSheet()}>
+            {previewStatus.state === "loading" ? "Previewing sheet..." : "1. Preview Google Sheet"}
           </button>
           <button type="button" disabled={!importReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
             {importStatus.state === "loading"
@@ -734,11 +769,11 @@ export function GoogleSheetsConnectionFlow({
               : importReady
                 ? connectorAction === "import"
                   ? `Import refreshed ${schema.label.toLowerCase()} dataset`
-                  : `Import ${schema.label.toLowerCase()} dataset`
-                : "Import after validation"}
+                  : `3. Import ${schema.label.toLowerCase()} rows`
+                : "3. Import after validation"}
           </button>
           <button type="button" disabled={!preview || saveStatus.state === "loading"} onClick={() => void saveSourceConfig()}>
-            {saveStatus.state === "loading" ? "Saving source..." : preview ? "Save source config" : "Save after preview"}
+            {saveStatus.state === "loading" ? "Saving config..." : preview ? "Optional: save config" : "Optional: save after preview"}
           </button>
           <Link className="btn" href="/workspace/datasets">Review datasets</Link>
         </div>

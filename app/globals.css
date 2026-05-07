@@ -2735,6 +2735,53 @@ button {
   margin-top: 12px;
   padding: 12px;
 }
+.connectorStepRail {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 14px;
+}
+.connectorStep {
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  min-height: 96px;
+  padding: 10px;
+  background: color-mix(in oklab, var(--demo-surface, #fff) 94%, #94a3b8 6%);
+}
+.connectorStep span {
+  align-items: center;
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+.connectorStep strong {
+  color: var(--demo-text, var(--text));
+  font-size: 13px;
+  line-height: 1.25;
+}
+.connectorStep small {
+  color: var(--demo-text-muted, var(--muted));
+  font-size: 12px;
+  line-height: 1.3;
+}
+.connectorStep.isActive {
+  border-color: color-mix(in oklab, var(--demo-accent, #2563eb) 58%, var(--demo-divider, var(--line)) 42%);
+  background: color-mix(in oklab, var(--demo-surface, #fff) 88%, var(--demo-accent, #2563eb) 12%);
+}
+.connectorStep.isDone {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.12);
+}
+.connectorStep.isOptional {
+  border-style: dashed;
+}
 .csvPresetControls {
   display: grid;
   gap: 10px;
@@ -3126,6 +3173,7 @@ button {
   .savedSourceCardGrid { grid-template-columns: 1fr; }
   .savedSourceCardStats { grid-template-columns: 1fr; }
   .savedSourceFilters { grid-template-columns: 1fr; }
+  .connectorStepRail { grid-template-columns: 1fr; }
   .lifecycleDatasetPanel--compact { grid-template-columns: 1fr; }
   .lifecycleDatasetStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .toolDataSourceStatusHeader,
