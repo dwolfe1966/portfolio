@@ -26,6 +26,7 @@ This layer is the primary source of lifecycle truth. ESPs may contain useful pro
 | Warehouse | Snowflake, BigQuery, Redshift, Databricks, Postgres replica | canonical customer/account/event tables | scheduled query, incremental cursor |
 | CRM | Salesforce, HubSpot, Pipedrive | account, contact, lifecycle stage, owner, deal events | API polling, webhook where available |
 | Product analytics | Segment, Amplitude, Mixpanel, RudderStack | product events, traits, user/account activity | export API, webhook, stream |
+| Commerce/billing | Stripe, Chargebee, Shopify, custom order systems | purchase, subscription, upgrade, renewal, refund, cancellation events | webhook, API polling, warehouse table |
 | Object store | S3, GCS, Azure Blob | flat files, partner exports, data science outputs | object listing, manifest, file version |
 | Reverse ETL | Hightouch, Census, RudderStack | prepared audience tables and computed attributes | destination table/API push |
 | Webhook | customer apps, partner systems, billing events | near-real-time deltas | signed HTTP events |
@@ -45,6 +46,8 @@ All sources must map into the existing Lifecycle import contract:
 
 Those four object classes should be connected independently when needed. A customer may provide users from a CRM, entities from a product database, interest edges from analytics/warehouse tables, and change events from webhooks or streams. The ingestion layer should allow multiple source configs to contribute to one normalized lifecycle snapshot with source provenance preserved per object and row.
 
+Observation events should also be ingestible through this layer when they do not come from the delivery provider. Message engagement can arrive from landing-page tracking, product analytics, or the ESP. Conversion and revenue events often arrive from product, commerce, billing, CRM, or warehouse sources. These events should not automatically become trigger events; they can be measurement events used for attribution, holdout analysis, and performance fees.
+
 Production ingestion should add metadata around these objects before expanding the core app schema:
 
 - external source ids;
@@ -61,6 +64,7 @@ type IngestionSourceKind =
   | "warehouse"
   | "crm"
   | "product_analytics"
+  | "commerce_billing"
   | "object_store"
   | "reverse_etl"
   | "webhook"
@@ -123,7 +127,7 @@ Use for production lifecycle programs: scheduled full or incremental refresh for
 Mapping should be explicit and versioned. A source config should store:
 
 - source provider and source kind;
-- lifecycle object ownership: users, entities, interest edges, change events, consent, or enrichment only;
+- lifecycle object ownership: users, entities, interest edges, trigger events, engagement events, conversion events, revenue events, consent, or enrichment only;
 - object mappings for users, entities, interest edges, and change events;
 - field-level transforms and enum normalization;
 - required field coverage;

@@ -22,7 +22,7 @@ The delivery layer should:
 - support sandbox, dry-run, and test-send modes;
 - send or schedule idempotently;
 - collect provider delivery ids and status;
-- sync suppressions, bounces, unsubscribes, spam complaints, and delivery events;
+- sync suppressions, bounces, unsubscribes, spam complaints, delivery events, and provider-visible engagement events;
 - expose delivery health and failure reasons;
 - make every send replay-safe and audit-ready.
 
@@ -182,7 +182,7 @@ Handling rules:
 
 SMTP requires local unsubscribe links, local suppression storage, and bounce mailbox/webhook processing before production sends should be enabled.
 
-## Delivery Event Ingestion
+## Delivery, Engagement, And Conversion Event Ingestion
 
 Providers should emit or expose:
 
@@ -199,17 +199,28 @@ Providers should emit or expose:
 - failed;
 - converted/revenue event when provider supports it.
 
+Treat these as three different event categories:
+
+- Delivery events: provider acceptance, delivery, bounce, drop, suppression, failure, unsubscribe, and complaint status.
+- Engagement events: opens, clicks, replies, landing-page visits, preference updates, and form submissions.
+- Conversion/revenue events: purchases, subscriptions, upgrades, renewals, retained accounts, expansion events, refunds, cancellations, or other customer-defined value events.
+
+Delivery connectors should ingest delivery and provider-visible engagement events. Conversion and revenue events can be accepted from a provider only when the customer has wired those events into the ESP, but the preferred source is first-party product, commerce, billing, CRM, or warehouse ingestion from L2. This separation matters for performance fees because the delivery system should not be assumed to be the revenue system of record.
+
 Each event should store:
 
 - provider event id;
 - provider delivery id;
 - provider campaign/message/template id;
 - normalized event type;
+- event category: delivery, engagement, conversion, or revenue;
 - event timestamp;
 - raw provider payload with privacy redaction;
 - workspace id;
 - connector id;
 - candidate/message id when resolvable;
+- recipient/customer/account/entity id when available;
+- attribution window and conversion value when applicable;
 - idempotency key.
 
 Webhook handlers must verify signatures, reject stale timestamps, dedupe provider event ids, and route unknown payloads to dead-letter review.

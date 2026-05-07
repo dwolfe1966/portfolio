@@ -29,7 +29,7 @@ The source-of-truth boundary matters: the Lifecycle app should not assume an ESP
 | Content generation | Draft subject, body, landing copy, and rationale. | OpenAI generation plus deterministic prompt/context logging. |
 | Approval and execution | Decide whether to send, queue approval, or suppress. | Human approval queue, policy auto-approval, holdout/control assignment. |
 | Delivery connector | Send or schedule through the customer's channel provider. | Iterable, Braze, Klaviyo, Customer.io, HubSpot, Salesforce Marketing Cloud, Mailchimp, SMTP. |
-| Observation | Read delivery, engagement, conversion, and revenue outcomes. | Sent, delivered, bounced, opened, clicked, purchased, unsubscribed, spam complaint. |
+| Observation | Capture delivery, engagement, conversion, and revenue outcomes. | Sent, delivered, bounced, opened, clicked, visited, signed up, purchased, upgraded, unsubscribed, spam complaint. |
 | Audit and measurement | Prove what happened and why. | Agent run, source snapshot, policy version, approval, message payload, delivery id, outcome attribution. |
 
 ## Connector Contract
@@ -56,6 +56,8 @@ type ConnectorCapability =
   | "send_message"
   | "schedule_campaign"
   | "read_delivery_events"
+  | "read_engagement_events"
+  | "read_conversion_events"
   | "read_revenue_events";
 
 type ConnectorHealth = {
@@ -91,6 +93,16 @@ ESP connectors need a common abstraction even though providers differ. The minim
 ESP profile reads are auxiliary. They can confirm provider ids, template/journey state, suppressions, and message history, but lifecycle scoring should be driven by normalized users, entities, interest edges, and change events from direct data connectors.
 
 SMTP should be treated as a lower-level delivery connector. It can send messages, but it cannot be assumed to know profile state, consent, templates, suppressions, or revenue outcomes. SMTP requires a stronger local suppression store and bounce processor.
+
+## Observation Requirements
+
+Lifecycle must observe what happened after a message was sent. This observation layer has three distinct event classes:
+
+- Delivery status: accepted, sent, delivered, deferred, bounced, dropped, suppressed, failed, spam complaint, unsubscribe.
+- Message engagement: open, click, landing-page visit, reply, form submit, preference update.
+- Conversion and revenue: signup, activation, purchase, subscription start, upgrade, renewal, retained account, expansion event, refund, cancellation.
+
+ESPs are usually strong for delivery status and basic engagement. They are not always the source of truth for conversion or revenue. Conversion/revenue events should usually come from first-party product instrumentation, billing systems, commerce systems, CRM opportunity updates, warehouse tables, or webhook/event-stream connectors. Every observed event should attach back to workspace id, candidate/message id when available, provider delivery id when available, holdout/control assignment, and attribution window.
 
 ## Data Ingestion Requirements
 
