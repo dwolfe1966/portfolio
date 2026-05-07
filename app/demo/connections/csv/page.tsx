@@ -27,8 +27,7 @@ export default async function WorkspaceCsvConnectionPage({ searchParams }: PageP
       <Section eyebrow="Workspace connector" title="CSV and spreadsheet upload">
         <p>
           Upload or paste CSV data, choose the target tool, map source columns to model objects, and validate rows before
-          importing. Lifecycle import is wired now; the other tools use the same mapping and validation foundation as their
-          persistence endpoints come online.
+          importing. Imported snapshots are attached to the signed-in account and become available inside each product app.
         </p>
       </Section>
 

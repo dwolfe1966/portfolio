@@ -472,6 +472,19 @@ export function WorkspaceCsvConnectionFlow({
     }
   }
 
+  const validationStatus = totalRows === 0
+    ? "Waiting for CSV rows"
+    : totalErrors > 0
+      ? `${totalErrors} issue${totalErrors === 1 ? "" : "s"} to fix`
+      : importReady
+        ? `${totalRows.toLocaleString()} rows ready`
+        : "Required objects incomplete";
+  const saveConfigStatus = selectedConfigId
+    ? "Saved config selected"
+    : importReady
+      ? "Optional after validation"
+      : "Optional after validation";
+
   return (
     <div className="lifecycleCsvScaffold workspaceCsvFlow">
       <div className="card">
@@ -486,6 +499,28 @@ export function WorkspaceCsvConnectionFlow({
           This flow uses one schema registry for every tool. CSV rows are mapped into tool objects, validated against required
           fields and ranges, and previewed before import.
         </p>
+        <div className="connectorStepRail" aria-label="CSV import sequence">
+          <div className={`connectorStep ${totalRows > 0 ? "isDone" : "isActive"}`}>
+            <span>1</span>
+            <strong>Add CSV rows</strong>
+            <small>{totalRows > 0 ? `${totalRows.toLocaleString()} parsed` : "Paste, upload, or load sample"}</small>
+          </div>
+          <div className={`connectorStep ${importReady ? "isDone" : totalRows > 0 ? "isActive" : ""}`}>
+            <span>2</span>
+            <strong>Review validation</strong>
+            <small>{validationStatus}</small>
+          </div>
+          <div className={`connectorStep ${importStatus.state === "success" ? "isDone" : persistentImportReady ? "isActive" : ""}`}>
+            <span>3</span>
+            <strong>Import rows</strong>
+            <small>{persistentImportReady ? "Enabled" : "Locked until valid"}</small>
+          </div>
+          <div className={`connectorStep ${selectedConfigId ? "isDone" : importReady ? "isOptional" : ""}`}>
+            <span>+</span>
+            <strong>Save config</strong>
+            <small>{saveConfigStatus}</small>
+          </div>
+        </div>
         <div className="csvPresetPanel">
           <div className="editorHeader">
             <div>
@@ -535,20 +570,20 @@ export function WorkspaceCsvConnectionFlow({
           </div>
         ) : null}
         <div className="ctaRow csvPresetActions">
-          <button type="button" onClick={loadSamples}>Load sample dataset</button>
+          <button className="btn primary" type="button" onClick={loadSamples}>1. Load sample CSV rows</button>
           <button type="button" disabled={!persistentImportReady || importStatus.state === "loading"} onClick={() => void importDataset()}>
             {importStatus.state === "loading"
               ? `Importing ${schema.label.toLowerCase()} data...`
               : persistentImportReady
                 ? connectorAction === "import"
-                  ? `Import validated ${schema.label.toLowerCase()} CSV`
-                  : `Import ${schema.label.toLowerCase()} dataset`
+                  ? `3. Import validated ${schema.label.toLowerCase()} CSV`
+                  : `3. Import ${schema.label.toLowerCase()} rows`
                 : connectorAction === "import"
-                  ? "Paste rows to import"
-                  : "Import endpoint pending"}
+                  ? "3. Paste rows to import"
+                  : "3. Import after validation"}
           </button>
           <button type="button" disabled={!importReady || saveStatus.state === "loading"} onClick={() => void saveSourceConfig()}>
-            {saveStatus.state === "loading" ? "Saving source..." : importReady ? "Save source config" : "Save after validation"}
+            {saveStatus.state === "loading" ? "Saving config..." : importReady ? "Optional: save config" : "Optional: save after validation"}
           </button>
           <Link className="btn" href="/workspace/datasets">Review datasets</Link>
         </div>

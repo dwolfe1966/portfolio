@@ -27,6 +27,10 @@ async function currentAccountUserId() {
 }
 
 async function loadDatasetInventory(accountUserId: string | null) {
+  if (!accountUserId) {
+    return { presets: [], snapshots: [], imports: [], runs: [], readiness: [], compatibilityMode: false };
+  }
+
   try {
     const [presets, snapshots, imports, runs, readiness] = await Promise.all([
       db.lifecycleMappingPreset.findMany({
