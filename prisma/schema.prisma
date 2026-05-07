@@ -24,6 +24,9 @@ model AccountUser {
   id          String                @id @default(cuid())
   email       String                @unique
   name        String
+  zipCode     String?
+  company     String?
+  title       String?
   passwordHash String?
   passwordSetAt DateTime?
   createdAt   DateTime              @default(now())

@@ -50,6 +50,9 @@ async function registerAccount(formData: FormData) {
     const result = await registerAccountUserWithDefaultWorkspace({
       email,
       name: normalizeAccountName(formData.get("name"), email),
+      zipCode: String(formData.get("zipCode") ?? ""),
+      company: String(formData.get("company") ?? ""),
+      title: String(formData.get("title") ?? ""),
       password: normalizeAccountPassword(formData.get("password"))
     });
     accountUser = result.accountUser;
@@ -102,6 +105,18 @@ export default async function WorkspaceRegisterPage({
               <label>
                 <span>Email</span>
                 <input name="email" type="email" autoComplete="email" required />
+              </label>
+              <label>
+                <span>Zipcode</span>
+                <input name="zipCode" type="text" inputMode="numeric" autoComplete="postal-code" maxLength={20} />
+              </label>
+              <label>
+                <span>Company</span>
+                <input name="company" type="text" autoComplete="organization" maxLength={120} />
+              </label>
+              <label>
+                <span>Title</span>
+                <input name="title" type="text" autoComplete="organization-title" maxLength={120} />
               </label>
               <label>
                 <span>Password</span>

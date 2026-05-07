@@ -58,6 +58,11 @@ export function normalizeAccountName(value: unknown, email: string) {
   return normalized || email.split("@")[0] || "Workspace User";
 }
 
+export function normalizeAccountProfileField(value: unknown, maxLength = 120) {
+  const normalized = String(value ?? "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+  return normalized || null;
+}
+
 export function isValidAccountEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -114,7 +119,7 @@ export function verifyAccountSessionToken(token: string | undefined) {
   }
 }
 
-export async function upsertAccountUserWithDefaultWorkspace(input: { email: string; name?: string; password: string }) {
+export async function upsertAccountUserWithDefaultWorkspace(input: { email: string; name?: string; password: string; zipCode?: string | null; company?: string | null; title?: string | null }) {
   const email = normalizeAccountEmail(input.email);
   if (!isValidAccountEmail(email)) throw new Error("A valid email address is required.");
   const name = normalizeAccountName(input.name, email);
@@ -131,6 +136,9 @@ export async function upsertAccountUserWithDefaultWorkspace(input: { email: stri
         where: { id: existing.id },
         data: {
           name,
+          zipCode: normalizeAccountProfileField(input.zipCode, 20),
+          company: normalizeAccountProfileField(input.company),
+          title: normalizeAccountProfileField(input.title),
           passwordHash,
           passwordSetAt: existing.passwordSetAt ?? new Date()
         }
@@ -139,6 +147,9 @@ export async function upsertAccountUserWithDefaultWorkspace(input: { email: stri
         data: {
           email,
           name,
+          zipCode: normalizeAccountProfileField(input.zipCode, 20),
+          company: normalizeAccountProfileField(input.company),
+          title: normalizeAccountProfileField(input.title),
           passwordHash,
           passwordSetAt: new Date()
         }
@@ -160,12 +171,24 @@ export async function upsertAccountUserWithDefaultWorkspace(input: { email: stri
   return { accountUser, workspace };
 }
 
-export async function registerAccountUserWithDefaultWorkspace(input: { email: string; name?: string; password: string }) {
+export async function registerAccountUserWithDefaultWorkspace(input: { email: string; name?: string; password: string; zipCode?: string | null; company?: string | null; title?: string | null }) {
   const email = normalizeAccountEmail(input.email);
   if (!isValidAccountEmail(email)) throw new Error("A valid email address is required.");
   const existing = await db.accountUser.findUnique({ where: { email } });
   if (existing) throw new AccountAuthError("ACCOUNT_EXISTS", "An account already exists for this email.");
   return upsertAccountUserWithDefaultWorkspace(input);
+}
+
+export async function updateAccountUserProfile(input: { userId: string; name: string; zipCode?: string | null; company?: string | null; title?: string | null }) {
+  return db.accountUser.update({
+    where: { id: input.userId },
+    data: {
+      name: normalizeAccountProfileField(input.name, 80) ?? "Workspace User",
+      zipCode: normalizeAccountProfileField(input.zipCode, 20),
+      company: normalizeAccountProfileField(input.company),
+      title: normalizeAccountProfileField(input.title)
+    }
+  });
 }
 
 export async function authenticateAccountUserWithDefaultWorkspace(input: { email: string; password: string }) {

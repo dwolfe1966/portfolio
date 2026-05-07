@@ -1,18 +1,13 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import {
   ACCOUNT_SESSION_COOKIE,
-  AccountAuthError,
-  createAccountSessionToken,
   getAccountSessionUser,
-  isValidAccountEmail,
-  normalizeAccountEmail,
-  normalizeAccountName,
-  normalizeAccountPassword,
-  upsertAccountUserWithDefaultWorkspace
+  updateAccountUserProfile
 } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -31,51 +26,25 @@ type AccountSearchParams = {
   error?: string;
 };
 
-function formatDate(value: Date | null | undefined) {
-  if (!value) return "Not created";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  }).format(value);
-}
-
-async function saveAccountProfile(formData: FormData) {
+async function saveSignedInAccountProfile(formData: FormData) {
   "use server";
 
   if (!isDemoMutationAllowed()) redirect("/workspace/account?error=mutations");
 
-  const email = normalizeAccountEmail(formData.get("email"));
-  if (!isValidAccountEmail(email)) redirect("/workspace/account?error=email");
-  const password = normalizeAccountPassword(formData.get("password"));
-
-  let accountUser;
-  try {
-    const result = await upsertAccountUserWithDefaultWorkspace({
-      email,
-      password,
-      name: normalizeAccountName(formData.get("name"), email)
-    });
-    accountUser = result.accountUser;
-  } catch (error) {
-    if (error instanceof AccountAuthError) redirect(`/workspace/account?error=${error.code}`);
-    throw error;
-  }
-  const token = createAccountSessionToken({ userId: accountUser.id, email: accountUser.email });
   const cookieStore = await cookies();
-  cookieStore.set(ACCOUNT_SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30
+  const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+  if (!accountUser) redirect("/workspace/account?error=session");
+  await updateAccountUserProfile({
+    userId: accountUser.id,
+    name: String(formData.get("name") ?? ""),
+    zipCode: String(formData.get("zipCode") ?? ""),
+    company: String(formData.get("company") ?? ""),
+    title: String(formData.get("title") ?? "")
   });
   redirect("/workspace/account?saved=profile");
 }
 
-async function leaveAccount() {
+async function signOutAccount() {
   "use server";
 
   const cookieStore = await cookies();
@@ -101,8 +70,6 @@ export default async function WorkspaceAccountPage({
 }) {
   const params = await searchParams;
   const { accountUser, compatibilityMode } = await loadAccountPage();
-  const membership = accountUser?.memberships[0];
-
   return (
     <>
       <DemoWorkspaceTabs />
@@ -115,83 +82,88 @@ export default async function WorkspaceAccountPage({
 
       <Section title="Profile">
         {params?.saved === "profile" ? <p className="small bandText--healthy">Account profile saved.</p> : null}
-        {params?.error === "email" ? <p className="small bandText--unhealthy">Enter a valid email address.</p> : null}
-        {params?.error === "PASSWORD_REQUIRED" ? <p className="small bandText--unhealthy">Enter a password for this account.</p> : null}
-        {params?.error === "PASSWORD_TOO_SHORT" ? <p className="small bandText--unhealthy">Password must be at least 8 characters.</p> : null}
-        {params?.error === "INVALID_PASSWORD" ? <p className="small bandText--unhealthy">The password does not match this account.</p> : null}
+        {params?.error === "session" ? <p className="small bandText--unhealthy">Sign in before editing your account.</p> : null}
         {params?.error === "mutations" ? <p className="small bandText--unhealthy">Account editing is disabled in this environment.</p> : null}
         {compatibilityMode ? (
           <div className="card">
             <p>Account tables are not available yet. Run the latest Prisma migration to enable account ownership.</p>
           </div>
+        ) : !accountUser ? (
+          <div className="workspaceAuthChoiceGrid">
+            <div className="card workspaceAuthChoiceCard">
+              <p className="editorKicker">New workspace</p>
+              <h3>Create account</h3>
+              <p>Own imported datasets, saved mappings, source connections, and future operational credentials.</p>
+              <Link className="btn primary" href="/workspace/register?next=/workspace/account">Sign up</Link>
+            </div>
+            <div className="card workspaceAuthChoiceCard">
+              <p className="editorKicker">Existing workspace</p>
+              <h3>Sign in</h3>
+              <p>Return to your account-scoped data sources, selected datasets, and workspace activity.</p>
+              <Link className="btn" href="/workspace/login?next=/workspace/account">Sign in</Link>
+            </div>
+          </div>
         ) : (
           <div className="workspaceAccountPanel">
-            <div className="card workspaceAccountFormCard">
-              <p className="small">Sign in or create account</p>
-              <form action={saveAccountProfile} className="demoLoginForm">
+            <div className="workspaceAccountStateCard workspaceAccountStateCard--profile">
+              <div>
+                <p className="small">Signed in</p>
+                <strong>{accountUser.name}</strong>
+                <span>{accountUser.email}</span>
+              </div>
+              <div className="workspaceAccountProfileFacts">
+                <div>
+                  <span className="small">Company</span>
+                  <strong>{accountUser.company || "Not set"}</strong>
+                </div>
+                <div>
+                  <span className="small">Title</span>
+                  <strong>{accountUser.title || "Not set"}</strong>
+                </div>
+                <div>
+                  <span className="small">Zipcode</span>
+                  <strong>{accountUser.zipCode || "Not set"}</strong>
+                </div>
+                <div>
+                  <span className="small">Workspace</span>
+                  <strong>{accountUser.memberships[0]?.workspace.name ?? "Default Workspace"}</strong>
+                </div>
+                <div>
+                  <span className="small">Role</span>
+                  <strong>{accountUser.memberships[0]?.role ?? "Owner"}</strong>
+                </div>
+              </div>
+              <div className="workspaceAccountActions">
+                <a className="btn smallBtn" href="#edit-account">Edit</a>
+                <form action={signOutAccount}>
+                  <button className="btn smallBtn" type="submit">Sign out</button>
+                </form>
+              </div>
+            </div>
+            <div className="card workspaceAccountFormCard" id="edit-account">
+              <p className="small">Edit profile</p>
+              <form action={saveSignedInAccountProfile} className="demoLoginForm">
                 <label>
                   <span>Name</span>
-                  <input name="name" type="text" defaultValue={accountUser?.name ?? ""} maxLength={80} placeholder="Workspace user" />
+                  <input name="name" type="text" defaultValue={accountUser.name} maxLength={80} placeholder="Workspace user" />
                 </label>
                 <label>
-                  <span>Email</span>
-                  <input name="email" type="email" defaultValue={accountUser?.email ?? ""} required placeholder="you@example.com" />
+                  <span>Company</span>
+                  <input name="company" type="text" defaultValue={accountUser.company ?? ""} maxLength={120} placeholder="Company" />
                 </label>
                 <label>
-                  <span>Password</span>
-                  <input name="password" type="password" minLength={8} required autoComplete={accountUser ? "current-password" : "new-password"} placeholder="Minimum 8 characters" />
+                  <span>Title</span>
+                  <input name="title" type="text" defaultValue={accountUser.title ?? ""} maxLength={120} placeholder="Title" />
                 </label>
-                <button className="btn primary" type="submit">{accountUser ? "Update / sign in" : "Create account / sign in"}</button>
+                <label>
+                  <span>Zipcode</span>
+                  <input name="zipCode" type="text" inputMode="numeric" defaultValue={accountUser.zipCode ?? ""} maxLength={20} placeholder="Zipcode" />
+                </label>
+                <button className="btn primary" type="submit">Save profile</button>
               </form>
-            </div>
-            <div className="workspaceAccountStateCard">
-              <div>
-                <p className="small">Current account</p>
-                <strong>{accountUser?.email ?? "No account session"}</strong>
-                <span>{accountUser ? "This browser has an active signed account session." : "Create an account or sign in to attach future datasets to a user."}</span>
-              </div>
-              {accountUser ? (
-                <form action={leaveAccount}>
-                  <button className="btn" type="submit">Clear account session</button>
-                </form>
-              ) : null}
             </div>
           </div>
         )}
-      </Section>
-
-      <Section title="Workspace membership">
-        <div className="workspaceMembershipGrid">
-          <div className="workspaceMembershipCard">
-            <p className="small">Workspace</p>
-            <strong>{membership?.workspace.name ?? "Default Workspace"}</strong>
-          </div>
-          <div className="workspaceMembershipCard">
-            <p className="small">Role</p>
-            <strong>{membership?.role ?? "Not assigned"}</strong>
-          </div>
-          <div className="workspaceMembershipCard">
-            <p className="small">Joined</p>
-            <strong>{formatDate(membership?.createdAt)}</strong>
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Why this matters">
-        <div className="workspaceAccountReasonGrid">
-          <div>
-            <h3>Dataset ownership</h3>
-            <p>Imported datasets can be attached to the account and workspace that created them.</p>
-          </div>
-          <div>
-            <h3>Saved selections</h3>
-            <p>Each user can later choose which dataset a tool should run against without changing the demo defaults.</p>
-          </div>
-          <div>
-            <h3>Connector scope</h3>
-            <p>OAuth tokens and live datasource credentials need account and workspace boundaries before production use.</p>
-          </div>
-        </div>
       </Section>
     </>
   );

@@ -58,14 +58,6 @@ function formatDate(value: Date | null | undefined) {
   }).format(value);
 }
 
-async function leaveDemoWorkspace() {
-  "use server";
-
-  const cookieStore = await cookies();
-  cookieStore.delete(ACCOUNT_SESSION_COOKIE);
-  redirect("/workspace/login");
-}
-
 async function saveWorkspaceIdentity(formData: FormData) {
   "use server";
 
@@ -100,8 +92,7 @@ export default async function DemoSettingsPage({
       <DemoWorkspaceTabs />
       <Section eyebrow="Account" title="Workspace settings">
         <p>
-          Settings control workspace identity and session state. Connections handle source setup; datasets show imported
-          snapshots and tool readiness.
+          Settings control workspace identity. Connections handle source setup; datasets show imported snapshots and tool readiness.
         </p>
       </Section>
 
@@ -151,28 +142,6 @@ export default async function DemoSettingsPage({
         {settings.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable saved workspace settings.</p>
         ) : null}
-      </Section>
-
-      <Section title="Access and session">
-        <div className="grid grid-3">
-          <div className="card">
-            <p className="small">Access mode</p>
-            <div className="workspaceSettingValue">Account based</div>
-            <p>Workspace pages use account registration and login instead of a shared workspace password.</p>
-          </div>
-          <div className="card">
-            <p className="small">Current session</p>
-            <div className="workspaceSettingValue">{accountUser?.email ?? "Not signed in"}</div>
-            <p>Account access is stored in an HTTP-only browser cookie. Tools remain public with sample data.</p>
-          </div>
-          <div className="card accessSessionCard">
-            <p className="small">Session controls</p>
-            <form action={leaveDemoWorkspace}>
-              <button className="btn" type="submit">Sign out</button>
-            </form>
-            <Link className="btn smallBtn" href="/workspace/login">Open login page</Link>
-          </div>
-        </div>
       </Section>
 
       <Section title="Configuration inventory">
