@@ -12,8 +12,7 @@ export const metadata: Metadata = buildMetadata({
 
 export default function ProjectsIndexPage() {
   return (
-    <Section eyebrow="Products" title="Product case studies and systems">
-      <p>Selected product and growth systems with clear commercial framing and practical implementation detail.</p>
+    <Section eyebrow="Products" title="Product systems and case studies">
       <div className="grid grid-2" style={{ marginTop: 18 }}>
         {projects.map((project) => (
           <div key={project.slug} className="card caseStudyCard">
