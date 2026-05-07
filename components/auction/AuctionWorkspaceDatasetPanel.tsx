@@ -53,9 +53,7 @@ export async function AuctionWorkspaceDatasetPanel({ compact = false }: AuctionW
       db.workspaceDataset.findMany({
         where: {
           app: "auction",
-          OR: session
-            ? [{ accountUserId: session.userId }, { accountUserId: null }]
-            : [{ accountUserId: null }]
+          accountUserId: session?.userId ?? "__anonymous_no_imports__"
         },
         orderBy: { createdAt: "desc" },
         take: 12

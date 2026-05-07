@@ -4,7 +4,6 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { ensureLegacyLifecycleDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 import { ToolDataSourceSelector } from "@/components/site/ToolDataSourceSelector";
 
 type LifecycleWorkspaceDatasetPanelProps = {
@@ -42,9 +41,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
     const [latestImport, latestSource, snapshots, activeSelection, users, entities, interestEdges, events] = await Promise.all([
       db.lifecycleImportLog.findFirst({
         where: {
-          OR: session
-            ? [{ accountUserId: session.userId }, { accountUserId: null }]
-            : [{ accountUserId: null }]
+          accountUserId: session?.userId ?? "__anonymous_no_imports__"
         },
         orderBy: { createdAt: "desc" }
       }),
@@ -60,9 +57,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
       db.workspaceDataset.findMany({
         where: {
           app: "lifecycle",
-          OR: session
-            ? [{ accountUserId: session.userId }, { accountUserId: null }]
-            : [{ accountUserId: null }]
+          accountUserId: session?.userId ?? "__anonymous_no_imports__"
         },
         orderBy: { createdAt: "desc" },
         take: 12
@@ -77,11 +72,6 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
       ? latestImport.usersImported + latestImport.entitiesImported + latestImport.interestEdgesImported + latestImport.changeEventsImported
       : 0;
     const hasWorkspaceImport = Boolean(latestImport);
-    const legacySnapshot = snapshots.length === 0
-      ? await ensureLegacyLifecycleDatasetSnapshot(latestImport)
-      : null;
-    const datasetSnapshots = legacySnapshot ? [legacySnapshot] : snapshots;
-
     return (
       <div className={`card lifecycleDatasetPanel ${compact ? "lifecycleDatasetPanel--compact" : ""}`}>
         <div>
@@ -117,7 +107,7 @@ export async function LifecycleWorkspaceDatasetPanel({ compact = false }: Lifecy
             { label: "Edges", value: interestEdges },
             { label: "Events", value: events }
           ]}
-          datasets={datasetSnapshots.map((snapshot) => ({
+          datasets={snapshots.map((snapshot) => ({
             id: snapshot.id,
             label: `${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
           }))}

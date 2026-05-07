@@ -53,9 +53,7 @@ export async function ExpansionWorkspaceDatasetPanel({ compact = false }: Expans
       db.workspaceDataset.findMany({
         where: {
           app: "expansion",
-          OR: session
-            ? [{ accountUserId: session.userId }, { accountUserId: null }]
-            : [{ accountUserId: null }]
+          accountUserId: session?.userId ?? "__anonymous_no_imports__"
         },
         orderBy: { createdAt: "desc" },
         take: 12

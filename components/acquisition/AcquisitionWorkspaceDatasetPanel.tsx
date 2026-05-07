@@ -53,9 +53,7 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
       db.workspaceDataset.findMany({
         where: {
           app: "acquisition",
-          OR: session
-            ? [{ accountUserId: session.userId }, { accountUserId: null }]
-            : [{ accountUserId: null }]
+          accountUserId: session?.userId ?? "__anonymous_no_imports__"
         },
         orderBy: { createdAt: "desc" },
         take: 12
