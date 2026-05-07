@@ -115,6 +115,26 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 80px; }
 .authLinkSet a:hover {
   color: var(--blue);
 }
+.signedInActionSet {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+.navTextButton {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #374151;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 0;
+}
+.navTextButton:hover {
+  background: transparent;
+  color: var(--blue);
+}
 .authLinkSet span,
 .mobileAuthLinks span {
   color: #9ca3af;
@@ -161,6 +181,9 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 80px; }
   background: var(--green);
 }
 .mobileAccountLink {
+  display: none;
+}
+.mobileSignedInLinks {
   display: none;
 }
 .mobileAuthLinks {
@@ -1589,24 +1612,31 @@ button {
   gap: 14px;
   grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
 }
-.workspaceAuthChoiceGrid {
+.workspaceAuthUnifiedCard {
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  max-width: 520px;
+}
+.workspaceAuthToggle {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
 }
-.workspaceAuthChoiceCard {
-  align-content: start;
-  display: grid;
-  gap: 12px;
-  min-height: 220px;
+.workspaceAuthToggle a {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+  padding: 10px 12px;
+  text-align: center;
 }
-.workspaceAuthChoiceCard h3,
-.workspaceAuthChoiceCard p {
-  margin-bottom: 0;
+.workspaceAuthToggle a.active {
+  background: var(--accent);
+  color: #ffffff;
 }
-.workspaceAuthChoiceCard .btn {
-  align-self: end;
-  justify-self: start;
+.workspaceAccountPanel--profileOnly {
+  grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
 }
 .workspaceAccountFormCard {
   align-content: start;
@@ -3160,7 +3190,6 @@ button {
   .connectionInventoryGrid,
   .connectionDefinitionGrid,
   .workspaceAuthPanel { grid-template-columns: 1fr; }
-  .workspaceAuthChoiceGrid,
   .workspaceSettingsPanel,
   .workspaceSettingsFacts,
   .workspaceAccountProfileFacts,
@@ -3240,10 +3269,27 @@ button {
     box-shadow: 0 18px 48px -28px rgba(15, 23, 42, 0.55);
   }
   .siteNav .links.open { display: flex; }
+  .mobileSignedInLinks {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 4px;
+    padding: 8px;
+    border: 1px solid #dbeafe;
+    border-radius: 6px;
+    background: #f8fbff;
+  }
   .mobileAccountLink {
     display: inline-flex;
     gap: 8px;
     margin-bottom: 4px;
+  }
+  .mobileSignedInLinks .mobileAccountLink {
+    margin-bottom: 0;
+  }
+  .mobileSignedInLinks .navTextButton {
+    justify-self: start;
+    color: #1d4ed8;
+    padding: 6px 2px;
   }
   .mobileAuthLinks {
     display: inline-flex;

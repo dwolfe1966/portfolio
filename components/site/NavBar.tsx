@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SiteLogo } from "@/components/site/SiteLogo";
 
@@ -45,6 +45,7 @@ export function NavBar() {
   const [open, setOpen] = useState(false);
   const [accountStatus, setAccountStatus] = useState<AccountSessionStatus | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
   const isAuthenticated = accountStatus?.authenticated === true;
   const sessionLoaded = accountStatus !== null;
   const accountLabel = accountStatus?.account?.email
@@ -82,6 +83,13 @@ export function NavBar() {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
+  async function signOut() {
+    await fetch("/api/account/session", { method: "DELETE" });
+    setAccountStatus({ authenticated: false, account: null });
+    setOpen(false);
+    router.refresh();
+  }
+
   return (
     <nav className="siteNav" aria-label="Main navigation">
       <Link href="/" className="siteBrand" onClick={() => setOpen(false)}>
@@ -103,21 +111,24 @@ export function NavBar() {
 
       <div id="primary-links" className={`links ${open ? "open" : ""}`}>
         {isAuthenticated ? (
-          <Link
-            href="/workspace/account"
-            className="mobileAccountLink"
-            aria-label={accountLabel}
-            title={accountLabel}
-            onClick={() => setOpen(false)}
-          >
-            <AccountIcon label={accountLabel} />
-            <span>Account</span>
-          </Link>
+          <div className="mobileSignedInLinks" aria-label={accountLabel}>
+            <Link
+              href="/workspace/account"
+              className="mobileAccountLink"
+              aria-label={accountLabel}
+              title={accountLabel}
+              onClick={() => setOpen(false)}
+            >
+              <AccountIcon label={accountLabel} />
+              <span>Account</span>
+            </Link>
+            <button type="button" className="navTextButton" onClick={signOut}>Sign out</button>
+          </div>
         ) : sessionLoaded ? (
           <div className="mobileAuthLinks" aria-label="Workspace account actions">
             <Link href="/workspace/login" onClick={() => setOpen(false)}>Login</Link>
             <span aria-hidden="true">|</span>
-            <Link href="/workspace/register" onClick={() => setOpen(false)}>Signup</Link>
+            <Link href="/workspace/login?mode=signup" onClick={() => setOpen(false)}>Signup</Link>
           </div>
         ) : null}
         {links.map((link) => {
@@ -157,20 +168,23 @@ export function NavBar() {
 
       <div className="navCta">
         {isAuthenticated ? (
-          <Link
-            className="accountIconLink"
-            href="/workspace/account"
-            aria-label={accountLabel}
-            title={accountLabel}
-            onClick={() => setOpen(false)}
-          >
-            <AccountIcon label={accountLabel} />
-          </Link>
+          <div className="signedInActionSet" aria-label="Workspace account actions">
+            <Link
+              className="accountIconLink"
+              href="/workspace/account"
+              aria-label={accountLabel}
+              title={accountLabel}
+              onClick={() => setOpen(false)}
+            >
+              <AccountIcon label={accountLabel} />
+            </Link>
+            <button type="button" className="navTextButton" onClick={signOut}>Sign out</button>
+          </div>
         ) : sessionLoaded ? (
           <div className="authLinkSet" aria-label="Workspace account actions">
             <Link href="/workspace/login" onClick={() => setOpen(false)}>Login</Link>
             <span aria-hidden="true">|</span>
-            <Link href="/workspace/register" onClick={() => setOpen(false)}>Signup</Link>
+            <Link href="/workspace/login?mode=signup" onClick={() => setOpen(false)}>Signup</Link>
           </div>
         ) : null}
       </div>

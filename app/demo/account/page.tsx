@@ -1,5 +1,4 @@
 import { Metadata } from "next";
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
@@ -44,14 +43,6 @@ async function saveSignedInAccountProfile(formData: FormData) {
   redirect("/workspace/account?saved=profile");
 }
 
-async function signOutAccount() {
-  "use server";
-
-  const cookieStore = await cookies();
-  cookieStore.delete(ACCOUNT_SESSION_COOKIE);
-  redirect("/workspace/account");
-}
-
 async function loadAccountPage() {
   try {
     const cookieStore = await cookies();
@@ -70,13 +61,13 @@ export default async function WorkspaceAccountPage({
 }) {
   const params = await searchParams;
   const { accountUser, compatibilityMode } = await loadAccountPage();
+  if (!compatibilityMode && !accountUser) redirect("/workspace/login?next=/workspace/account");
   return (
     <>
       <DemoWorkspaceTabs />
       <Section eyebrow="Account" title="Workspace account">
         <p>
-          Accounts give imported datasets, source configs, presets, and future connector credentials a real owner.
-          Demo tools still run without signing in.
+          Manage the profile attached to your workspace data, source configs, selected datasets, and future connector credentials.
         </p>
       </Section>
 
@@ -88,23 +79,8 @@ export default async function WorkspaceAccountPage({
           <div className="card">
             <p>Account tables are not available yet. Run the latest Prisma migration to enable account ownership.</p>
           </div>
-        ) : !accountUser ? (
-          <div className="workspaceAuthChoiceGrid">
-            <div className="card workspaceAuthChoiceCard">
-              <p className="editorKicker">New workspace</p>
-              <h3>Create account</h3>
-              <p>Own imported datasets, saved mappings, source connections, and future operational credentials.</p>
-              <Link className="btn primary" href="/workspace/register?next=/workspace/account">Sign up</Link>
-            </div>
-            <div className="card workspaceAuthChoiceCard">
-              <p className="editorKicker">Existing workspace</p>
-              <h3>Sign in</h3>
-              <p>Return to your account-scoped data sources, selected datasets, and workspace activity.</p>
-              <Link className="btn" href="/workspace/login?next=/workspace/account">Sign in</Link>
-            </div>
-          </div>
-        ) : (
-          <div className="workspaceAccountPanel">
+        ) : accountUser ? (
+          <div className="workspaceAccountPanel workspaceAccountPanel--profileOnly">
             <div className="workspaceAccountStateCard workspaceAccountStateCard--profile">
               <div>
                 <p className="small">Signed in</p>
@@ -135,9 +111,6 @@ export default async function WorkspaceAccountPage({
               </div>
               <div className="workspaceAccountActions">
                 <a className="btn smallBtn" href="#edit-account">Edit</a>
-                <form action={signOutAccount}>
-                  <button className="btn smallBtn" type="submit">Sign out</button>
-                </form>
               </div>
             </div>
             <div className="card workspaceAccountFormCard" id="edit-account">
@@ -163,7 +136,7 @@ export default async function WorkspaceAccountPage({
               </form>
             </div>
           </div>
-        )}
+        ) : null}
       </Section>
     </>
   );

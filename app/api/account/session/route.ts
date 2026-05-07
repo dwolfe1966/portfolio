@@ -11,3 +11,9 @@ export async function GET() {
     account: session ? { email: session.email, userId: session.userId } : null
   });
 }
+
+export async function DELETE() {
+  const cookieStore = await cookies();
+  cookieStore.delete(ACCOUNT_SESSION_COOKIE);
+  return apiOk({ authenticated: false, account: null });
+}
