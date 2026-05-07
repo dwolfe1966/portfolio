@@ -41,6 +41,7 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | K10 | Workspace ownership and visibility labels | DW | S | S10 | ✅ | Workspace inventories and product selectors label shared sample/default data, personal account-owned data, and future team/shared visibility. |
 | K11 | Multi-workspace/team account model | DW | S | S10 | ✅ | Define future workspace membership, roles, visibility, credential grants, and client hierarchy direction before collaboration work begins. |
 | D15 | Product-oriented website language pass | DW | S | S10 | ✅ | Public copy describes the surfaces as tools/products/apps rather than demos, while internal route names remain stable. |
+| L0 | Cross-app enterprise operating model | DW | M | S11 | ✅ | Define how Lifecycle, Acquisition, Auction, Pricing, Retention, and Expansion operate in enterprise workflows, including integrations, action surfaces, and revenue proof. |
 | L1 | Lifecycle production integration architecture | DW | L | S11 | ✅ | Define connector model for ESPs, enterprise data stores, event ingestion, identity resolution, consent, and outbound delivery. |
 | L2 | Lifecycle enterprise ingestion architecture | DW | M | S11 | ✅ | Define source contracts, sync modes, mapping validation, cursoring, replay, dead-letter handling, and health states for enterprise data ingestion. |
 | L3 | Lifecycle delivery connector architecture | DW | M | S11 | ✅ | Define SMTP and ESP delivery contracts, send modes, suppression/bounce/unsubscribe handling, engagement/conversion event capture, idempotency, and delivery health. |
@@ -277,6 +278,11 @@ Cross-product platform layer that turns the product apps from seeded examples in
 
 Robustness workstream for moving from product tools to production customer infrastructure. The goal is to let customers connect their systems, define policy, and have David Wolfe agents operate revenue programs under measurable controls.
 
+Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./enterprise-app-operating-model.md).
+
+### Cross-app operating model
+- ✅ L0. Defined how each app should operate in enterprise workflows, including integration surfaces, operational cadence, data mapping intelligence, real-time pricing implications, strategic retention/expansion workflows, and revenue-proof dashboards.
+
 ### Lifecycle tool robustness
 - ✅ L1. Defined lifecycle production integration architecture in [`docs/lifecycle-production-integration-architecture.md`](./lifecycle-production-integration-architecture.md), including source ingestion, ESP/SMTP contracts, identity/consent controls, durable agent runbook, policy gates, and audit events.
 - ✅ L2. Defined enterprise ingestion architecture in [`docs/lifecycle-enterprise-ingestion-architecture.md`](./lifecycle-enterprise-ingestion-architecture.md), including source kinds, sync modes, mapping validation, cursoring, replay, dead-letter handling, and source health.
@@ -356,7 +362,7 @@ Business-model workstream for using the tools and agents to operate customer rev
 - 🟡 K8
 
 ### Sprint S11 (production integrations and performance model)
-- ✅ L1, L2, L3
+- ✅ L0, L1, L2, L3
 - ⏳ L4, L5
 - ⏳ L6, L7, L8, L9, L10
 - ⏳ M1, M2, M3, M4
