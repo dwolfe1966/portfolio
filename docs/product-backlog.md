@@ -36,7 +36,7 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | K5 | Account-scoped ad connections | DW | S | S10 | ✅ | Google Ads connection rows are attached to the account session. |
 | K6 | Per-app data source selection | DW | M | S10 | ✅ | Lifecycle, Acquisition, Auction, Pricing, Retention, and Expansion can track sample vs imported active data source per account. |
 | K7 | Product-app source panels | DW | M | S10 | ✅ | Each product app exposes sample data, account-owned imported datasets, active source status, and switch feedback. |
-| K8 | End-to-end workspace data verification | DW | M | S10 | 🟡 | Walk each product app anonymously and logged in; verify sample fallback, imported dataset apply flow, and no cross-account leakage. |
+| K8 | End-to-end workspace data verification | DW | M | S10 | ✅ | Walk each product app anonymously and logged in; verify sample fallback, imported dataset apply flow, and no cross-account leakage. |
 | K9 | Account-scope regression tests | DW | M | S10 | ✅ | Add tests for datasets, presets, source configs, active selections, ad connections, and import logs with logged-in and anonymous paths. |
 | K10 | Workspace ownership and visibility labels | DW | S | S10 | ✅ | Workspace inventories and product selectors label shared sample/default data, personal account-owned data, and future team/shared visibility. |
 | K11 | Multi-workspace/team account model | DW | S | S10 | ✅ | Define future workspace membership, roles, visibility, credential grants, and client hierarchy direction before collaboration work begins. |
@@ -48,9 +48,21 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | L4 | Lifecycle operations connector surface | DW | M | S11 | ✅ | Workspace Connections explains the production lifecycle object connectors, delivery connectors, engagement/conversion observation, revenue proof, and hardening path. |
 | L5 | Lifecycle connector contracts and fake providers | DW | L | S11 | ✅ | Add typed connector interfaces and fake warehouse, webhook, ESP, SMTP, engagement, and conversion providers with health, sync, preview, and audit behavior. |
 | L5.1 | Lifecycle connector health and preview API | DW | M | S11 | ✅ | Expose fake lifecycle connector health, schema discovery, preview rows, sync dry-run, delivery test-send, and observation preview through account-aware workspace APIs. |
-| L5.2 | Persist lifecycle connector configs and audit events | DW | L | S11 | ⏳ | Add workspace-scoped connector config, health snapshot, credential-grant placeholder, sync run, and connector audit event persistence before real providers. |
-| L6 | Acquisition production integration architecture | DW | L | S11 | ⏳ | Define connector model for Google Ads, Microsoft Ads, Meta Ads, budget operations, campaign state sync, and policy-bounded agent actions. |
-| M1 | Performance business operating model | DW | M | S11 | ⏳ | Define customer onboarding, baseline measurement, attribution, lift calculation, fee triggers, and risk controls for revenue-share engagements. |
+| L5.2 | Persist lifecycle connector configs and audit events | DW | L | S11 | ✅ | Add workspace-scoped connector config, health snapshot, credential-grant placeholder, sync run, and connector audit event persistence before real providers. |
+| L6 | Acquisition production integration architecture | DW | L | S11 | ✅ | Define connector model for Google Ads, Microsoft Ads, Meta Ads, budget operations, campaign state sync, and policy-bounded agent actions. |
+| L7 | Acquisition write-operation safety contract | DW | M | S11 | ✅ | Add typed safety evaluation for campaign creation, budget edits, pause/resume, creative upload, audience sync, and rollback before provider mutation work. |
+| L8 | Acquisition write-policy gates | DW | M | S11 | ✅ | Add policy gates for spend caps, max daily shift, CAC/LTV thresholds, confidence, cooldowns, approvals, and emergency stop before provider mutation work. |
+| L9 | Acquisition cross-channel normalization | DW | M | S11 | ✅ | Normalize spend, impressions, clicks, conversions, attribution windows, campaign states, channels, and naming conventions across ad providers. |
+| L10 | Acquisition agent runbook planner | DW | M | S11 | ✅ | Add runbook planner for observe, diagnose, propose, check policy, request approval, apply approved action, monitor reversal, and log revenue impact. |
+| L5.3 | Lifecycle identity and consent gate | DW | M | S11 | ✅ | Add fail-closed identity, consent, suppression, geography, event freshness, dedupe, and holdout controls before lifecycle delivery. |
+| L5.4 | Lifecycle agent runbook planner | DW | M | S11 | ✅ | Add runbook planner for event detection, identity/consent, scoring, message draft, approval, delivery, observation, and revenue audit updates. |
+| M1 | Performance business operating model | DW | M | S11 | ✅ | Define customer onboarding, baseline measurement, attribution, lift calculation, fee triggers, and risk controls for revenue-share engagements. |
+| M2 | Performance customer onboarding runbook | DW | M | S11 | ✅ | Define system access, data permissions, channel credentials, consent review, billing data, historical baselines, launch states, and initial policy constraints. |
+| M3 | Performance lifecycle measurement model | DW | M | S11 | ✅ | Define lifecycle triggered users, message funnel, conversion attribution, incremental revenue, unsubscribe/spam risk, and holdout/control methodology. |
+| M4 | Performance acquisition measurement model | DW | M | S11 | ✅ | Define spend under management, CAC, LTV:CAC, ROAS, conversion quality, budget saved, action impact, and incremental profitable revenue. |
+| M5 | Performance operating packages | DW | M | S11 | ✅ | Define audit-only, recommendation-only, human-approved execution, and agent-managed execution packages, transition gates, downgrade triggers, and reporting. |
+| M6 | Performance risk controls | DW | M | S11 | ✅ | Define spending limits, customer approvals, kill switches, compliance review, channel reputation limits, revenue-quality checks, rollback controls, and control states. |
+| M7 | Performance pricing options | DW | M | S11 | ✅ | Define setup fee plus revenue share, managed-spend fee plus performance kicker, success fee against agreed lift, advisory retainer options, fee caps, floors, and adjustments. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -58,7 +70,7 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 |---|---|---|---|
 | S8 | C8, C9, C10, C18, C19, C20, E6, E7 | — | — |
 | S9 | A6, B7, B13, B14, D6, D8, D9, D12, E8 | D7 | — |
-| S10 | K1, K2, K3, K4, K5, K6, K7, K9, K10, K11, D15 | K8 | — |
+| S10 | K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, D15 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -272,9 +284,7 @@ Cross-product platform layer that turns the product apps from seeded examples in
 - ✅ K9. Added account-scope regression tests and shared policy helpers for anonymous sample fallback, account-owned imports, active source selection, and import snapshot ownership.
 - ✅ K10. Added ownership and visibility labels across workspace inventories, source detail pages, lifecycle import history, dashboard active selections, and product imported dataset selectors.
 - ✅ K11. Defined the future multi-workspace/team account model in [`docs/multi-workspace-account-model.md`](./multi-workspace-account-model.md), including roles, visibility scopes, credential grants, audit boundaries, and migration path.
-
-### To do
-- 🟡 K8. Verify each product app end to end in both anonymous sample mode and logged-in imported-data mode.
+- ✅ K8. Completed the workspace data verification pass in [`docs/workspace-data-verification.md`](./workspace-data-verification.md), covering anonymous product route probes, protected workspace redirects, full test/build verification, account-owned imported-data scoping, sample fallback, and cross-account leakage checks.
 
 ---
 
@@ -291,15 +301,18 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L1. Defined lifecycle production integration architecture in [`docs/lifecycle-production-integration-architecture.md`](./lifecycle-production-integration-architecture.md), including source ingestion, ESP/SMTP contracts, identity/consent controls, durable agent runbook, policy gates, and audit events.
 - ✅ L2. Defined enterprise ingestion architecture in [`docs/lifecycle-enterprise-ingestion-architecture.md`](./lifecycle-enterprise-ingestion-architecture.md), including source kinds, sync modes, mapping validation, cursoring, replay, dead-letter handling, and source health.
 - ✅ L3. Defined delivery connector architecture in [`docs/lifecycle-delivery-connector-architecture.md`](./lifecycle-delivery-connector-architecture.md), including SMTP/ESP contracts, send modes, suppression/bounce/unsubscribe handling, delivery/engagement/conversion event ingestion, idempotency, and provider health.
-- ⏳ L4. Add identity resolution and consent controls so user/entity matching respects customer IDs, hashed emails, permissions, geography, opt-out state, and channel eligibility.
-- ⏳ L5. Add lifecycle agent runbooks: detect event, score opportunity, draft message, request approval when needed, trigger send, observe result, and update the audit trail.
+- ✅ L4. Added the lifecycle operations connector surface in Workspace Connections, covering production object connectors, delivery connectors, observation, revenue proof, and hardening path.
+- ✅ L5. Added lifecycle connector contracts and fake providers with health, sync, preview, delivery, observation, and audit behavior.
+- ✅ L5.2. Persisted workspace-scoped lifecycle connector configs, health snapshots, sync/action runs, connector audit events, and credential-grant placeholders for the fake provider layer.
+- ✅ L5.3. Added tested lifecycle identity and consent controls for canonical identity, channel address, eligibility, geography, opt-out/suppression, user/entity relationship, event freshness, dedupe, and holdout assignment.
+- ✅ L5.4. Added tested lifecycle agent runbook planner for event detection, identity/consent, opportunity scoring, message draft, approval, delivery trigger, result observation, and revenue audit update.
 
 ### Acquisition tool robustness
-- ⏳ L6. Expand ad connector abstraction from read-only Google test accounts to production-safe Google Ads, Microsoft Ads, and Meta Ads integrations.
-- ⏳ L7. Add write-operation safety for campaign creation, budget edits, pause/resume, creative upload, audience sync, and rollback.
-- ⏳ L8. Add policy gates for spend caps, max daily shift, CAC/LTV thresholds, confidence, cooldowns, approvals, and emergency stop.
-- ⏳ L9. Add cross-channel normalization for spend, impressions, clicks, conversions, attribution windows, campaign states, and naming conventions.
-- ⏳ L10. Add acquisition agent runbooks: observe performance, diagnose cell movement, propose action, apply approved action, monitor reversal conditions, and log revenue impact.
+- ✅ L6. Defined acquisition production integration architecture in [`docs/acquisition-production-integration-architecture.md`](./acquisition-production-integration-architecture.md), including provider scope, normalized objects, write safety, action types, agent runbook, audit events, and measurement.
+- ✅ L7. Added a tested acquisition write-operation safety contract in `lib/acquisition.ts` covering dry-run, idempotency, credential, account, approval, protected-campaign, emergency-stop, and rollback prerequisites before paid-media provider mutations.
+- ✅ L8. Added tested acquisition write-policy gates covering spend caps, max daily shift, approval threshold, CAC/LTV thresholds, confidence, cooldowns, approvals, emergency stop, and pause-action exceptions before provider mutations.
+- ✅ L9. Added provider-agnostic ad normalization helpers for campaign state, channel inference, canonical naming, attribution windows, metric clamping, range filtering, and recomputed performance totals.
+- ✅ L10. Added a tested acquisition agent runbook planner covering performance observation, cell diagnosis, action proposal, policy checks, approval waits, approved provider writes, reversal monitoring, and revenue attribution.
 
 ### Cross-tool agent platform
 - ⏳ L11. Add connector health checks, permission audits, sync status, credential rotation, and customer-visible integration diagnostics.
@@ -313,14 +326,14 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 
 Business-model workstream for using the tools and agents to operate customer revenue programs and earn compensation when measurable performance improves.
 
-### To do
-- ⏳ M1. Define the performance contract: baseline period, eligible revenue, attribution logic, incrementality method, exclusions, clawbacks, reporting cadence, and payout schedule.
-- ⏳ M2. Define customer onboarding: system access, data permissions, channel credentials, consent review, billing data, historical baselines, and initial policy constraints.
-- ⏳ M3. Define measurement for lifecycle: triggered users, messages sent, conversions, incremental revenue, unsubscribe/spam risk, and holdout/control methodology.
-- ⏳ M4. Define measurement for acquisition: spend under management, CAC, LTV/CAC, ROAS, conversion quality, budget saved, and incremental profitable revenue.
-- ⏳ M5. Define operating packages: audit-only, recommendation-only, human-approved execution, and agent-managed execution.
-- ⏳ M6. Define risk controls: spending limits, customer approvals, kill switches, compliance review, channel reputation limits, and revenue-quality checks.
-- ⏳ M7. Define pricing model options: setup fee plus revenue share, managed-spend fee plus performance kicker, or success fee against agreed revenue lift.
+### Completed
+- ✅ M1. Defined the performance business operating model in [`docs/performance-business-operating-model.md`](./performance-business-operating-model.md), covering onboarding, baseline measurement, eligible revenue, attribution, incrementality, fee triggers, clawbacks, reporting cadence, audit evidence, and risk controls.
+- ✅ M2. Defined the performance customer onboarding runbook in [`docs/performance-customer-onboarding.md`](./performance-customer-onboarding.md), covering owners, system access, credential grants, data mapping, consent review, billing evidence, historical baselines, launch states, and initial policy constraints.
+- ✅ M3. Defined the performance lifecycle measurement model in [`docs/performance-lifecycle-measurement.md`](./performance-lifecycle-measurement.md), covering triggered users, eligibility, message funnel metrics, conversion attribution, incremental revenue, unsubscribe/spam risk, holdout/control methodology, billing-grade evidence, and reporting views.
+- ✅ M4. Defined the performance acquisition measurement model in [`docs/performance-acquisition-measurement.md`](./performance-acquisition-measurement.md), covering spend under management, CAC, LTV:CAC, ROAS, conversion quality, budget saved, action impact, guardrails, and incremental profitable revenue.
+- ✅ M5. Defined performance operating packages in [`docs/performance-operating-packages.md`](./performance-operating-packages.md), covering audit-only, recommendation-only, human-approved execution, agent-managed execution, transition gates, downgrade triggers, package reporting, and implementation state.
+- ✅ M6. Defined performance risk controls in [`docs/performance-risk-controls.md`](./performance-risk-controls.md), covering spending limits, customer approvals, kill switches, compliance review, channel reputation, revenue quality, rollback safety, control states, and implementation records.
+- ✅ M7. Defined performance pricing options in [`docs/performance-pricing-options.md`](./performance-pricing-options.md), covering setup fee plus revenue share, managed-spend fee plus performance kicker, success fee against agreed lift, advisory retainers, fee caps, floors, adjustments, and billing/package alignment.
 
 ---
 
@@ -362,11 +375,7 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ A6
 
 ### Sprint S10 (account-aware product apps)
-- ✅ K1, K2, K3, K4, K5, K6, K7, K9, K10, K11
-- 🟡 K8
+- ✅ K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11
 
 ### Sprint S11 (production integrations and performance model)
-- ✅ L0, L1, L2, L3
-- ⏳ L4, L5
-- ⏳ L6, L7, L8, L9, L10
-- ⏳ M1, M2, M3, M4
+- ✅ L0, L1, L2, L3, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, M1, M2, M3, M4, M5, M6, M7

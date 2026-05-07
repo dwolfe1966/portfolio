@@ -6,6 +6,15 @@ type ConnectorSummary = {
   provider: string;
   kind: string;
   capabilities: string[];
+  diagnostics?: {
+    state: "ready" | "review" | "blocked";
+    healthStatus: "ok" | "warning" | "blocked";
+    permissionStatus: "ok" | "warning" | "blocked";
+    syncStatus: "ok" | "warning" | "blocked";
+    credentialStatus: "ok" | "warning" | "blocked";
+    missingCapabilities: string[];
+    diagnostics: Array<{ key: string; label: string; severity: "ok" | "warning" | "blocked"; detail: string }>;
+  };
   health: {
     ok: boolean;
     accountLabel: string;
@@ -66,6 +75,18 @@ function labelProvider(provider: string) {
 
 function summarizeJson(value: unknown) {
   return JSON.stringify(value, null, 2);
+}
+
+function diagnosticPillClass(severity: string | undefined) {
+  if (severity === "ok") return "live";
+  if (severity === "blocked") return "warning";
+  return "progress";
+}
+
+function diagnosticStateLabel(state: string | undefined) {
+  if (state === "ready") return "Ready";
+  if (state === "blocked") return "Blocked";
+  return "Review";
 }
 
 export function LifecycleConnectorLab() {
@@ -151,10 +172,18 @@ export function LifecycleConnectorLab() {
           <div className="card connectorLabHealthCard" key={connector.provider}>
             <div className="connectionChooserHeader">
               <p className="editorKicker">{connector.kind}</p>
-              <span className={`statusPill ${connector.health.ok ? "live" : "progress"}`}>{connector.health.ok ? "Healthy" : "Check"}</span>
+              <span className={`statusPill ${diagnosticPillClass(connector.diagnostics?.state === "ready" ? "ok" : connector.diagnostics?.state === "blocked" ? "blocked" : "warning")}`}>
+                {diagnosticStateLabel(connector.diagnostics?.state)}
+              </span>
             </div>
             <h3>{labelProvider(connector.provider)}</h3>
             <p>{connector.health.accountLabel}</p>
+            <div className="connectorChipGrid">
+              <span className={`connectorChip ${diagnosticPillClass(connector.diagnostics?.healthStatus)}`}>Health: {connector.diagnostics?.healthStatus ?? "unknown"}</span>
+              <span className={`connectorChip ${diagnosticPillClass(connector.diagnostics?.permissionStatus)}`}>Permissions: {connector.diagnostics?.permissionStatus ?? "unknown"}</span>
+              <span className={`connectorChip ${diagnosticPillClass(connector.diagnostics?.syncStatus)}`}>Sync: {connector.diagnostics?.syncStatus ?? "unknown"}</span>
+              <span className={`connectorChip ${diagnosticPillClass(connector.diagnostics?.credentialStatus)}`}>Rotation: {connector.diagnostics?.credentialStatus ?? "unknown"}</span>
+            </div>
             <div className="connectorChipGrid">
               {connector.capabilities.map((capability) => (
                 <span className="connectorChip" key={capability}>{capability}</span>
@@ -162,6 +191,16 @@ export function LifecycleConnectorLab() {
             </div>
             {connector.discovery ? (
               <p className="small">{connector.discovery.objects.length} source objects discovered</p>
+            ) : null}
+            {connector.diagnostics?.diagnostics.length ? (
+              <ul className="connectorDiagnosticList">
+                {connector.diagnostics.diagnostics.map((item) => (
+                  <li key={item.key}>
+                    <strong>{item.label}</strong>
+                    <span>{item.detail}</span>
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </div>
         ))}

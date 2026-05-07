@@ -9,6 +9,14 @@ import {
   type LifecycleConnectorProvider,
   type LifecycleObjectKey
 } from "@/lib/lifecycle-connectors";
+import {
+  connectorActionAuditEvent,
+  recordLifecycleConnectorAuditEvents,
+  recordLifecycleConnectorHealth,
+  recordLifecycleConnectorSyncRun,
+  upsertLifecycleConnectorConfig
+} from "@/lib/lifecycle-connectors/persistence";
+import { buildLifecycleConnectorDiagnostics } from "@/lib/lifecycle-connectors/diagnostics";
 import { createEventId } from "@/lib/logging";
 import { getDefaultWorkspace } from "@/lib/workspace";
 
@@ -64,17 +72,26 @@ function positiveLimit(value: unknown, fallback = 5) {
   return Number.isFinite(numeric) ? Math.max(1, Math.min(Math.floor(numeric), 25)) : fallback;
 }
 
-async function connectorSummary(provider: LifecycleConnectorProvider) {
+async function connectorSummary(provider: LifecycleConnectorProvider, workspace: { id: string }, session: { userId: string }) {
   const connector = getLifecycleConnector(provider);
   const health = await connector.health();
+  const config = await upsertLifecycleConnectorConfig(workspace, session, connector);
+  await recordLifecycleConnectorHealth(workspace, config, health);
   const discovery = sourceProviders.has(provider)
     ? await getLifecycleSourceConnector(provider as "fake_warehouse" | "fake_webhook").discover()
     : null;
+  const diagnostics = buildLifecycleConnectorDiagnostics({
+    health,
+    configuredStatus: config.status,
+    credentialGrantId: config.credentialGrantId
+  });
   return {
     provider,
+    config: { id: config.id, status: config.status, credentialGrantId: config.credentialGrantId },
     kind: connector.kind,
     capabilities: connector.capabilities,
     health,
+    diagnostics,
     discovery
   };
 }
@@ -88,7 +105,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const workspace = await getDefaultWorkspace();
-    const connectors = await Promise.all(providers.map(connectorSummary));
+    const connectors = await Promise.all(providers.map((provider) => connectorSummary(provider, workspace, session)));
     return apiOk({
       eventId,
       account: { userId: session.userId, email: session.email },
@@ -114,23 +131,41 @@ export async function POST(request: NextRequest) {
 
   try {
     const workspace = await getDefaultWorkspace();
+    const baseConnector = getLifecycleConnector(provider);
+    const config = await upsertLifecycleConnectorConfig(workspace, session, baseConnector);
+    const health = await baseConnector.health();
+    await recordLifecycleConnectorHealth(workspace, config, health);
 
     if (action === "preview") {
       if (!sourceProviders.has(provider)) return apiError(400, "UNSUPPORTED_ACTION", "Preview requires a source connector.", { eventId });
       const objectKey = normalizeObjectKey(body.objectKey) ?? "users";
       const connector = getLifecycleSourceConnector(provider as "fake_warehouse" | "fake_webhook");
       const preview = await connector.preview({ objectKey, limit: positiveLimit(body.limit) });
+      await recordLifecycleConnectorAuditEvents(workspace, session, config, [
+        connectorActionAuditEvent(provider, "source.previewed", {
+          returnedRows: preview.rows.length,
+          rejectedRows: preview.rejectedRows,
+          cursor: preview.cursor
+        }, objectKey)
+      ]);
       return apiOk({ eventId, workspace: { id: workspace.id }, provider, preview });
     }
 
     if (action === "syncDryRun") {
       if (!sourceProviders.has(provider)) return apiError(400, "UNSUPPORTED_ACTION", "Sync dry-run requires a source connector.", { eventId });
       const objectKeys = normalizeObjectKeys(body.objectKeys);
+      const requestedObjectKeys = objectKeys.length > 0 ? objectKeys : ["users", "entities", "interestEdges", "events", "consent"] as const;
+      const idempotencyKey = clean(body.idempotencyKey, 120) || `${workspace.id}:${provider}:dry-run`;
       const connector = getLifecycleSourceConnector(provider as "fake_warehouse" | "fake_webhook");
       const result = await connector.sync({
-        objectKeys: objectKeys.length > 0 ? objectKeys : ["users", "entities", "interestEdges", "events", "consent"],
+        objectKeys: [...requestedObjectKeys],
         cursor: clean(body.cursor, 120) || undefined,
-        idempotencyKey: clean(body.idempotencyKey, 120) || `${workspace.id}:${provider}:dry-run`
+        idempotencyKey
+      });
+      await recordLifecycleConnectorSyncRun(workspace, session, config, provider, "syncDryRun", result, {
+        objectKeys: [...requestedObjectKeys],
+        idempotencyKey,
+        cursor: result.cursor
       });
       return apiOk({ eventId, workspace: { id: workspace.id }, provider, result });
     }
@@ -138,14 +173,19 @@ export async function POST(request: NextRequest) {
     if (action === "testSend") {
       if (!deliveryProviders.has(provider)) return apiError(400, "UNSUPPORTED_ACTION", "Test send requires a delivery connector.", { eventId });
       const connector = getLifecycleDeliveryConnector(provider as "fake_esp" | "fake_smtp");
+      const idempotencyKey = clean(body.idempotencyKey, 120) || `${workspace.id}:${provider}:test-send`;
       const result = await connector.send({
         workspaceId: workspace.id,
         messageId: clean(body.messageId, 120) || "connector-lab-message",
         recipientEmail: clean(body.recipientEmail, 180) || session.email,
         subject: clean(body.subject, 120) || "Lifecycle connector test",
         bodyText: clean(body.bodyText, 2000) || "A lifecycle connector test message.",
-        idempotencyKey: clean(body.idempotencyKey, 120) || `${workspace.id}:${provider}:test-send`,
+        idempotencyKey,
         mode: body.mode === "production" ? "production" : "test"
+      });
+      await recordLifecycleConnectorSyncRun(workspace, session, config, provider, "testSend", result, {
+        idempotencyKey,
+        metadata: { providerDeliveryId: result.providerDeliveryId, status: result.status }
       });
       return apiOk({ eventId, workspace: { id: workspace.id }, provider, result });
     }
@@ -157,6 +197,10 @@ export async function POST(request: NextRequest) {
         since: clean(body.since, 80) || "2026-05-07T12:00:00.000Z",
         cursor: clean(body.cursor, 120) || undefined,
         limit: positiveLimit(body.limit, 10)
+      });
+      await recordLifecycleConnectorSyncRun(workspace, session, config, provider, "observe", result, {
+        cursor: result.cursor,
+        metadata: { returnedEvents: result.events.length }
       });
       return apiOk({ eventId, workspace: { id: workspace.id }, provider, result });
     }

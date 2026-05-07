@@ -10,8 +10,24 @@ export type {
   RemotePerformance,
   RemotePerformancePoint
 } from "./types";
+export type {
+  AttributionWindow,
+  NormalizedAdChannel,
+  NormalizedCampaign,
+  NormalizedCampaignState,
+  NormalizedPerformance,
+  NormalizedPerformancePoint
+} from "./normalization";
 export { SimulatedConnector } from "./simulated";
 export { GoogleAdsConnector, GoogleAdsConnectorError, GoogleAdsNotTestAccountError } from "./google-ads-connector";
+export {
+  canonicalCampaignName,
+  inferAdChannel,
+  normalizeAttributionWindow,
+  normalizeCampaignState,
+  normalizeRemoteCampaign,
+  normalizeRemotePerformance
+} from "./normalization";
 
 /**
  * Resolve a connector for a given provider.

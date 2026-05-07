@@ -18,6 +18,10 @@ model Workspace {
   presets        WorkspacePreset[]
   memberships    WorkspaceMembership[]
   datasets       WorkspaceDataset[]
+  lifecycleConnectorConfigs LifecycleConnectorConfig[]
+  lifecycleConnectorHealthSnapshots LifecycleConnectorHealthSnapshot[]
+  lifecycleConnectorSyncRuns LifecycleConnectorSyncRun[]
+  lifecycleConnectorAuditEvents LifecycleConnectorAuditEvent[]
 }
 
 model AccountUser {
@@ -39,6 +43,9 @@ model AccountUser {
   lifecycleImportLogs LifecycleImportLog[]
   campaignRuns CampaignRun[]
   adAccountConnections AdAccountConnection[]
+  lifecycleConnectorConfigs LifecycleConnectorConfig[]
+  lifecycleConnectorSyncRuns LifecycleConnectorSyncRun[]
+  lifecycleConnectorAuditEvents LifecycleConnectorAuditEvent[]
 
   @@index([updatedAt])
 }
@@ -745,6 +752,108 @@ model AdAccountConnection {
   @@index([accountUserId, provider])
   @@index([provider])
   @@index([createdAt])
+}
+
+model LifecycleConnectorConfig {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  accountUserId     String?
+  provider          String
+  kind              String
+  displayName       String
+  status            String   @default("configured")
+  capabilities      String[]
+  credentialGrantId String?
+  settings          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser       AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  healthSnapshots   LifecycleConnectorHealthSnapshot[]
+  syncRuns          LifecycleConnectorSyncRun[]
+  auditEvents       LifecycleConnectorAuditEvent[]
+
+  @@unique([workspaceId, accountUserId, provider])
+  @@index([workspaceId, provider])
+  @@index([accountUserId, updatedAt])
+  @@index([status, updatedAt])
+}
+
+model LifecycleConnectorHealthSnapshot {
+  id                 String   @id @default(cuid())
+  workspaceId        String
+  connectorConfigId  String
+  provider           String
+  kind               String
+  ok                 Boolean
+  accountLabel       String
+  capabilities       String[]
+  permissionWarnings Json?
+  freshnessWarnings  Json?
+  checkedAt          DateTime @default(now())
+  lastSyncAt         DateTime?
+  nextSyncAt         DateTime?
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connectorConfig    LifecycleConnectorConfig @relation(fields: [connectorConfigId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, checkedAt])
+  @@index([connectorConfigId, checkedAt])
+  @@index([provider, checkedAt])
+  @@index([ok, checkedAt])
+}
+
+model LifecycleConnectorSyncRun {
+  id                 String   @id @default(cuid())
+  workspaceId        String
+  accountUserId      String?
+  connectorConfigId  String
+  provider           String
+  action             String
+  status             String
+  idempotencyKey     String?
+  cursor             String?
+  objectKeys         String[]
+  normalizedCounts   Json?
+  rejectedRows       Int      @default(0)
+  warnings           Json?
+  metadata           Json?
+  startedAt          DateTime @default(now())
+  completedAt        DateTime?
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser        AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  connectorConfig    LifecycleConnectorConfig @relation(fields: [connectorConfigId], references: [id], onDelete: Cascade)
+  auditEvents        LifecycleConnectorAuditEvent[]
+
+  @@index([workspaceId, startedAt])
+  @@index([accountUserId, startedAt])
+  @@index([connectorConfigId, startedAt])
+  @@index([provider, action, startedAt])
+  @@index([status, startedAt])
+}
+
+model LifecycleConnectorAuditEvent {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  accountUserId     String?
+  connectorConfigId String?
+  syncRunId         String?
+  provider          String
+  eventType         String
+  objectKey         String?
+  idempotencyKey    String?
+  metadata          Json
+  occurredAt        DateTime
+  createdAt         DateTime @default(now())
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser       AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  connectorConfig   LifecycleConnectorConfig? @relation(fields: [connectorConfigId], references: [id], onDelete: SetNull)
+  syncRun           LifecycleConnectorSyncRun? @relation(fields: [syncRunId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, occurredAt])
+  @@index([accountUserId, occurredAt])
+  @@index([connectorConfigId, occurredAt])
+  @@index([syncRunId, occurredAt])
+  @@index([provider, eventType, occurredAt])
 }
 
 model AudienceTemplate {

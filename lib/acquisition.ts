@@ -377,3 +377,366 @@ export function evaluateBudgetShift(args: {
     approvalCapPct: args.approvalCapPct
   };
 }
+
+export type AdWriteOperationType =
+  | "create_campaign"
+  | "update_budget"
+  | "pause_resume"
+  | "upload_creative"
+  | "sync_audience"
+  | "rollback_change";
+
+export type AdWriteRiskLevel = "low" | "medium" | "high";
+
+export type AdWriteSafetyInput = {
+  operationType: AdWriteOperationType;
+  workspaceExecutionEnabled: boolean;
+  providerHealthOk: boolean;
+  hasCredentialGrant: boolean;
+  targetAccountAllowed: boolean;
+  productionWritesEnabled: boolean;
+  dryRunCompleted: boolean;
+  idempotencyKey?: string | null;
+  rollbackPlan?: string | null;
+  protectedCampaign?: boolean;
+  emergencyStopActive?: boolean;
+  requiresApproval?: boolean;
+  approvalCompleted?: boolean;
+  riskLevel?: AdWriteRiskLevel;
+  estimatedSpendExposureCents?: number;
+};
+
+export type AdWriteSafetyDecision = {
+  allowed: boolean;
+  operationType: AdWriteOperationType;
+  riskLevel: AdWriteRiskLevel;
+  reasons: string[];
+};
+
+export type AdWritePolicyGateInput = AdWriteSafetyInput & {
+  campaignBudgetCents: number;
+  dailySpendCapCents?: number | null;
+  projectedDailySpendCents?: number | null;
+  shiftAmountCents?: number | null;
+  sourceBudgetCents?: number | null;
+  maxBudgetShiftPct: number;
+  approvalCapPct: number;
+  observedCacCents?: number | null;
+  observedRevenueCents?: number | null;
+  conversions?: number | null;
+  targetCacCents: number;
+  targetLtvCents: number;
+  cacAutoPausePctOfTarget: number;
+  minLtvCacRatio: number;
+  confidence?: number | null;
+  minConfidence: number;
+  lastActionAt?: string | Date | null;
+  now?: string | Date | null;
+  cooldownHours: number;
+};
+
+export type AdWritePolicyGateDecision = AdWriteSafetyDecision & {
+  requiresApproval: boolean;
+  approvalReasons: string[];
+  blockReasons: string[];
+  policyBand: PolicyBand;
+  metrics: {
+    projectedDailySpendCents: number;
+    dailySpendCapCents: number | null;
+    shiftPct: number | null;
+    approvalCapPct: number;
+    maxBudgetShiftPct: number;
+    confidence: number | null;
+    minConfidence: number;
+    observedRatio: number | null;
+    cacOverrunPct: number | null;
+    cooldownRemainingHours: number;
+  };
+};
+
+const REVERSIBLE_WRITE_OPERATIONS = new Set<AdWriteOperationType>([
+  "update_budget",
+  "pause_resume",
+  "upload_creative",
+  "sync_audience",
+  "rollback_change"
+]);
+
+const HIGH_RISK_WRITE_OPERATIONS = new Set<AdWriteOperationType>([
+  "create_campaign",
+  "upload_creative",
+  "sync_audience"
+]);
+
+function cleanIdempotencyKey(value: string | null | undefined) {
+  return String(value ?? "").trim();
+}
+
+function inferWriteRiskLevel(input: AdWriteSafetyInput): AdWriteRiskLevel {
+  if (input.riskLevel) return input.riskLevel;
+  if (HIGH_RISK_WRITE_OPERATIONS.has(input.operationType)) return "high";
+  if ((input.estimatedSpendExposureCents ?? 0) > 0) return "medium";
+  return "low";
+}
+
+export function evaluateAdWriteOperationSafety(input: AdWriteSafetyInput): AdWriteSafetyDecision {
+  const reasons: string[] = [];
+  const riskLevel = inferWriteRiskLevel(input);
+
+  if (!input.workspaceExecutionEnabled) reasons.push("Workspace execution is disabled.");
+  if (!input.providerHealthOk) reasons.push("Provider health is not ok.");
+  if (!input.hasCredentialGrant) reasons.push("Required credential grant is missing.");
+  if (!input.targetAccountAllowed) reasons.push("Target ad account is not allowed for writes.");
+  if (!input.productionWritesEnabled) reasons.push("Production writes are not enabled for this workspace.");
+  if (input.protectedCampaign) reasons.push("Target campaign is protected from agent writes.");
+  if (input.emergencyStopActive) reasons.push("Emergency stop is active.");
+  if (!input.dryRunCompleted) reasons.push("Provider dry-run must complete before mutation.");
+  if (!cleanIdempotencyKey(input.idempotencyKey)) reasons.push("Idempotency key is required.");
+
+  if (REVERSIBLE_WRITE_OPERATIONS.has(input.operationType) && !String(input.rollbackPlan ?? "").trim()) {
+    reasons.push("Rollback plan is required for reversible write operations.");
+  }
+
+  if ((riskLevel === "high" || input.requiresApproval) && !input.approvalCompleted) {
+    reasons.push("Approval is required before this write operation.");
+  }
+
+  return {
+    allowed: reasons.length === 0,
+    operationType: input.operationType,
+    riskLevel,
+    reasons
+  };
+}
+
+function positiveNumber(value: number | null | undefined) {
+  return Number.isFinite(value) && value !== null && value !== undefined ? Number(value) : null;
+}
+
+function parsePolicyDate(value: string | Date | null | undefined) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function hoursBetween(later: Date, earlier: Date) {
+  return Math.max(0, (later.getTime() - earlier.getTime()) / (60 * 60 * 1000));
+}
+
+export function evaluateAdWritePolicyGate(input: AdWritePolicyGateInput): AdWritePolicyGateDecision {
+  const blockReasons: string[] = [];
+  const approvalReasons: string[] = [];
+
+  const projectedDailySpendCents = positiveNumber(input.projectedDailySpendCents) ?? 0;
+  const dailySpendCapCents = positiveNumber(input.dailySpendCapCents);
+  if (dailySpendCapCents !== null && projectedDailySpendCents > dailySpendCapCents) {
+    blockReasons.push(
+      `Projected daily spend ${projectedDailySpendCents} exceeds cap ${dailySpendCapCents}.`
+    );
+  }
+
+  const shiftAmountCents = positiveNumber(input.shiftAmountCents);
+  const sourceBudgetCents = positiveNumber(input.sourceBudgetCents);
+  const shiftPct = shiftAmountCents !== null && sourceBudgetCents !== null && sourceBudgetCents > 0
+    ? shiftAmountCents / sourceBudgetCents
+    : null;
+
+  if (shiftPct !== null && shiftPct > input.maxBudgetShiftPct) {
+    blockReasons.push(
+      `Budget shift ${(shiftPct * 100).toFixed(1)}% exceeds max shift ${(input.maxBudgetShiftPct * 100).toFixed(1)}%.`
+    );
+  } else if (shiftPct !== null && shiftPct > input.approvalCapPct) {
+    approvalReasons.push(
+      `Budget shift ${(shiftPct * 100).toFixed(1)}% exceeds auto-approval cap ${(input.approvalCapPct * 100).toFixed(1)}%.`
+    );
+  }
+
+  const confidence = positiveNumber(input.confidence);
+  if (confidence !== null && confidence < input.minConfidence) {
+    blockReasons.push(
+      `Confidence ${(confidence * 100).toFixed(0)}% is below minimum ${(input.minConfidence * 100).toFixed(0)}%.`
+    );
+  }
+
+  const now = parsePolicyDate(input.now) ?? new Date();
+  const lastActionAt = parsePolicyDate(input.lastActionAt);
+  const elapsedCooldownHours = lastActionAt ? hoursBetween(now, lastActionAt) : input.cooldownHours;
+  const cooldownRemainingHours = Math.max(0, input.cooldownHours - elapsedCooldownHours);
+  if (cooldownRemainingHours > 0) {
+    blockReasons.push(`Cooldown has ${cooldownRemainingHours.toFixed(1)} hours remaining.`);
+  }
+
+  const hasCacInputs =
+    positiveNumber(input.observedCacCents) !== null &&
+    positiveNumber(input.observedRevenueCents) !== null &&
+    positiveNumber(input.conversions) !== null;
+  const campaignPolicy = hasCacInputs
+    ? evaluateCampaignPolicy({
+        observedCacCents: Number(input.observedCacCents),
+        observedRevenueCents: Number(input.observedRevenueCents),
+        conversions: Number(input.conversions),
+        targetCacCents: input.targetCacCents,
+        targetLtvCents: input.targetLtvCents,
+        cacAutoPausePctOfTarget: input.cacAutoPausePctOfTarget,
+        minLtvCacRatio: input.minLtvCacRatio
+      })
+    : null;
+
+  if (campaignPolicy?.shouldPause && input.operationType !== "pause_resume") {
+    blockReasons.push(...campaignPolicy.reasons);
+  }
+
+  const requiresApproval = approvalReasons.length > 0 || input.requiresApproval === true;
+  const safety = evaluateAdWriteOperationSafety({
+    ...input,
+    requiresApproval,
+    approvalCompleted: input.approvalCompleted
+  });
+
+  return {
+    ...safety,
+    allowed: safety.reasons.length === 0 && blockReasons.length === 0,
+    requiresApproval,
+    approvalReasons,
+    blockReasons: [...safety.reasons, ...blockReasons],
+    reasons: [...safety.reasons, ...blockReasons],
+    policyBand: blockReasons.length > 0 || campaignPolicy?.band === "unhealthy" ? "unhealthy" : approvalReasons.length > 0 || campaignPolicy?.band === "watch" ? "watch" : "healthy",
+    metrics: {
+      projectedDailySpendCents,
+      dailySpendCapCents,
+      shiftPct,
+      approvalCapPct: input.approvalCapPct,
+      maxBudgetShiftPct: input.maxBudgetShiftPct,
+      confidence,
+      minConfidence: input.minConfidence,
+      observedRatio: campaignPolicy?.observedRatio ?? null,
+      cacOverrunPct: campaignPolicy?.cacOverrunPct ?? null,
+      cooldownRemainingHours: Number(cooldownRemainingHours.toFixed(2))
+    }
+  };
+}
+
+export type AcquisitionAgentRunbookStepKey =
+  | "observe_performance"
+  | "diagnose_cell_movement"
+  | "propose_action"
+  | "check_policy"
+  | "request_approval"
+  | "apply_approved_action"
+  | "monitor_reversal"
+  | "log_revenue_impact";
+
+export type AcquisitionAgentRunbookStepStatus =
+  | "ready"
+  | "blocked"
+  | "approval_required"
+  | "waiting"
+  | "completed";
+
+export type AcquisitionAgentRunbookStep = {
+  key: AcquisitionAgentRunbookStepKey;
+  status: AcquisitionAgentRunbookStepStatus;
+  auditEvent: string;
+  summary: string;
+  reasons: string[];
+};
+
+export type AcquisitionAgentRunbookInput = {
+  observedPerformance: boolean;
+  diagnosedMovement: boolean;
+  proposedAction: boolean;
+  policyDecision?: AdWritePolicyGateDecision | null;
+  approvalCompleted?: boolean;
+  actionApplied?: boolean;
+  reversalWindowHours: number;
+  reversalConditionMet?: boolean;
+  outcomeObserved?: boolean;
+  revenueImpactCents?: number | null;
+};
+
+export type AcquisitionAgentRunbook = {
+  currentStep: AcquisitionAgentRunbookStepKey;
+  readyToApply: boolean;
+  shouldRollback: boolean;
+  revenueImpactCents: number;
+  steps: AcquisitionAgentRunbookStep[];
+};
+
+export function buildAcquisitionAgentRunbook(input: AcquisitionAgentRunbookInput): AcquisitionAgentRunbook {
+  const policyDecision = input.policyDecision ?? null;
+  const policyChecked = Boolean(policyDecision);
+  const approvalRequired = Boolean(policyDecision?.requiresApproval);
+  const onlyApprovalBlocks = approvalRequired && policyDecision?.blockReasons.every((reason) => /approval/i.test(reason));
+  const policyAllowed = Boolean(policyDecision?.allowed);
+  const approvalComplete = !approvalRequired || input.approvalCompleted === true;
+  const readyToApply = input.observedPerformance && input.diagnosedMovement && input.proposedAction && policyAllowed && approvalComplete;
+  const shouldRollback = input.actionApplied === true && input.reversalConditionMet === true;
+  const revenueImpactCents = Number.isFinite(input.revenueImpactCents ?? NaN) ? Number(input.revenueImpactCents) : 0;
+
+  const steps: AcquisitionAgentRunbookStep[] = [
+    {
+      key: "observe_performance",
+      status: input.observedPerformance ? "completed" : "ready",
+      auditEvent: "performance.synced",
+      summary: "Sync platform performance and first-party conversion quality for the configured window.",
+      reasons: []
+    },
+    {
+      key: "diagnose_cell_movement",
+      status: input.observedPerformance ? input.diagnosedMovement ? "completed" : "ready" : "blocked",
+      auditEvent: "cell.diagnosed",
+      summary: "Compare cells against CAC, ROAS, LTV:CAC, confidence, and budget movement signals.",
+      reasons: input.observedPerformance ? [] : ["Performance must be observed before diagnosis."]
+    },
+    {
+      key: "propose_action",
+      status: input.diagnosedMovement ? input.proposedAction ? "completed" : "ready" : "blocked",
+      auditEvent: "action.recommended",
+      summary: "Draft the recommended budget, pause/resume, creative, audience, or rollback action.",
+      reasons: input.diagnosedMovement ? [] : ["Cell movement must be diagnosed before action proposal."]
+    },
+    {
+      key: "check_policy",
+      status: input.proposedAction ? policyChecked ? policyAllowed || onlyApprovalBlocks ? "completed" : "blocked" : "ready" : "blocked",
+      auditEvent: "policy.checked",
+      summary: "Evaluate spend caps, CAC/LTV, confidence, cooldown, approval, emergency stop, and rollback gates.",
+      reasons: input.proposedAction ? policyDecision?.reasons ?? [] : ["Action proposal is required before policy check."]
+    },
+    {
+      key: "request_approval",
+      status: approvalRequired ? input.approvalCompleted ? "completed" : "approval_required" : policyChecked ? "completed" : "blocked",
+      auditEvent: approvalRequired ? "approval.requested" : "approval.completed",
+      summary: "Request operator approval when policy says the action cannot be auto-applied.",
+      reasons: approvalRequired ? policyDecision?.approvalReasons ?? ["Approval is required before this write operation."] : []
+    },
+    {
+      key: "apply_approved_action",
+      status: readyToApply ? input.actionApplied ? "completed" : "ready" : "blocked",
+      auditEvent: input.actionApplied ? "provider.write_applied" : "provider.dry_run",
+      summary: "Apply the approved provider mutation with idempotency and before/after diff metadata.",
+      reasons: readyToApply ? [] : ["Observation, diagnosis, proposal, policy pass, and approval must complete first."]
+    },
+    {
+      key: "monitor_reversal",
+      status: input.actionApplied ? shouldRollback ? "ready" : input.outcomeObserved ? "completed" : "waiting" : "blocked",
+      auditEvent: shouldRollback ? "provider.rollback_applied" : "outcome.observed",
+      summary: `Monitor reversal conditions for ${Math.max(0, input.reversalWindowHours)} hours after action.`,
+      reasons: shouldRollback ? ["Reversal condition met after provider write."] : []
+    },
+    {
+      key: "log_revenue_impact",
+      status: input.outcomeObserved ? "ready" : "blocked",
+      auditEvent: "revenue.attributed",
+      summary: "Attribute downstream revenue impact and persist customer-visible proof.",
+      reasons: input.outcomeObserved ? [] : ["Outcome observation is required before revenue attribution."]
+    }
+  ];
+
+  return {
+    currentStep: steps.find((step) => step.status === "ready" || step.status === "approval_required" || step.status === "waiting" || step.status === "blocked")?.key ?? "log_revenue_impact",
+    readyToApply,
+    shouldRollback,
+    revenueImpactCents,
+    steps
+  };
+}
