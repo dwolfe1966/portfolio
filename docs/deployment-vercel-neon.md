@@ -79,6 +79,22 @@ npm run db:migrate:deploy
 
 You can run this from CI/CD or locally against the production environment variables.
 
+## Agent worker deployment requirements
+
+The current agent architecture still works on a standard Vercel + Neon deployment:
+
+- `AgentJob` and `AgentApprovalRequest` require Prisma migrations to be deployed.
+- The first worker executor is run-once and request-driven through a protected API route, so it does not require a separate long-running process yet.
+- Fake provider-write executors do not send messages or mutate ad accounts. Real delivery/ad-provider executors will require provider credentials, stricter secret rotation, and customer policy controls.
+
+Future background execution will add one of these deployment requirements:
+
+- a scheduler that calls the run-once endpoint for known queues;
+- Vercel cron or an equivalent scheduled function if staying fully serverless;
+- an external worker service if jobs need long runtimes, high concurrency, streaming connectors, or provider webhooks with heavier retry semantics.
+
+When background workers are enabled, production will also need concurrency limits, queue allowlists, worker auth, observability/alerts, and database connection sizing for worker load.
+
 ## 7) Post-deploy smoke checks
 
 After deployment, verify:

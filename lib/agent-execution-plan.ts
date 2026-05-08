@@ -61,6 +61,16 @@ export type AgentExecutionPlan = {
   blockedReasons: string[];
 };
 
+export type AgentApprovalContinuationInput = {
+  workspaceId: string;
+  accountUserId?: string | null;
+  app: AgentJobApp;
+  approvalRequestId: string;
+  actionType: string;
+  proposedAction: unknown;
+  now?: Date;
+};
+
 export type PersistedAgentExecutionPlan = {
   jobsCreated: number;
   approvalsCreated: number;
@@ -188,6 +198,41 @@ export function buildAgentExecutionPlan(input: AgentExecutionPlanInput): AgentEx
           input: input.payload ?? {}
         },
         priority: jobType === "provider_write" ? 20 : 100,
+        runAfter: now
+      }
+    ],
+    approvals: [],
+    blockedReasons: []
+  };
+}
+
+export function buildApprovedApprovalContinuationPlan(input: AgentApprovalContinuationInput): AgentExecutionPlan {
+  const now = input.now ?? new Date();
+  const jobType: AgentJobType = "provider_write";
+
+  return {
+    status: "queued",
+    currentStep: {
+      key: "apply_approved_action",
+      status: "ready",
+      auditEvent: "provider.write_approved",
+      summary: "Apply the approved provider write with the original approval payload.",
+      reasons: []
+    },
+    jobs: [
+      {
+        workspaceId: input.workspaceId,
+        accountUserId: input.accountUserId ?? null,
+        app: input.app,
+        queueName: queueNameFor(input.app, jobType),
+        jobType,
+        idempotencyKey: clean(`approval:${input.approvalRequestId}:provider_write`, 180),
+        payload: {
+          approvalRequestId: input.approvalRequestId,
+          actionType: input.actionType,
+          proposedAction: input.proposedAction
+        },
+        priority: 20,
         runAfter: now
       }
     ],

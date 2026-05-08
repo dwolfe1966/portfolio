@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { canApplyApprovalDecision } from "@/lib/agent-approval-queue";
 import { buildAgentJobRetryDecision, evaluateAgentJobManualAction } from "@/lib/agent-job-queue";
+import { buildApprovedApprovalContinuationPlan, persistAgentExecutionPlan } from "@/lib/agent-execution-plan";
 import { db } from "@/lib/db";
 
 export async function decideAgentApprovalAction(formData: FormData) {
@@ -28,7 +29,7 @@ export async function decideAgentApprovalAction(formData: FormData) {
   });
   if (!request || !canApplyApprovalDecision(request.status)) return;
 
-  await db.agentApprovalRequest.update({
+  const updated = await db.agentApprovalRequest.update({
     where: { id: request.id },
     data: {
       status,
@@ -37,6 +38,18 @@ export async function decideAgentApprovalAction(formData: FormData) {
       decidedAt: new Date()
     }
   });
+
+  if (status === "approved" && updated.app === "acquisition") {
+    const continuationPlan = buildApprovedApprovalContinuationPlan({
+      workspaceId: workspace.id,
+      accountUserId,
+      app: "acquisition",
+      approvalRequestId: updated.id,
+      actionType: updated.actionType,
+      proposedAction: updated.proposedAction
+    });
+    await persistAgentExecutionPlan(continuationPlan);
+  }
 
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");

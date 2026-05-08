@@ -157,6 +157,29 @@ The production David Wolfe lifecycle agent should run as a durable workflow:
 
 Every step needs retry metadata and a stable idempotency key so a failed job cannot double-send.
 
+The first implementation bridge is the change-event trigger planner: a detected lifecycle event is evaluated against identity/consent policy, scored against the current threshold, assigned to the current lifecycle agent role, and converted into a durable execution plan. Fresh eligible events queue message-strategy jobs first; already drafted and approved events can advance to delivery-operator jobs. Suppressed, stale, unresolved, duplicate, or holdout events stop before queueing execution work.
+
+In the current product surface, simulated lifecycle deltas and imported CSV/Google Sheets change events use that bridge immediately: every new or imported entity delta fans out to the top interested users for that entity, evaluates their identity/consent and score gates, and persists idempotent lifecycle generation jobs when the durable agent queue tables are present. If those tables are absent in a compatibility environment, the simulation or import still succeeds and reports that agent queue persistence was skipped.
+
+Worker execution starts as a run-once, fake-safe executor. A protected workspace API can claim one queued job, dispatch it by app/job type, record a simulated result for non-mutating lifecycle/acquisition work, or return the job to retry/dead-letter handling when no executor is registered. This avoids background-process requirements during the first worker milestone while preserving the durable queue contract that a future scheduler or external worker will use.
+
+## Lifecycle Agent Roles
+
+The lifecycle system should not be treated as one generic "message sending agent." It is a set of coordinated agents with different risk profiles and automation limits.
+
+| Role | Queue | Owns | Automation mode | Output |
+|---|---|---|---|---|
+| Event watcher | `lifecycle:ingestion` | Detect or ingest source events. | Observe | Normalized change events, provenance, idempotency key. |
+| Identity and consent resolver | `lifecycle:audit` | Resolve identity, consent, eligibility, dedupe, and holdout state. | Observe | Contactability decision and suppression reasons. |
+| Opportunity scorer | `lifecycle:scoring` | Rank eligible lifecycle moments. | Recommend | Priority score, breakdown, action class. |
+| Message strategist | `lifecycle:generation` | Draft copy, offer framing, and rationale. | Recommend | Message draft and evidence. |
+| Approval coordinator | `lifecycle:audit` | Route high-risk actions to human review. | Human-approved | Approval request, expiry, approver role. |
+| Delivery operator | `lifecycle:provider_write` | Execute approved or policy-allowed sends. | Human-approved initially | Provider write request, delivery id, audit event. |
+| Outcome observer | `lifecycle:observation` | Watch delivery, engagement, conversion, and suppression events. | Observe | Outcome events and provider feedback. |
+| Revenue attributor | `lifecycle:measurement` | Tie outcomes to holdout/control and performance reporting. | Observe | Attribution record and billing-grade evidence. |
+
+At launch, only observation and recommendation roles should operate freely. The delivery operator should require explicit approval or a customer-approved auto-send policy for a narrow action class. Over time, low-risk lifecycle programs can graduate from human-approved execution to agent-managed execution once consent, frequency caps, delivery health, holdout assignment, and measurement are reliable.
+
 ## Policy Gates
 
 Minimum production gates before any send:
@@ -201,11 +224,12 @@ Each event should include workspace id, actor/service-agent id, connector id, cr
 2. Add lifecycle connector interfaces and fake provider implementations for ESP, SMTP, warehouse, and webhook.
 3. Add durable ingestion jobs with idempotency, retries, and dead-letter review.
 4. Add identity/consent policy helpers and tests.
-5. Add suppression and frequency-cap tables.
-6. Add delivery job and audit event tables.
-7. Add approval queue and customer-visible policy controls.
-8. Add provider-specific connectors, starting with one ESP and one SMTP provider.
-9. Add outcome ingestion and performance measurement.
+5. Add event-trigger planning that turns normalized change events into role-owned execution plans.
+6. Add suppression and frequency-cap tables.
+7. Add delivery job and audit event tables.
+8. Add approval queue and customer-visible policy controls.
+9. Add provider-specific connectors, starting with one ESP and one SMTP provider.
+10. Add outcome ingestion and performance measurement.
 
 ## Open Decisions
 

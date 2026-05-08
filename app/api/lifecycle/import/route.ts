@@ -2,17 +2,24 @@ import { DeltaChangeType, Prisma, SubscriptionStatus, UserSegment } from "@prism
 import { apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
+import { DEMO_ASSUMPTION_DEFAULTS, normalizeDemoAssumptions } from "@/lib/demo-assumptions";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
+import {
+  persistLifecycleTriggerQueue,
+  type LifecycleTriggerQueueEvent
+} from "@/lib/lifecycle-event-trigger-queue";
 import { createEventId } from "@/lib/logging";
 import { getToolImportSchema, normalizeEnumValue, parseImportDate } from "@/lib/tool-data-imports";
 import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
+import { getDefaultWorkspace } from "@/lib/workspace";
 
 type CsvRow = Record<string, unknown>;
 
 type LifecycleImportPayload = {
   sourceName?: unknown;
   sourceMetadata?: unknown;
+  agentFanout?: unknown;
   users?: CsvRow[];
   entities?: CsvRow[];
   interestEdges?: CsvRow[];
@@ -123,6 +130,10 @@ function readSourceType(sourceMetadata: Prisma.InputJsonValue | undefined) {
   return sourceFlow === "workspace_google_sheets" ? "google_sheets" : "csv";
 }
 
+function normalizeAgentFanout(value: unknown) {
+  return Math.max(1, Math.min(10, Math.round(Number(value ?? 3))));
+}
+
 async function recordImportLog(data: {
   accountUserId?: string | null;
   sourceName: string;
@@ -167,6 +178,7 @@ export async function POST(request: Request) {
   const sourceName = clean(body.sourceName, 120) || "CSV upload";
   const sourceMetadata = readSourceMetadata(body.sourceMetadata);
   const sourceType = readSourceType(sourceMetadata);
+  const agentFanout = normalizeAgentFanout(body.agentFanout);
   if (validation.errors.length > 0) {
     await recordImportLog({
       sourceName,
@@ -197,6 +209,7 @@ export async function POST(request: Request) {
       let entitiesImported = 0;
       let interestEdgesImported = 0;
       let changeEventsImported = 0;
+      const triggerEvents: LifecycleTriggerQueueEvent[] = [];
 
       for (const row of validation.rows.users) {
         const email = normalizeEmail(row.email);
@@ -286,22 +299,56 @@ export async function POST(request: Request) {
           },
           select: { id: true }
         });
-        if (!existingDelta) await tx.entityDelta.create({ data });
+        const delta = existingDelta ?? await tx.entityDelta.create({ data });
+        triggerEvents.push({
+          id: delta.id,
+          entityId: data.entityId,
+          entityName: clean(row.entityName, 120),
+          changeType: data.changeType,
+          detectedAt: data.detectedAt
+        });
         changeEventsImported++;
       }
 
-      return { usersImported, entitiesImported, interestEdgesImported, changeEventsImported };
+      return { usersImported, entitiesImported, interestEdgesImported, changeEventsImported, triggerEvents };
     });
+
+    let queuedAgentJobs = 0;
+    let queuedAgentApprovals = 0;
+    let agentQueueSkipped = false;
+    try {
+      const workspace = await getDefaultWorkspace();
+      const selectedSet = await db.assumptionSet.findFirst({ where: { isActive: true } });
+      const assumptions = normalizeDemoAssumptions(selectedSet ?? DEMO_ASSUMPTION_DEFAULTS);
+      const queueResult = await persistLifecycleTriggerQueue({
+        workspaceId: workspace.id,
+        accountUserId,
+        events: result.triggerEvents,
+        minPriorityScore: assumptions.minPriorityScore,
+        recencyScore: assumptions.recencyScore,
+        agentFanout
+      });
+      queuedAgentJobs = queueResult.queuedAgentJobs;
+      queuedAgentApprovals = queueResult.queuedAgentApprovals;
+      agentQueueSkipped = queueResult.agentQueueSkipped;
+    } catch (error) {
+      if (!isMissingDemoTableError(error)) throw error;
+      agentQueueSkipped = true;
+    }
 
     const importLogId = await recordImportLog({
       sourceName,
       accountUserId,
       sourceType,
       status: "imported",
-      ...result,
+      usersImported: result.usersImported,
+      entitiesImported: result.entitiesImported,
+      interestEdgesImported: result.interestEdgesImported,
+      changeEventsImported: result.changeEventsImported,
       metadata: {
         eventId,
         sourceMetadata,
+        agentQueue: { queuedAgentJobs, queuedAgentApprovals, agentQueueSkipped },
         rowCounts: {
           users: validation.rows.users.length,
           entities: validation.rows.entities.length,
@@ -326,12 +373,31 @@ export async function POST(request: Request) {
         eventId,
         importLogId,
         sourceMetadata,
-        imported: result
+        imported: {
+          usersImported: result.usersImported,
+          entitiesImported: result.entitiesImported,
+          interestEdgesImported: result.interestEdgesImported,
+          changeEventsImported: result.changeEventsImported
+        },
+        agentQueue: { queuedAgentJobs, queuedAgentApprovals, agentQueueSkipped }
       },
       cookieHeader: request.headers.get("cookie")
     });
 
-    return apiOk({ eventId, import: { id: importLogId, datasetId: dataset?.id ?? null, ...result } });
+    return apiOk({
+      eventId,
+      import: {
+        id: importLogId,
+        datasetId: dataset?.id ?? null,
+        usersImported: result.usersImported,
+        entitiesImported: result.entitiesImported,
+        interestEdgesImported: result.interestEdgesImported,
+        changeEventsImported: result.changeEventsImported,
+        queuedAgentJobs,
+        queuedAgentApprovals,
+        agentQueueSkipped
+      }
+    });
   } catch (error) {
     return apiUnhandledError(error, eventId);
   }

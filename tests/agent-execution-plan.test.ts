@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildAgentExecutionPlan } from "@/lib/agent-execution-plan";
+import { buildAgentExecutionPlan, buildApprovedApprovalContinuationPlan } from "@/lib/agent-execution-plan";
 import { buildLifecycleAgentRunbook } from "@/lib/lifecycle-runbook";
 import {
   buildAcquisitionAgentRunbook,
@@ -12,9 +12,9 @@ const IDENTITY_ALLOWED = {
   outcome: "eligible" as const,
   allowed: true,
   reasons: [],
-  auditEvents: ["consent.checked"],
+  auditEvents: ["consent.checked" as const],
   channelAddress: "jordan@example.com",
-  canonicalUserId: "user_1"
+  canonicalIdentityKey: "user_1"
 };
 
 const SAFE_POLICY_INPUT: AdWritePolicyGateInput = {
@@ -157,4 +157,29 @@ test("buildAgentExecutionPlan does not queue blocked or waiting steps", () => {
 
   assert.equal(waiting.status, "waiting");
   assert.equal(waiting.jobs.length, 0);
+});
+
+test("buildApprovedApprovalContinuationPlan queues provider write from approved payload", () => {
+  const now = new Date("2026-05-07T12:00:00.000Z");
+  const plan = buildApprovedApprovalContinuationPlan({
+    workspaceId: "workspace_1",
+    accountUserId: "acct_1",
+    app: "acquisition",
+    approvalRequestId: "approval_1",
+    actionType: "request_approval",
+    proposedAction: { campaignId: "camp_1", amountCents: 18000 },
+    now
+  });
+
+  assert.equal(plan.status, "queued");
+  assert.equal(plan.jobs.length, 1);
+  assert.equal(plan.jobs[0].queueName, "acquisition:provider_write");
+  assert.equal(plan.jobs[0].jobType, "provider_write");
+  assert.equal(plan.jobs[0].priority, 20);
+  assert.equal(plan.jobs[0].idempotencyKey, "approval:approval_1:provider_write");
+  assert.deepEqual(plan.jobs[0].payload, {
+    approvalRequestId: "approval_1",
+    actionType: "request_approval",
+    proposedAction: { campaignId: "camp_1", amountCents: 18000 }
+  });
 });

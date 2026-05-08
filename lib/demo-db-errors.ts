@@ -24,7 +24,13 @@ function readMessage(error: unknown): string {
 
 export function isMissingDemoTableError(error: unknown): boolean {
   const maybeCode = readCode(error);
-  if (maybeCode === "P2021" || maybeCode === "P2022" || maybeCode === "3F000" || maybeCode === "42P01") {
+  if (
+    maybeCode === "P1001" ||
+    maybeCode === "P2021" ||
+    maybeCode === "P2022" ||
+    maybeCode === "3F000" ||
+    maybeCode === "42P01"
+  ) {
     return true;
   }
 
@@ -32,6 +38,11 @@ export function isMissingDemoTableError(error: unknown): boolean {
   if (!message) return false;
 
   return [
+    "can't reach database server",
+    "cannot reach database server",
+    "connection timed out",
+    "connect timeout",
+    "timed out fetching a new connection",
     "does not exist in the current database",
     "schema",
     "relation",
