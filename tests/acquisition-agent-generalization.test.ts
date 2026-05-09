@@ -5,6 +5,7 @@ import {
   buildAcquisitionProviderWriteReadiness
 } from "@/lib/acquisition-agent-generalization";
 import {
+  GoogleAdsProviderWriteDryRunAdapter,
   SimulatedAdProviderWriteDryRunAdapter,
   normalizeAdProviderWriteDryRunInput
 } from "@/lib/ad-connectors/write-dry-run";
@@ -64,6 +65,7 @@ test("buildAcquisitionProviderWriteReadiness allows approved mutations only when
 
 test("acquisitionProviderDryRunAdapterAvailable is backed by a registered adapter", () => {
   assert.equal(acquisitionProviderDryRunAdapterAvailable("simulated"), true);
+  assert.equal(acquisitionProviderDryRunAdapterAvailable("google_ads"), true);
   assert.equal(acquisitionProviderDryRunAdapterAvailable("unknown-provider"), false);
 });
 
@@ -91,4 +93,44 @@ test("SimulatedAdProviderWriteDryRunAdapter returns provider diff and rollback m
   assert.equal(dryRun.providerObjects[0].resourceId, "customers/123/campaigns/456");
   assert.deepEqual(dryRun.providerObjects[0].before, { status: "ENABLED", dailyBudgetCents: 10000 });
   assert.deepEqual(dryRun.providerObjects[0].after, { status: "ENABLED", dailyBudgetCents: 12000 });
+});
+
+test("GoogleAdsProviderWriteDryRunAdapter returns Google Ads resource diff without mutation", () => {
+  const input = normalizeAdProviderWriteDryRunInput({
+    idempotencyKey: "approval:approval_2:provider_write",
+    proposedAction: {
+      provider: "google_ads",
+      operationType: "pause_resume",
+      externalAccountId: "123-456-7890",
+      externalCampaignId: "987654321",
+      previousStatus: "ENABLED",
+      nextStatus: "PAUSED"
+    }
+  });
+
+  const dryRun = new GoogleAdsProviderWriteDryRunAdapter().dryRunProviderWrite(input);
+
+  assert.equal(dryRun.provider, "google_ads");
+  assert.equal(dryRun.operationType, "pause_resume");
+  assert.equal(dryRun.providerObjects[0].resourceId, "customers/1234567890/campaigns/987654321");
+  assert.equal(dryRun.providerObjects[0].after.googleAdsResourceName, "customers/1234567890/campaigns/987654321");
+  assert.equal(dryRun.providerObjects[0].after.mutateOperation, "pause_resume");
+  assert.equal(dryRun.permissionChecks.every((check) => check.ok), true);
+  assert.equal(dryRun.rollbackSupported, true);
+  assert.deepEqual(dryRun.blockers, []);
+});
+
+test("GoogleAdsProviderWriteDryRunAdapter blocks incomplete campaign mutation context", () => {
+  const dryRun = new GoogleAdsProviderWriteDryRunAdapter().dryRunProviderWrite(
+    normalizeAdProviderWriteDryRunInput({
+      proposedAction: {
+        provider: "google_ads",
+        operationType: "update_budget"
+      }
+    })
+  );
+
+  assert.ok(dryRun.blockers.includes("google_ads_external_account_id_missing"));
+  assert.ok(dryRun.blockers.includes("google_ads_campaign_resource_missing"));
+  assert.equal(dryRun.permissionChecks.find((check) => check.capability === "google_ads.read_campaign")?.ok, false);
 });

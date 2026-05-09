@@ -21,6 +21,16 @@ export type {
 export { SimulatedConnector } from "./simulated";
 export { GoogleAdsConnector, GoogleAdsConnectorError, GoogleAdsNotTestAccountError } from "./google-ads-connector";
 export {
+  GoogleAdsProviderWriteDryRunAdapter,
+  SimulatedAdProviderWriteDryRunAdapter,
+  getAdProviderWriteDryRunAdapter,
+  hasAdProviderWriteDryRunAdapter,
+  normalizeAdProviderWriteDryRunInput,
+  type AdProviderWriteDryRunAdapter,
+  type AdProviderWriteDryRunInput,
+  type AdProviderWriteDryRunResult
+} from "./write-dry-run";
+export {
   canonicalCampaignName,
   inferAdChannel,
   normalizeAttributionWindow,

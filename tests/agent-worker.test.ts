@@ -85,6 +85,40 @@ test("executeAgentJob uses configured acquisition dry-run adapter without provid
   }
 });
 
+test("executeAgentJob can use Google Ads dry-run adapter without provider mutation", () => {
+  const previousAdapter = process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER = "google_ads";
+
+  const result = executeAgentJob({
+    ...BASE_JOB,
+    app: "acquisition",
+    queueName: "acquisition:provider_write",
+    jobType: "provider_write",
+    payload: {
+      idempotencyKey: "approval:approval_2:provider_write",
+      proposedAction: {
+        provider: "google_ads",
+        operationType: "update_budget",
+        externalAccountId: "1234567890",
+        externalCampaignId: "987654321",
+        previousBudgetCents: 10000,
+        nextBudgetCents: 12500,
+        shiftAmountCents: 2500
+      }
+    }
+  });
+
+  assert.equal(result.executor, "acquisition.provider_write.google_ads.dry_run");
+  assert.equal(result.providerMutation, "dry_run");
+  assert.equal((result.output.dryRun as { externalCampaignId: string }).externalCampaignId, "customers/1234567890/campaigns/987654321");
+
+  if (previousAdapter === undefined) {
+    delete process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  } else {
+    process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER = previousAdapter;
+  }
+});
+
 test("runAgentWorkerOnce claims and completes one queued job", async () => {
   const calls: string[] = [];
   const client: AgentWorkerClient = {

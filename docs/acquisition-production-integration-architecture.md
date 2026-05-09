@@ -204,7 +204,7 @@ The code-facing readiness contract is `buildAcquisitionProviderWriteReadiness` i
 
 Agent Operations surfaces this readiness state directly so operators can distinguish queue coverage from mutation readiness. Until real provider dry-run adapters, rollback metadata, and measurement wiring are configured, Acquisition provider writes remain visible but simulated.
 
-The first dry-run adapter is the `simulated` adapter registered by `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=simulated`. It returns provider-like diffs, permission checks, spend exposure, and rollback metadata without calling an ad platform. Real Google/Microsoft/Meta dry-run adapters should implement the same contract before any approved mutation adapter is enabled.
+The first dry-run adapter is the `simulated` adapter registered by `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=simulated`. It returns provider-like diffs, permission checks, spend exposure, and rollback metadata without calling an ad platform. The first provider-specific adapter is `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=google_ads`; it builds Google Ads-style campaign resource diffs and mutate-shape metadata offline, still without calling mutate endpoints. Microsoft/Meta dry-run adapters should implement the same contract before any approved mutation adapter is enabled.
 
 ## Audit Events
 

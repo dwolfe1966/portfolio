@@ -94,6 +94,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | L37 | Acquisition provider-write readiness contract | DW | S | S13 | ✅ | Add a tested code-facing readiness helper for acquisition provider-write generalization, covering queue ownership, execution mode progression, approval gates, rollback metadata, and measurement outputs. |
 | L38 | Acquisition provider-write operations visibility | DW | S | S13 | ✅ | Surface acquisition provider-write readiness in Agent Operations, including execution mode, queue ownership, dry-run readiness, approved-mutation blockers, and follow-on queues. |
 | L39 | Acquisition provider-write dry-run adapter foundation | DW | M | S14 | ✅ | Add a registered simulated dry-run adapter contract and worker path that returns provider-like diffs, permission checks, spend exposure, and rollback metadata without real provider mutation. |
+| L40 | Google Ads provider-write dry-run adapter | DW | M | S14 | ✅ | Add a Google Ads dry-run adapter that builds offline campaign resource diffs, permission checks, mutate-shape metadata, spend exposure, rollback plan, and incomplete-context blockers without calling mutate endpoints. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -105,7 +106,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
 | S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
-| S14 | L39 | — | Google Ads dry-run adapter, rollback metadata persistence, measurement handoff |
+| S14 | L39, L40 | — | Rollback metadata persistence, measurement handoff |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -379,6 +380,7 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L37. Added a tested acquisition provider-write readiness contract that exposes the shared queue/follow-on queue shape, simulated-to-dry-run-to-approved mutation progression, blockers, approval gates, rollback metadata, and measurement outputs.
 - ✅ L38. Surfaced acquisition provider-write readiness in Agent Operations so operators can see current mode, next mode, queue ownership, dry-run readiness, approved-mutation blockers, and follow-on queues.
 - ✅ L39. Added the acquisition provider-write dry-run adapter foundation with a registered simulated adapter, worker dry-run execution path, provider-like diff output, permission checks, spend exposure, rollback metadata, and tests.
+- ✅ L40. Added the Google Ads provider-write dry-run adapter so acquisition provider-write jobs can produce Google Ads-style campaign resource diffs and mutate-shape metadata offline, with no mutate endpoint calls.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.

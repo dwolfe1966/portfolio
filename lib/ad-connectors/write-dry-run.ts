@@ -117,9 +117,88 @@ export class SimulatedAdProviderWriteDryRunAdapter implements AdProviderWriteDry
   }
 }
 
+function googleCustomerResource(externalAccountId: unknown) {
+  const customerId = clean(externalAccountId).replace(/-/g, "");
+  return customerId ? `customers/${customerId}` : null;
+}
+
+function googleCampaignResource(externalAccountId: unknown, externalCampaignId: unknown) {
+  const campaignId = clean(externalCampaignId);
+  if (campaignId.startsWith("customers/")) return campaignId;
+  const customer = googleCustomerResource(externalAccountId);
+  return customer && campaignId ? `${customer}/campaigns/${campaignId}` : campaignId || null;
+}
+
+export class GoogleAdsProviderWriteDryRunAdapter implements AdProviderWriteDryRunAdapter {
+  readonly name = "google_ads";
+
+  dryRunProviderWrite(input: AdProviderWriteDryRunInput): AdProviderWriteDryRunResult {
+    const proposedAction = input.proposedAction ?? {};
+    const operationType = clean(input.operationType, "update_budget");
+    const externalAccountId = clean(input.externalAccountId ?? proposedAction.externalAccountId, "") || null;
+    const campaignResource = googleCampaignResource(
+      externalAccountId,
+      input.externalCampaignId ?? proposedAction.externalCampaignId ?? proposedAction.campaignId
+    );
+    const spendExposureCents = spendExposure(proposedAction.spendExposureCents ?? proposedAction.shiftAmountCents ?? proposedAction.amountCents);
+    const blockers: string[] = [];
+    const warnings: string[] = [];
+
+    if (!externalAccountId) blockers.push("google_ads_external_account_id_missing");
+    if (operationType !== "create_campaign" && !campaignResource) blockers.push("google_ads_campaign_resource_missing");
+    if (!input.idempotencyKey) warnings.push("Idempotency key is missing from the dry-run payload.");
+
+    return {
+      mode: "dry_run",
+      provider: "google_ads",
+      operationType,
+      idempotencyKey: input.idempotencyKey ?? null,
+      externalAccountId,
+      externalCampaignId: campaignResource,
+      permissionChecks: [
+        {
+          capability: "google_ads.read_campaign",
+          ok: Boolean(externalAccountId),
+          reason: externalAccountId ? "Customer context is present for pre-mutation verification." : "Missing Google Ads customer id."
+        },
+        {
+          capability: "google_ads.mutate_campaign",
+          ok: true,
+          reason: "Dry-run only: this adapter prepares the mutate shape but does not call Google Ads mutate endpoints."
+        }
+      ],
+      providerObjects: [
+        {
+          resourceType: operationType === "create_campaign" ? "campaign_draft" : "campaign",
+          resourceId: campaignResource ?? `${googleCustomerResource(externalAccountId) ?? "customers/unknown"}/campaigns/new`,
+          before: {
+            status: operationType === "create_campaign" ? null : proposedAction.previousStatus ?? "ENABLED",
+            dailyBudgetCents: operationType === "create_campaign" ? null : proposedAction.previousBudgetCents ?? null,
+            googleAdsResourceName: operationType === "create_campaign" ? null : campaignResource
+          },
+          after: {
+            status: proposedAction.nextStatus ?? proposedAction.status ?? (operationType === "pause_resume" ? "PAUSED" : "ENABLED"),
+            dailyBudgetCents: proposedAction.nextBudgetCents ?? proposedAction.budgetCents ?? null,
+            googleAdsResourceName: campaignResource,
+            mutateOperation: operationType
+          }
+        }
+      ],
+      spendExposureCents,
+      rollbackSupported: operationType !== "create_campaign",
+      rollbackPlan: operationType === "create_campaign"
+        ? "Do not apply automatically until campaign creation rollback/delete semantics are implemented."
+        : clean(proposedAction.rollbackPlan, "") || "Restore the previous Google Ads campaign status and budget from the dry-run before-state.",
+      blockers,
+      warnings
+    };
+  }
+}
+
 export function getAdProviderWriteDryRunAdapter(name = process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER): AdProviderWriteDryRunAdapter | null {
   const normalized = clean(name).toLowerCase();
   if (normalized === "simulated") return new SimulatedAdProviderWriteDryRunAdapter();
+  if (normalized === "google_ads") return new GoogleAdsProviderWriteDryRunAdapter();
   return null;
 }
 
