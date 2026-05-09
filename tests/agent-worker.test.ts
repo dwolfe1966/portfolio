@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { executeAgentJob, runAgentWorkerOnce, type AgentJobForExecution, type AgentWorkerClient } from "@/lib/agent-worker";
+import { executeAgentJob, runAgentWorkerBatch, runAgentWorkerOnce, type AgentJobForExecution, type AgentWorkerClient } from "@/lib/agent-worker";
 
 const BASE_JOB: AgentJobForExecution = {
   id: "job_1",
@@ -93,4 +93,75 @@ test("runAgentWorkerOnce fails unsupported jobs through retry policy", async () 
   assert.equal(result.claimed, true);
   assert.equal(result.status, "failed");
   assert.match(result.errorMessage, /No executor is registered/);
+});
+
+test("runAgentWorkerBatch drains a bounded number of jobs across queues", async () => {
+  const claimedByQueue = new Map<string, number>();
+  const client: AgentWorkerClient = {
+    async claimNext(input) {
+      const claimed = claimedByQueue.get(input.queueName) ?? 0;
+      claimedByQueue.set(input.queueName, claimed + 1);
+      if (input.queueName === "lifecycle:generation" && claimed < 2) {
+        return { ...BASE_JOB, id: `lifecycle_job_${claimed + 1}` };
+      }
+      if (input.queueName === "acquisition:provider_write" && claimed < 1) {
+        return {
+          ...BASE_JOB,
+          id: "acquisition_job_1",
+          app: "acquisition",
+          jobType: "provider_write",
+          queueName: "acquisition:provider_write"
+        };
+      }
+      return null;
+    },
+    async complete() {
+      return {};
+    },
+    async fail() {
+      return { status: "queued" };
+    }
+  };
+
+  const result = await runAgentWorkerBatch({
+    workspaceId: "workspace_1",
+    workerId: "batch_worker",
+    queueNames: ["lifecycle:generation", "acquisition:provider_write"],
+    maxJobs: 3
+  }, client);
+
+  assert.equal(result.claimed, 3);
+  assert.equal(result.completed, 3);
+  assert.equal(result.failed, 0);
+  assert.deepEqual(result.results.filter((item) => item.claimed).map((item) => item.queueName), [
+    "lifecycle:generation",
+    "acquisition:provider_write",
+    "lifecycle:generation"
+  ]);
+});
+
+test("runAgentWorkerBatch stops after one idle pass through every queue", async () => {
+  const client: AgentWorkerClient = {
+    async claimNext() {
+      return null;
+    },
+    async complete() {
+      throw new Error("should not complete");
+    },
+    async fail() {
+      throw new Error("should not fail");
+    }
+  };
+
+  const result = await runAgentWorkerBatch({
+    workspaceId: "workspace_1",
+    workerId: "batch_worker",
+    queueNames: ["lifecycle:generation", "lifecycle:generation", "  "],
+    maxJobs: 10
+  }, client);
+
+  assert.equal(result.claimed, 0);
+  assert.equal(result.attempted, 1);
+  assert.deepEqual(result.queueNames, ["lifecycle:generation"]);
+  assert.deepEqual(result.emptyQueues, ["lifecycle:generation"]);
 });

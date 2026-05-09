@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/workspace/agents/run-batch",
+      "schedule": "0 5 * * *"
+    }
+  ]
+}

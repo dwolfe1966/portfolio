@@ -163,6 +163,14 @@ In the current product surface, simulated lifecycle deltas and imported CSV/Goog
 
 Worker execution starts as a run-once, fake-safe executor. A protected workspace API can claim one queued job, dispatch it by app/job type, record a simulated result for non-mutating lifecycle/acquisition work, or return the job to retry/dead-letter handling when no executor is registered. This avoids background-process requirements during the first worker milestone while preserving the durable queue contract that a future scheduler or external worker will use.
 
+The scheduler bridge uses the same worker path in bounded batches. A protected batch endpoint rotates across configured lifecycle/acquisition queues, drains up to a caller-provided maximum, stops after an idle pass through every queue, and accepts either an authenticated workspace session or a bearer token from `AGENT_WORKER_SECRET`/`CRON_SECRET`. The current Vercel deployment wiring registers that endpoint as a daily production cron through `vercel.json` so it remains deployable on Hobby-tier cron limits; external workers or higher-tier Vercel cron can call the same endpoint more frequently if the workload outgrows daily serverless cron.
+
+The workspace operations surface exposes the scheduled worker contract directly: cron cadence, endpoint, max batch size, queue coverage, and whether a worker bearer secret is configured. It also includes a protected Run batch now control that executes the same bounded batch worker path as cron, giving operators a quick deployment-readiness check before relying on scheduled execution.
+
+Workspace operators can also execute a queued job directly from the agent operations view. The control runs the same run-once worker against the job's queue, then refreshes job status and result/error state in the operations surface.
+
+Completed worker results are intentionally summarized in the operations surface instead of dumping raw payloads. Operators see the executor, action, provider mutation mode, and summary text; failures expose error code/message and retry/dead-letter status. Full payload/audit export can remain a later administrative surface.
+
 ## Lifecycle Agent Roles
 
 The lifecycle system should not be treated as one generic "message sending agent." It is a set of coordinated agents with different risk profiles and automation limits.

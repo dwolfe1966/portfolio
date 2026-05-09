@@ -11,8 +11,9 @@ import {
   evaluateAgentCompliancePosture,
   evaluateSecretPosture
 } from "@/lib/agent-platform-governance";
+import { DEFAULT_AGENT_WORKER_QUEUES } from "@/lib/agent-worker";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
-import { decideAgentApprovalAction, decideAgentJobAction } from "./actions";
+import { decideAgentApprovalAction, decideAgentJobAction, runAgentJobOnceAction, runAgentWorkerBatchAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,44 @@ function label(value: string) {
   return value.replace(/_/g, " ");
 }
 
+function agentJobResultSummary(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const result = value as Record<string, unknown>;
+  return {
+    executor: typeof result.executor === "string" ? result.executor : null,
+    action: typeof result.action === "string" ? result.action : null,
+    providerMutation: typeof result.providerMutation === "string" ? result.providerMutation : null,
+    summary: typeof result.summary === "string" ? result.summary : null
+  };
+}
+
+function AgentJobResultDetail({ result }: { result: unknown }) {
+  const summary = agentJobResultSummary(result);
+  if (!summary) return null;
+
+  return (
+    <div className="agentJobResult">
+      <span>Executor: {summary.executor ?? "unknown"}</span>
+      <span>Action: {label(summary.action ?? "unknown")}</span>
+      <span>Mutation: {label(summary.providerMutation ?? "none")}</span>
+      {summary.summary ? <p>{summary.summary}</p> : null}
+    </div>
+  );
+}
+
+function loadSchedulerStatus() {
+  return {
+    cadence: "Daily 05:00 UTC",
+    endpoint: "GET /api/workspace/agents/run-batch",
+    maxJobs: 10,
+    authReady: Boolean(process.env.CRON_SECRET?.trim() || process.env.AGENT_WORKER_SECRET?.trim()),
+    queues: [...DEFAULT_AGENT_WORKER_QUEUES]
+  };
+}
+
 async function loadAgentOperations(accountUserId: string | null) {
+  const scheduler = loadSchedulerStatus();
+
   try {
     const workspace = await db.workspace.findUnique({ where: { slug: "default-demo-workspace" } });
     if (!workspace) {
@@ -68,6 +106,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         jobs: [],
         approvals: [],
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
+        scheduler,
         posture: evaluateAgentCompliancePosture({
           tenantIsolationEnforced: false,
           secretPosture: evaluateSecretPosture({ encryptionAvailable: isOAuthEncryptionAvailable(), tokenPresent: false }),
@@ -118,6 +157,7 @@ async function loadAgentOperations(accountUserId: string | null) {
       jobs,
       approvals,
       counts: { queued, running, deadLettered, pendingApprovals },
+      scheduler,
       posture
     };
   } catch (error) {
@@ -128,6 +168,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         jobs: [],
         approvals: [],
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
+        scheduler,
         posture: evaluateAgentCompliancePosture({
           tenantIsolationEnforced: false,
           secretPosture: evaluateSecretPosture({ encryptionAvailable: false, tokenPresent: false }),
@@ -193,6 +234,34 @@ export default async function AgentOperationsPage() {
         </div>
       </Section>
 
+      <Section title="Scheduled worker">
+        <div className="activitySummaryGrid">
+          <div className="activitySummaryCard">
+            <p className="small">Cron cadence</p>
+            <strong>{operations.scheduler.cadence}</strong>
+            <span>Registered in Vercel config for production deployments.</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Worker endpoint</p>
+            <strong>{operations.scheduler.endpoint}</strong>
+            <span>Drains up to {operations.scheduler.maxJobs} jobs per invocation.</span>
+            <form action={runAgentWorkerBatchAction} className="agentInlineAction">
+              <button className="btn smallBtn" type="submit">Run batch now</button>
+            </form>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Scheduler auth</p>
+            <strong>{operations.scheduler.authReady ? "Ready" : "Needs secret"}</strong>
+            <span>{operations.scheduler.authReady ? "Bearer secret is configured." : "Set CRON_SECRET or AGENT_WORKER_SECRET in production."}</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Queue coverage</p>
+            <strong>{operations.scheduler.queues.length} queues</strong>
+            <span>{operations.scheduler.queues.slice(0, 3).join(" · ")} · more</span>
+          </div>
+        </div>
+      </Section>
+
       <Section title="Queued and recent jobs">
         {operations.jobs.length === 0 ? (
           <div className="card">
@@ -215,9 +284,19 @@ export default async function AgentOperationsPage() {
                   <div>
                     <p>{job.errorMessage || `Run after ${formatDate(job.runAfter)} · attempts ${job.attemptCount}/${job.maxAttempts}`}</p>
                     <p className="small">Idempotency: {job.idempotencyKey ?? "none"} · Worker: {job.lockedBy ?? "unclaimed"}</p>
+                    {job.errorCode ? (
+                      <p className="small">Error code: {job.errorCode}</p>
+                    ) : null}
+                    <AgentJobResultDetail result={job.result} />
                   </div>
                   {jobActionsFor(job.status).length > 0 ? (
                     <div className="agentApprovalActions" aria-label={`Transition actions for ${job.jobType}`}>
+                      {job.status === "queued" ? (
+                        <form action={runAgentJobOnceAction}>
+                          <input type="hidden" name="id" value={job.id} />
+                          <button className="btn smallBtn" type="submit">Execute</button>
+                        </form>
+                      ) : null}
                       {jobActionsFor(job.status).map((action) => (
                         <form action={decideAgentJobAction} key={action}>
                           <input type="hidden" name="id" value={job.id} />

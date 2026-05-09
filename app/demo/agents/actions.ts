@@ -6,6 +6,7 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { canApplyApprovalDecision } from "@/lib/agent-approval-queue";
 import { buildAgentJobRetryDecision, evaluateAgentJobManualAction } from "@/lib/agent-job-queue";
 import { buildApprovedApprovalContinuationPlan, persistAgentExecutionPlan } from "@/lib/agent-execution-plan";
+import { runAgentWorkerBatch, runAgentWorkerOnce } from "@/lib/agent-worker";
 import { db } from "@/lib/db";
 
 export async function decideAgentApprovalAction(formData: FormData) {
@@ -152,6 +153,56 @@ export async function decideAgentJobAction(formData: FormData) {
       }
     });
   }
+
+  revalidatePath("/workspace/agents");
+  revalidatePath("/demo/agents");
+}
+
+export async function runAgentJobOnceAction(formData: FormData) {
+  const cookieStore = await cookies();
+  const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+  if (!accountUserId) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const workspace = await db.workspace.findUnique({ where: { slug: "default-demo-workspace" } });
+  if (!workspace) return;
+
+  const job = await db.agentJob.findFirst({
+    where: {
+      id,
+      workspaceId: workspace.id,
+      status: "queued",
+      OR: [{ accountUserId }, { accountUserId: null }]
+    },
+    select: { queueName: true }
+  });
+  if (!job) return;
+
+  await runAgentWorkerOnce({
+    workspaceId: workspace.id,
+    queueName: job.queueName,
+    workerId: `workspace:${accountUserId}`
+  });
+
+  revalidatePath("/workspace/agents");
+  revalidatePath("/demo/agents");
+}
+
+export async function runAgentWorkerBatchAction() {
+  const cookieStore = await cookies();
+  const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+  if (!accountUserId) return;
+
+  const workspace = await db.workspace.findUnique({ where: { slug: "default-demo-workspace" } });
+  if (!workspace) return;
+
+  await runAgentWorkerBatch({
+    workspaceId: workspace.id,
+    workerId: `workspace:${accountUserId}`,
+    maxJobs: 10
+  });
 
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");

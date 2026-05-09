@@ -65,6 +65,10 @@ upsert_vercel_env "DATABASE_URL_UNPOOLED" "$DATABASE_URL_UNPOOLED"
 upsert_vercel_env "ACCOUNT_SESSION_SECRET" "$ACCOUNT_SESSION_SECRET"
 upsert_vercel_env "NEXT_PUBLIC_SITE_URL" "$NEXT_PUBLIC_SITE_URL"
 
+if [[ -n "${CRON_SECRET:-}" ]]; then
+  upsert_vercel_env "CRON_SECRET" "$CRON_SECRET"
+fi
+
 run "vercel pull --yes --environment=production --token '$VERCEL_TOKEN' --scope '$VERCEL_ORG_ID'"
 run "vercel deploy --prod --yes --token '$VERCEL_TOKEN' --scope '$VERCEL_ORG_ID'"
 

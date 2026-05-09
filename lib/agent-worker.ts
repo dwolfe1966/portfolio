@@ -25,6 +25,20 @@ export type AgentWorkerRunResult =
   | { claimed: true; queueName: string; workerId: string; jobId: string; status: "completed"; result: AgentJobExecutionResult }
   | { claimed: true; queueName: string; workerId: string; jobId: string; status: "failed" | "dead_lettered"; errorCode: string; errorMessage: string };
 
+export type AgentWorkerBatchResult = {
+  workspaceId: string;
+  workerId: string;
+  maxJobs: number;
+  queueNames: string[];
+  attempted: number;
+  claimed: number;
+  completed: number;
+  failed: number;
+  deadLettered: number;
+  emptyQueues: string[];
+  results: AgentWorkerRunResult[];
+};
+
 export type AgentWorkerClient = {
   claimNext(input: { workspaceId: string; queueName: string; workerId: string; now?: Date }): Promise<AgentJobForExecution | null>;
   complete(input: { id: string; result?: unknown; now?: Date }): Promise<unknown>;
@@ -37,6 +51,20 @@ export type AgentWorkerClient = {
     now?: Date;
   }): Promise<{ status: string } | unknown>;
 };
+
+export const DEFAULT_AGENT_WORKER_QUEUES = [
+  "lifecycle:ingestion",
+  "lifecycle:scoring",
+  "lifecycle:generation",
+  "lifecycle:provider_write",
+  "lifecycle:observation",
+  "lifecycle:measurement",
+  "lifecycle:audit",
+  "acquisition:provider_write",
+  "acquisition:observation",
+  "acquisition:measurement",
+  "acquisition:audit"
+] as const;
 
 function payloadObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -123,6 +151,21 @@ export function executeAgentJob(job: AgentJobForExecution): AgentJobExecutionRes
   throw new Error(`No executor is registered for ${job.app}:${job.jobType}.`);
 }
 
+function normalizeQueueNames(value: readonly string[] | undefined) {
+  const source = value && value.length > 0 ? value : DEFAULT_AGENT_WORKER_QUEUES;
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const queue of source) {
+    const clean = String(queue ?? "").trim().slice(0, 120);
+    if (!clean || seen.has(clean)) continue;
+    seen.add(clean);
+    normalized.push(clean);
+  }
+
+  return normalized.length > 0 ? normalized : [...DEFAULT_AGENT_WORKER_QUEUES];
+}
+
 export async function runAgentWorkerOnce(
   input: { workspaceId: string; queueName: string; workerId: string; now?: Date },
   client: AgentWorkerClient = {
@@ -160,4 +203,63 @@ export async function runAgentWorkerOnce(
       errorMessage: message
     };
   }
+}
+
+export async function runAgentWorkerBatch(
+  input: {
+    workspaceId: string;
+    workerId: string;
+    queueNames?: readonly string[];
+    maxJobs?: number;
+    now?: Date;
+  },
+  client?: AgentWorkerClient
+): Promise<AgentWorkerBatchResult> {
+  const queueNames = normalizeQueueNames(input.queueNames);
+  const maxJobs = Math.max(1, Math.min(50, Math.round(Number(input.maxJobs ?? queueNames.length))));
+  const results: AgentWorkerRunResult[] = [];
+  const emptyQueues = new Set<string>();
+  let queueIndex = 0;
+  let idlePasses = 0;
+
+  while (results.filter((result) => result.claimed).length < maxJobs && idlePasses < queueNames.length) {
+    const queueName = queueNames[queueIndex % queueNames.length];
+    queueIndex += 1;
+
+    const result = await runAgentWorkerOnce({
+      workspaceId: input.workspaceId,
+      queueName,
+      workerId: input.workerId,
+      now: input.now
+    }, client);
+
+    results.push(result);
+
+    if (result.claimed) {
+      idlePasses = 0;
+      emptyQueues.delete(queueName);
+    } else {
+      idlePasses += 1;
+      emptyQueues.add(queueName);
+    }
+  }
+
+  const claimed = results.filter((result) => result.claimed).length;
+  const completed = results.filter((result) => result.claimed && result.status === "completed").length;
+  const failed = results.filter((result) => result.claimed && result.status === "failed").length;
+  const deadLettered = results.filter((result) => result.claimed && result.status === "dead_lettered").length;
+
+  return {
+    workspaceId: input.workspaceId,
+    workerId: input.workerId,
+    maxJobs,
+    queueNames,
+    attempted: results.length,
+    claimed,
+    completed,
+    failed,
+    deadLettered,
+    emptyQueues: [...emptyQueues],
+    results
+  };
 }

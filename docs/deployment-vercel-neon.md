@@ -67,6 +67,7 @@ In **Project Settings → Environment Variables**, add for Production (and Previ
 - `DATABASE_URL_UNPOOLED`
 - `OPENAI_API_KEY` (optional)
 - `ACCOUNT_SESSION_SECRET`
+- `CRON_SECRET` (recommended; Vercel sends it as `Authorization: Bearer ...` for scheduled worker invocations)
 - `NEXT_PUBLIC_SITE_URL` (set to your Vercel domain, e.g. `https://your-app.vercel.app`)
 
 ## 6) Production migration workflow
@@ -85,15 +86,16 @@ The current agent architecture still works on a standard Vercel + Neon deploymen
 
 - `AgentJob` and `AgentApprovalRequest` require Prisma migrations to be deployed.
 - The first worker executor is run-once and request-driven through a protected API route, so it does not require a separate long-running process yet.
+- `vercel.json` registers a production cron that calls `GET /api/workspace/agents/run-batch` daily at 05:00 UTC. The route drains up to 10 queued jobs across the default lifecycle/acquisition queues.
+- Set `CRON_SECRET` in Vercel so scheduled calls are authenticated with Vercel's bearer token header. `AGENT_WORKER_SECRET` is also accepted for non-Vercel external worker callers.
 - Fake provider-write executors do not send messages or mutate ad accounts. Real delivery/ad-provider executors will require provider credentials, stricter secret rotation, and customer policy controls.
 
-Future background execution will add one of these deployment requirements:
+Future background execution may still add one of these deployment requirements:
 
-- a scheduler that calls the run-once endpoint for known queues;
-- Vercel cron or an equivalent scheduled function if staying fully serverless;
+- a Pro/Enterprise Vercel cron cadence or equivalent scheduled function if queue classes need sub-daily execution or different duration budgets;
 - an external worker service if jobs need long runtimes, high concurrency, streaming connectors, or provider webhooks with heavier retry semantics.
 
-When background workers are enabled, production will also need concurrency limits, queue allowlists, worker auth, observability/alerts, and database connection sizing for worker load.
+As worker volume grows, production will also need queue-specific concurrency limits, queue allowlists, observability/alerts, and database connection sizing for worker load.
 
 ## 7) Post-deploy smoke checks
 
@@ -133,6 +135,7 @@ vercel link
 vercel env add DATABASE_URL
 vercel env add DATABASE_URL_UNPOOLED
 vercel env add ACCOUNT_SESSION_SECRET
+vercel env add CRON_SECRET
 vercel env add NEXT_PUBLIC_SITE_URL
 vercel --prod
 ```
@@ -153,6 +156,7 @@ export VERCEL_PROJECT_ID=...
 export DATABASE_URL=...
 export DATABASE_URL_UNPOOLED=...
 export ACCOUNT_SESSION_SECRET=...
+export CRON_SECRET=...
 export NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
 export SEED_PROD=yes
 
@@ -165,3 +169,4 @@ Behavior:
 - if `prisma/migrations/*` exists, script runs `npm run db:migrate:deploy`
 - if migrations do not exist yet, script runs `npx prisma db push`
 - if `SEED_PROD=yes`, script runs `npm run db:seed`
+- if `CRON_SECRET` is present, script upserts it into Vercel production env

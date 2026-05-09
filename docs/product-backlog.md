@@ -78,6 +78,12 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | L23 | Simulated change events enqueue lifecycle agent jobs | DW | M | S13 | ✅ | Wire simulated lifecycle deltas to fan out across interested users and persist idempotent role-owned generation jobs when identity, consent, and score gates pass. |
 | L24 | Imported change events enqueue lifecycle agent jobs | DW | M | S13 | ✅ | Wire CSV/Google Sheets lifecycle imports to fan out imported change events and persist idempotent role-owned generation jobs with compatibility fallback. |
 | L25 | Agent worker run-once executor | DW | M | S13 | ✅ | Add a safe fake executor that claims one queued job, dispatches by app/job type, completes simulated work, or retries/dead-letters failures through existing queue policy. |
+| L26 | Agent operations execute control | DW | S | S13 | ✅ | Add a protected operations control that executes one queued job through the run-once worker and refreshes the agent operations view. |
+| L27 | Agent execution result visibility | DW | S | S13 | ✅ | Surface completed worker executor/action/provider-mode summaries and failure codes directly in the agent operations job detail rows. |
+| L28 | Scheduled agent worker trigger | DW | M | S13 | ✅ | Add a protected batch worker trigger that rotates across configured queues, drains a bounded number of jobs, and supports workspace-session or scheduler-secret execution. |
+| L29 | Vercel cron worker deployment wiring | DW | S | S13 | ✅ | Register the batch worker as a Hobby-safe daily Vercel cron, support GET invocations, and document production `CRON_SECRET` setup. |
+| L30 | Scheduled worker operations visibility | DW | S | S13 | ✅ | Surface cron cadence, worker endpoint, batch size, scheduler auth readiness, and queue coverage in the protected agent operations view. |
+| L31 | Manual scheduled-batch execution control | DW | S | S13 | ✅ | Add a protected operations control that runs the same bounded batch worker path used by cron and refreshes queue state. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -88,7 +94,7 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | S10 | K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, D15 | — | — |
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
-| S13 | L18, L19, L20, L21, L22, L23, L24, L25 | — | — |
+| S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -348,6 +354,12 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L23. Wired simulated lifecycle deltas into the change-event trigger planner so new entity deltas fan out to top interested users and persist idempotent lifecycle generation jobs when agent queue tables are available.
 - ✅ L24. Wired lifecycle imports into the shared event-trigger queue so imported CSV/Google Sheets change events fan out to interested users and persist idempotent generation jobs while preserving compatibility-mode import success when agent queue tables are unavailable.
 - ✅ L25. Added a tested run-once agent worker executor with fake-safe lifecycle/acquisition dispatch, queue claim/complete/fail integration, retry/dead-letter handoff, and a protected workspace API endpoint for executing one queued job.
+- ✅ L26. Added a protected Execute control to the workspace agent operations view so queued jobs can run through the fake-safe run-once worker without manual claim/complete transitions.
+- ✅ L27. Added compact worker result visibility to the workspace agent operations view, including executor, action, provider mutation mode, summary text, and failure error codes.
+- ✅ L28. Added a protected batch worker trigger for scheduled or external worker execution, with bounded queue rotation, default lifecycle/acquisition queue coverage, and scheduler-secret authentication.
+- ✅ L29. Added Hobby-safe daily Vercel cron deployment wiring for the batch worker, GET-based cron invocation support, `CRON_SECRET` environment setup, and deployment docs.
+- ✅ L30. Added scheduled-worker operations visibility so workspace operators can see cron cadence, endpoint, batch size, auth readiness, and queue coverage without opening deployment config.
+- ✅ L31. Added a protected Run batch now control to the scheduled-worker operations card so operators can exercise the same bounded batch worker path used by cron.
 
 ---
 
@@ -413,4 +425,4 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ L15, L16, L17
 
 ### Sprint S13 (agent operations control loop)
-- ✅ L18, L19, L20, L21, L22, L23, L24, L25
+- ✅ L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31
