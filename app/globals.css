@@ -2858,6 +2858,36 @@ button {
   color: var(--text);
   font-size: 13px;
 }
+.dryRunJsonPanel {
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+}
+.dryRunJsonPanel pre {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  max-height: 420px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.dryRunStaticSummary {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-width: 0;
+  padding: 14px;
+}
+.dryRunStaticItem .dryRunStaticSummary {
+  cursor: default;
+}
 .lifecycleCsvScaffold {
   display: grid;
   gap: 14px;

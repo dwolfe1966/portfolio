@@ -52,7 +52,8 @@ async function loadActivity(accountUserId: string | null) {
       expansion,
       auction,
       adConnections,
-      sourceConfigs
+      sourceConfigs,
+      providerDryRuns
     ] = await Promise.all([
       db.lifecycleImportLog.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
       db.campaignRun.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
@@ -62,7 +63,8 @@ async function loadActivity(accountUserId: string | null) {
       db.expansionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.auctionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.adAccountConnection.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
-      db.lifecycleMappingPreset.findMany({ where: { accountUserId }, orderBy: { updatedAt: "desc" }, take: 12, include: { workspace: true } })
+      db.lifecycleMappingPreset.findMany({ where: { accountUserId }, orderBy: { updatedAt: "desc" }, take: 12, include: { workspace: true } }),
+      db.agentProviderWriteDryRun.findMany({ where: { OR: [{ accountUserId }, { accountUserId: null }] }, orderBy: { createdAt: "desc" }, take: 8 })
     ]);
 
     const items: ActivityItem[] = [
@@ -164,6 +166,17 @@ async function loadActivity(accountUserId: string | null) {
         actor: "workspace",
         href: `/workspace/datasets/${config.id}`,
         createdAt: config.updatedAt
+      })),
+      ...providerDryRuns.map((dryRun) => ({
+        id: `provider-dry-run-${dryRun.id}`,
+        app: "Acquisition",
+        category: "Audit" as const,
+        kind: "Provider dry run",
+        title: `${dryRun.provider} ${dryRun.operationType}`,
+        detail: `${dryRun.status} · $${Math.round(dryRun.spendExposureCents / 100).toLocaleString()} exposure · ${dryRun.externalCampaignId ?? dryRun.externalAccountId ?? "target unresolved"}`,
+        actor: "agent-worker",
+        href: `/workspace/agents/dry-runs/${dryRun.id}`,
+        createdAt: dryRun.createdAt
       }))
     ];
 
@@ -172,7 +185,7 @@ async function loadActivity(accountUserId: string | null) {
       counts: {
         imports: imports.length,
         lifecycleRuns: lifecycleRuns.length,
-        audits: acquisition.length + pricing.length + retention.length + expansion.length + auction.length,
+        audits: acquisition.length + pricing.length + retention.length + expansion.length + auction.length + providerDryRuns.length,
         connections: adConnections.length + sourceConfigs.length
       },
       compatibilityMode: false

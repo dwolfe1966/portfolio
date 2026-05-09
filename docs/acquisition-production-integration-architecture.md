@@ -210,6 +210,8 @@ Dry-run results are persisted in `AgentProviderWriteDryRun` records keyed by `ag
 
 Ready acquisition dry-runs create `AgentProviderWriteMeasurementHandoff` records and enqueue idempotent `acquisition:observation` and `acquisition:measurement` jobs. This keeps measurement and revenue attribution on the same durable queue path as provider execution while still requiring zero real provider mutation.
 
+Agent Operations includes a read-only provider dry-run detail page for each persisted dry run. Operators can inspect permission checks, before/after provider object diffs, rollback metadata, measurement handoff jobs, blockers, warnings, and raw dry-run payloads before any approved mutation path is considered.
+
 ## Audit Events
 
 Acquisition production audit should record:

@@ -363,7 +363,7 @@ export default async function AgentOperationsPage() {
                     {dryRun.blockers.length > 0 ? <p className="small">Blockers: {dryRun.blockers.map(label).join(" · ")}</p> : null}
                     {dryRun.warnings.length > 0 ? <p className="small">Warnings: {dryRun.warnings.join(" · ")}</p> : null}
                   </div>
-                  <Link className="btn smallBtn" href="/workspace/activity">Review audit trail</Link>
+                  <Link className="btn smallBtn" href={`/workspace/agents/dry-runs/${dryRun.id}`}>Inspect dry run</Link>
                 </div>
               </details>
             ))}
