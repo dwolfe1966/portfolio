@@ -90,6 +90,8 @@ S13 is intentionally lifecycle-first because lifecycle has the deepest event, id
 | L33 | Scheduled worker skipped-queue observability | DW | S | S13 | ✅ | Log skipped disallowed batch queues as warnings with requested/allowed queue counts and skipped queue names. |
 | L34 | Explicit disallowed batch no-op | DW | S | S13 | ✅ | Prevent all-disallowed explicit queue requests from falling back to default queues; return a skipped-only no-op result instead. |
 | L35 | Scheduled worker auth warning | DW | S | S13 | ✅ | Add a visible operations warning when no scheduler bearer secret is configured and cron calls would be rejected. |
+| L36 | Acquisition provider-write generalization plan | DW | S | S13 | ✅ | Define the first non-lifecycle agent generalization target, including queue ownership, executor mode, approval gates, rollback expectations, and measurement outputs for acquisition provider writes. |
+| L37 | Acquisition provider-write readiness contract | DW | S | S13 | ✅ | Add a tested code-facing readiness helper for acquisition provider-write generalization, covering queue ownership, execution mode progression, approval gates, rollback metadata, and measurement outputs. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -100,7 +102,7 @@ S13 is intentionally lifecycle-first because lifecycle has the deepest event, id
 | S10 | K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, D15 | — | — |
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
-| S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35 | — | — |
+| S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -370,6 +372,21 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L33. Added skipped-queue observability so batch worker calls with disallowed queue names log a warning with requested queue count, allowed queue count, and skipped names.
 - ✅ L34. Added explicit all-disallowed batch no-op behavior so malformed scheduler requests cannot silently fall back to default queue execution.
 - ✅ L35. Added a visible scheduled-worker auth warning in the operations surface when no worker bearer secret is configured.
+- ✅ L36. Defined the acquisition provider-write generalization plan with queue ownership, execution mode progression, approval gates, rollback expectations, and measurement outputs.
+- ✅ L37. Added a tested acquisition provider-write readiness contract that exposes the shared queue/follow-on queue shape, simulated-to-dry-run-to-approved mutation progression, blockers, approval gates, rollback metadata, and measurement outputs.
+
+### Cross-app generalization path
+- Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.
+- Keep app-specific: event detection, identity/consent gates, provider-write executors, policy gates, measurement attribution, and approval thresholds.
+- Before broadening beyond lifecycle: define per-app queue allowlists, executor ownership, provider mutation modes, approval requirements, rollback semantics, and measurement outputs for Acquisition, Pricing, Retention, Expansion, Auction, and platform agents.
+- First generalization target should be Acquisition provider-write continuation because it already has approval requests, policy gates, fake provider writes, and measurable spend/revenue impact.
+- Acquisition provider-write generalization plan:
+  - queue ownership: `acquisition:provider_write`, with future `acquisition:observation` and `acquisition:measurement` follow-on queues;
+  - executor mode: fake/simulated provider writes first, then dry-run real provider adapters, then approved mutation adapters;
+  - approval gates: over-cap budget shifts, high-risk campaign state changes, protected campaigns, low-confidence recommendations, cooldown breaches, and emergency-stop state;
+  - rollback expectations: provider mutation payloads must include idempotency keys, reversible action metadata, previous state, and rollback instructions before real writes;
+  - measurement outputs: spend moved, wasted spend avoided, CAC/LTV movement, ROAS change, conversion-quality notes, and revenue-impact attribution.
+- The first code-facing contract for this target lives in `lib/acquisition-agent-generalization.ts`; it reports whether the system should remain simulated, graduate to dry-run adapters, or permit approved mutations once all safety controls are configured.
 
 ---
 

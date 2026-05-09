@@ -6,6 +6,10 @@ This note defines how the Lifecycle tool should move from account-owned imports 
 
 The current implementation path is intentionally lifecycle-first. Lifecycle has the richest event, identity, consent, delivery, observation, and revenue-attribution requirements, so it is the right app to harden the control loop first. The shared platform pieces built here - durable jobs, approval requests, worker execution, queue allowlists, scheduler auth, operations visibility, retries, and dead-letter review - should remain app-shaped so they can be generalized across Acquisition, Pricing, Retention, Expansion, Auction, and platform agents after the lifecycle control loop is stable.
 
+Generalization should happen by moving app-neutral contracts up, not by weakening lifecycle-specific controls. Shared agent platform contracts include job persistence, approval persistence, queue transition policy, batch worker execution, scheduler authentication, queue allowlists, operations visibility, and governance posture. Lifecycle should keep its own identity/consent, event freshness, holdout, delivery, suppression, and attribution rules.
+
+The first non-lifecycle expansion target should be Acquisition provider-write execution. Acquisition already uses approval requests, policy gates, fake provider writes, and measurable spend/revenue outcomes. Its generalization path should keep `acquisition:provider_write` as the owned queue, start with simulated writes, graduate to real provider dry runs, and only then enable approved mutations once rollback metadata, idempotency keys, protected-campaign checks, cooldowns, and spend-impact measurement are present.
+
 ## Goal
 
 Lifecycle should plug into a partner's infrastructure without forcing them into one data or messaging stack. The production system needs to:

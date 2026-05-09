@@ -185,6 +185,23 @@ The production acquisition agent should run as a durable workflow:
 
 Retries must never duplicate spend changes. Every provider mutation needs an idempotency key, provider operation id where available, and a before/after diff.
 
+## Agent Platform Generalization
+
+Acquisition is the first non-lifecycle candidate for the shared agent operations control loop because approved budget-shift requests already create `acquisition:provider_write` jobs. The generalization path should keep the platform contracts shared while keeping paid-media policy and mutation semantics app-specific.
+
+Initial readiness gates:
+
+- queue ownership: `acquisition:provider_write` is owned by the acquisition provider-write executor; future observation and measurement work should use `acquisition:observation` and `acquisition:measurement`;
+- executor mode: keep simulated writes until provider dry-run adapters can return exact proposed diffs, permission checks, spend exposure, and rollback support;
+- approval gates: require approval for over-cap budget shifts, high-risk campaign state changes, protected campaigns, low-confidence recommendations, cooldown breaches, emergency-stop state, and any non-reversible write;
+- rollback metadata: every future real mutation payload must include idempotency key, previous provider state, intended provider diff, rollback instructions, and provider operation id when available;
+- measurement output: completed jobs should report spend moved, wasted spend avoided, CAC/LTV movement, ROAS change, conversion-quality notes, and revenue-impact attribution;
+- operations visibility: worker results should stay compact in the shared Agent Operations view, while detailed provider diffs and rollback metadata belong in a later audit/export surface.
+
+The first implementation milestone should remain fake-safe: exercise the `acquisition:provider_write` queue through the same scheduler, allowlist, approval, and operations controls used by lifecycle jobs before enabling any real provider mutation.
+
+The code-facing readiness contract is `buildAcquisitionProviderWriteReadiness` in `lib/acquisition-agent-generalization.ts`. It keeps the current mode simulated by default, graduates to `dry_run` when provider dry-run adapters exist, and only permits `approved_mutation` when rollback metadata, approval policy, measurement output, protected-campaign checks, and emergency-stop controls are all configured.
+
 ## Audit Events
 
 Acquisition production audit should record:
