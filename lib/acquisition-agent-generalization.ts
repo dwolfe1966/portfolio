@@ -1,3 +1,5 @@
+import { hasAdProviderWriteDryRunAdapter } from "@/lib/ad-connectors/write-dry-run";
+
 export type AcquisitionProviderWriteMode = "simulated" | "dry_run" | "approved_mutation";
 
 export type AcquisitionProviderWriteReadiness = {
@@ -66,4 +68,8 @@ export function buildAcquisitionProviderWriteReadiness(input: {
     readyForApprovedMutation,
     blockers
   };
+}
+
+export function acquisitionProviderDryRunAdapterAvailable(name = process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER) {
+  return hasAdProviderWriteDryRunAdapter(name);
 }

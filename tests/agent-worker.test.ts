@@ -28,6 +28,9 @@ test("executeAgentJob handles lifecycle generation as a non-mutating fake execut
 });
 
 test("executeAgentJob simulates provider writes without real provider mutation", () => {
+  const previousAdapter = process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  delete process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+
   const result = executeAgentJob({
     ...BASE_JOB,
     app: "acquisition",
@@ -39,6 +42,47 @@ test("executeAgentJob simulates provider writes without real provider mutation",
   assert.equal(result.executor, "acquisition.provider_write.fake");
   assert.equal(result.providerMutation, "simulated");
   assert.deepEqual(result.output.proposedAction, { campaignId: "camp_1" });
+
+  if (previousAdapter === undefined) {
+    delete process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  } else {
+    process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER = previousAdapter;
+  }
+});
+
+test("executeAgentJob uses configured acquisition dry-run adapter without provider mutation", () => {
+  const previousAdapter = process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER = "simulated";
+
+  const result = executeAgentJob({
+    ...BASE_JOB,
+    app: "acquisition",
+    queueName: "acquisition:provider_write",
+    jobType: "provider_write",
+    payload: {
+      approvalRequestId: "approval_1",
+      idempotencyKey: "approval:approval_1:provider_write",
+      proposedAction: {
+        provider: "google_ads",
+        operationType: "update_budget",
+        campaignId: "camp_1",
+        previousBudgetCents: 10000,
+        nextBudgetCents: 11000,
+        shiftAmountCents: 1000
+      }
+    }
+  });
+
+  assert.equal(result.executor, "acquisition.provider_write.simulated.dry_run");
+  assert.equal(result.providerMutation, "dry_run");
+  assert.equal(result.output.approvalRequestId, "approval_1");
+  assert.equal((result.output.dryRun as { spendExposureCents: number }).spendExposureCents, 1000);
+
+  if (previousAdapter === undefined) {
+    delete process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  } else {
+    process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER = previousAdapter;
+  }
 });
 
 test("runAgentWorkerOnce claims and completes one queued job", async () => {

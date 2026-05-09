@@ -11,7 +11,10 @@ import {
   evaluateAgentCompliancePosture,
   evaluateSecretPosture
 } from "@/lib/agent-platform-governance";
-import { buildAcquisitionProviderWriteReadiness } from "@/lib/acquisition-agent-generalization";
+import {
+  acquisitionProviderDryRunAdapterAvailable,
+  buildAcquisitionProviderWriteReadiness
+} from "@/lib/acquisition-agent-generalization";
 import { AGENT_WORKER_QUEUE_ALLOWLIST, DEFAULT_AGENT_WORKER_QUEUES } from "@/lib/agent-worker";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { decideAgentApprovalAction, decideAgentJobAction, runAgentJobOnceAction, runAgentWorkerBatchAction } from "./actions";
@@ -98,7 +101,7 @@ function loadSchedulerStatus() {
 
 function loadAcquisitionProviderWriteReadiness() {
   return buildAcquisitionProviderWriteReadiness({
-    providerDryRunAdapterAvailable: Boolean(process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER?.trim()),
+    providerDryRunAdapterAvailable: acquisitionProviderDryRunAdapterAvailable(),
     rollbackMetadataAvailable: Boolean(process.env.ACQUISITION_PROVIDER_ROLLBACK_METADATA_READY?.trim()),
     approvalPolicyConfigured: true,
     measurementConfigured: Boolean(process.env.ACQUISITION_PROVIDER_MEASUREMENT_READY?.trim()),

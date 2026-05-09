@@ -25,9 +25,9 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 - ⏳ To do
 - 🚧 Blocked (waiting on dependency)
 
-## Active sprint: S13 (agent operations control loop)
+## Active sprint: S14 (acquisition provider dry-run foundation)
 
-S13 is intentionally lifecycle-first because lifecycle has the deepest event, identity, consent, and delivery-agent surface today. The platform primitives being hardened here - durable jobs, approvals, worker execution, queue allowlists, scheduler auth, and operations visibility - should stay app-shaped rather than lifecycle-hardcoded so the follow-on milestone can generalize the same control loop across Acquisition, Pricing, Retention, Expansion, Auction, and platform agents.
+S14 starts the safe transition from simulated acquisition provider writes to real-provider dry-run readiness. The goal is to produce exact proposed diffs, permission checks, spend exposure, rollback metadata, and measurement handoff data without mutating any ad platform account.
 
 | ID | Item | Owner | Size | Sprint | Status | Acceptance criteria |
 |---|---|---|---|---|---|---|
@@ -93,6 +93,7 @@ S13 is intentionally lifecycle-first because lifecycle has the deepest event, id
 | L36 | Acquisition provider-write generalization plan | DW | S | S13 | ✅ | Define the first non-lifecycle agent generalization target, including queue ownership, executor mode, approval gates, rollback expectations, and measurement outputs for acquisition provider writes. |
 | L37 | Acquisition provider-write readiness contract | DW | S | S13 | ✅ | Add a tested code-facing readiness helper for acquisition provider-write generalization, covering queue ownership, execution mode progression, approval gates, rollback metadata, and measurement outputs. |
 | L38 | Acquisition provider-write operations visibility | DW | S | S13 | ✅ | Surface acquisition provider-write readiness in Agent Operations, including execution mode, queue ownership, dry-run readiness, approved-mutation blockers, and follow-on queues. |
+| L39 | Acquisition provider-write dry-run adapter foundation | DW | M | S14 | ✅ | Add a registered simulated dry-run adapter contract and worker path that returns provider-like diffs, permission checks, spend exposure, and rollback metadata without real provider mutation. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -104,6 +105,7 @@ S13 is intentionally lifecycle-first because lifecycle has the deepest event, id
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
 | S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
+| S14 | L39 | — | Google Ads dry-run adapter, rollback metadata persistence, measurement handoff |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -376,6 +378,7 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L36. Defined the acquisition provider-write generalization plan with queue ownership, execution mode progression, approval gates, rollback expectations, and measurement outputs.
 - ✅ L37. Added a tested acquisition provider-write readiness contract that exposes the shared queue/follow-on queue shape, simulated-to-dry-run-to-approved mutation progression, blockers, approval gates, rollback metadata, and measurement outputs.
 - ✅ L38. Surfaced acquisition provider-write readiness in Agent Operations so operators can see current mode, next mode, queue ownership, dry-run readiness, approved-mutation blockers, and follow-on queues.
+- ✅ L39. Added the acquisition provider-write dry-run adapter foundation with a registered simulated adapter, worker dry-run execution path, provider-like diff output, permission checks, spend exposure, rollback metadata, and tests.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.

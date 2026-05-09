@@ -1,4 +1,8 @@
 import { claimNextAgentJob, completeAgentJob, failAgentJob } from "@/lib/agent-job-queue";
+import {
+  getAdProviderWriteDryRunAdapter,
+  normalizeAdProviderWriteDryRunInput
+} from "@/lib/ad-connectors/write-dry-run";
 
 export type AgentJobForExecution = {
   id: string;
@@ -130,6 +134,21 @@ export function executeAgentJob(job: AgentJobForExecution): AgentJobExecutionRes
   }
 
   if (job.app === "acquisition" && job.jobType === "provider_write") {
+    const dryRunAdapter = getAdProviderWriteDryRunAdapter();
+    if (dryRunAdapter) {
+      const dryRun = dryRunAdapter.dryRunProviderWrite(normalizeAdProviderWriteDryRunInput(job.payload));
+      return executionResult({
+        executor: `acquisition.provider_write.${dryRunAdapter.name}.dry_run`,
+        action: "dry_run_ad_provider_write",
+        providerMutation: "dry_run",
+        summary: "Prepared acquisition provider write dry-run without mutating an ad account.",
+        output: {
+          approvalRequestId: payload.approvalRequestId ?? null,
+          dryRun
+        }
+      });
+    }
+
     return executionResult({
       executor: "acquisition.provider_write.fake",
       action: "simulate_ad_provider_write",
