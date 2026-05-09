@@ -119,6 +119,43 @@ test("executeAgentJob can use Google Ads dry-run adapter without provider mutati
   }
 });
 
+test("executeAgentJob handles acquisition observation and measurement handoff jobs", () => {
+  const observation = executeAgentJob({
+    ...BASE_JOB,
+    app: "acquisition",
+    queueName: "acquisition:observation",
+    jobType: "observation",
+    payload: {
+      providerWriteDryRunId: "dry_1",
+      provider: "google_ads",
+      operationType: "update_budget",
+      externalCampaignId: "customers/123/campaigns/456"
+    }
+  });
+
+  assert.equal(observation.executor, "acquisition.outcome_observer.fake");
+  assert.equal(observation.output.providerWriteDryRunId, "dry_1");
+  assert.equal(observation.output.observed, true);
+
+  const measurement = executeAgentJob({
+    ...BASE_JOB,
+    app: "acquisition",
+    queueName: "acquisition:measurement",
+    jobType: "measurement",
+    payload: {
+      providerWriteDryRunId: "dry_1",
+      provider: "google_ads",
+      operationType: "update_budget",
+      spendExposureCents: 2500,
+      measurementOutputs: ["spend_moved", "revenue_impact_attribution"]
+    }
+  });
+
+  assert.equal(measurement.executor, "acquisition.revenue_attributor.fake");
+  assert.equal(measurement.output.spendExposureCents, 2500);
+  assert.deepEqual(measurement.output.measurementOutputs, ["spend_moved", "revenue_impact_attribution"]);
+});
+
 test("runAgentWorkerOnce claims and completes one queued job", async () => {
   const calls: string[] = [];
   const client: AgentWorkerClient = {

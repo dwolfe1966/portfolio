@@ -127,6 +127,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         jobs: [],
         approvals: [],
         dryRuns: [],
+        measurementHandoffs: [],
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
         acquisitionProviderWriteReadiness,
@@ -140,7 +141,7 @@ async function loadAgentOperations(accountUserId: string | null) {
       };
     }
 
-    const [jobs, approvals, dryRuns, queued, running, deadLettered, pendingApprovals] = await Promise.all([
+    const [jobs, approvals, dryRuns, measurementHandoffs, queued, running, deadLettered, pendingApprovals] = await Promise.all([
       db.agentJob.findMany({
         where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
         orderBy: [{ createdAt: "desc" }],
@@ -155,6 +156,11 @@ async function loadAgentOperations(accountUserId: string | null) {
         take: 12
       }),
       db.agentProviderWriteDryRun.findMany({
+        where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
+        orderBy: [{ createdAt: "desc" }],
+        take: 6
+      }),
+      db.agentProviderWriteMeasurementHandoff.findMany({
         where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
         orderBy: [{ createdAt: "desc" }],
         take: 6
@@ -185,6 +191,7 @@ async function loadAgentOperations(accountUserId: string | null) {
       jobs,
       approvals,
       dryRuns,
+      measurementHandoffs,
       counts: { queued, running, deadLettered, pendingApprovals },
       scheduler,
       acquisitionProviderWriteReadiness,
@@ -198,6 +205,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         jobs: [],
         approvals: [],
         dryRuns: [],
+        measurementHandoffs: [],
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
         acquisitionProviderWriteReadiness,
@@ -354,6 +362,38 @@ export default async function AgentOperationsPage() {
                     {dryRun.rollbackPlan ? <p className="small">{dryRun.rollbackPlan}</p> : null}
                     {dryRun.blockers.length > 0 ? <p className="small">Blockers: {dryRun.blockers.map(label).join(" · ")}</p> : null}
                     {dryRun.warnings.length > 0 ? <p className="small">Warnings: {dryRun.warnings.join(" · ")}</p> : null}
+                  </div>
+                  <Link className="btn smallBtn" href="/workspace/activity">Review audit trail</Link>
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="Measurement handoffs">
+        {operations.measurementHandoffs.length === 0 ? (
+          <div className="card">
+            <p>No measurement handoffs yet. Ready provider dry-runs will enqueue observation and measurement work here.</p>
+          </div>
+        ) : (
+          <div className="activityFeed">
+            {operations.measurementHandoffs.map((handoff) => (
+              <details className="activityFeedItem" key={handoff.id}>
+                <summary>
+                  <span className="activityFeedDate">{formatDate(handoff.createdAt)}</span>
+                  <span className={`statusPill ${statusClass(handoff.status)}`}>{label(handoff.status)}</span>
+                  <span className="activityFeedTitle">
+                    <strong>{label(handoff.operationType)}</strong>
+                    <span>{handoff.provider} · {handoff.measurementOutputs.length} outputs</span>
+                  </span>
+                  <span className="activityFeedApp">{handoff.app}</span>
+                </summary>
+                <div className="activityFeedDetail">
+                  <div>
+                    <p>Dry run: {handoff.providerWriteDryRunId}</p>
+                    <p className="small">Observation job: {handoff.observationJobId ?? "not queued"} · Measurement job: {handoff.measurementJobId ?? "not queued"}</p>
+                    <p className="small">Outputs: {handoff.measurementOutputs.map(label).join(" · ")}</p>
                   </div>
                   <Link className="btn smallBtn" href="/workspace/activity">Review audit trail</Link>
                 </div>

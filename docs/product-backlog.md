@@ -96,6 +96,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | L39 | Acquisition provider-write dry-run adapter foundation | DW | M | S14 | ✅ | Add a registered simulated dry-run adapter contract and worker path that returns provider-like diffs, permission checks, spend exposure, and rollback metadata without real provider mutation. |
 | L40 | Google Ads provider-write dry-run adapter | DW | M | S14 | ✅ | Add a Google Ads dry-run adapter that builds offline campaign resource diffs, permission checks, mutate-shape metadata, spend exposure, rollback plan, and incomplete-context blockers without calling mutate endpoints. |
 | L41 | Persist provider-write dry-run results | DW | M | S14 | ✅ | Persist provider-write dry-run diffs, permission checks, spend exposure, rollback metadata, blockers, warnings, and raw result payloads for operations review before any approved mutation path. |
+| L42 | Provider-write measurement handoff | DW | M | S14 | ✅ | Create durable measurement handoff records from ready acquisition dry-runs and enqueue idempotent acquisition observation and measurement jobs with spend/revenue attribution context. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -107,7 +108,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
 | S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
-| S14 | L39, L40, L41 | — | Measurement handoff |
+| S14 | L39, L40, L41, L42 | — | Dry-run detail/audit export polish |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -383,6 +384,7 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L39. Added the acquisition provider-write dry-run adapter foundation with a registered simulated adapter, worker dry-run execution path, provider-like diff output, permission checks, spend exposure, rollback metadata, and tests.
 - ✅ L40. Added the Google Ads provider-write dry-run adapter so acquisition provider-write jobs can produce Google Ads-style campaign resource diffs and mutate-shape metadata offline, with no mutate endpoint calls.
 - ✅ L41. Persisted provider-write dry-run results in a dedicated workspace-scoped table and surfaced recent dry runs in Agent Operations for rollback/audit review.
+- ✅ L42. Added provider-write measurement handoffs that turn ready acquisition dry-runs into durable observation and measurement jobs with idempotent handoff payloads.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.

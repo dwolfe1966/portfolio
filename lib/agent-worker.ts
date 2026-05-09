@@ -163,6 +163,39 @@ export function executeAgentJob(job: AgentJobForExecution): AgentJobExecutionRes
     });
   }
 
+  if (job.app === "acquisition" && job.jobType === "observation") {
+    return executionResult({
+      executor: "acquisition.outcome_observer.fake",
+      action: "observe_provider_write_dry_run",
+      summary: "Recorded placeholder acquisition observation from provider-write dry-run handoff.",
+      output: {
+        providerWriteDryRunId: payload.providerWriteDryRunId ?? null,
+        sourceAgentJobId: payload.sourceAgentJobId ?? null,
+        provider: payload.provider ?? null,
+        operationType: payload.operationType ?? null,
+        externalCampaignId: payload.externalCampaignId ?? null,
+        observed: true
+      }
+    });
+  }
+
+  if (job.app === "acquisition" && job.jobType === "measurement") {
+    return executionResult({
+      executor: "acquisition.revenue_attributor.fake",
+      action: "measure_provider_write_dry_run",
+      summary: "Prepared placeholder acquisition measurement outputs from provider-write dry-run handoff.",
+      output: {
+        providerWriteDryRunId: payload.providerWriteDryRunId ?? null,
+        sourceAgentJobId: payload.sourceAgentJobId ?? null,
+        provider: payload.provider ?? null,
+        operationType: payload.operationType ?? null,
+        spendExposureCents: payload.spendExposureCents ?? 0,
+        measurementOutputs: Array.isArray(payload.measurementOutputs) ? payload.measurementOutputs : [],
+        attributed: true
+      }
+    });
+  }
+
   if (["ingestion", "scoring", "audit"].includes(job.jobType)) {
     return executionResult({
       executor: `${job.app}.${job.jobType}.fake`,

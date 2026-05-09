@@ -25,6 +25,7 @@ model Workspace {
   agentJobs     AgentJob[]
   agentApprovalRequests AgentApprovalRequest[]
   agentProviderWriteDryRuns AgentProviderWriteDryRun[]
+  agentProviderWriteMeasurementHandoffs AgentProviderWriteMeasurementHandoff[]
 }
 
 model AccountUser {
@@ -53,6 +54,7 @@ model AccountUser {
   requestedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalRequester")
   decidedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalDecider")
   agentProviderWriteDryRuns AgentProviderWriteDryRun[]
+  agentProviderWriteMeasurementHandoffs AgentProviderWriteMeasurementHandoff[]
 
   @@index([updatedAt])
 }
@@ -926,12 +928,41 @@ model AgentProviderWriteDryRun {
   workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   accountUser        AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
   agentJob           AgentJob @relation(fields: [agentJobId], references: [id], onDelete: Cascade)
+  measurementHandoff AgentProviderWriteMeasurementHandoff?
 
   @@unique([agentJobId])
   @@index([workspaceId, provider, operationType, createdAt])
   @@index([accountUserId, createdAt])
   @@index([status, createdAt])
   @@index([idempotencyKey])
+}
+
+model AgentProviderWriteMeasurementHandoff {
+  id                    String   @id @default(cuid())
+  workspaceId           String
+  accountUserId         String?
+  providerWriteDryRunId String
+  sourceAgentJobId      String
+  observationJobId      String?
+  measurementJobId      String?
+  app                   String
+  provider              String
+  operationType         String
+  status                String   @default("queued")
+  measurementOutputs    String[]
+  measurementPayload    Json
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser           AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  providerWriteDryRun   AgentProviderWriteDryRun @relation(fields: [providerWriteDryRunId], references: [id], onDelete: Cascade)
+
+  @@unique([providerWriteDryRunId])
+  @@index([workspaceId, provider, operationType, createdAt])
+  @@index([accountUserId, createdAt])
+  @@index([status, createdAt])
+  @@index([observationJobId])
+  @@index([measurementJobId])
 }
 
 model AgentApprovalRequest {

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildAgentProviderWriteDryRunRecord } from "@/lib/agent-provider-write-dry-runs";
+import {
+  buildAgentProviderWriteDryRunRecord,
+  buildProviderWriteMeasurementPayload,
+  shouldCreateProviderWriteMeasurementHandoff
+} from "@/lib/agent-provider-write-dry-runs";
 import type { AgentJobExecutionResult, AgentJobForExecution } from "@/lib/agent-worker";
 
 const JOB: AgentJobForExecution = {
@@ -88,4 +92,33 @@ test("buildAgentProviderWriteDryRunRecord marks blocked dry-runs and ignores non
   });
 
   assert.equal(ignored, null);
+});
+
+test("shouldCreateProviderWriteMeasurementHandoff only allows ready acquisition dry-runs", () => {
+  assert.equal(shouldCreateProviderWriteMeasurementHandoff({ app: "acquisition", status: "ready", blockers: [] }), true);
+  assert.equal(shouldCreateProviderWriteMeasurementHandoff({ app: "acquisition", status: "blocked", blockers: ["missing"] }), false);
+  assert.equal(shouldCreateProviderWriteMeasurementHandoff({ app: "lifecycle", status: "ready", blockers: [] }), false);
+});
+
+test("buildProviderWriteMeasurementPayload preserves measurement handoff context", () => {
+  const payload = buildProviderWriteMeasurementPayload({
+    dryRunId: "dry_1",
+    sourceAgentJobId: "job_1",
+    app: "acquisition",
+    provider: "google_ads",
+    operationType: "update_budget",
+    idempotencyKey: "approval:approval_1:provider_write",
+    externalAccountId: "1234567890",
+    externalCampaignId: "customers/1234567890/campaigns/987",
+    spendExposureCents: 2500,
+    rollbackSupported: true,
+    rollbackPlan: "Restore previous budget.",
+    providerObjects: [{ resourceType: "campaign" }]
+  });
+
+  assert.equal(payload.providerWriteDryRunId, "dry_1");
+  assert.equal(payload.spendExposureCents, 2500);
+  assert.equal(payload.rollbackSupported, true);
+  assert.ok(payload.measurementOutputs.includes("spend_moved"));
+  assert.ok(payload.measurementOutputs.includes("revenue_impact_attribution"));
 });

@@ -208,6 +208,8 @@ The first dry-run adapter is the `simulated` adapter registered by `ACQUISITION_
 
 Dry-run results are persisted in `AgentProviderWriteDryRun` records keyed by `agentJobId`. These records preserve provider diffs, permission checks, spend exposure, rollback support, rollback plans, blockers, warnings, and the raw dry-run result so operations review does not depend only on the transient completed job payload.
 
+Ready acquisition dry-runs create `AgentProviderWriteMeasurementHandoff` records and enqueue idempotent `acquisition:observation` and `acquisition:measurement` jobs. This keeps measurement and revenue attribution on the same durable queue path as provider execution while still requiring zero real provider mutation.
+
 ## Audit Events
 
 Acquisition production audit should record:
