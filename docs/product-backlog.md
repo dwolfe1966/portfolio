@@ -92,6 +92,7 @@ S13 is intentionally lifecycle-first because lifecycle has the deepest event, id
 | L35 | Scheduled worker auth warning | DW | S | S13 | ✅ | Add a visible operations warning when no scheduler bearer secret is configured and cron calls would be rejected. |
 | L36 | Acquisition provider-write generalization plan | DW | S | S13 | ✅ | Define the first non-lifecycle agent generalization target, including queue ownership, executor mode, approval gates, rollback expectations, and measurement outputs for acquisition provider writes. |
 | L37 | Acquisition provider-write readiness contract | DW | S | S13 | ✅ | Add a tested code-facing readiness helper for acquisition provider-write generalization, covering queue ownership, execution mode progression, approval gates, rollback metadata, and measurement outputs. |
+| L38 | Acquisition provider-write operations visibility | DW | S | S13 | ✅ | Surface acquisition provider-write readiness in Agent Operations, including execution mode, queue ownership, dry-run readiness, approved-mutation blockers, and follow-on queues. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -102,7 +103,7 @@ S13 is intentionally lifecycle-first because lifecycle has the deepest event, id
 | S10 | K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, D15 | — | — |
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
-| S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37 | — | — |
+| S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -374,6 +375,7 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L35. Added a visible scheduled-worker auth warning in the operations surface when no worker bearer secret is configured.
 - ✅ L36. Defined the acquisition provider-write generalization plan with queue ownership, execution mode progression, approval gates, rollback expectations, and measurement outputs.
 - ✅ L37. Added a tested acquisition provider-write readiness contract that exposes the shared queue/follow-on queue shape, simulated-to-dry-run-to-approved mutation progression, blockers, approval gates, rollback metadata, and measurement outputs.
+- ✅ L38. Surfaced acquisition provider-write readiness in Agent Operations so operators can see current mode, next mode, queue ownership, dry-run readiness, approved-mutation blockers, and follow-on queues.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.

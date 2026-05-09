@@ -202,6 +202,8 @@ The first implementation milestone should remain fake-safe: exercise the `acquis
 
 The code-facing readiness contract is `buildAcquisitionProviderWriteReadiness` in `lib/acquisition-agent-generalization.ts`. It keeps the current mode simulated by default, graduates to `dry_run` when provider dry-run adapters exist, and only permits `approved_mutation` when rollback metadata, approval policy, measurement output, protected-campaign checks, and emergency-stop controls are all configured.
 
+Agent Operations surfaces this readiness state directly so operators can distinguish queue coverage from mutation readiness. Until real provider dry-run adapters, rollback metadata, and measurement wiring are configured, Acquisition provider writes remain visible but simulated.
+
 ## Audit Events
 
 Acquisition production audit should record:

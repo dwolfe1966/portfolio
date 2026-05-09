@@ -64,7 +64,8 @@ Open `http://localhost:3000`.
 - `lib/ai.ts` uses the OpenAI Responses API when `OPENAI_API_KEY` is present.
 - If no API key is set, the app falls back to deterministic template output.
 - Account login, registration, and workspace-scoped data flows are available under `/demo/login`, `/demo/register`, and `/demo/dashboard`.
-- Set `CONTACT_WEBHOOK_URL` to deliver contact form submissions to your webhook endpoint.
+- Set `RESEND_API_KEY` to send contact form submissions by email. By default, messages send to `dwolfe66@gmail.com`; override with `CONTACT_TO_EMAIL` if needed.
+- Set `CONTACT_FROM_EMAIL` to a verified Resend sender before production promotion. `CONTACT_WEBHOOK_URL` remains supported for webhook delivery.
 
 
 ## Acquisition app quickstart

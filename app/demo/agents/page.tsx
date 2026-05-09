@@ -11,6 +11,7 @@ import {
   evaluateAgentCompliancePosture,
   evaluateSecretPosture
 } from "@/lib/agent-platform-governance";
+import { buildAcquisitionProviderWriteReadiness } from "@/lib/acquisition-agent-generalization";
 import { AGENT_WORKER_QUEUE_ALLOWLIST, DEFAULT_AGENT_WORKER_QUEUES } from "@/lib/agent-worker";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { decideAgentApprovalAction, decideAgentJobAction, runAgentJobOnceAction, runAgentWorkerBatchAction } from "./actions";
@@ -95,8 +96,20 @@ function loadSchedulerStatus() {
   };
 }
 
+function loadAcquisitionProviderWriteReadiness() {
+  return buildAcquisitionProviderWriteReadiness({
+    providerDryRunAdapterAvailable: Boolean(process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER?.trim()),
+    rollbackMetadataAvailable: Boolean(process.env.ACQUISITION_PROVIDER_ROLLBACK_METADATA_READY?.trim()),
+    approvalPolicyConfigured: true,
+    measurementConfigured: Boolean(process.env.ACQUISITION_PROVIDER_MEASUREMENT_READY?.trim()),
+    protectedCampaignChecksEnabled: true,
+    emergencyStopConfigured: true
+  });
+}
+
 async function loadAgentOperations(accountUserId: string | null) {
   const scheduler = loadSchedulerStatus();
+  const acquisitionProviderWriteReadiness = loadAcquisitionProviderWriteReadiness();
 
   try {
     const workspace = await db.workspace.findUnique({ where: { slug: "default-demo-workspace" } });
@@ -108,6 +121,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         approvals: [],
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
+        acquisitionProviderWriteReadiness,
         posture: evaluateAgentCompliancePosture({
           tenantIsolationEnforced: false,
           secretPosture: evaluateSecretPosture({ encryptionAvailable: isOAuthEncryptionAvailable(), tokenPresent: false }),
@@ -159,6 +173,7 @@ async function loadAgentOperations(accountUserId: string | null) {
       approvals,
       counts: { queued, running, deadLettered, pendingApprovals },
       scheduler,
+      acquisitionProviderWriteReadiness,
       posture
     };
   } catch (error) {
@@ -170,6 +185,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         approvals: [],
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
+        acquisitionProviderWriteReadiness,
         posture: evaluateAgentCompliancePosture({
           tenantIsolationEnforced: false,
           secretPosture: evaluateSecretPosture({ encryptionAvailable: false, tokenPresent: false }),
@@ -187,6 +203,7 @@ export default async function AgentOperationsPage() {
   const accountUserId = await currentAccountUserId();
   const operations = await loadAgentOperations(accountUserId);
   const postureReasons = [...operations.posture.blockers, ...operations.posture.warnings];
+  const acquisitionBlockers = operations.acquisitionProviderWriteReadiness.blockers.map(label);
 
   return (
     <>
@@ -262,6 +279,35 @@ export default async function AgentOperationsPage() {
             <p className="small">Queue coverage</p>
             <strong>{operations.scheduler.queues.length} queues</strong>
             <span>{operations.scheduler.allowlistSize} allowed · {operations.scheduler.queues.slice(0, 3).join(" · ")} · more</span>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Acquisition provider writes">
+        <div className="activitySummaryGrid">
+          <div className="activitySummaryCard">
+            <p className="small">Execution mode</p>
+            <strong>{label(operations.acquisitionProviderWriteReadiness.currentMode)}</strong>
+            <span>Next mode: {label(operations.acquisitionProviderWriteReadiness.nextMode)}.</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Queue ownership</p>
+            <strong>{operations.acquisitionProviderWriteReadiness.queueName}</strong>
+            <span>Follow-on queues: {operations.acquisitionProviderWriteReadiness.followOnQueues.join(" · ")}.</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Dry-run readiness</p>
+            <strong>{operations.acquisitionProviderWriteReadiness.readyForDryRun ? "Ready" : "Blocked"}</strong>
+            <span>
+              {operations.acquisitionProviderWriteReadiness.readyForDryRun
+                ? "Provider dry-run adapters can be exercised without real mutation."
+                : "Provider dry-run adapter is not configured."}
+            </span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Approved mutation</p>
+            <strong>{operations.acquisitionProviderWriteReadiness.readyForApprovedMutation ? "Ready" : "Blocked"}</strong>
+            <span>{acquisitionBlockers.length ? acquisitionBlockers.join(" · ") : "All mutation controls are configured."}</span>
           </div>
         </div>
       </Section>
