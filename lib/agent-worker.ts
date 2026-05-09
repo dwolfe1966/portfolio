@@ -3,6 +3,7 @@ import {
   getAdProviderWriteDryRunAdapter,
   normalizeAdProviderWriteDryRunInput
 } from "@/lib/ad-connectors/write-dry-run";
+import { persistAgentProviderWriteDryRun } from "@/lib/agent-provider-write-dry-runs";
 
 export type AgentJobForExecution = {
   id: string;
@@ -46,6 +47,7 @@ export type AgentWorkerBatchResult = {
 
 export type AgentWorkerClient = {
   claimNext(input: { workspaceId: string; queueName: string; workerId: string; now?: Date }): Promise<AgentJobForExecution | null>;
+  persistProviderWriteDryRun?(input: { job: AgentJobForExecution; result: AgentJobExecutionResult }): Promise<unknown>;
   complete(input: { id: string; result?: unknown; now?: Date }): Promise<unknown>;
   fail(input: {
     id: string;
@@ -201,6 +203,7 @@ export async function runAgentWorkerOnce(
   input: { workspaceId: string; queueName: string; workerId: string; now?: Date },
   client: AgentWorkerClient = {
     claimNext: claimNextAgentJob,
+    persistProviderWriteDryRun: persistAgentProviderWriteDryRun,
     complete: completeAgentJob,
     fail: failAgentJob
   }
@@ -211,6 +214,7 @@ export async function runAgentWorkerOnce(
 
   try {
     const result = executeAgentJob(job);
+    await client.persistProviderWriteDryRun?.({ job, result });
     await client.complete({ id: job.id, result, now });
     return { claimed: true, queueName: input.queueName, workerId: input.workerId, jobId: job.id, status: "completed", result };
   } catch (error) {

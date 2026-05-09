@@ -206,6 +206,8 @@ Agent Operations surfaces this readiness state directly so operators can disting
 
 The first dry-run adapter is the `simulated` adapter registered by `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=simulated`. It returns provider-like diffs, permission checks, spend exposure, and rollback metadata without calling an ad platform. The first provider-specific adapter is `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=google_ads`; it builds Google Ads-style campaign resource diffs and mutate-shape metadata offline, still without calling mutate endpoints. Microsoft/Meta dry-run adapters should implement the same contract before any approved mutation adapter is enabled.
 
+Dry-run results are persisted in `AgentProviderWriteDryRun` records keyed by `agentJobId`. These records preserve provider diffs, permission checks, spend exposure, rollback support, rollback plans, blockers, warnings, and the raw dry-run result so operations review does not depend only on the transient completed job payload.
+
 ## Audit Events
 
 Acquisition production audit should record:

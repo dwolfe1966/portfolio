@@ -24,6 +24,7 @@ model Workspace {
   lifecycleConnectorAuditEvents LifecycleConnectorAuditEvent[]
   agentJobs     AgentJob[]
   agentApprovalRequests AgentApprovalRequest[]
+  agentProviderWriteDryRuns AgentProviderWriteDryRun[]
 }
 
 model AccountUser {
@@ -51,6 +52,7 @@ model AccountUser {
   agentJobs    AgentJob[]
   requestedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalRequester")
   decidedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalDecider")
+  agentProviderWriteDryRuns AgentProviderWriteDryRun[]
 
   @@index([updatedAt])
 }
@@ -888,6 +890,7 @@ model AgentJob {
   workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   accountUser     AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
   approvalRequests AgentApprovalRequest[]
+  providerWriteDryRuns AgentProviderWriteDryRun[]
 
   @@unique([workspaceId, queueName, idempotencyKey])
   @@index([workspaceId, status, runAfter, priority])
@@ -895,6 +898,40 @@ model AgentJob {
   @@index([app, jobType, status])
   @@index([queueName, status, runAfter])
   @@index([deadLetteredAt])
+}
+
+model AgentProviderWriteDryRun {
+  id                 String   @id @default(cuid())
+  workspaceId        String
+  accountUserId      String?
+  agentJobId         String
+  app                String
+  provider           String
+  operationType      String
+  mode               String   @default("dry_run")
+  status             String   @default("ready")
+  idempotencyKey     String?
+  externalAccountId  String?
+  externalCampaignId String?
+  permissionChecks   Json
+  providerObjects    Json
+  spendExposureCents Int      @default(0)
+  rollbackSupported  Boolean  @default(false)
+  rollbackPlan       String?
+  blockers           String[]
+  warnings           String[]
+  rawResult          Json
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser        AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  agentJob           AgentJob @relation(fields: [agentJobId], references: [id], onDelete: Cascade)
+
+  @@unique([agentJobId])
+  @@index([workspaceId, provider, operationType, createdAt])
+  @@index([accountUserId, createdAt])
+  @@index([status, createdAt])
+  @@index([idempotencyKey])
 }
 
 model AgentApprovalRequest {

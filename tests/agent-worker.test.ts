@@ -147,6 +147,58 @@ test("runAgentWorkerOnce claims and completes one queued job", async () => {
   assert.deepEqual(calls, ["claim", "complete:job_1"]);
 });
 
+test("runAgentWorkerOnce persists provider-write dry-run metadata before completion", async () => {
+  const previousAdapter = process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER = "google_ads";
+  const calls: string[] = [];
+  const client: AgentWorkerClient = {
+    async claimNext() {
+      calls.push("claim");
+      return {
+        ...BASE_JOB,
+        app: "acquisition",
+        queueName: "acquisition:provider_write",
+        jobType: "provider_write",
+        payload: {
+          proposedAction: {
+            provider: "google_ads",
+            operationType: "update_budget",
+            externalAccountId: "1234567890",
+            externalCampaignId: "987654321"
+          }
+        }
+      };
+    },
+    async persistProviderWriteDryRun(input) {
+      calls.push(`dry-run:${input.job.id}:${input.result.providerMutation}`);
+      return {};
+    },
+    async complete(input) {
+      calls.push(`complete:${input.id}`);
+      return {};
+    },
+    async fail() {
+      calls.push("fail");
+      return { status: "queued" };
+    }
+  };
+
+  const result = await runAgentWorkerOnce({
+    workspaceId: "workspace_1",
+    queueName: "acquisition:provider_write",
+    workerId: "test_worker"
+  }, client);
+
+  assert.equal(result.claimed, true);
+  assert.deepEqual(calls, ["claim", "dry-run:job_1:dry_run", "complete:job_1"]);
+
+  if (previousAdapter === undefined) {
+    delete process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  } else {
+    process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER = previousAdapter;
+  }
+});
+
 test("runAgentWorkerOnce fails unsupported jobs through retry policy", async () => {
   const client: AgentWorkerClient = {
     async claimNext() {

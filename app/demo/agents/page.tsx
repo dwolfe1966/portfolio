@@ -63,6 +63,10 @@ function label(value: string) {
   return value.replace(/_/g, " ");
 }
 
+function formatCents(value: number) {
+  return new Intl.NumberFormat("en", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value / 100);
+}
+
 function agentJobResultSummary(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const result = value as Record<string, unknown>;
@@ -122,6 +126,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         workspace: null,
         jobs: [],
         approvals: [],
+        dryRuns: [],
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
         acquisitionProviderWriteReadiness,
@@ -135,7 +140,7 @@ async function loadAgentOperations(accountUserId: string | null) {
       };
     }
 
-    const [jobs, approvals, queued, running, deadLettered, pendingApprovals] = await Promise.all([
+    const [jobs, approvals, dryRuns, queued, running, deadLettered, pendingApprovals] = await Promise.all([
       db.agentJob.findMany({
         where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
         orderBy: [{ createdAt: "desc" }],
@@ -148,6 +153,11 @@ async function loadAgentOperations(accountUserId: string | null) {
         },
         orderBy: [{ createdAt: "desc" }],
         take: 12
+      }),
+      db.agentProviderWriteDryRun.findMany({
+        where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
+        orderBy: [{ createdAt: "desc" }],
+        take: 6
       }),
       db.agentJob.count({ where: { workspaceId: workspace.id, status: "queued" } }),
       db.agentJob.count({ where: { workspaceId: workspace.id, status: "running" } }),
@@ -174,6 +184,7 @@ async function loadAgentOperations(accountUserId: string | null) {
       workspace,
       jobs,
       approvals,
+      dryRuns,
       counts: { queued, running, deadLettered, pendingApprovals },
       scheduler,
       acquisitionProviderWriteReadiness,
@@ -186,6 +197,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         workspace: null,
         jobs: [],
         approvals: [],
+        dryRuns: [],
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
         acquisitionProviderWriteReadiness,
@@ -313,6 +325,42 @@ export default async function AgentOperationsPage() {
             <span>{acquisitionBlockers.length ? acquisitionBlockers.join(" · ") : "All mutation controls are configured."}</span>
           </div>
         </div>
+      </Section>
+
+      <Section title="Provider dry runs">
+        {operations.dryRuns.length === 0 ? (
+          <div className="card">
+            <p>No provider dry-run records yet. Approved acquisition provider-write jobs will persist their diffs here before any real mutation is possible.</p>
+          </div>
+        ) : (
+          <div className="activityFeed">
+            {operations.dryRuns.map((dryRun) => (
+              <details className="activityFeedItem" key={dryRun.id}>
+                <summary>
+                  <span className="activityFeedDate">{formatDate(dryRun.createdAt)}</span>
+                  <span className={`statusPill ${statusClass(dryRun.status)}`}>{label(dryRun.status)}</span>
+                  <span className="activityFeedTitle">
+                    <strong>{label(dryRun.operationType)}</strong>
+                    <span>{dryRun.provider} · {formatCents(dryRun.spendExposureCents)} exposure</span>
+                  </span>
+                  <span className="activityFeedApp">{dryRun.app}</span>
+                </summary>
+                <div className="activityFeedDetail">
+                  <div>
+                    <p>{dryRun.externalCampaignId ?? dryRun.externalAccountId ?? "Provider target not resolved yet."}</p>
+                    <p className="small">
+                      Rollback: {dryRun.rollbackSupported ? "supported" : "not supported"} · Idempotency: {dryRun.idempotencyKey ?? "none"}
+                    </p>
+                    {dryRun.rollbackPlan ? <p className="small">{dryRun.rollbackPlan}</p> : null}
+                    {dryRun.blockers.length > 0 ? <p className="small">Blockers: {dryRun.blockers.map(label).join(" · ")}</p> : null}
+                    {dryRun.warnings.length > 0 ? <p className="small">Warnings: {dryRun.warnings.join(" · ")}</p> : null}
+                  </div>
+                  <Link className="btn smallBtn" href="/workspace/activity">Review audit trail</Link>
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
       </Section>
 
       <Section title="Queued and recent jobs">
