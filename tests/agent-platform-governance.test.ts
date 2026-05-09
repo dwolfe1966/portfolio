@@ -107,6 +107,7 @@ test("buildAgentAuditExportRows emits stable chronological export rows", () => {
       app: "acquisition",
       action: "budget_increase",
       status: "approved",
+      evidenceType: "approval",
       actorAccountUserId: "acct_1",
       riskLevel: "high",
       createdAt: new Date("2026-05-07T12:05:00.000Z"),
@@ -125,7 +126,37 @@ test("buildAgentAuditExportRows emits stable chronological export rows", () => {
 
   assert.deepEqual(rows.map((row) => row.id), ["job_1", "approval_2"]);
   assert.equal(rows[0].terminalAt, "2026-05-07T12:01:00.000Z");
+  assert.equal(rows[0].evidenceType, "agent_event");
+  assert.equal(rows[1].evidenceType, "approval");
   assert.equal(rows[1].riskLevel, "high");
+});
+
+test("buildAgentAuditExportRows includes provider-write evidence fields", () => {
+  const rows = buildAgentAuditExportRows([
+    {
+      id: "dry_1",
+      workspaceId: "workspace_1",
+      app: "acquisition",
+      action: "provider_write_dry_run",
+      status: "ready",
+      evidenceType: "provider_dry_run",
+      provider: "google_ads",
+      operationType: "update_budget",
+      externalAccountId: "1234567890",
+      externalCampaignId: "customers/1234567890/campaigns/987",
+      spendExposureCents: 2500,
+      rollbackSupported: true,
+      rollbackPlan: "Restore previous budget.",
+      relatedJobId: "job_1",
+      createdAt: new Date("2026-05-07T12:00:00.000Z")
+    }
+  ]);
+
+  assert.equal(rows[0].provider, "google_ads");
+  assert.equal(rows[0].operationType, "update_budget");
+  assert.equal(rows[0].spendExposureCents, "2500");
+  assert.equal(rows[0].rollbackSupported, "true");
+  assert.equal(rows[0].relatedJobId, "job_1");
 });
 
 test("evaluateAgentCompliancePosture promotes blockers over warnings", () => {

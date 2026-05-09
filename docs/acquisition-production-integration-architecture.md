@@ -212,6 +212,8 @@ Ready acquisition dry-runs create `AgentProviderWriteMeasurementHandoff` records
 
 Agent Operations includes a read-only provider dry-run detail page for each persisted dry run. Operators can inspect permission checks, before/after provider object diffs, rollback metadata, measurement handoff jobs, blockers, warnings, and raw dry-run payloads before any approved mutation path is considered.
 
+Agent Operations also exposes a CSV evidence export across jobs, approvals, provider dry-runs, and measurement handoffs so provider, spend exposure, rollback, and related job metadata can be shared during readiness review.
+
 ## Audit Events
 
 Acquisition production audit should record:

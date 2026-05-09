@@ -36,12 +36,21 @@ export type AgentAuditExportRecord = {
   app: string;
   action: string;
   status: string;
+  evidenceType?: string | null;
   actorAccountUserId?: string | null;
   createdAt: Date;
   decidedAt?: Date | null;
   completedAt?: Date | null;
   riskLevel?: string | null;
   errorCode?: string | null;
+  provider?: string | null;
+  operationType?: string | null;
+  externalAccountId?: string | null;
+  externalCampaignId?: string | null;
+  spendExposureCents?: number | null;
+  rollbackSupported?: boolean | null;
+  rollbackPlan?: string | null;
+  relatedJobId?: string | null;
 };
 
 export type AgentAuditExportRow = {
@@ -50,11 +59,20 @@ export type AgentAuditExportRow = {
   app: string;
   action: string;
   status: string;
+  evidenceType: string;
   actorAccountUserId: string;
   createdAt: string;
   terminalAt: string;
   riskLevel: string;
   errorCode: string;
+  provider: string;
+  operationType: string;
+  externalAccountId: string;
+  externalCampaignId: string;
+  spendExposureCents: string;
+  rollbackSupported: string;
+  rollbackPlan: string;
+  relatedJobId: string;
 };
 
 export type AgentCompliancePostureInput = {
@@ -159,11 +177,20 @@ export function buildAgentAuditExportRows(records: AgentAuditExportRecord[]): Ag
       app: clean(record.app, 80),
       action: clean(record.action, 160),
       status: clean(record.status, 80),
+      evidenceType: record.evidenceType ? clean(record.evidenceType, 80) : "agent_event",
       actorAccountUserId: record.actorAccountUserId ? clean(record.actorAccountUserId, 120) : "",
       createdAt: record.createdAt.toISOString(),
       terminalAt: (record.decidedAt ?? record.completedAt ?? record.createdAt).toISOString(),
       riskLevel: record.riskLevel ? clean(record.riskLevel, 40) : "",
-      errorCode: record.errorCode ? clean(record.errorCode, 80) : ""
+      errorCode: record.errorCode ? clean(record.errorCode, 80) : "",
+      provider: record.provider ? clean(record.provider, 80) : "",
+      operationType: record.operationType ? clean(record.operationType, 80) : "",
+      externalAccountId: record.externalAccountId ? clean(record.externalAccountId, 160) : "",
+      externalCampaignId: record.externalCampaignId ? clean(record.externalCampaignId, 220) : "",
+      spendExposureCents: Number.isFinite(record.spendExposureCents) ? String(Math.round(Number(record.spendExposureCents))) : "",
+      rollbackSupported: typeof record.rollbackSupported === "boolean" ? String(record.rollbackSupported) : "",
+      rollbackPlan: record.rollbackPlan ? clean(record.rollbackPlan, 500) : "",
+      relatedJobId: record.relatedJobId ? clean(record.relatedJobId, 120) : ""
     }))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
 }

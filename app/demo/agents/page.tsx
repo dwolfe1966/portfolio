@@ -256,6 +256,7 @@ export default async function AgentOperationsPage() {
             <p className="small">Compliance status</p>
             <strong>{label(operations.posture.status)}</strong>
             <span>{postureReasons.length ? postureReasons.map(label).join(" · ") : "Execution controls are ready."}</span>
+            <Link className="btn smallBtn" href="/api/workspace/agents/audit-export">Export evidence</Link>
           </div>
           <div className="activitySummaryCard">
             <p className="small">Tenant isolation</p>
