@@ -4,6 +4,8 @@ Last updated: 2026-05-07
 
 This note defines how the Lifecycle tool should move from account-owned imports and sample data into customer infrastructure where David Wolfe agents can detect lifecycle events, generate approved actions, and deliver messages through partner systems.
 
+The current implementation path is intentionally lifecycle-first. Lifecycle has the richest event, identity, consent, delivery, observation, and revenue-attribution requirements, so it is the right app to harden the control loop first. The shared platform pieces built here - durable jobs, approval requests, worker execution, queue allowlists, scheduler auth, operations visibility, retries, and dead-letter review - should remain app-shaped so they can be generalized across Acquisition, Pricing, Retention, Expansion, Auction, and platform agents after the lifecycle control loop is stable.
+
 ## Goal
 
 Lifecycle should plug into a partner's infrastructure without forcing them into one data or messaging stack. The production system needs to:
@@ -167,7 +169,7 @@ The scheduler bridge uses the same worker path in bounded batches. A protected b
 
 Scheduled batch execution is constrained by an explicit lifecycle/acquisition queue allowlist. Caller-provided queue names are deduplicated and filtered before execution; disallowed queue names are reported in the batch result rather than claimed. If a caller explicitly supplies only disallowed queues, the worker returns a skipped-only no-op result instead of falling back to the default queue set. Batch requests that include skipped queues also emit a warning log with requested queue count, allowed queue count, and skipped names. This keeps scheduler and external-worker access narrow while making queue misconfiguration visible.
 
-The workspace operations surface exposes the scheduled worker contract directly: cron cadence, endpoint, max batch size, queue coverage, and whether a worker bearer secret is configured. It also includes a protected Run batch now control that executes the same bounded batch worker path as cron, giving operators a quick deployment-readiness check before relying on scheduled execution.
+The workspace operations surface exposes the scheduled worker contract directly: cron cadence, endpoint, max batch size, queue coverage, and whether a worker bearer secret is configured. If no `CRON_SECRET` or `AGENT_WORKER_SECRET` is present, the surface shows a visible warning that scheduled cron calls will be rejected. It also includes a protected Run batch now control that executes the same bounded batch worker path as cron, giving operators a quick deployment-readiness check before relying on scheduled execution.
 
 Workspace operators can also execute a queued job directly from the agent operations view. The control runs the same run-once worker against the job's queue, then refreshes job status and result/error state in the operations surface.
 

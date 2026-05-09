@@ -2838,6 +2838,10 @@ button {
 .agentInlineAction {
   margin-top: 10px;
 }
+.agentConfigWarning {
+  color: var(--danger);
+  font-weight: 700;
+}
 .agentJobResult {
   border-left: 3px solid var(--accent);
   display: grid;

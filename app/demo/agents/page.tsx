@@ -254,6 +254,9 @@ export default async function AgentOperationsPage() {
             <p className="small">Scheduler auth</p>
             <strong>{operations.scheduler.authReady ? "Ready" : "Needs secret"}</strong>
             <span>{operations.scheduler.authReady ? "Bearer secret is configured." : "Set CRON_SECRET or AGENT_WORKER_SECRET in production."}</span>
+            {!operations.scheduler.authReady ? (
+              <span className="agentConfigWarning">Scheduled cron calls will be rejected until a worker secret is configured.</span>
+            ) : null}
           </div>
           <div className="activitySummaryCard">
             <p className="small">Queue coverage</p>
