@@ -84,6 +84,9 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | L29 | Vercel cron worker deployment wiring | DW | S | S13 | ✅ | Register the batch worker as a Hobby-safe daily Vercel cron, support GET invocations, and document production `CRON_SECRET` setup. |
 | L30 | Scheduled worker operations visibility | DW | S | S13 | ✅ | Surface cron cadence, worker endpoint, batch size, scheduler auth readiness, and queue coverage in the protected agent operations view. |
 | L31 | Manual scheduled-batch execution control | DW | S | S13 | ✅ | Add a protected operations control that runs the same bounded batch worker path used by cron and refreshes queue state. |
+| L32 | Scheduled worker queue allowlist | DW | S | S13 | ✅ | Constrain batch worker queue input to the known lifecycle/acquisition allowlist and report skipped disallowed queue names. |
+| L33 | Scheduled worker skipped-queue observability | DW | S | S13 | ✅ | Log skipped disallowed batch queues as warnings with requested/allowed queue counts and skipped queue names. |
+| L34 | Explicit disallowed batch no-op | DW | S | S13 | ✅ | Prevent all-disallowed explicit queue requests from falling back to default queues; return a skipped-only no-op result instead. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -94,7 +97,7 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 | S10 | K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, D15 | — | — |
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
-| S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31 | — | — |
+| S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -360,6 +363,9 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L29. Added Hobby-safe daily Vercel cron deployment wiring for the batch worker, GET-based cron invocation support, `CRON_SECRET` environment setup, and deployment docs.
 - ✅ L30. Added scheduled-worker operations visibility so workspace operators can see cron cadence, endpoint, batch size, auth readiness, and queue coverage without opening deployment config.
 - ✅ L31. Added a protected Run batch now control to the scheduled-worker operations card so operators can exercise the same bounded batch worker path used by cron.
+- ✅ L32. Added scheduled worker queue allowlist enforcement so batch callers cannot execute arbitrary queue names; skipped disallowed queues are included in the batch result.
+- ✅ L33. Added skipped-queue observability so batch worker calls with disallowed queue names log a warning with requested queue count, allowed queue count, and skipped names.
+- ✅ L34. Added explicit all-disallowed batch no-op behavior so malformed scheduler requests cannot silently fall back to default queue execution.
 
 ---
 
@@ -425,4 +431,4 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ L15, L16, L17
 
 ### Sprint S13 (agent operations control loop)
-- ✅ L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31
+- ✅ L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34

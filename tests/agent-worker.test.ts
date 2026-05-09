@@ -165,3 +165,56 @@ test("runAgentWorkerBatch stops after one idle pass through every queue", async 
   assert.deepEqual(result.queueNames, ["lifecycle:generation"]);
   assert.deepEqual(result.emptyQueues, ["lifecycle:generation"]);
 });
+
+test("runAgentWorkerBatch skips disallowed queue names", async () => {
+  const seenQueues: string[] = [];
+  const client: AgentWorkerClient = {
+    async claimNext(input) {
+      seenQueues.push(input.queueName);
+      return null;
+    },
+    async complete() {
+      throw new Error("should not complete");
+    },
+    async fail() {
+      throw new Error("should not fail");
+    }
+  };
+
+  const result = await runAgentWorkerBatch({
+    workspaceId: "workspace_1",
+    workerId: "batch_worker",
+    queueNames: ["lifecycle:generation", "pricing:provider_write", "lifecycle:generation"],
+    maxJobs: 10
+  }, client);
+
+  assert.deepEqual(result.queueNames, ["lifecycle:generation"]);
+  assert.deepEqual(result.skippedQueueNames, ["pricing:provider_write"]);
+  assert.deepEqual(seenQueues, ["lifecycle:generation"]);
+});
+
+test("runAgentWorkerBatch does not fallback to defaults when every explicit queue is disallowed", async () => {
+  const client: AgentWorkerClient = {
+    async claimNext() {
+      throw new Error("should not claim");
+    },
+    async complete() {
+      throw new Error("should not complete");
+    },
+    async fail() {
+      throw new Error("should not fail");
+    }
+  };
+
+  const result = await runAgentWorkerBatch({
+    workspaceId: "workspace_1",
+    workerId: "batch_worker",
+    queueNames: ["pricing:provider_write", "retention:generation"],
+    maxJobs: 10
+  }, client);
+
+  assert.equal(result.attempted, 0);
+  assert.equal(result.claimed, 0);
+  assert.deepEqual(result.queueNames, []);
+  assert.deepEqual(result.skippedQueueNames, ["pricing:provider_write", "retention:generation"]);
+});

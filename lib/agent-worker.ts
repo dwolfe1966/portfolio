@@ -30,6 +30,7 @@ export type AgentWorkerBatchResult = {
   workerId: string;
   maxJobs: number;
   queueNames: string[];
+  skippedQueueNames: string[];
   attempted: number;
   claimed: number;
   completed: number;
@@ -65,6 +66,8 @@ export const DEFAULT_AGENT_WORKER_QUEUES = [
   "acquisition:measurement",
   "acquisition:audit"
 ] as const;
+
+export const AGENT_WORKER_QUEUE_ALLOWLIST = new Set<string>(DEFAULT_AGENT_WORKER_QUEUES);
 
 function payloadObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -152,18 +155,27 @@ export function executeAgentJob(job: AgentJobForExecution): AgentJobExecutionRes
 }
 
 function normalizeQueueNames(value: readonly string[] | undefined) {
-  const source = value && value.length > 0 ? value : DEFAULT_AGENT_WORKER_QUEUES;
+  const hasExplicitQueues = Boolean(value && value.length > 0);
+  const source = hasExplicitQueues ? value! : DEFAULT_AGENT_WORKER_QUEUES;
   const seen = new Set<string>();
   const normalized: string[] = [];
+  const skipped: string[] = [];
 
   for (const queue of source) {
     const clean = String(queue ?? "").trim().slice(0, 120);
     if (!clean || seen.has(clean)) continue;
     seen.add(clean);
+    if (!AGENT_WORKER_QUEUE_ALLOWLIST.has(clean)) {
+      skipped.push(clean);
+      continue;
+    }
     normalized.push(clean);
   }
 
-  return normalized.length > 0 ? normalized : [...DEFAULT_AGENT_WORKER_QUEUES];
+  return {
+    queueNames: normalized.length > 0 || hasExplicitQueues ? normalized : [...DEFAULT_AGENT_WORKER_QUEUES],
+    skippedQueueNames: skipped
+  };
 }
 
 export async function runAgentWorkerOnce(
@@ -215,7 +227,7 @@ export async function runAgentWorkerBatch(
   },
   client?: AgentWorkerClient
 ): Promise<AgentWorkerBatchResult> {
-  const queueNames = normalizeQueueNames(input.queueNames);
+  const { queueNames, skippedQueueNames } = normalizeQueueNames(input.queueNames);
   const maxJobs = Math.max(1, Math.min(50, Math.round(Number(input.maxJobs ?? queueNames.length))));
   const results: AgentWorkerRunResult[] = [];
   const emptyQueues = new Set<string>();
@@ -254,6 +266,7 @@ export async function runAgentWorkerBatch(
     workerId: input.workerId,
     maxJobs,
     queueNames,
+    skippedQueueNames,
     attempted: results.length,
     claimed,
     completed,

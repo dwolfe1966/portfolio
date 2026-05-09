@@ -54,8 +54,13 @@ async function runBatch(request: NextRequest, input: { queueNames?: string[]; ma
       maxJobs: input.maxJobs
     });
 
-    logApiEvent("info", eventId, "agent.run_batch.completed", {
+    const skippedQueueCount = result.skippedQueueNames.length;
+    logApiEvent(skippedQueueCount > 0 ? "warn" : "info", eventId, "agent.run_batch.completed", {
       actor: actor.actor,
+      requestedQueueCount: input.queueNames?.length ?? result.queueNames.length,
+      queueCount: result.queueNames.length,
+      skippedQueueCount,
+      skippedQueueNames: result.skippedQueueNames,
       attempted: result.attempted,
       claimed: result.claimed,
       completed: result.completed,

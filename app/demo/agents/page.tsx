@@ -11,7 +11,7 @@ import {
   evaluateAgentCompliancePosture,
   evaluateSecretPosture
 } from "@/lib/agent-platform-governance";
-import { DEFAULT_AGENT_WORKER_QUEUES } from "@/lib/agent-worker";
+import { AGENT_WORKER_QUEUE_ALLOWLIST, DEFAULT_AGENT_WORKER_QUEUES } from "@/lib/agent-worker";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { decideAgentApprovalAction, decideAgentJobAction, runAgentJobOnceAction, runAgentWorkerBatchAction } from "./actions";
 
@@ -90,6 +90,7 @@ function loadSchedulerStatus() {
     endpoint: "GET /api/workspace/agents/run-batch",
     maxJobs: 10,
     authReady: Boolean(process.env.CRON_SECRET?.trim() || process.env.AGENT_WORKER_SECRET?.trim()),
+    allowlistSize: AGENT_WORKER_QUEUE_ALLOWLIST.size,
     queues: [...DEFAULT_AGENT_WORKER_QUEUES]
   };
 }
@@ -257,7 +258,7 @@ export default async function AgentOperationsPage() {
           <div className="activitySummaryCard">
             <p className="small">Queue coverage</p>
             <strong>{operations.scheduler.queues.length} queues</strong>
-            <span>{operations.scheduler.queues.slice(0, 3).join(" · ")} · more</span>
+            <span>{operations.scheduler.allowlistSize} allowed · {operations.scheduler.queues.slice(0, 3).join(" · ")} · more</span>
           </div>
         </div>
       </Section>
