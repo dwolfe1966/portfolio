@@ -34,6 +34,8 @@ function rowCountTotal(value: unknown) {
 function sourceLabel(value: string | null | undefined) {
   if (!value) return "Imported data";
   if (value === "google_sheets") return "Google Sheets";
+  if (value === "google_ads") return "Google Ads";
+  if (value === "meta_ads") return "Meta Ads";
   if (value === "csv") return "CSV";
   return value.replaceAll("_", " ");
 }

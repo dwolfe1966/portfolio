@@ -6,7 +6,7 @@
 
 const AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const ADS_API_BASE = "https://googleads.googleapis.com/v17";
+const DEFAULT_GOOGLE_ADS_API_VERSION = "v22";
 const ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords";
 
 export type GoogleOAuthConfig = {
@@ -14,15 +14,29 @@ export type GoogleOAuthConfig = {
   clientSecret: string;
   redirectUri: string;
   developerToken: string;
+  loginCustomerId: string | null;
+  apiBase: string;
 };
 
 export class GoogleOAuthConfigError extends Error {}
 
+function readEnv(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
+export function getGoogleAdsApiBase(version = process.env.GOOGLE_ADS_API_VERSION): string {
+  const normalizedVersion = version?.trim() || DEFAULT_GOOGLE_ADS_API_VERSION;
+  const pathVersion = normalizedVersion.startsWith("v") ? normalizedVersion : `v${normalizedVersion}`;
+  return `https://googleads.googleapis.com/${pathVersion}`;
+}
+
 export function loadGoogleOAuthConfig(): GoogleOAuthConfig {
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI;
-  const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+  const clientId = readEnv("GOOGLE_OAUTH_CLIENT_ID");
+  const clientSecret = readEnv("GOOGLE_OAUTH_CLIENT_SECRET");
+  const redirectUri = readEnv("GOOGLE_OAUTH_REDIRECT_URI");
+  const developerToken = readEnv("GOOGLE_ADS_DEVELOPER_TOKEN");
+  const loginCustomerId = readEnv("GOOGLE_ADS_LOGIN_CUSTOMER_ID")?.replaceAll("-", "") ?? null;
 
   const missing: string[] = [];
   if (!clientId) missing.push("GOOGLE_OAUTH_CLIENT_ID");
@@ -40,7 +54,9 @@ export function loadGoogleOAuthConfig(): GoogleOAuthConfig {
     clientId: clientId!,
     clientSecret: clientSecret!,
     redirectUri: redirectUri!,
-    developerToken: developerToken!
+    developerToken: developerToken!,
+    loginCustomerId,
+    apiBase: getGoogleAdsApiBase()
   };
 }
 
@@ -160,7 +176,7 @@ export async function listAccessibleCustomers(
   config?: GoogleOAuthConfig
 ): Promise<string[]> {
   const cfg = config ?? loadGoogleOAuthConfig();
-  const response = await fetch(`${ADS_API_BASE}/customers:listAccessibleCustomers`, {
+  const response = await fetch(`${cfg.apiBase}/customers:listAccessibleCustomers`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${accessToken}`,

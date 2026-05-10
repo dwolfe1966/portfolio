@@ -21,7 +21,6 @@ import type {
   RemotePerformancePoint
 } from "./types";
 
-const ADS_API_BASE = "https://googleads.googleapis.com/v17";
 const ACCESS_TOKEN_REFRESH_BUFFER_MS = 60_000;
 
 export class GoogleAdsConnectorError extends Error {}
@@ -43,6 +42,59 @@ type StoredConnection = {
   encryptedRefreshToken: string | null;
   expiresAt: Date | null;
 };
+
+type GoogleAdsErrorResponse = {
+  error?: {
+    code?: number;
+    message?: string;
+    status?: string;
+    details?: Array<{
+      errors?: Array<{
+        errorCode?: Record<string, string>;
+        message?: string;
+      }>;
+      requestId?: string;
+    }>;
+  };
+};
+
+function googleAdsFailureCodes(payload: GoogleAdsErrorResponse): string[] {
+  return (payload.error?.details ?? []).flatMap((detail) =>
+    (detail.errors ?? []).flatMap((error) => Object.values(error.errorCode ?? {}))
+  );
+}
+
+function googleAdsFailureMessages(payload: GoogleAdsErrorResponse): string[] {
+  return (payload.error?.details ?? []).flatMap((detail) =>
+    (detail.errors ?? []).map((error) => error.message).filter((message): message is string => Boolean(message))
+  );
+}
+
+function summarizeGoogleAdsError(status: number, text: string): string {
+  try {
+    const payload = JSON.parse(text) as GoogleAdsErrorResponse;
+    const codes = googleAdsFailureCodes(payload);
+    const messages = googleAdsFailureMessages(payload);
+    const requestId = payload.error?.details?.find((detail) => detail.requestId)?.requestId;
+    return [
+      `${payload.error?.status ?? status}`,
+      codes.length ? `codes=${codes.join(",")}` : null,
+      messages.length ? messages.join(" ") : payload.error?.message,
+      requestId ? `requestId=${requestId}` : null
+    ].filter(Boolean).join(" · ");
+  } catch {
+    return text.slice(0, 500);
+  }
+}
+
+function isDeveloperTokenTestAccountOnlyError(status: number, text: string): boolean {
+  if (status !== 403) return false;
+  try {
+    return googleAdsFailureCodes(JSON.parse(text) as GoogleAdsErrorResponse).includes("DEVELOPER_TOKEN_NOT_APPROVED");
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Real Google Ads connector. Read-only against test customers.
@@ -337,7 +389,18 @@ export class GoogleAdsConnector implements AdConnector {
     accessToken: string,
     config: GoogleOAuthConfig
   ): Promise<void> {
-    const customer = await this.fetchCustomerResource(connection.externalAccountId, accessToken, config);
+    let customer: Awaited<ReturnType<GoogleAdsConnector["fetchCustomerResource"]>>;
+    try {
+      customer = await this.fetchCustomerResource(connection.externalAccountId, accessToken, config);
+    } catch (error) {
+      if (error instanceof GoogleAdsNotTestAccountError && connection.isTestAccount) {
+        await db.adAccountConnection.update({
+          where: { id: connection.id },
+          data: { isTestAccount: false }
+        });
+      }
+      throw error;
+    }
     if (customer.testAccount !== true) {
       if (connection.isTestAccount) {
         await db.adAccountConnection.update({
@@ -376,21 +439,28 @@ export class GoogleAdsConnector implements AdConnector {
     accessToken: string,
     config: GoogleOAuthConfig
   ): Promise<T[]> {
-    const response = await fetch(`${ADS_API_BASE}/customers/${customerId}/googleAds:search`, {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      "developer-token": config.developerToken,
+      "Content-Type": "application/json"
+    };
+    if (config.loginCustomerId) {
+      headers["login-customer-id"] = config.loginCustomerId;
+    }
+
+    const response = await fetch(`${config.apiBase}/customers/${customerId}/googleAds:search`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "developer-token": config.developerToken,
-        "login-customer-id": customerId,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ query, pageSize: 200 })
+      headers,
+      body: JSON.stringify({ query })
     });
 
     if (!response.ok) {
       const text = await response.text().catch(() => "");
+      if (isDeveloperTokenTestAccountOnlyError(response.status, text)) {
+        throw new GoogleAdsNotTestAccountError(customerId);
+      }
       throw new GoogleAdsConnectorError(
-        `Google Ads search failed (${response.status}) for customer ${customerId}: ${text.slice(0, 240)}`
+        `Google Ads search failed (${response.status}) for customer ${customerId}: ${summarizeGoogleAdsError(response.status, text)}`
       );
     }
 

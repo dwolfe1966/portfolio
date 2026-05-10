@@ -9,7 +9,7 @@ import { GoogleAdsConnector, GoogleAdsNotTestAccountError, MetaAdsConnector, Met
 import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
 import { acquisitionProviderDryRunAdapterAvailable } from "@/lib/acquisition-agent-generalization";
 import { buildProviderWritePreflight } from "@/lib/provider-preflight";
-import { requestProviderWriteDryRunApprovalAction } from "./actions";
+import { requestProviderWriteDryRunApprovalAction, syncProviderConnectionDatasetAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -111,7 +111,7 @@ async function loadProviderLiveData(
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ campaignId?: string; adGroupId?: string }>;
+  searchParams: Promise<{ campaignId?: string; adGroupId?: string; syncError?: string }>;
 };
 
 function campaignHref(connectionId: string, campaignId: string, adGroupId?: string | null) {
@@ -141,6 +141,19 @@ function preflightTone(severity: string) {
   if (severity === "pass") return "healthy";
   if (severity === "warn") return "watch";
   return "unhealthy";
+}
+
+function syncErrorCopy(error: string | undefined, provider: string) {
+  if (error === "permission_denied" && provider === "google_ads") {
+    return "Google Ads denied this account read. If this customer is under a manager account, set GOOGLE_ADS_LOGIN_CUSTOMER_ID to the manager customer id, restart localhost, then retry. Otherwise try another connected customer.";
+  }
+  if (error === "not_test_account") {
+    return "This account is not marked as a Google Ads test account, so the demo will not read or mutate it.";
+  }
+  if (error) {
+    return "Provider sync failed. Try another connected account or check the server log for the provider response.";
+  }
+  return "";
 }
 
 export default async function ConnectionDetailPage({ params, searchParams }: PageProps) {
@@ -248,6 +261,25 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
           </div>
         </div>
       </Section>
+
+      {isLiveProvider ? (
+        <Section title="Workspace dataset sync">
+          <div className="card">
+            <h3>Materialize this provider account</h3>
+            <p className="small">
+              Fetch campaigns, {childGroupLabel.toLowerCase()}, ads, and recent performance from this connection,
+              then save them as an acquisition dataset snapshot that can be applied from Inputs.
+            </p>
+            <form action={syncProviderConnectionDatasetAction}>
+              <input type="hidden" name="connectionId" value={connection.id} />
+              <button className="btn primary" type="submit">Sync to acquisition dataset</button>
+            </form>
+            {selected.syncError ? (
+              <p className="small bandText--unhealthy">{syncErrorCopy(selected.syncError, connection.provider)}</p>
+            ) : null}
+          </div>
+        </Section>
+      ) : null}
 
       <Section title="Provider preflight">
         <p className={`statusPill ${preflight.status === "blocked" ? "warning" : preflight.status === "ready" ? "live" : "progress"}`}>

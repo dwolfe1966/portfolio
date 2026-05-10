@@ -154,6 +154,8 @@ function sourceDetailHref(id: string) {
 
 function sourceTypeLabel(sourceType: string) {
   if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "google_ads") return "Google Ads";
+  if (sourceType === "meta_ads") return "Meta Ads";
   if (sourceType === "csv") return "CSV";
   return sourceType.toUpperCase();
 }

@@ -23,6 +23,23 @@ type ConnectionWithGrant = Awaited<ReturnType<typeof db.adAccountConnection.find
   credentialGrant: ProviderCredentialGrant | null;
 };
 
+const CONNECTION_ERROR_COPY: Record<string, { message: string; href?: string; linkLabel?: string }> = {
+  google_ads_api_disabled: {
+    message:
+      "Google Ads API is disabled for Google Cloud project 507389735523. Enable it in Google Cloud, wait a few minutes for propagation, then reconnect.",
+    href: "https://console.developers.google.com/apis/api/googleads.googleapis.com/overview?project=507389735523",
+    linkLabel: "Open Google Ads API settings"
+  },
+  google_ads_permission_denied: {
+    message:
+      "Google denied the Google Ads account listing request. Check that the Google Ads API is enabled, the developer token is approved, and the signed-in Google user has access to at least one Ads account."
+  },
+  list_customers_failed: {
+    message:
+      "Google OAuth completed, but the app could not list accessible Google Ads customers. Check the server event id for the provider response."
+  }
+};
+
 function formatGrantHealth(grant: ProviderCredentialGrant | null) {
   if (!grant) return { tone: "watch", label: "Missing grant" };
   if (grant.status !== "active") return { tone: "unhealthy", label: grant.status };
@@ -64,6 +81,9 @@ export default async function ConnectionsPage({
     }
   }
 
+  const googleConnections = connections.filter((conn) => conn.provider === "google_ads");
+  const metaConnections = connections.filter((conn) => conn.provider === "meta_ads");
+
   return (
     <>
       <Section eyebrow="Operations" title="Connections">
@@ -86,6 +106,20 @@ export default async function ConnectionsPage({
 
         {params.error ? (
           <div className="card" style={{ marginTop: 12 }}>
+            {(() => {
+              const copy = CONNECTION_ERROR_COPY[params.error ?? ""] ?? CONNECTION_ERROR_COPY.list_customers_failed;
+              return (
+                <p className="small">
+                  {copy.message}
+                  {copy.href ? (
+                    <>
+                      {" "}
+                      <a href={copy.href}>{copy.linkLabel}</a>.
+                    </>
+                  ) : null}
+                </p>
+              );
+            })()}
             <p className="bandText--unhealthy small">
               Connection error: <code className="small">{params.error}</code>
               {params.event ? <> · event <code className="small">{params.event}</code></> : null}
@@ -135,7 +169,23 @@ export default async function ConnectionsPage({
               the demo will list accessible customers and store one connection
               row per customer.
             </p>
-            {encryptionReady && googleReady ? (
+            {googleConnections.length > 0 ? (
+              <>
+                <p className="small bandText--healthy">
+                  {googleConnections.length} Google Ads account{googleConnections.length === 1 ? "" : "s"} connected.
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <Link className="btn primary" href={`/acquisition/connections/${googleConnections[0].id}`}>
+                    Review Google Ads accounts
+                  </Link>
+                  {/* OAuth start is a regular HTTP redirect; keep prefetch out of the flow. */}
+                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                  <a className="btn" href="/api/connections/google/start" rel="external">
+                    Reconnect Google Ads
+                  </a>
+                </div>
+              </>
+            ) : encryptionReady && googleReady ? (
               // OAuth start is a regular HTTP redirect; we don't want Link prefetch
               // because that would trigger the state cookie + redirect prematurely.
               // eslint-disable-next-line @next/next/no-html-link-for-pages
@@ -155,7 +205,22 @@ export default async function ConnectionsPage({
               uses the same campaign, ad set, ad, and performance inspection
               workflow as Google Ads.
             </p>
-            {encryptionReady && metaReady ? (
+            {metaConnections.length > 0 ? (
+              <>
+                <p className="small bandText--healthy">
+                  {metaConnections.length} Meta Ads account{metaConnections.length === 1 ? "" : "s"} connected.
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <Link className="btn primary" href={`/acquisition/connections/${metaConnections[0].id}`}>
+                    Review Meta Ads accounts
+                  </Link>
+                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                  <a className="btn" href="/api/connections/meta/start" rel="external">
+                    Reconnect Meta Ads
+                  </a>
+                </div>
+              </>
+            ) : encryptionReady && metaReady ? (
               // eslint-disable-next-line @next/next/no-html-link-for-pages
               <a className="btn primary" href="/api/connections/meta/start" rel="external">
                 Connect Meta Ads

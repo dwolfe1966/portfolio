@@ -23,6 +23,17 @@ function redirectWithError(reason: string, eventId: string): NextResponse {
   return response;
 }
 
+function googleListCustomersErrorReason(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes('"reason": "SERVICE_DISABLED"') || message.includes("Google Ads API has not been used")) {
+    return "google_ads_api_disabled";
+  }
+  if (message.includes('"status": "PERMISSION_DENIED"') || message.includes("PERMISSION_DENIED")) {
+    return "google_ads_permission_denied";
+  }
+  return "list_customers_failed";
+}
+
 function redirectWithSuccess(connectedCount: number): NextResponse {
   const url = new URL(CONNECTIONS_PAGE, process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
   url.searchParams.set("connected", String(connectedCount));
@@ -82,10 +93,12 @@ export async function GET(req: NextRequest) {
   try {
     customerIds = await listAccessibleCustomers(tokens.accessToken);
   } catch (err) {
+    const reason = googleListCustomersErrorReason(err);
     logApiEvent("error", eventId, "connections.google.callback.list_customers_failed", {
+      reason,
       message: err instanceof Error ? err.message : String(err)
     });
-    return redirectWithError("list_customers_failed", eventId);
+    return redirectWithError(reason, eventId);
   }
 
   if (customerIds.length === 0) {

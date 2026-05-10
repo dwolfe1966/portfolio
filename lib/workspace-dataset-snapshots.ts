@@ -14,6 +14,7 @@ type WorkspaceDatasetSnapshotInput = {
   rowCounts: Record<string, number>;
   metadata?: Record<string, unknown>;
   cookieHeader?: string | null;
+  accountUserId?: string | null;
 };
 
 function readCookie(cookieHeader: string | null | undefined, name: string) {
@@ -35,8 +36,9 @@ export async function createWorkspaceDatasetSnapshot(input: WorkspaceDatasetSnap
     const workspace = await getDefaultWorkspace();
     const token = readCookie(input.cookieHeader, ACCOUNT_SESSION_COOKIE);
     const session = verifyAccountSessionToken(token);
-    const accountUser = session
-      ? await db.accountUser.findUnique({ where: { id: session.userId }, select: { id: true } })
+    const ownerId = input.accountUserId ?? session?.userId ?? null;
+    const accountUser = ownerId
+      ? await db.accountUser.findUnique({ where: { id: ownerId }, select: { id: true } })
       : null;
     if (!shouldCreateAccountOwnedImportSnapshot(accountUser?.id)) return null;
 
@@ -56,6 +58,8 @@ export async function createWorkspaceDatasetSnapshot(input: WorkspaceDatasetSnap
         id: true,
         name: true,
         app: true,
+        sourceType: true,
+        rowCounts: true,
         accountUserId: true
       }
     });
