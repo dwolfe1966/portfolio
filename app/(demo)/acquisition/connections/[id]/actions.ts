@@ -8,7 +8,9 @@ import {
   createAgentApprovalRequest
 } from "@/lib/agent-approval-queue";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { acquisitionProviderDryRunAdapterAvailable } from "@/lib/acquisition-agent-generalization";
 import { db } from "@/lib/db";
+import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import { getDefaultWorkspace } from "@/lib/workspace";
 
 function optionalString(value: FormDataEntryValue | null) {
@@ -39,18 +41,37 @@ export async function requestProviderWriteDryRunApprovalAction(formData: FormDat
       externalAccountId,
       OR: [{ accountUserId }, { accountUserId: null }]
     },
-    select: { id: true }
+    select: { id: true, credentialGrant: true }
   });
   if (!connection) return;
 
   const workspace = await getDefaultWorkspace();
+  const externalAdGroupId = optionalString(formData.get("externalAdGroupId"));
+  const externalAdSetId = optionalString(formData.get("externalAdSetId"));
+  const preflight = buildProviderWritePreflight({
+    provider,
+    externalAccountId,
+    externalCampaignId,
+    externalAdGroupId,
+    externalAdSetId,
+    credentialGrant: connection.credentialGrant,
+    providerObjectSelected: true,
+    approvalPolicyConfigured: true,
+    dryRunAdapterAvailable: acquisitionProviderDryRunAdapterAvailable(),
+    measurementConfigured: Boolean(process.env.ACQUISITION_PROVIDER_MEASUREMENT_READY?.trim())
+  });
+  if (!preflight.readyForApproval) {
+    revalidatePath(`/acquisition/connections/${connectionId}`);
+    redirect(`/acquisition/connections/${connectionId}?preflight=blocked`);
+  }
+
   const context = buildProviderWriteApprovalContext({
     provider,
     externalAccountId,
     externalCampaignId,
     campaignName: optionalString(formData.get("campaignName")),
-    externalAdGroupId: optionalString(formData.get("externalAdGroupId")),
-    externalAdSetId: optionalString(formData.get("externalAdSetId")),
+    externalAdGroupId,
+    externalAdSetId,
     operationType: optionalString(formData.get("operationType")),
     spendExposureCents: numericCents(formData.get("spendExposureCents"))
   });

@@ -107,7 +107,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | L47 | Provider dry-run execution polish | DW | S | S14 | ✅ | Preserve approval idempotency inside provider-write dry-run payloads and expose selected provider context directly in Agent Operations approvals. |
 | L48 | Production provider hardening plan | DW | S | S15 | ✅ | Define the mutation-readiness sequence, enablement gates, rollback expectations, and sandbox-first provider write rollout path before any live ad account mutation. |
 | L49 | Provider credential grant model | DW | M | S15 | ✅ | Persist workspace-scoped credential grants with provider, account scope, capabilities, token health, rotation metadata, test/live mode, and owner approval state. |
-| L50 | Provider health and permission preflight | DW | M | S15 | ⏳ | Add operations preflight checks for credential availability, read/mutate permissions, selected object existence, policy readiness, and measurement readiness before approval or execution. |
+| L50 | Provider health and permission preflight | DW | M | S15 | ✅ | Add operations preflight checks for credential availability, read/mutate permissions, selected object existence, policy readiness, and measurement readiness before approval or execution. |
 | L51 | Mutation enablement gates | DW | M | S15 | ⏳ | Add a tested helper that blocks approved mutations unless workspace, provider, account, operation, dry-run, approval, rollback, idempotency, measurement, and emergency-stop gates pass. |
 | L52 | Sandbox write adapter contract | DW | L | S15 | ⏳ | Define and implement a sandbox-only mutation adapter interface for one narrow reversible approved write after dry-run evidence is persisted. |
 | L53 | Rollback retention and review surface | DW | M | S15 | ⏳ | Persist rollback records with before-state, provider operation ids, retention windows, reversal status, and operator review controls. |
@@ -124,7 +124,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | S12 | L15, L16, L17 | — | — |
 | S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
 | S14 | L39, L40, L41, L42, L43, L44, L45, L46, L46.1, L46.2, L46.3, L47 | — | Define S15 production provider hardening |
-| S15 | L48, L49 | L50 | L51, L52, L53, L54 |
+| S15 | L48, L49, L50 | L51 | L52, L53, L54 |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -411,7 +411,8 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L47. Polished provider dry-run execution by carrying the approval idempotency key inside the queued payload and surfacing selected provider account, campaign, child object, operation, and exposure context in Agent Operations approvals.
 - ✅ L48. Defined the S15 production provider hardening path in [`docs/acquisition-provider-production-hardening.md`](./acquisition-provider-production-hardening.md), including enablement gates, rollback expectations, sandbox-first write scope, and follow-on implementation items.
 - ✅ L49. Added provider credential grants with workspace/provider/account scope, capabilities, token health, rotation timing, test/live environment, owner approval metadata, OAuth callback upserts, and connection-table visibility.
-- ⏳ L50. Next, add provider health and permission preflight checks for credential availability, read/mutate permissions, selected provider object existence, policy readiness, and measurement readiness before approval or execution.
+- ✅ L50. Added provider preflight checks for credential grant state, token health, read/dry-run permission, selected provider object context, live-read health, policy readiness, dry-run adapter availability, and measurement readiness; connection detail pages now show pass/warn/block checks and approval requests are blocked server-side when preflight fails.
+- ⏳ L51. Next, add mutation enablement gates that block approved mutations unless workspace, provider, account, operation, dry-run, approval, rollback, idempotency, measurement, and emergency-stop gates pass.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.

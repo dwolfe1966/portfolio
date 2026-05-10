@@ -7,6 +7,8 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { GoogleAdsConnector, GoogleAdsNotTestAccountError, MetaAdsConnector, MetaAdsNotTestAccountError } from "@/lib/ad-connectors";
 import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
+import { acquisitionProviderDryRunAdapterAvailable } from "@/lib/acquisition-agent-generalization";
+import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import { requestProviderWriteDryRunApprovalAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -135,6 +137,12 @@ function selectedSpendExposureCents(performance: RemotePerformance | null) {
   return performance?.totals.spendCents ?? 0;
 }
 
+function preflightTone(severity: string) {
+  if (severity === "pass") return "healthy";
+  if (severity === "warn") return "watch";
+  return "unhealthy";
+}
+
 export default async function ConnectionDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const selected = await searchParams;
@@ -148,7 +156,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
 
   let connection;
   try {
-    connection = await db.adAccountConnection.findFirst({ where: { id, ...ownedOrLegacy } });
+    connection = await db.adAccountConnection.findFirst({ where: { id, ...ownedOrLegacy }, include: { credentialGrant: true } });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
       return (
@@ -174,6 +182,30 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
   const selectedAdGroupId = live?.adGroups.some((group) => group.externalAdGroupId === selected.adGroupId)
     ? selected.adGroupId
     : null;
+  const preflight = live?.selectedCampaign
+    ? buildProviderWritePreflight({
+        provider: connection.provider,
+        externalAccountId: connection.externalAccountId,
+        externalCampaignId: live.selectedCampaign.externalCampaignId,
+        externalAdGroupId: connection.provider === "google_ads" ? selectedAdGroupId : null,
+        externalAdSetId: connection.provider === "meta_ads" ? selectedAdGroupId : null,
+        credentialGrant: connection.credentialGrant,
+        liveDataError: live.error,
+        providerObjectSelected: true,
+        approvalPolicyConfigured: true,
+        dryRunAdapterAvailable: acquisitionProviderDryRunAdapterAvailable(),
+        measurementConfigured: Boolean(process.env.ACQUISITION_PROVIDER_MEASUREMENT_READY?.trim())
+      })
+    : buildProviderWritePreflight({
+        provider: connection.provider,
+        externalAccountId: connection.externalAccountId,
+        credentialGrant: connection.credentialGrant,
+        liveDataError: live?.error,
+        providerObjectSelected: false,
+        approvalPolicyConfigured: true,
+        dryRunAdapterAvailable: acquisitionProviderDryRunAdapterAvailable(),
+        measurementConfigured: Boolean(process.env.ACQUISITION_PROVIDER_MEASUREMENT_READY?.trim())
+      });
 
   return (
     <>
@@ -214,6 +246,24 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
               {connection.encryptedRefreshToken ? "Refresh token stored." : "No refresh token — reconnect on expiry."}
             </p>
           </div>
+        </div>
+      </Section>
+
+      <Section title="Provider preflight">
+        <p className={`statusPill ${preflight.status === "blocked" ? "warning" : preflight.status === "ready" ? "live" : "progress"}`}>
+          {preflight.status}
+        </p>
+        <p className="small">
+          Approval: {preflight.readyForApproval ? "ready" : "blocked"} · Execution: {preflight.readyForExecution ? "ready" : "blocked"}
+        </p>
+        <div className="grid grid-3">
+          {preflight.checks.map((check) => (
+            <div className="card compact" key={check.key}>
+              <h3>{check.label}</h3>
+              <p className={`small bandText--${preflightTone(check.severity)}`}>{check.severity}</p>
+              <p className="small">{check.detail}</p>
+            </div>
+          ))}
         </div>
       </Section>
 
@@ -326,7 +376,10 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                     ) : (
                       <input type="hidden" name="externalAdGroupId" value={selectedAdGroupId ?? ""} />
                     )}
-                    <button className="btn primary" type="submit">Request dry-run approval</button>
+                    <button className="btn primary" type="submit" disabled={!preflight.readyForApproval}>Request dry-run approval</button>
+                    {!preflight.readyForApproval ? (
+                      <p className="small bandText--unhealthy">Resolve provider preflight blockers before requesting approval.</p>
+                    ) : null}
                   </form>
                 </div>
               </div>
