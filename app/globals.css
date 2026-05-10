@@ -2093,6 +2093,9 @@ button {
   gap: 12px;
   grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
 }
+.activitySummaryGrid > * {
+  min-width: 0;
+}
 .activitySummaryCard {
   align-content: start;
   background: var(--card);
@@ -2101,12 +2104,17 @@ button {
   display: grid;
   gap: 6px;
   min-height: 112px;
+  min-width: 0;
   padding: 16px;
 }
 .activitySummaryCard p,
 .activitySummaryCard strong,
 .activitySummaryCard span {
   margin-bottom: 0;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 .activitySummaryCard strong {
   color: var(--text);
@@ -2853,10 +2861,14 @@ button {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .agentJobResult p {
   color: var(--text);
   font-size: 13px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .dryRunJsonPanel {
   background: rgba(15, 23, 42, 0.04);
