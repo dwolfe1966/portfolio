@@ -267,6 +267,8 @@ Performance-based fees should rely on first-party conversion and revenue quality
 9. Enable one narrow write action in sandbox/test mode.
 10. Graduate production writes by provider and action type after manual verification.
 
+The S15 production hardening plan is tracked in [`docs/acquisition-provider-production-hardening.md`](./acquisition-provider-production-hardening.md). It defines the mutation enablement gates, credential grant model, provider preflight, sandbox-first write scope, rollback retention, and audit evidence needed before any live ad account mutation is enabled.
+
 ## Open Decisions
 
 - Whether Microsoft Ads or Meta Ads should be the second real provider after Google Ads.
