@@ -6,7 +6,7 @@ import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { GoogleAdsConnector, GoogleAdsNotTestAccountError } from "@/lib/ad-connectors";
-import type { RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
+import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
 
 export const dynamic = "force-dynamic";
 
@@ -22,14 +22,25 @@ type CampaignWithPerformance = {
   perfError: string | null;
 };
 
+type GoogleAdsLiveData = {
+  campaigns: CampaignWithPerformance[];
+  selectedCampaign: RemoteCampaign | null;
+  selectedPerformance: RemotePerformance | null;
+  adGroups: RemoteAdGroup[];
+  ads: RemoteAdUnit[];
+  error: string | null;
+};
+
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-async function loadGoogleAdsLiveData(externalAccountId: string, accountUserId: string | null): Promise<{
-  campaigns: CampaignWithPerformance[];
-  error: string | null;
-}> {
+async function loadGoogleAdsLiveData(
+  externalAccountId: string,
+  accountUserId: string | null,
+  selectedCampaignId?: string | null,
+  selectedAdGroupId?: string | null
+): Promise<GoogleAdsLiveData> {
   const connector = new GoogleAdsConnector(accountUserId);
   try {
     const campaigns = await connector.fetchCampaigns(externalAccountId);
@@ -52,22 +63,62 @@ async function loadGoogleAdsLiveData(externalAccountId: string, accountUserId: s
         });
       }
     }
-    return { campaigns: enriched, error: null };
+
+    const selectedCampaign = campaigns.find((campaign) => campaign.externalCampaignId === selectedCampaignId)
+      ?? campaigns[0]
+      ?? null;
+    let selectedPerformance: RemotePerformance | null = null;
+    let adGroups: RemoteAdGroup[] = [];
+    let ads: RemoteAdUnit[] = [];
+    if (selectedCampaign) {
+      selectedPerformance = await connector.fetchPerformance(externalAccountId, selectedCampaign.externalCampaignId, range);
+      adGroups = await connector.fetchAdGroups(externalAccountId, selectedCampaign.externalCampaignId);
+      const selectedAdGroup = selectedAdGroupId && adGroups.some((group) => group.externalAdGroupId === selectedAdGroupId)
+        ? selectedAdGroupId
+        : null;
+      ads = await connector.fetchAds(externalAccountId, selectedCampaign.externalCampaignId, selectedAdGroup);
+    }
+
+    return { campaigns: enriched, selectedCampaign, selectedPerformance, adGroups, ads, error: null };
   } catch (err) {
     if (err instanceof GoogleAdsNotTestAccountError) {
-      return { campaigns: [], error: err.message };
+      return { campaigns: [], selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: err.message };
     }
     return {
       campaigns: [],
+      selectedCampaign: null,
+      selectedPerformance: null,
+      adGroups: [],
+      ads: [],
       error: err instanceof Error ? err.message : "Failed to fetch live data"
     };
   }
 }
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ campaignId?: string; adGroupId?: string }>;
+};
 
-export default async function ConnectionDetailPage({ params }: PageProps) {
+function campaignHref(connectionId: string, campaignId: string, adGroupId?: string | null) {
+  const params = new URLSearchParams({ campaignId });
+  if (adGroupId) params.set("adGroupId", adGroupId);
+  return `/acquisition/connections/${connectionId}?${params.toString()}`;
+}
+
+function dryRunContext(connection: { provider: string; externalAccountId: string }, campaign: RemoteCampaign | null, adGroupId?: string | null) {
+  return {
+    provider: connection.provider,
+    operationType: connection.provider === "meta_ads" && adGroupId ? "update_ad_set_budget" : "update_budget",
+    externalAccountId: connection.externalAccountId,
+    externalCampaignId: campaign?.externalCampaignId ?? null,
+    externalAdGroupId: adGroupId ?? null
+  };
+}
+
+export default async function ConnectionDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const selected = await searchParams;
   const cookieStore = await cookies();
   const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
   const ownedOrLegacy = {
@@ -95,7 +146,12 @@ export default async function ConnectionDetailPage({ params }: PageProps) {
   if (!connection) notFound();
 
   const isGoogle = connection.provider === "google_ads";
-  const live = isGoogle ? await loadGoogleAdsLiveData(connection.externalAccountId, accountUserId) : null;
+  const live = isGoogle
+    ? await loadGoogleAdsLiveData(connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId)
+    : null;
+  const selectedAdGroupId = live?.adGroups.some((group) => group.externalAdGroupId === selected.adGroupId)
+    ? selected.adGroupId
+    : null;
 
   return (
     <>
@@ -147,7 +203,7 @@ export default async function ConnectionDetailPage({ params }: PageProps) {
         </Section>
       ) : (
         <>
-          <Section title="Live campaigns (Google Ads test account)">
+          <Section title="Provider object selection">
             {live?.error ? (
               <div className="card">
                 <p className="bandText--unhealthy small">Could not fetch campaigns: {live.error}</p>
@@ -162,8 +218,11 @@ export default async function ConnectionDetailPage({ params }: PageProps) {
                   <tr>
                     <th>Campaign</th>
                     <th>Status</th>
+                    <th>Recent spend</th>
+                    <th>Conversions</th>
                     <th>Start</th>
                     <th>End</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,8 +241,17 @@ export default async function ConnectionDetailPage({ params }: PageProps) {
                           {row.campaign.status}
                         </span>
                       </td>
+                      <td>
+                        {row.performance ? `$${(row.performance.totals.spendCents / 100).toFixed(2)}` : "—"}
+                      </td>
+                      <td>{row.performance ? row.performance.totals.conversions.toLocaleString() : "—"}</td>
                       <td>{row.campaign.startDate ?? "—"}</td>
                       <td>{row.campaign.endDate ?? "—"}</td>
+                      <td>
+                        <Link className="btn smallBtn" href={campaignHref(connection.id, row.campaign.externalCampaignId)}>
+                          Inspect
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -191,46 +259,126 @@ export default async function ConnectionDetailPage({ params }: PageProps) {
             )}
           </Section>
 
-          <Section title="Last 14 days · per-campaign performance">
-            {live?.error ? null : live && live.campaigns.length === 0 ? null : (
+          {live?.selectedCampaign ? (
+            <Section title={`Selected campaign · ${live.selectedCampaign.name}`}>
               <div className="grid grid-2">
-                {live?.campaigns.map((row) => (
+                <div className="card">
+                  <h3>Last 14 days</h3>
+                  {live.selectedPerformance ? (
+                    <div className="grid grid-2" style={{ gap: 8 }}>
+                      <div>
+                        <p className="small">Impressions</p>
+                        <div className="kpi">{live.selectedPerformance.totals.impressions.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <p className="small">Clicks</p>
+                        <div className="kpi">{live.selectedPerformance.totals.clicks.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <p className="small">Conversions</p>
+                        <div className="kpi">{live.selectedPerformance.totals.conversions.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <p className="small">Spend</p>
+                        <div className="kpi">${(live.selectedPerformance.totals.spendCents / 100).toFixed(2)}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="small">No performance data returned.</p>
+                  )}
+                </div>
+                <div className="card">
+                  <h3>Dry-run context</h3>
+                  <p className="small">These provider IDs are the context that should flow into an approval request and provider-write dry-run.</p>
+                  <pre className="code">{JSON.stringify(dryRunContext(connection, live.selectedCampaign, selectedAdGroupId), null, 2)}</pre>
+                </div>
+              </div>
+            </Section>
+          ) : null}
+
+          {live?.selectedCampaign ? (
+            <Section title="Ad groups">
+              {live.adGroups.length === 0 ? (
+                <div className="card">
+                  <p>No ad groups found for this campaign.</p>
+                </div>
+              ) : (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Ad group</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {live.adGroups.map((group) => (
+                      <tr key={group.externalAdGroupId}>
+                        <td>
+                          <code className="small">{group.externalAdGroupId}</code>
+                          <div>{group.name}</div>
+                        </td>
+                        <td>{group.status}</td>
+                        <td>
+                          <Link
+                            className="btn smallBtn"
+                            href={campaignHref(connection.id, live.selectedCampaign!.externalCampaignId, group.externalAdGroupId)}
+                          >
+                            Select
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Section>
+          ) : null}
+
+          {live?.selectedCampaign ? (
+            <Section title={selectedAdGroupId ? "Ads in selected ad group" : "Ads in selected campaign"}>
+              {live.ads.length === 0 ? (
+                <div className="card">
+                  <p>No ads found for this scope.</p>
+                </div>
+              ) : (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Ad</th>
+                      <th>Ad group</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {live.ads.map((ad) => (
+                      <tr key={ad.externalAdId}>
+                        <td>
+                          <code className="small">{ad.externalAdId}</code>
+                          <div>{ad.name}</div>
+                        </td>
+                        <td><code className="small">{ad.externalAdGroupId ?? "—"}</code></td>
+                        <td>{ad.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Section>
+          ) : null}
+
+          {live && live.campaigns.some((row) => row.perfError) ? (
+            <Section title="Performance read warnings">
+              <div className="grid grid-2">
+                {live.campaigns.filter((row) => row.perfError).map((row) => (
                   <div className="card" key={row.campaign.externalCampaignId}>
                     <h3>{row.campaign.name}</h3>
-                    {row.perfError ? (
-                      <p className="bandText--unhealthy small">Performance error: {row.perfError}</p>
-                    ) : row.performance ? (
-                      <>
-                        <div className="grid grid-2" style={{ gap: 8 }}>
-                          <div>
-                            <p className="small">Impressions</p>
-                            <div className="kpi">{row.performance.totals.impressions.toLocaleString()}</div>
-                          </div>
-                          <div>
-                            <p className="small">Clicks</p>
-                            <div className="kpi">{row.performance.totals.clicks.toLocaleString()}</div>
-                          </div>
-                          <div>
-                            <p className="small">Conversions</p>
-                            <div className="kpi">{row.performance.totals.conversions.toLocaleString()}</div>
-                          </div>
-                          <div>
-                            <p className="small">Spend</p>
-                            <div className="kpi">${(row.performance.totals.spendCents / 100).toFixed(2)}</div>
-                          </div>
-                        </div>
-                        <p className="small" style={{ marginTop: 8 }}>
-                          {row.performance.daily.length} day{row.performance.daily.length === 1 ? "" : "s"} returned
-                        </p>
-                      </>
-                    ) : (
-                      <p className="small">No performance data.</p>
-                    )}
+                    <p className="bandText--unhealthy small">Performance error: {row.perfError}</p>
                   </div>
                 ))}
               </div>
-            )}
-          </Section>
+            </Section>
+          ) : null}
         </>
       )}
     </>

@@ -22,6 +22,19 @@ test("SimulatedConnector returns deterministic campaign list per account", async
   assert.ok(first.every((c) => c.externalCampaignId.startsWith("sim-acct-001-")));
 });
 
+test("SimulatedConnector returns deterministic ad groups and ads for a campaign", async () => {
+  const connector = new SimulatedConnector();
+  const campaignId = "sim-acct-001-camp-1";
+  const groups = await connector.fetchAdGroups("sim-acct-001", campaignId);
+  const ads = await connector.fetchAds("sim-acct-001", campaignId, groups[0].externalAdGroupId);
+
+  assert.ok(groups.length >= 2);
+  assert.ok(groups.every((group) => group.externalCampaignId === campaignId));
+  assert.equal(ads.length, 2);
+  assert.ok(ads.every((ad) => ad.externalCampaignId === campaignId));
+  assert.ok(ads.every((ad) => ad.externalAdGroupId === groups[0].externalAdGroupId));
+});
+
 test("SimulatedConnector returns deterministic performance for the same range", async () => {
   const connector = new SimulatedConnector();
   const range = { start: "2026-04-01", end: "2026-04-07" };

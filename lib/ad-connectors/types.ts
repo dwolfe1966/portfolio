@@ -28,6 +28,21 @@ export type RemoteCampaign = {
   endDate: string | null;
 };
 
+export type RemoteAdGroup = {
+  externalCampaignId: string;
+  externalAdGroupId: string;
+  name: string;
+  status: "ENABLED" | "PAUSED" | "REMOVED" | "UNKNOWN";
+};
+
+export type RemoteAdUnit = {
+  externalCampaignId: string;
+  externalAdGroupId: string | null;
+  externalAdId: string;
+  name: string;
+  status: "ENABLED" | "PAUSED" | "REMOVED" | "UNKNOWN";
+};
+
 export type RemotePerformancePoint = {
   date: string;
   impressions: number;
@@ -65,6 +80,17 @@ export interface AdConnector {
    * List campaigns under a given account. Read-only.
    */
   fetchCampaigns(externalAccountId: string): Promise<RemoteCampaign[]>;
+
+  /**
+   * List child campaign groups. Google returns ad groups; Meta returns ad sets.
+   * Read-only.
+   */
+  fetchAdGroups(externalAccountId: string, externalCampaignId: string): Promise<RemoteAdGroup[]>;
+
+  /**
+   * List ads under a campaign, optionally scoped to an ad group/ad set. Read-only.
+   */
+  fetchAds(externalAccountId: string, externalCampaignId: string, externalAdGroupId?: string | null): Promise<RemoteAdUnit[]>;
 
   /**
    * Fetch performance metrics for a campaign over a date range. Read-only.

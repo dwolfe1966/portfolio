@@ -190,11 +190,11 @@ export default async function ConnectionsPage({
 
       <Section title="What's next">
         <p>
-          Phase 3 wires <code className="small">GoogleAdsConnector</code> against
-          stored connections so this page can show live remote campaign and
-          performance data. Until then, the simulated connector continues to back
-          the acquisition demo loop. See <Link href="/acquisition/audit">audit feed</Link> for
-          the full activity log.
+          Google Ads connections now support live read-only campaign, ad group,
+          ad, and recent performance inspection for test accounts. Next, Meta
+          should use the same provider-neutral object workflow, and selected
+          provider IDs should flow directly into approval and dry-run payloads.
+          See <Link href="/acquisition/audit">audit feed</Link> for the full activity log.
         </p>
       </Section>
     </>

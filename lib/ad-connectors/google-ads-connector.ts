@@ -14,6 +14,8 @@ import type {
   AdProvider,
   DateRange,
   RemoteAdAccount,
+  RemoteAdGroup,
+  RemoteAdUnit,
   RemoteCampaign,
   RemotePerformance,
   RemotePerformancePoint
@@ -148,6 +150,80 @@ export class GoogleAdsConnector implements AdConnector {
       status: this.normalizeCampaignStatus(row.campaign.status),
       startDate: row.campaign.startDate ?? null,
       endDate: row.campaign.endDate ?? null
+    }));
+  }
+
+  async fetchAdGroups(externalAccountId: string, externalCampaignId: string): Promise<RemoteAdGroup[]> {
+    const { connection, accessToken, config } = await this.resolveAuth(externalAccountId);
+    await this.assertTestAccount(connection, accessToken, config);
+
+    const query = [
+      "SELECT ad_group.id, ad_group.name, ad_group.status, campaign.id",
+      "FROM ad_group",
+      `WHERE campaign.id = ${externalCampaignId}`,
+      "ORDER BY ad_group.id"
+    ].join(" ");
+
+    const results = await this.googleAdsSearch<{
+      campaign: { id: string };
+      adGroup: {
+        id: string;
+        name: string;
+        status: string;
+      };
+    }>(externalAccountId, query, accessToken, config);
+
+    await db.adAccountConnection.update({
+      where: { id: connection.id },
+      data: { lastFetchedAt: new Date() }
+    });
+
+    return results.map((row) => ({
+      externalCampaignId: row.campaign.id,
+      externalAdGroupId: row.adGroup.id,
+      name: row.adGroup.name,
+      status: this.normalizeCampaignStatus(row.adGroup.status)
+    }));
+  }
+
+  async fetchAds(externalAccountId: string, externalCampaignId: string, externalAdGroupId?: string | null): Promise<RemoteAdUnit[]> {
+    const { connection, accessToken, config } = await this.resolveAuth(externalAccountId);
+    await this.assertTestAccount(connection, accessToken, config);
+
+    const where = [
+      `campaign.id = ${externalCampaignId}`,
+      externalAdGroupId ? `ad_group.id = ${externalAdGroupId}` : null
+    ].filter(Boolean).join(" AND ");
+    const query = [
+      "SELECT ad_group.id, campaign.id, ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group_ad.status",
+      "FROM ad_group_ad",
+      `WHERE ${where}`,
+      "ORDER BY ad_group.id, ad_group_ad.ad.id"
+    ].join(" ");
+
+    const results = await this.googleAdsSearch<{
+      campaign: { id: string };
+      adGroup: { id: string };
+      adGroupAd: {
+        status: string;
+        ad: {
+          id: string;
+          name?: string;
+        };
+      };
+    }>(externalAccountId, query, accessToken, config);
+
+    await db.adAccountConnection.update({
+      where: { id: connection.id },
+      data: { lastFetchedAt: new Date() }
+    });
+
+    return results.map((row) => ({
+      externalCampaignId: row.campaign.id,
+      externalAdGroupId: row.adGroup.id,
+      externalAdId: row.adGroupAd.ad.id,
+      name: row.adGroupAd.ad.name ?? `Ad ${row.adGroupAd.ad.id}`,
+      status: this.normalizeCampaignStatus(row.adGroupAd.status)
     }));
   }
 

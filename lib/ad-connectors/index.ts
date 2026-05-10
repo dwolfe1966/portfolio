@@ -6,6 +6,8 @@ export type { AdConnector, AdProvider } from "./types";
 export type {
   DateRange,
   RemoteAdAccount,
+  RemoteAdGroup,
+  RemoteAdUnit,
   RemoteCampaign,
   RemotePerformance,
   RemotePerformancePoint

@@ -3,6 +3,8 @@ import type {
   AdProvider,
   DateRange,
   RemoteAdAccount,
+  RemoteAdGroup,
+  RemoteAdUnit,
   RemoteCampaign,
   RemotePerformance,
   RemotePerformancePoint
@@ -48,6 +50,32 @@ export class SimulatedConnector implements AdConnector {
       startDate: dateNDaysAgo(14 + i).toISOString().slice(0, 10),
       endDate: null
     }));
+  }
+
+  async fetchAdGroups(externalAccountId: string, externalCampaignId: string): Promise<RemoteAdGroup[]> {
+    const seed = hashString(`${externalAccountId}:${externalCampaignId}:groups`);
+    const count = 2 + (seed % 2);
+    return Array.from({ length: count }, (_, i) => ({
+      externalCampaignId,
+      externalAdGroupId: `${externalCampaignId}-group-${i + 1}`,
+      name: `Simulated ad group ${i + 1}`,
+      status: i === 1 ? "PAUSED" : "ENABLED"
+    }));
+  }
+
+  async fetchAds(externalAccountId: string, externalCampaignId: string, externalAdGroupId?: string | null): Promise<RemoteAdUnit[]> {
+    const groups = externalAdGroupId
+      ? [{ externalAdGroupId }]
+      : await this.fetchAdGroups(externalAccountId, externalCampaignId);
+    return groups.flatMap((group, groupIdx) => (
+      Array.from({ length: 2 }, (_, i) => ({
+        externalCampaignId,
+        externalAdGroupId: group.externalAdGroupId,
+        externalAdId: `${group.externalAdGroupId}-ad-${i + 1}`,
+        name: `Simulated ad ${groupIdx + 1}.${i + 1}`,
+        status: i === 1 ? "PAUSED" : "ENABLED"
+      }))
+    ));
   }
 
   async fetchPerformance(
