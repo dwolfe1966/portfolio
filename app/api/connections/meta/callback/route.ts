@@ -5,6 +5,8 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { verifyOAuthState } from "@/lib/oauth-state";
 import { encryptOAuthToken, isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { createEventId, logApiEvent } from "@/lib/logging";
+import { upsertProviderCredentialGrant } from "@/lib/provider-credential-grants";
+import { getDefaultWorkspace } from "@/lib/workspace";
 
 const CONNECTIONS_PAGE = "/acquisition/connections";
 
@@ -87,8 +89,24 @@ export async function GET(req: NextRequest) {
 
   const encryptedAccessToken = encryptOAuthToken(tokens.accessToken);
   const scopes = tokens.scope ? tokens.scope.split(/\s+/).filter(Boolean) : [];
+  const workspace = await getDefaultWorkspace();
 
   const upserts = accounts.map(async (account) => {
+    const credentialGrant = await upsertProviderCredentialGrant({
+      workspaceId: workspace.id,
+      accountUserId,
+      provider: "meta_ads",
+      externalAccountId: account.id,
+      displayName: account.name,
+      isTestAccount: true,
+      scopes,
+      tokenExpiresAt: tokens.expiresAt,
+      metadata: {
+        source: "oauth_callback",
+        connectionMode: "read_only",
+        providerAccountKind: "ad_account"
+      }
+    });
     const existing = await db.adAccountConnection.findFirst({
       where: { accountUserId, provider: "meta_ads", externalAccountId: account.id },
       select: { id: true }
@@ -100,6 +118,7 @@ export async function GET(req: NextRequest) {
           data: {
             accountName: account.name,
             scopes,
+            credentialGrantId: credentialGrant.id,
             encryptedAccessToken,
             expiresAt: tokens.expiresAt
           }
@@ -112,6 +131,7 @@ export async function GET(req: NextRequest) {
             accountName: account.name,
             isTestAccount: true,
             scopes,
+            credentialGrantId: credentialGrant.id,
             encryptedAccessToken,
             encryptedRefreshToken: null,
             expiresAt: tokens.expiresAt

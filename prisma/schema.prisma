@@ -26,6 +26,7 @@ model Workspace {
   agentApprovalRequests AgentApprovalRequest[]
   agentProviderWriteDryRuns AgentProviderWriteDryRun[]
   agentProviderWriteMeasurementHandoffs AgentProviderWriteMeasurementHandoff[]
+  providerCredentialGrants ProviderCredentialGrant[]
 }
 
 model AccountUser {
@@ -55,6 +56,7 @@ model AccountUser {
   decidedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalDecider")
   agentProviderWriteDryRuns AgentProviderWriteDryRun[]
   agentProviderWriteMeasurementHandoffs AgentProviderWriteMeasurementHandoff[]
+  providerCredentialGrants ProviderCredentialGrant[]
 
   @@index([updatedAt])
 }
@@ -744,6 +746,7 @@ model ExpansionAuditLog {
 model AdAccountConnection {
   id                  String   @id @default(cuid())
   accountUserId       String?
+  credentialGrantId   String?
   provider            String
   externalAccountId   String
   accountName         String
@@ -756,11 +759,45 @@ model AdAccountConnection {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   accountUser         AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  credentialGrant     ProviderCredentialGrant? @relation(fields: [credentialGrantId], references: [id], onDelete: SetNull)
 
   @@index([accountUserId, createdAt])
   @@index([accountUserId, provider])
+  @@index([credentialGrantId])
   @@index([provider])
   @@index([createdAt])
+}
+
+model ProviderCredentialGrant {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  accountUserId     String?
+  provider          String
+  externalAccountId String
+  displayName       String
+  status            String   @default("active")
+  environment       String   @default("test")
+  capabilities      String[]
+  scopes            String[]
+  tokenHealthStatus String   @default("unknown")
+  tokenExpiresAt    DateTime?
+  lastValidatedAt   DateTime?
+  rotationDueAt     DateTime?
+  ownerApprovedAt   DateTime?
+  revokedAt         DateTime?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser       AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  adAccountConnections AdAccountConnection[]
+
+  @@unique([workspaceId, accountUserId, provider, externalAccountId])
+  @@index([workspaceId, provider, environment])
+  @@index([workspaceId, status, updatedAt])
+  @@index([accountUserId, updatedAt])
+  @@index([provider, externalAccountId])
+  @@index([tokenHealthStatus, updatedAt])
 }
 
 model LifecycleConnectorConfig {

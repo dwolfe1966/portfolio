@@ -9,6 +9,8 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { verifyOAuthState } from "@/lib/oauth-state";
 import { encryptOAuthToken, isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { createEventId, logApiEvent } from "@/lib/logging";
+import { upsertProviderCredentialGrant } from "@/lib/provider-credential-grants";
+import { getDefaultWorkspace } from "@/lib/workspace";
 
 const CONNECTIONS_PAGE = "/acquisition/connections";
 
@@ -94,11 +96,27 @@ export async function GET(req: NextRequest) {
   const encryptedAccessToken = encryptOAuthToken(tokens.accessToken);
   const encryptedRefreshToken = tokens.refreshToken ? encryptOAuthToken(tokens.refreshToken) : null;
   const scopes = tokens.scope ? tokens.scope.split(/\s+/).filter(Boolean) : [];
+  const workspace = await getDefaultWorkspace();
 
   // Store one connection row per accessible customer. The isTestAccount
   // flag stays true at this stage because our scope is test-tier; a Phase 3
   // verification step before any data fetch confirms test_account=true.
   const upserts = customerIds.map(async (customerId) => {
+    const credentialGrant = await upsertProviderCredentialGrant({
+      workspaceId: workspace.id,
+      accountUserId,
+      provider: "google_ads",
+      externalAccountId: customerId,
+      displayName: `Google Ads ${customerId}`,
+      isTestAccount: true,
+      scopes,
+      tokenExpiresAt: tokens.expiresAt,
+      metadata: {
+        source: "oauth_callback",
+        connectionMode: "read_only",
+        providerAccountKind: "customer"
+      }
+    });
     const existing = await db.adAccountConnection.findFirst({
       where: { accountUserId, provider: "google_ads", externalAccountId: customerId },
       select: { id: true }
@@ -109,6 +127,7 @@ export async function GET(req: NextRequest) {
           where: { id: existing.id },
           data: {
             scopes,
+            credentialGrantId: credentialGrant.id,
             encryptedAccessToken,
             encryptedRefreshToken: encryptedRefreshToken ?? undefined,
             expiresAt: tokens.expiresAt
@@ -122,6 +141,7 @@ export async function GET(req: NextRequest) {
             accountName: `Google Ads ${customerId}`,
             isTestAccount: true,
             scopes,
+            credentialGrantId: credentialGrant.id,
             encryptedAccessToken,
             encryptedRefreshToken,
             expiresAt: tokens.expiresAt

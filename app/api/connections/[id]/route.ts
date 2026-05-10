@@ -26,6 +26,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!existing) return apiError(404, "CONNECTION_NOT_FOUND", "Connection not found", { eventId });
 
     await db.adAccountConnection.delete({ where: { id } });
+    if (existing.credentialGrantId) {
+      await db.providerCredentialGrant.update({
+        where: { id: existing.credentialGrantId },
+        data: {
+          status: "revoked",
+          revokedAt: new Date()
+        }
+      });
+    }
     logApiEvent("info", eventId, "connections.delete.completed", { id, provider: existing.provider });
     return apiOk({ deletedId: id, eventId });
   } catch (error) {

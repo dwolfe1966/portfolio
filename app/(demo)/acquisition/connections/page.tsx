@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import type { ProviderCredentialGrant } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
@@ -18,6 +19,16 @@ const PROVIDER_LABEL: Record<string, string> = {
 };
 
 type SearchParams = { error?: string; event?: string; connected?: string };
+type ConnectionWithGrant = Awaited<ReturnType<typeof db.adAccountConnection.findMany>>[number] & {
+  credentialGrant: ProviderCredentialGrant | null;
+};
+
+function formatGrantHealth(grant: ProviderCredentialGrant | null) {
+  if (!grant) return { tone: "watch", label: "Missing grant" };
+  if (grant.status !== "active") return { tone: "unhealthy", label: grant.status };
+  if (grant.tokenHealthStatus === "expired") return { tone: "unhealthy", label: "Token expired" };
+  return { tone: "healthy", label: `${grant.environment} grant` };
+}
 
 export default async function ConnectionsPage({
   searchParams
@@ -36,12 +47,13 @@ export default async function ConnectionsPage({
       : [{ accountUserId: null }]
   };
 
-  let connections: Awaited<ReturnType<typeof db.adAccountConnection.findMany>> = [];
+  let connections: ConnectionWithGrant[] = [];
   let tableMissing = false;
 
   try {
     connections = await db.adAccountConnection.findMany({
       where: ownedOrLegacy,
+      include: { credentialGrant: true },
       orderBy: { createdAt: "desc" }
     });
   } catch (error) {
@@ -173,6 +185,7 @@ export default async function ConnectionsPage({
                 <th>Provider</th>
                 <th>Account</th>
                 <th>Test</th>
+                <th>Grant</th>
                 <th>Scopes</th>
                 <th>Connected</th>
                 <th>Last fetch</th>
@@ -180,39 +193,52 @@ export default async function ConnectionsPage({
               </tr>
             </thead>
             <tbody>
-              {connections.map((conn) => (
-                <tr key={conn.id}>
-                  <td>{PROVIDER_LABEL[conn.provider] ?? conn.provider}</td>
-                  <td>
-                    <Link href={`/acquisition/connections/${conn.id}`}>
-                      <code className="small">{conn.externalAccountId}</code>
-                    </Link>
-                    <div className="small">{conn.accountName}</div>
-                  </td>
-                  <td>
-                    <span className={`small bandText--${conn.isTestAccount ? "healthy" : "unhealthy"}`}>
-                      {conn.isTestAccount ? "Test" : "Live"}
-                    </span>
-                  </td>
-                  <td>
-                    {conn.scopes.length > 0 ? (
-                      <code className="small">{conn.scopes.join(" ")}</code>
-                    ) : (
-                      <span className="small">—</span>
-                    )}
-                  </td>
-                  <td>{new Date(conn.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    {conn.lastFetchedAt ? new Date(conn.lastFetchedAt).toLocaleString() : "—"}
-                  </td>
-                  <td>
-                    <ConnectionDisconnectButton
-                      id={conn.id}
-                      label={`${PROVIDER_LABEL[conn.provider] ?? conn.provider} ${conn.externalAccountId}`}
-                    />
-                  </td>
-                </tr>
-              ))}
+              {connections.map((conn) => {
+                const grantHealth = formatGrantHealth(conn.credentialGrant);
+                return (
+                  <tr key={conn.id}>
+                    <td>{PROVIDER_LABEL[conn.provider] ?? conn.provider}</td>
+                    <td>
+                      <Link href={`/acquisition/connections/${conn.id}`}>
+                        <code className="small">{conn.externalAccountId}</code>
+                      </Link>
+                      <div className="small">{conn.accountName}</div>
+                    </td>
+                    <td>
+                      <span className={`small bandText--${conn.isTestAccount ? "healthy" : "unhealthy"}`}>
+                        {conn.isTestAccount ? "Test" : "Live"}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`small bandText--${grantHealth.tone}`}>{grantHealth.label}</span>
+                      {conn.credentialGrant ? (
+                        <div className="small">
+                          {conn.credentialGrant.capabilities.length} capabilities · {conn.credentialGrant.tokenHealthStatus}
+                        </div>
+                      ) : (
+                        <div className="small">Reconnect to create a grant.</div>
+                      )}
+                    </td>
+                    <td>
+                      {conn.scopes.length > 0 ? (
+                        <code className="small">{conn.scopes.join(" ")}</code>
+                      ) : (
+                        <span className="small">—</span>
+                      )}
+                    </td>
+                    <td>{new Date(conn.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      {conn.lastFetchedAt ? new Date(conn.lastFetchedAt).toLocaleString() : "—"}
+                    </td>
+                    <td>
+                      <ConnectionDisconnectButton
+                        id={conn.id}
+                        label={`${PROVIDER_LABEL[conn.provider] ?? conn.provider} ${conn.externalAccountId}`}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
