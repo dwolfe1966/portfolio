@@ -4,15 +4,6 @@ import { DemoAppBreadcrumbs } from "./DemoAppBreadcrumbs";
 import type { DemoApp } from "./DemoSideNav";
 import type { DemoTheme } from "./DemoAppShell";
 
-const APP_LABEL: Record<DemoApp, string> = {
-  lifecycle: "Lifecycle Engine",
-  acquisition: "Acquisition Agent",
-  auction: "Auction Desk",
-  pricing: "Pricing Control Tower",
-  retention: "Retention Command Center",
-  expansion: "Expansion Command Center"
-};
-
 const BAND_TEXT: Record<StatusBand, string> = {
   healthy: "Healthy",
   watch: "Watch",
@@ -36,7 +27,6 @@ export function DemoAppHeader({
     <header className="demoAppHeader" aria-label={`${app} demo header`}>
       <div className="demoAppHeaderLeft">
         <EnvironmentChip />
-        <span className="demoAppHeaderAppName">{APP_LABEL[app]}</span>
         <DemoAppBreadcrumbs app={app} />
       </div>
       <div className="demoAppHeaderRight">

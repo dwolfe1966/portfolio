@@ -22,7 +22,7 @@ export function Breadcrumbs({ trail }: { trail: Crumb[] }) {
         return (
           <React.Fragment key={`${crumb.label}-${idx}`}>
             {node}
-            {!isLast ? <span className="demoBreadcrumbs__sep" aria-hidden>›</span> : null}
+            {!isLast ? <span className="demoBreadcrumbs__sep" aria-hidden>/</span> : null}
           </React.Fragment>
         );
       })}

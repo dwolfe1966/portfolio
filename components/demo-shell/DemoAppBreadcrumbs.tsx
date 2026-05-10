@@ -50,7 +50,6 @@ export function DemoAppBreadcrumbs({ app }: { app: DemoApp }) {
   if (segments.length === 0) return null;
 
   const trail: Crumb[] = [
-    { label: "Portfolio", href: "/" },
     { label: APP_LABEL[app], href: `/${app}/overview` }
   ];
 
