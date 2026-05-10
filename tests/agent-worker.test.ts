@@ -119,6 +119,41 @@ test("executeAgentJob can use Google Ads dry-run adapter without provider mutati
   }
 });
 
+test("executeAgentJob can use Meta Ads dry-run adapter without provider mutation", () => {
+  const previousAdapter = process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER = "meta_ads";
+
+  const result = executeAgentJob({
+    ...BASE_JOB,
+    app: "acquisition",
+    queueName: "acquisition:provider_write",
+    jobType: "provider_write",
+    payload: {
+      idempotencyKey: "approval:approval_meta:provider_write",
+      proposedAction: {
+        provider: "meta_ads",
+        operationType: "update_ad_set_budget",
+        externalAccountId: "act_1234567890",
+        externalCampaignId: "23850000000000001",
+        externalAdSetId: "23850000000000002",
+        previousBudgetCents: 10000,
+        nextBudgetCents: 12500,
+        shiftAmountCents: 2500
+      }
+    }
+  });
+
+  assert.equal(result.executor, "acquisition.provider_write.meta_ads.dry_run");
+  assert.equal(result.providerMutation, "dry_run");
+  assert.equal((result.output.dryRun as { externalCampaignId: string }).externalCampaignId, "23850000000000001");
+
+  if (previousAdapter === undefined) {
+    delete process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER;
+  } else {
+    process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER = previousAdapter;
+  }
+});
+
 test("executeAgentJob handles acquisition observation and measurement handoff jobs", () => {
   const observation = executeAgentJob({
     ...BASE_JOB,

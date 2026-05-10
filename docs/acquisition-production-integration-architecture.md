@@ -204,7 +204,7 @@ The code-facing readiness contract is `buildAcquisitionProviderWriteReadiness` i
 
 Agent Operations surfaces this readiness state directly so operators can distinguish queue coverage from mutation readiness. Until real provider dry-run adapters, rollback metadata, and measurement wiring are configured, Acquisition provider writes remain visible but simulated.
 
-The first dry-run adapter is the `simulated` adapter registered by `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=simulated`. It returns provider-like diffs, permission checks, spend exposure, and rollback metadata without calling an ad platform. The first provider-specific adapter is `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=google_ads`; it builds Google Ads-style campaign resource diffs and mutate-shape metadata offline, still without calling mutate endpoints. Microsoft/Meta dry-run adapters should implement the same contract before any approved mutation adapter is enabled.
+The first dry-run adapter is the `simulated` adapter registered by `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=simulated`. It returns provider-like diffs, permission checks, spend exposure, and rollback metadata without calling an ad platform. Provider-specific adapters include `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=google_ads`, which builds Google Ads-style campaign resource diffs and mutate-shape metadata offline, and `ACQUISITION_PROVIDER_DRY_RUN_ADAPTER=meta_ads`, which builds Meta Graph API-shaped campaign, ad set, and ad diffs offline. Neither adapter calls provider mutate endpoints. Microsoft Ads and later adapters should implement the same contract before any approved mutation adapter is enabled.
 
 Dry-run results are persisted in `AgentProviderWriteDryRun` records keyed by `agentJobId`. These records preserve provider diffs, permission checks, spend exposure, rollback support, rollback plans, blockers, warnings, and the raw dry-run result so operations review does not depend only on the transient completed job payload.
 
@@ -213,6 +213,8 @@ Ready acquisition dry-runs create `AgentProviderWriteMeasurementHandoff` records
 Agent Operations includes a read-only provider dry-run detail page for each persisted dry run. Operators can inspect permission checks, before/after provider object diffs, rollback metadata, measurement handoff jobs, blockers, warnings, and raw dry-run payloads before any approved mutation path is considered.
 
 Agent Operations also exposes a CSV evidence export across jobs, approvals, provider dry-runs, and measurement handoffs so provider, spend exposure, rollback, and related job metadata can be shared during readiness review.
+
+The provider connection experience still needs a deeper read-side workflow before approved mutations are credible: account selection, campaign/ad group or ad set/ad browsing, ad-level inspection, recent performance reads, and propagation of selected provider IDs into approval and dry-run payloads.
 
 ## Audit Events
 

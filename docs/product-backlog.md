@@ -99,6 +99,8 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | L42 | Provider-write measurement handoff | DW | M | S14 | ✅ | Create durable measurement handoff records from ready acquisition dry-runs and enqueue idempotent acquisition observation and measurement jobs with spend/revenue attribution context. |
 | L43 | Provider dry-run detail audit view | DW | M | S14 | ✅ | Add a read-only operations detail page for persisted provider dry-runs, including permission checks, before/after diffs, rollback metadata, measurement handoff, raw payload, and activity-feed links. |
 | L44 | Provider dry-run audit export | DW | S | S14 | ✅ | Add CSV evidence export for agent jobs, approvals, provider dry-runs, and measurement handoffs with provider, rollback, spend exposure, and related job fields. |
+| L45 | Meta Ads provider-write dry-run adapter | DW | M | S14 | ✅ | Add a Meta Ads dry-run adapter that builds offline Graph API-shaped account, campaign, ad set, and ad diffs with permission checks, spend exposure, rollback plan, and incomplete-context blockers. |
+| L46 | Provider account and object selection workflow | DW | L | S14 | ⏳ | Rethink the Google Ads/Meta provider experience beyond OAuth: account selection, campaign/ad group or ad set/ad browse, ad-level inspection, performance reads, and selected provider IDs flowing into agent dry-runs. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -110,7 +112,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
 | S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
-| S14 | L39, L40, L41, L42, L43, L44 | — | Next provider adapter target |
+| S14 | L39, L40, L41, L42, L43, L44, L45 | — | L46 |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -389,6 +391,8 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L42. Added provider-write measurement handoffs that turn ready acquisition dry-runs into durable observation and measurement jobs with idempotent handoff payloads.
 - ✅ L43. Added a provider dry-run detail page and workspace activity links so operators can inspect permission checks, provider diffs, rollback metadata, measurement handoff jobs, and raw dry-run payloads.
 - ✅ L44. Added an agent audit evidence CSV export covering jobs, approvals, provider dry-runs, and measurement handoffs with provider, rollback, spend exposure, and related job metadata.
+- ✅ L45. Added a Meta Ads provider-write dry-run adapter that creates offline Graph API-shaped diffs for campaign, ad set, and ad operations without calling Meta write endpoints.
+- ⏳ L46. Next, turn provider connections into a full selection and inspection workflow: choose ad account, browse campaigns/ad groups/ad sets/ads, inspect recent performance, and feed selected provider IDs into agent dry-runs.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.

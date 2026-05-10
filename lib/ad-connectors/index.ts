@@ -22,6 +22,7 @@ export { SimulatedConnector } from "./simulated";
 export { GoogleAdsConnector, GoogleAdsConnectorError, GoogleAdsNotTestAccountError } from "./google-ads-connector";
 export {
   GoogleAdsProviderWriteDryRunAdapter,
+  MetaAdsProviderWriteDryRunAdapter,
   SimulatedAdProviderWriteDryRunAdapter,
   getAdProviderWriteDryRunAdapter,
   hasAdProviderWriteDryRunAdapter,

@@ -195,10 +195,107 @@ export class GoogleAdsProviderWriteDryRunAdapter implements AdProviderWriteDryRu
   }
 }
 
+function metaAccountResource(externalAccountId: unknown) {
+  const accountId = clean(externalAccountId).replace(/^act_/, "").replace(/[^0-9]/g, "");
+  return accountId ? `act_${accountId}` : null;
+}
+
+function metaCampaignResource(externalCampaignId: unknown) {
+  const campaignId = clean(externalCampaignId);
+  return campaignId || null;
+}
+
+export class MetaAdsProviderWriteDryRunAdapter implements AdProviderWriteDryRunAdapter {
+  readonly name = "meta_ads";
+
+  dryRunProviderWrite(input: AdProviderWriteDryRunInput): AdProviderWriteDryRunResult {
+    const proposedAction = input.proposedAction ?? {};
+    const operationType = clean(input.operationType, "update_budget");
+    const externalAccountId = metaAccountResource(input.externalAccountId ?? proposedAction.externalAccountId);
+    const campaignId = metaCampaignResource(input.externalCampaignId ?? proposedAction.externalCampaignId ?? proposedAction.campaignId);
+    const adSetId = clean(proposedAction.externalAdSetId ?? proposedAction.adSetId, "") || null;
+    const adId = clean(proposedAction.externalAdId ?? proposedAction.adId, "") || null;
+    const spendExposureCents = spendExposure(proposedAction.spendExposureCents ?? proposedAction.shiftAmountCents ?? proposedAction.amountCents);
+    const blockers: string[] = [];
+    const warnings: string[] = [];
+
+    if (!externalAccountId) blockers.push("meta_ads_ad_account_id_missing");
+    if (operationType !== "create_campaign" && !campaignId) blockers.push("meta_ads_campaign_id_missing");
+    if (["update_ad_set_budget", "pause_resume_ad_set"].includes(operationType) && !adSetId) blockers.push("meta_ads_ad_set_id_missing");
+    if (operationType === "pause_resume_ad" && !adId) blockers.push("meta_ads_ad_id_missing");
+    if (!input.idempotencyKey) warnings.push("Idempotency key is missing from the dry-run payload.");
+
+    const resourceType = operationType === "create_campaign"
+      ? "campaign_draft"
+      : operationType.includes("ad_set")
+        ? "ad_set"
+        : operationType.includes("_ad")
+          ? "ad"
+          : "campaign";
+    const resourceId = resourceType === "ad_set"
+      ? adSetId ?? "adset_unknown"
+      : resourceType === "ad"
+        ? adId ?? "ad_unknown"
+        : campaignId ?? `${externalAccountId ?? "act_unknown"}/campaigns/new`;
+
+    return {
+      mode: "dry_run",
+      provider: "meta_ads",
+      operationType,
+      idempotencyKey: input.idempotencyKey ?? null,
+      externalAccountId,
+      externalCampaignId: campaignId,
+      permissionChecks: [
+        {
+          capability: "meta_ads.ads_read",
+          ok: Boolean(externalAccountId),
+          reason: externalAccountId ? "Ad account context is present for pre-mutation verification." : "Missing Meta ad account id."
+        },
+        {
+          capability: "meta_ads.ads_management",
+          ok: true,
+          reason: "Dry-run only: this adapter prepares Graph API mutation metadata but does not call Meta write endpoints."
+        }
+      ],
+      providerObjects: [
+        {
+          resourceType,
+          resourceId,
+          before: {
+            status: operationType === "create_campaign" ? null : proposedAction.previousStatus ?? "ACTIVE",
+            dailyBudgetCents: operationType === "create_campaign" ? null : proposedAction.previousBudgetCents ?? null,
+            metaAdAccountId: externalAccountId,
+            metaCampaignId: operationType === "create_campaign" ? null : campaignId,
+            metaAdSetId: adSetId,
+            metaAdId: adId
+          },
+          after: {
+            status: proposedAction.nextStatus ?? proposedAction.status ?? (operationType.includes("pause") ? "PAUSED" : "ACTIVE"),
+            dailyBudgetCents: proposedAction.nextBudgetCents ?? proposedAction.budgetCents ?? null,
+            metaAdAccountId: externalAccountId,
+            metaCampaignId: campaignId,
+            metaAdSetId: adSetId,
+            metaAdId: adId,
+            graphApiOperation: operationType
+          }
+        }
+      ],
+      spendExposureCents,
+      rollbackSupported: operationType !== "create_campaign",
+      rollbackPlan: operationType === "create_campaign"
+        ? "Do not apply automatically until Meta campaign creation rollback/delete semantics are implemented."
+        : clean(proposedAction.rollbackPlan, "") || "Restore the previous Meta campaign, ad set, or ad status and budget from the dry-run before-state.",
+      blockers,
+      warnings
+    };
+  }
+}
+
 export function getAdProviderWriteDryRunAdapter(name = process.env.ACQUISITION_PROVIDER_DRY_RUN_ADAPTER): AdProviderWriteDryRunAdapter | null {
   const normalized = clean(name).toLowerCase();
   if (normalized === "simulated") return new SimulatedAdProviderWriteDryRunAdapter();
   if (normalized === "google_ads") return new GoogleAdsProviderWriteDryRunAdapter();
+  if (normalized === "meta_ads") return new MetaAdsProviderWriteDryRunAdapter();
   return null;
 }
 
