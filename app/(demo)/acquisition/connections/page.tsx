@@ -6,6 +6,7 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { isGoogleOAuthConfigured } from "@/lib/ad-connectors/google-oauth";
+import { isMetaOAuthConfigured } from "@/lib/ad-connectors/meta-oauth";
 import { ConnectionDisconnectButton } from "@/components/acquisition/ConnectionDisconnectButton";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,7 @@ export default async function ConnectionsPage({
   const params = await searchParams;
   const encryptionReady = isOAuthEncryptionAvailable();
   const googleReady = isGoogleOAuthConfigured();
+  const metaReady = isMetaOAuthConfigured();
   const cookieStore = await cookies();
   const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
   const ownedOrLegacy = {
@@ -81,7 +83,7 @@ export default async function ConnectionsPage({
       </Section>
 
       <Section title="Configuration status">
-        <div className="grid grid-2">
+        <div className="grid grid-3">
           <div className="card">
             <h3>OAuth encryption key</h3>
             <p className={`small bandText--${encryptionReady ? "healthy" : "unhealthy"}`}>
@@ -101,29 +103,57 @@ export default async function ConnectionsPage({
                 : "Google OAuth env vars missing. See setup guide."}
             </p>
           </div>
+          <div className="card">
+            <h3>Meta Ads</h3>
+            <p className={`small bandText--${metaReady ? "healthy" : "watch"}`}>
+              {metaReady
+                ? "Meta app credentials detected."
+                : "Meta OAuth env vars missing. See setup guide."}
+            </p>
+          </div>
         </div>
       </Section>
 
       <Section title="Connect a provider">
-        <div className="card">
-          <h3>Google Ads</h3>
-          <p className="small">
-            Read-only access to your test customer accounts. After consenting,
-            the demo will list accessible customers and store one connection
-            row per customer.
-          </p>
-          {encryptionReady && googleReady ? (
-            // OAuth start is a regular HTTP redirect; we don't want Link prefetch
-            // because that would trigger the state cookie + redirect prematurely.
-            // eslint-disable-next-line @next/next/no-html-link-for-pages
-            <a className="btn primary" href="/api/connections/google/start" rel="external">
-              Connect Google Ads
-            </a>
-          ) : (
-            <p className="small bandText--watch">
-              Configuration incomplete. Resolve the items above to enable connection.
+        <div className="grid grid-2">
+          <div className="card">
+            <h3>Google Ads</h3>
+            <p className="small">
+              Read-only access to your test customer accounts. After consenting,
+              the demo will list accessible customers and store one connection
+              row per customer.
             </p>
-          )}
+            {encryptionReady && googleReady ? (
+              // OAuth start is a regular HTTP redirect; we don't want Link prefetch
+              // because that would trigger the state cookie + redirect prematurely.
+              // eslint-disable-next-line @next/next/no-html-link-for-pages
+              <a className="btn primary" href="/api/connections/google/start" rel="external">
+                Connect Google Ads
+              </a>
+            ) : (
+              <p className="small bandText--watch">
+                Configuration incomplete. Resolve the items above to enable connection.
+              </p>
+            )}
+          </div>
+          <div className="card">
+            <h3>Meta Ads</h3>
+            <p className="small">
+              Read-only access to your Meta test ad accounts. The detail page
+              uses the same campaign, ad set, ad, and performance inspection
+              workflow as Google Ads.
+            </p>
+            {encryptionReady && metaReady ? (
+              // eslint-disable-next-line @next/next/no-html-link-for-pages
+              <a className="btn primary" href="/api/connections/meta/start" rel="external">
+                Connect Meta Ads
+              </a>
+            ) : (
+              <p className="small bandText--watch">
+                Configuration incomplete. Resolve the items above to enable connection.
+              </p>
+            )}
+          </div>
         </div>
       </Section>
 
@@ -190,10 +220,9 @@ export default async function ConnectionsPage({
 
       <Section title="What's next">
         <p>
-          Google Ads connections now support live read-only campaign, ad group,
-          ad, and recent performance inspection for test accounts. Next, Meta
-          should use the same provider-neutral object workflow, and selected
-          provider IDs should flow directly into approval and dry-run payloads.
+          Google Ads and Meta Ads connections now support live read-only campaign,
+          child group, ad, and recent performance inspection for test accounts.
+          Next, selected provider IDs should flow directly into approval and dry-run payloads.
           See <Link href="/acquisition/audit">audit feed</Link> for the full activity log.
         </p>
       </Section>

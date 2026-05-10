@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
-import { GoogleAdsConnector, GoogleAdsNotTestAccountError } from "@/lib/ad-connectors";
+import { GoogleAdsConnector, GoogleAdsNotTestAccountError, MetaAdsConnector, MetaAdsNotTestAccountError } from "@/lib/ad-connectors";
 import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ type CampaignWithPerformance = {
   perfError: string | null;
 };
 
-type GoogleAdsLiveData = {
+type ProviderLiveData = {
   campaigns: CampaignWithPerformance[];
   selectedCampaign: RemoteCampaign | null;
   selectedPerformance: RemotePerformance | null;
@@ -35,13 +35,24 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-async function loadGoogleAdsLiveData(
+function connectorForProvider(provider: string, accountUserId: string | null) {
+  if (provider === "google_ads") return new GoogleAdsConnector(accountUserId);
+  if (provider === "meta_ads") return new MetaAdsConnector(accountUserId);
+  return null;
+}
+
+async function loadProviderLiveData(
+  provider: string,
   externalAccountId: string,
   accountUserId: string | null,
   selectedCampaignId?: string | null,
   selectedAdGroupId?: string | null
-): Promise<GoogleAdsLiveData> {
-  const connector = new GoogleAdsConnector(accountUserId);
+): Promise<ProviderLiveData> {
+  const connector = connectorForProvider(provider, accountUserId);
+  if (!connector) {
+    return { campaigns: [], selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: "Live-data view not yet implemented for this provider." };
+  }
+
   try {
     const campaigns = await connector.fetchCampaigns(externalAccountId);
     const end = new Date();
@@ -81,7 +92,7 @@ async function loadGoogleAdsLiveData(
 
     return { campaigns: enriched, selectedCampaign, selectedPerformance, adGroups, ads, error: null };
   } catch (err) {
-    if (err instanceof GoogleAdsNotTestAccountError) {
+    if (err instanceof GoogleAdsNotTestAccountError || err instanceof MetaAdsNotTestAccountError) {
       return { campaigns: [], selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: err.message };
     }
     return {
@@ -107,12 +118,15 @@ function campaignHref(connectionId: string, campaignId: string, adGroupId?: stri
 }
 
 function dryRunContext(connection: { provider: string; externalAccountId: string }, campaign: RemoteCampaign | null, adGroupId?: string | null) {
+  const childContext = connection.provider === "meta_ads"
+    ? { externalAdSetId: adGroupId ?? null }
+    : { externalAdGroupId: adGroupId ?? null };
   return {
     provider: connection.provider,
     operationType: connection.provider === "meta_ads" && adGroupId ? "update_ad_set_budget" : "update_budget",
     externalAccountId: connection.externalAccountId,
     externalCampaignId: campaign?.externalCampaignId ?? null,
-    externalAdGroupId: adGroupId ?? null
+    ...childContext
   };
 }
 
@@ -146,8 +160,11 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
   if (!connection) notFound();
 
   const isGoogle = connection.provider === "google_ads";
-  const live = isGoogle
-    ? await loadGoogleAdsLiveData(connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId)
+  const isLiveProvider = connection.provider === "google_ads" || connection.provider === "meta_ads";
+  const childGroupLabel = connection.provider === "meta_ads" ? "Ad sets" : "Ad groups";
+  const childGroupSingular = connection.provider === "meta_ads" ? "ad set" : "ad group";
+  const live = isLiveProvider
+    ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId)
     : null;
   const selectedAdGroupId = live?.adGroups.some((group) => group.externalAdGroupId === selected.adGroupId)
     ? selected.adGroupId
@@ -195,7 +212,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
         </div>
       </Section>
 
-      {!isGoogle ? (
+      {!isLiveProvider ? (
         <Section title="Live data">
           <div className="card">
             <p>Live-data view not yet implemented for provider <code className="small">{connection.provider}</code>.</p>
@@ -297,16 +314,16 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
           ) : null}
 
           {live?.selectedCampaign ? (
-            <Section title="Ad groups">
+            <Section title={childGroupLabel}>
               {live.adGroups.length === 0 ? (
                 <div className="card">
-                  <p>No ad groups found for this campaign.</p>
+                  <p>No {childGroupLabel.toLowerCase()} found for this campaign.</p>
                 </div>
               ) : (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Ad group</th>
+                      <th>{childGroupSingular === "ad set" ? "Ad set" : "Ad group"}</th>
                       <th>Status</th>
                       <th></th>
                     </tr>
@@ -336,7 +353,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
           ) : null}
 
           {live?.selectedCampaign ? (
-            <Section title={selectedAdGroupId ? "Ads in selected ad group" : "Ads in selected campaign"}>
+            <Section title={selectedAdGroupId ? `Ads in selected ${childGroupSingular}` : "Ads in selected campaign"}>
               {live.ads.length === 0 ? (
                 <div className="card">
                   <p>No ads found for this scope.</p>
@@ -346,7 +363,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   <thead>
                     <tr>
                       <th>Ad</th>
-                      <th>Ad group</th>
+                      <th>{childGroupSingular === "ad set" ? "Ad set" : "Ad group"}</th>
                       <th>Status</th>
                     </tr>
                   </thead>

@@ -2,7 +2,7 @@
 
 Setup checklist for connecting real ad platforms (Google Ads + Meta Ads) to the demo. Scope is **test-tier credentials, read-only API calls against your own test accounts**. No real campaigns are read or written; no production OAuth review is required.
 
-This guide is what you need to do **before Phase 2** (OAuth flows) can be built and tested. Until you complete the steps in [Section 1](#1-google-ads-setup) and [Section 2](#2-meta-ads-setup) and provide env vars per [Section 3](#3-environment-variables), the demo continues to run on the `SimulatedConnector` and Phase 2/3 work stays parked.
+This guide is what you need to configure Google Ads and Meta Ads OAuth for the read-only provider workflows. Until you complete the steps in [Section 1](#1-google-ads-setup) and [Section 2](#2-meta-ads-setup) and provide env vars per [Section 3](#3-environment-variables), connected-provider pages will remain unavailable and the demo continues to run on sample/simulated data.
 
 ## Prerequisites
 
@@ -118,8 +118,7 @@ This key is used to encrypt OAuth refresh tokens at rest in the `AdAccountConnec
 
 Once Section 1 and 2 are done and the env vars are set, Phase 2 delivers:
 
-- `/api/connections/google/start` and `/api/connections/google/callback` — OAuth code exchange, token storage in `AdAccountConnection`, encrypted at rest.
-- `/api/connections/meta/start` and `/api/connections/meta/callback` — same shape.
+- `/api/connections/google/start`, `/api/connections/google/callback`, `/api/connections/meta/start`, and `/api/connections/meta/callback` — OAuth code exchange, token storage in `AdAccountConnection`, encrypted at rest.
 - `/acquisition/connections` page — list of connected accounts, "Connect Google" / "Connect Meta" buttons, disconnect action, last-fetched timestamps.
 - Side-nav entry for Connections.
 - Token refresh helpers (Google access tokens last ~1 hour; refresh tokens last until revoked).
@@ -127,7 +126,7 @@ Once Section 1 and 2 are done and the env vars are set, Phase 2 delivers:
 
 ## 5. Phase 3 (after dev tokens approved)
 
-- `GoogleAdsConnector` and `MetaAdsConnector` implementing the `AdConnector` interface (`fetchAccounts`, `fetchCampaigns`, `fetchPerformance`).
+- `GoogleAdsConnector` and `MetaAdsConnector` implementing the `AdConnector` interface (`fetchAccounts`, `fetchCampaigns`, `fetchAdGroups`, `fetchAds`, `fetchPerformance`).
 - Hard guard: any account marked non-test is rejected at the connector layer before any API call.
 - Connections page renders live remote campaign + performance data alongside the simulation.
 - Dispatch in `lib/ad-connectors/index.ts` swaps the SimulatedConnector fallback for the real implementation per provider.

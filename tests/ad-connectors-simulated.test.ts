@@ -78,7 +78,6 @@ test("getConnector dispatch resolves the right provider", () => {
 
   // Phase 3: google_ads dispatches to GoogleAdsConnector.
   assert.equal(google.provider, "google_ads");
-  // Meta still falls back to simulated until that connector is wired.
-  assert.equal(meta.provider, "simulated");
+  assert.equal(meta.provider, "meta_ads");
   assert.equal(sim.provider, "simulated");
 });

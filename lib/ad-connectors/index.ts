@@ -1,5 +1,6 @@
 import { SimulatedConnector } from "./simulated";
 import { GoogleAdsConnector } from "./google-ads-connector";
+import { MetaAdsConnector } from "./meta-ads-connector";
 import type { AdConnector, AdProvider } from "./types";
 
 export type { AdConnector, AdProvider } from "./types";
@@ -22,6 +23,7 @@ export type {
 } from "./normalization";
 export { SimulatedConnector } from "./simulated";
 export { GoogleAdsConnector, GoogleAdsConnectorError, GoogleAdsNotTestAccountError } from "./google-ads-connector";
+export { MetaAdsConnector, MetaAdsConnectorError, MetaAdsNotTestAccountError } from "./meta-ads-connector";
 export {
   GoogleAdsProviderWriteDryRunAdapter,
   MetaAdsProviderWriteDryRunAdapter,
@@ -47,7 +49,8 @@ export {
  * - "simulated" returns the deterministic mock connector
  * - "google_ads" returns the real GoogleAdsConnector (read-only against
  *   stored OAuth connections, refuses non-test accounts)
- * - "meta_ads" still falls back to SimulatedConnector until Meta is wired
+ * - "meta_ads" returns the real MetaAdsConnector (read-only against
+ *   stored OAuth connections, refuses non-test accounts)
  */
 export function getConnector(provider: AdProvider): AdConnector {
   switch (provider) {
@@ -56,7 +59,7 @@ export function getConnector(provider: AdProvider): AdConnector {
     case "google_ads":
       return new GoogleAdsConnector();
     case "meta_ads":
-      return new SimulatedConnector();
+      return new MetaAdsConnector();
     default:
       return new SimulatedConnector();
   }
