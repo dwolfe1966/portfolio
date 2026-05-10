@@ -209,6 +209,7 @@ export function buildAgentExecutionPlan(input: AgentExecutionPlanInput): AgentEx
 export function buildApprovedApprovalContinuationPlan(input: AgentApprovalContinuationInput): AgentExecutionPlan {
   const now = input.now ?? new Date();
   const jobType: AgentJobType = "provider_write";
+  const idempotencyKey = clean(`approval:${input.approvalRequestId}:provider_write`, 180);
 
   return {
     status: "queued",
@@ -226,10 +227,11 @@ export function buildApprovedApprovalContinuationPlan(input: AgentApprovalContin
         app: input.app,
         queueName: queueNameFor(input.app, jobType),
         jobType,
-        idempotencyKey: clean(`approval:${input.approvalRequestId}:provider_write`, 180),
+        idempotencyKey,
         payload: {
           approvalRequestId: input.approvalRequestId,
           actionType: input.actionType,
+          idempotencyKey,
           proposedAction: input.proposedAction
         },
         priority: 20,

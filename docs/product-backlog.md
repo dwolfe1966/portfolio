@@ -104,6 +104,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | L46.1 | Google Ads object inspection workflow | DW | M | S14 | ✅ | Add provider-neutral ad group/ad read contracts and a Google Ads connection detail workflow for selecting campaigns, inspecting ad groups and ads, viewing recent performance, and copying dry-run context IDs. |
 | L46.2 | Meta Ads read-side workflow | DW | M | S14 | ✅ | Add Meta OAuth, read-only Meta connector, campaign/ad set/ad/performance inspection, and Meta-shaped dry-run context IDs on the shared provider detail workflow. |
 | L46.3 | Provider selection approval handoff | DW | M | S14 | ✅ | Turn selected Google/Meta provider IDs into high-risk approval requests that reuse the existing acquisition provider-write dry-run queue path after approval. |
+| L47 | Provider dry-run execution polish | DW | S | S14 | ✅ | Preserve approval idempotency inside provider-write dry-run payloads and expose selected provider context directly in Agent Operations approvals. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -115,7 +116,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
 | S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
-| S14 | L39, L40, L41, L42, L43, L44, L45, L46, L46.1, L46.2, L46.3 | — | Provider dry-run execution polish |
+| S14 | L39, L40, L41, L42, L43, L44, L45, L46, L46.1, L46.2, L46.3, L47 | — | Define S15 production provider hardening |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -399,6 +400,7 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L46.1. Added the first Google Ads object inspection workflow with campaign selection, selected-campaign performance, ad group and ad reads, and a dry-run context payload that preserves provider IDs for future approval handoff.
 - ✅ L46.2. Added Meta OAuth and a read-only Meta Ads connector so the shared connection detail workflow can inspect campaigns, ad sets, ads, recent performance, and Meta-shaped dry-run context IDs.
 - ✅ L46.3. Added provider selection approval handoff so selected Google/Meta account, campaign, and child object IDs create high-risk approval requests that feed the existing provider-write dry-run queue after approval.
+- ✅ L47. Polished provider dry-run execution by carrying the approval idempotency key inside the queued payload and surfacing selected provider account, campaign, child object, operation, and exposure context in Agent Operations approvals.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.

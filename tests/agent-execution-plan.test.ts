@@ -180,6 +180,7 @@ test("buildApprovedApprovalContinuationPlan queues provider write from approved 
   assert.deepEqual(plan.jobs[0].payload, {
     approvalRequestId: "approval_1",
     actionType: "request_approval",
+    idempotencyKey: "approval:approval_1:provider_write",
     proposedAction: { campaignId: "camp_1", amountCents: 18000 }
   });
 });

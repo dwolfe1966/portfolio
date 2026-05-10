@@ -67,6 +67,59 @@ function formatCents(value: number) {
   return new Intl.NumberFormat("en", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value / 100);
 }
 
+function objectRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function stringField(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function numericField(value: unknown) {
+  const amount = Number(value ?? 0);
+  return Number.isFinite(amount) && amount > 0 ? Math.round(amount) : 0;
+}
+
+function approvalProviderContext(value: unknown) {
+  const proposedAction = objectRecord(value);
+  if (!proposedAction) return null;
+  const provider = stringField(proposedAction.provider);
+  const externalAccountId = stringField(proposedAction.externalAccountId);
+  const externalCampaignId = stringField(proposedAction.externalCampaignId ?? proposedAction.campaignId);
+  if (!provider && !externalAccountId && !externalCampaignId) return null;
+
+  return {
+    provider,
+    operationType: stringField(proposedAction.operationType ?? proposedAction.type),
+    externalAccountId,
+    externalCampaignId,
+    externalAdGroupId: stringField(proposedAction.externalAdGroupId),
+    externalAdSetId: stringField(proposedAction.externalAdSetId),
+    spendExposureCents: numericField(proposedAction.spendExposureCents ?? proposedAction.shiftAmountCents ?? proposedAction.amountCents)
+  };
+}
+
+function ApprovalProviderContext({ proposedAction }: { proposedAction: unknown }) {
+  const context = approvalProviderContext(proposedAction);
+  if (!context) return null;
+  const childTarget = context.externalAdSetId
+    ? `Ad set: ${context.externalAdSetId}`
+    : context.externalAdGroupId
+      ? `Ad group: ${context.externalAdGroupId}`
+      : null;
+
+  return (
+    <div className="agentJobResult">
+      <span>Provider: {context.provider ? label(context.provider) : "unknown"}</span>
+      <span>Operation: {context.operationType ? label(context.operationType) : "provider write"}</span>
+      <span>Account: {context.externalAccountId ?? "not selected"}</span>
+      <span>Campaign: {context.externalCampaignId ?? "not selected"}</span>
+      {childTarget ? <span>{childTarget}</span> : null}
+      <span>Exposure: {formatCents(context.spendExposureCents)}</span>
+    </div>
+  );
+}
+
 function agentJobResultSummary(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const result = value as Record<string, unknown>;
@@ -222,8 +275,10 @@ async function loadAgentOperations(accountUserId: string | null) {
   }
 }
 
-export default async function AgentOperationsPage() {
+export default async function AgentOperationsPage({ searchParams }: { searchParams?: Promise<{ approvalId?: string }> }) {
   const accountUserId = await currentAccountUserId();
+  const selectedParams = await searchParams;
+  const selectedApprovalId = selectedParams?.approvalId ?? null;
   const operations = await loadAgentOperations(accountUserId);
   const postureReasons = [...operations.posture.blockers, ...operations.posture.warnings];
   const acquisitionBlockers = operations.acquisitionProviderWriteReadiness.blockers.map(label);
@@ -465,7 +520,7 @@ export default async function AgentOperationsPage() {
         ) : (
           <div className="activityFeed">
             {operations.approvals.map((approval) => (
-              <details className="activityFeedItem" key={approval.id}>
+              <details className="activityFeedItem" key={approval.id} open={approval.id === selectedApprovalId}>
                 <summary>
                   <span className="activityFeedDate">{formatDate(approval.createdAt)}</span>
                   <span className={`statusPill ${statusClass(approval.status)}`}>{label(approval.status)}</span>
@@ -479,6 +534,7 @@ export default async function AgentOperationsPage() {
                   <div>
                     <p>{approval.summary}</p>
                     <p className="small">Due: {formatDate(approval.dueAt)} · Expires: {formatDate(approval.expiresAt)} · Role: {approval.requiredApproverRole ?? "owner"}</p>
+                    <ApprovalProviderContext proposedAction={approval.proposedAction} />
                   </div>
                   {isOpenApproval(approval.status) ? (
                     <div className="agentApprovalActions" aria-label={`Decision actions for ${approval.title}`}>
