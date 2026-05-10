@@ -214,7 +214,7 @@ Agent Operations includes a read-only provider dry-run detail page for each pers
 
 Agent Operations also exposes a CSV evidence export across jobs, approvals, provider dry-runs, and measurement handoffs so provider, spend exposure, rollback, and related job metadata can be shared during readiness review.
 
-The provider connection experience needs a deeper read-side workflow before approved mutations are credible: account selection, campaign/ad group or ad set/ad browsing, ad-level inspection, recent performance reads, and propagation of selected provider IDs into approval and dry-run payloads. Google Ads and Meta Ads now use the same connection detail workflow for campaign selection, child group/ad inspection, recent campaign performance, and dry-run context payloads. The next step is turning those selected provider IDs into approval requests and provider-write dry-run jobs.
+The provider connection experience needs a deeper read-side workflow before approved mutations are credible: account selection, campaign/ad group or ad set/ad browsing, ad-level inspection, recent performance reads, and propagation of selected provider IDs into approval and dry-run payloads. Google Ads and Meta Ads now use the same connection detail workflow for campaign selection, child group/ad inspection, recent campaign performance, and dry-run context payloads. Selected provider IDs can now create high-risk approval requests that preserve the chosen account, campaign, and child object context; once approved, they reuse the existing `acquisition:provider_write` queue and provider dry-run adapters before any mutation path is considered.
 
 ## Audit Events
 

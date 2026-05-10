@@ -7,6 +7,7 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { GoogleAdsConnector, GoogleAdsNotTestAccountError, MetaAdsConnector, MetaAdsNotTestAccountError } from "@/lib/ad-connectors";
 import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
+import { requestProviderWriteDryRunApprovalAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -128,6 +129,10 @@ function dryRunContext(connection: { provider: string; externalAccountId: string
     externalCampaignId: campaign?.externalCampaignId ?? null,
     ...childContext
   };
+}
+
+function selectedSpendExposureCents(performance: RemotePerformance | null) {
+  return performance?.totals.spendCents ?? 0;
 }
 
 export default async function ConnectionDetailPage({ params, searchParams }: PageProps) {
@@ -308,6 +313,21 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   <h3>Dry-run context</h3>
                   <p className="small">These provider IDs are the context that should flow into an approval request and provider-write dry-run.</p>
                   <pre className="code">{JSON.stringify(dryRunContext(connection, live.selectedCampaign, selectedAdGroupId), null, 2)}</pre>
+                  <form action={requestProviderWriteDryRunApprovalAction} className="stackForm">
+                    <input type="hidden" name="connectionId" value={connection.id} />
+                    <input type="hidden" name="provider" value={connection.provider} />
+                    <input type="hidden" name="externalAccountId" value={connection.externalAccountId} />
+                    <input type="hidden" name="externalCampaignId" value={live.selectedCampaign.externalCampaignId} />
+                    <input type="hidden" name="campaignName" value={live.selectedCampaign.name} />
+                    <input type="hidden" name="operationType" value={connection.provider === "meta_ads" && selectedAdGroupId ? "update_ad_set_budget" : "update_budget"} />
+                    <input type="hidden" name="spendExposureCents" value={selectedSpendExposureCents(live.selectedPerformance)} />
+                    {connection.provider === "meta_ads" ? (
+                      <input type="hidden" name="externalAdSetId" value={selectedAdGroupId ?? ""} />
+                    ) : (
+                      <input type="hidden" name="externalAdGroupId" value={selectedAdGroupId ?? ""} />
+                    )}
+                    <button className="btn primary" type="submit">Request dry-run approval</button>
+                  </form>
                 </div>
               </div>
             </Section>

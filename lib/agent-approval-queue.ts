@@ -42,6 +42,17 @@ export type AgentApprovalEscalationDecision = {
   reasons: string[];
 };
 
+export type ProviderWriteApprovalContextInput = {
+  provider: string;
+  externalAccountId: string;
+  externalCampaignId: string;
+  campaignName?: string | null;
+  externalAdGroupId?: string | null;
+  externalAdSetId?: string | null;
+  operationType?: string | null;
+  spendExposureCents?: number | null;
+};
+
 const MAX_ESCALATION_LEVEL = 5;
 const RISK_LEVELS: AgentApprovalRiskLevel[] = ["low", "medium", "high", "critical"];
 const OPEN_APPROVAL_STATUSES: AgentApprovalStatus[] = ["pending", "escalated"];
@@ -137,6 +148,56 @@ export function buildApprovalEscalationDecision(input: {
     escalationLevel,
     escalatedAt: null,
     reasons
+  };
+}
+
+export function buildProviderWriteApprovalContext(input: ProviderWriteApprovalContextInput) {
+  const provider = clean(input.provider, 80);
+  const externalAccountId = clean(input.externalAccountId, 160);
+  const externalCampaignId = clean(input.externalCampaignId, 220);
+  const externalAdGroupId = input.externalAdGroupId ? clean(input.externalAdGroupId, 220) : null;
+  const externalAdSetId = input.externalAdSetId ? clean(input.externalAdSetId, 220) : null;
+  const operationType = clean(input.operationType || (externalAdSetId ? "update_ad_set_budget" : "update_budget"), 120);
+  const campaignName = input.campaignName ? clean(input.campaignName, 180) : externalCampaignId;
+  const spendExposureCents = Math.max(0, Math.round(Number(input.spendExposureCents ?? 0)));
+  const targetLabel = externalAdSetId
+    ? `ad set ${externalAdSetId}`
+    : externalAdGroupId
+      ? `ad group ${externalAdGroupId}`
+      : `campaign ${externalCampaignId}`;
+
+  const proposedAction = {
+    provider,
+    operationType,
+    externalAccountId,
+    externalCampaignId,
+    externalAdGroupId,
+    externalAdSetId,
+    campaignName,
+    spendExposureCents,
+    source: "provider_object_selection"
+  };
+
+  return {
+    actionType: "provider_write_dry_run",
+    riskLevel: "high" as AgentApprovalRiskLevel,
+    title: `Dry-run ${provider} provider write for ${campaignName}`,
+    summary: `Review and approve a non-mutating provider-write dry-run for ${targetLabel}. No ad platform mutation will occur.`,
+    proposedAction,
+    approvalPolicy: {
+      source: "provider_object_selection",
+      requiresDryRun: true,
+      requiresHumanApproval: true,
+      noProviderMutation: true,
+      selectedProviderIds: {
+        provider,
+        externalAccountId,
+        externalCampaignId,
+        externalAdGroupId,
+        externalAdSetId
+      }
+    },
+    requiredApproverRole: "owner"
   };
 }
 

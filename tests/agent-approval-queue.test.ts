@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildProviderWriteApprovalContext,
   buildApprovalEscalationDecision,
   canApplyApprovalDecision,
   normalizeAgentApprovalInput
@@ -83,4 +84,23 @@ test("canApplyApprovalDecision only permits pending and escalated requests", () 
   assert.equal(canApplyApprovalDecision("approved"), false);
   assert.equal(canApplyApprovalDecision("rejected"), false);
   assert.equal(canApplyApprovalDecision("cancelled"), false);
+});
+
+test("buildProviderWriteApprovalContext preserves selected provider ids", () => {
+  const context = buildProviderWriteApprovalContext({
+    provider: "meta_ads",
+    externalAccountId: "act_123",
+    externalCampaignId: "23850000000000001",
+    externalAdSetId: "23850000000000002",
+    campaignName: "Prospecting",
+    spendExposureCents: 12345
+  });
+
+  assert.equal(context.actionType, "provider_write_dry_run");
+  assert.equal(context.riskLevel, "high");
+  assert.equal(context.proposedAction.provider, "meta_ads");
+  assert.equal(context.proposedAction.operationType, "update_ad_set_budget");
+  assert.equal(context.proposedAction.externalAdSetId, "23850000000000002");
+  assert.equal(context.proposedAction.spendExposureCents, 12345);
+  assert.equal(context.approvalPolicy.noProviderMutation, true);
 });
