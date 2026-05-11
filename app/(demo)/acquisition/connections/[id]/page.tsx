@@ -394,10 +394,17 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   Fetch campaigns, {childGroupLabel.toLowerCase()}, ads, and recent performance from this connection,
                   then save them as an acquisition dataset snapshot that can be applied from Inputs.
                 </p>
-                <form action={syncProviderConnectionDatasetAction}>
-                  <input type="hidden" name="connectionId" value={connection.id} />
-                  <button className="btn primary" type="submit" disabled={!syncReady}>Sync to acquisition dataset</button>
-                </form>
+                <div className="ctaRow">
+                  <form action={syncProviderConnectionDatasetAction}>
+                    <input type="hidden" name="connectionId" value={connection.id} />
+                    <button className="btn" type="submit" disabled={!syncReady}>Sync dataset only</button>
+                  </form>
+                  <form action={syncProviderConnectionDatasetAction}>
+                    <input type="hidden" name="connectionId" value={connection.id} />
+                    <input type="hidden" name="applyAfterSync" value="1" />
+                    <button className="btn primary" type="submit" disabled={!syncReady}>Sync and apply to inputs</button>
+                  </form>
+                </div>
                 {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}
               </div>
               <div>

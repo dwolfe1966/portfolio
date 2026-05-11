@@ -10,7 +10,7 @@ import {
 } from "@/lib/agent-approval-queue";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { acquisitionProviderDryRunAdapterAvailable } from "@/lib/acquisition-agent-generalization";
-import { recordImportedDataSourceSelection } from "@/lib/app-data-source-selection";
+import { applyAcquisitionDatasetSnapshot } from "@/lib/acquisition-dataset-apply";
 import { GoogleAdsConnector, MetaAdsConnector } from "@/lib/ad-connectors";
 import type { AdConnector, RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
 import { db } from "@/lib/db";
@@ -265,6 +265,7 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
   if (!connector) return;
 
   const providerLabel = connection.provider === "meta_ads" ? "Meta Ads" : "Google Ads";
+  const applyAfterSync = optionalString(formData.get("applyAfterSync")) === "1";
   let bundle: ProviderSnapshotBundle;
   try {
     bundle = await fetchProviderSnapshot(connector, connection.externalAccountId);
@@ -320,8 +321,8 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
     }
   });
 
-  if (dataset) {
-    await recordImportedDataSourceSelection("acquisition", dataset, accountUserId);
+  if (dataset && applyAfterSync) {
+    await applyAcquisitionDatasetSnapshot(dataset.id, accountUserId);
   }
 
   await db.adAccountConnection.update({
@@ -334,7 +335,12 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
   revalidatePath("/workspace/activity");
   revalidatePath("/demo/activity");
   revalidatePath("/acquisition/inputs");
+  revalidatePath("/acquisition/overview");
+  revalidatePath("/acquisition/simulations");
   revalidatePath(`/acquisition/connections/${connection.id}`);
+  if (dataset && applyAfterSync) {
+    redirect(`/acquisition/inputs?datasetApplied=${encodeURIComponent(dataset.id)}`);
+  }
   redirect(`/workspace/datasets?tool=acquisition&source=${encodeURIComponent(connection.provider)}#imported-snapshots`);
 }
 
