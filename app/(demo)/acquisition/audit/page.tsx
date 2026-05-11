@@ -25,6 +25,35 @@ function parseWindow(value: string | undefined): TimeWindow {
   return "7d";
 }
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function sourceTypeLabel(sourceType: unknown) {
+  if (sourceType === "google_ads") return "Google Ads";
+  if (sourceType === "meta_ads") return "Meta Ads";
+  if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "csv") return "CSV";
+  return typeof sourceType === "string" && sourceType ? sourceType.replaceAll("_", " ") : "Manual/sample";
+}
+
+function sourceFacts(metadata: unknown) {
+  const record = metadataRecord(metadata);
+  const sourceName = typeof record.sourceName === "string" ? record.sourceName : "";
+  const datasetId = typeof record.datasetId === "string" ? record.datasetId : "";
+  const connectionId = typeof record.connectionId === "string" ? record.connectionId : "";
+  const externalAccountId = typeof record.externalAccountId === "string" ? record.externalAccountId : "";
+  const provider = typeof record.provider === "string" ? record.provider : "";
+  return {
+    label: sourceTypeLabel(record.sourceType ?? provider),
+    sourceName: sourceName || "",
+    datasetId,
+    connectionId,
+    externalAccountId,
+    provider
+  };
+}
+
 export default async function AcquisitionAuditPage({
   searchParams
 }: {
@@ -71,6 +100,15 @@ export default async function AcquisitionAuditPage({
       }),
       db.acquisitionAuditLog.count({ where })
     ]);
+    const sourceLinkedLogs = logs.filter((log) => {
+      const source = sourceFacts(log.metadata);
+      return Boolean(source.datasetId || source.connectionId || source.externalAccountId);
+    });
+    const providerLinkedLogs = sourceLinkedLogs.filter((log) => {
+      const source = sourceFacts(log.metadata);
+      return source.label === "Google Ads" || source.label === "Meta Ads";
+    });
+    const datasetApplyLogs = logs.filter((log) => log.action === "acquisition_dataset_applied");
 
     return (
       <>
@@ -129,6 +167,30 @@ export default async function AcquisitionAuditPage({
           </form>
         </Section>
 
+        <Section title="Audit source coverage">
+          <div className="grid grid-4">
+            <div className="card">
+              <p className="small">Shown events</p>
+              <div className="kpi">{logs.length.toLocaleString()}</div>
+            </div>
+            <div className="card">
+              <p className="small">Source-linked</p>
+              <div className="kpi">{sourceLinkedLogs.length.toLocaleString()}</div>
+              <p className="small">Dataset, account, or connection metadata</p>
+            </div>
+            <div className="card">
+              <p className="small">Provider-linked</p>
+              <div className="kpi">{providerLinkedLogs.length.toLocaleString()}</div>
+              <p className="small">Google Ads or Meta Ads lineage</p>
+            </div>
+            <div className="card">
+              <p className="small">Dataset applies</p>
+              <div className="kpi">{datasetApplyLogs.length.toLocaleString()}</div>
+              <p className="small">Snapshots materialized into tool tables</p>
+            </div>
+          </div>
+        </Section>
+
         <Section title={`Events (showing ${logs.length} of ${totalCount.toLocaleString()})`}>
           {logs.length === 0 ? (
             <div className="card">
@@ -140,25 +202,43 @@ export default async function AcquisitionAuditPage({
                 <tr>
                   <th>When</th>
                   <th>Campaign</th>
+                  <th>Source</th>
                   <th>Actor</th>
                   <th>Action</th>
                   <th>Details</th>
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td>{new Date(log.createdAt).toLocaleString()}</td>
-                    <td>
-                      <Link href={`/acquisition/campaigns/${log.campaign.id}`}>
-                        {log.campaign.name}
-                      </Link>
-                    </td>
-                    <td>{log.actor}</td>
-                    <td><code className="small">{log.action}</code></td>
-                    <td><code className="small">{JSON.stringify(log.metadata ?? {})}</code></td>
-                  </tr>
-                ))}
+                {logs.map((log) => {
+                  const source = sourceFacts(log.metadata);
+                  return (
+                    <tr key={log.id}>
+                      <td>{new Date(log.createdAt).toLocaleString()}</td>
+                      <td>
+                        <Link href={`/acquisition/campaigns/${log.campaign.id}`}>
+                          {log.campaign.name}
+                        </Link>
+                      </td>
+                      <td>
+                        <span>{source.label}</span>
+                        {source.sourceName ? <p className="small">{source.sourceName}</p> : null}
+                        {source.externalAccountId ? <p className="small">Account {source.externalAccountId}</p> : null}
+                        <div className="importHistoryActions">
+                          {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
+                          {source.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Provider</Link> : null}
+                        </div>
+                      </td>
+                      <td>{log.actor}</td>
+                      <td><code className="small">{log.action}</code></td>
+                      <td>
+                        <details className="importMetadataDetails">
+                          <summary>Metadata</summary>
+                          <pre>{JSON.stringify(log.metadata ?? {}, null, 2)}</pre>
+                        </details>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
