@@ -33,7 +33,7 @@ const differentiators = [
 const proofStats = [
   { label: "Operating range", value: "Product · Data · Growth · Engineering" },
   { label: "Public + venture-backed contexts", value: "Napster · Interactive One · Goldbelly · MyLife" },
-  { label: "Portfolio proof", value: "6 runnable AI revenue tools" }
+  { label: "Portfolio proof", value: "6 AI revenue tools" }
 ];
 
 type FeaturedProject = {
@@ -107,7 +107,7 @@ export default function HomePage() {
             I build AI-native operating systems that turn product, growth, and customer signals into measurable revenue actions.
           </p>
           <div className="ctaRow">
-            <Link className="btn primary" href="/projects">Explore runnable products</Link>
+            <Link className="btn primary" href="/projects">Explore products</Link>
             <Link className="btn" href="/about">See leadership profile</Link>
           </div>
         </div>
@@ -178,7 +178,7 @@ export default function HomePage() {
 
       <Section title="Featured products">
         <p>
-          Six runnable products backing the case studies — every page below clicks through to
+          Six products backing the case studies — every page below clicks through to
           live software, not screenshots.
         </p>
         <div className="grid grid-3">
