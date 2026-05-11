@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { redirect } from "next/navigation";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
+import { applyAcquisitionDatasetSnapshotAction } from "@/app/(demo)/acquisition/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
@@ -72,9 +73,20 @@ function rowCount(metadata: unknown) {
   return Object.values(rowCounts).reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
 }
 
+function persistedDatasetRows(value: unknown) {
+  const rowCounts = metadataRecord(value);
+  return Object.values(rowCounts).reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
+}
+
 function objectRows(metadata: unknown) {
   const rowCounts = metadataRecord(metadataRecord(metadata).rowCounts);
   return Object.entries(rowCounts)
+    .filter((entry): entry is [string, number] => typeof entry[1] === "number")
+    .sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+function objectRowsFromCounts(rowCounts: unknown) {
+  return Object.entries(metadataRecord(rowCounts))
     .filter((entry): entry is [string, number] => typeof entry[1] === "number")
     .sort((a, b) => a[0].localeCompare(b[0]));
 }
@@ -143,6 +155,36 @@ async function loadSourceConfig(id: string, accountUserId: string | null) {
   });
 }
 
+async function loadDatasetSnapshot(id: string, accountUserId: string | null) {
+  const workspace = await getDefaultWorkspace();
+  return db.workspaceDataset.findFirst({
+    where: {
+      id,
+      workspaceId: workspace.id,
+      OR: accountUserId
+        ? [{ accountUserId }, { accountUserId: null }]
+        : [{ accountUserId: null }]
+    },
+    include: {
+      accountUser: { select: { email: true, name: true } },
+      workspace: true
+    }
+  });
+}
+
+function providerSnapshotFacts(metadata: unknown) {
+  const record = metadataRecord(metadata);
+  const sourceMetadata = metadataRecord(record.sourceMetadata);
+  const providerRowCounts = metadataRecord(record.providerRowCounts);
+  return {
+    connectionId: typeof record.connectionId === "string" ? record.connectionId : "",
+    provider: typeof record.provider === "string" ? record.provider : typeof sourceMetadata.provider === "string" ? sourceMetadata.provider : "",
+    externalAccountId: typeof record.externalAccountId === "string" ? record.externalAccountId : typeof sourceMetadata.externalAccountId === "string" ? sourceMetadata.externalAccountId : "",
+    syncedAt: typeof record.syncedAt === "string" ? record.syncedAt : "",
+    providerRowCounts
+  };
+}
+
 async function deleteSourceConfig(formData: FormData) {
   "use server";
 
@@ -162,7 +204,163 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
   try {
     const accountUserId = await currentAccountUserId();
     const config = await loadSourceConfig(id, accountUserId);
-    if (!config) notFound();
+    if (!config) {
+      const dataset = await loadDatasetSnapshot(id, accountUserId);
+      if (!dataset) notFound();
+
+      const visibility = workspaceVisibilityLabel(dataset.accountUserId, accountUserId);
+      const rows = persistedDatasetRows(dataset.rowCounts);
+      const rowObjects = objectRowsFromCounts(dataset.rowCounts);
+      const providerFacts = providerSnapshotFacts(dataset.metadata);
+      const isProviderSnapshot = dataset.sourceType === "google_ads" || dataset.sourceType === "meta_ads";
+      const hasProviderRows = Object.keys(providerFacts.providerRowCounts).length > 0;
+
+      return (
+        <>
+          <DemoWorkspaceTabs />
+          <Section eyebrow="Workspace dataset" title={dataset.name}>
+            <p>
+              Imported {sourceTypeLabel(dataset.sourceType).toLowerCase()} snapshot for {dataset.app}. Review captured
+              rows, source metadata, and raw payload before applying it to tool inputs.
+            </p>
+            <div className="workspaceVisibilityLine">
+              <span className={`statusPill ${visibility.statusClass}`}>{visibility.label}</span>
+              <span>{visibility.detail}</span>
+            </div>
+            <div className="ctaRow">
+              <Link className="btn" href="/workspace/datasets">Back to datasets</Link>
+              <Link className="btn" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
+              <Link className="btn" href={toolPageHref(dataset.app, "simulations")}>Simulate</Link>
+              {isProviderSnapshot && providerFacts.connectionId ? (
+                <Link className="btn" href={`/acquisition/connections/${providerFacts.connectionId}`}>Open provider account</Link>
+              ) : null}
+            </div>
+          </Section>
+
+          <Section title="Snapshot actions">
+            <div className="grid grid-3">
+              <div className="card sourceWorkflowCard sourceWorkflowCard--primary">
+                <p className="editorKicker">Recommended next step</p>
+                <h3>{dataset.app === "acquisition" ? "Apply to inputs" : "Review inputs"}</h3>
+                <p>
+                  {dataset.app === "acquisition"
+                    ? "Populate the acquisition tables from this snapshot so overview, campaigns, simulations, and outputs use these rows."
+                    : "Open the tool inputs to select or apply this imported workspace dataset."}
+                </p>
+                {dataset.app === "acquisition" ? (
+                  <form action={applyAcquisitionDatasetSnapshotAction}>
+                    <input type="hidden" name="datasetId" value={dataset.id} />
+                    <button className="btn smallBtn primary" type="submit">Apply to acquisition inputs</button>
+                  </form>
+                ) : (
+                  <Link className="btn smallBtn primary" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
+                )}
+              </div>
+              <div className="card sourceWorkflowCard">
+                <p className="editorKicker">Snapshot state</p>
+                <h3>{dataset.status}</h3>
+                <p className="small">{rows.toLocaleString()} persisted rows across {rowObjects.length.toLocaleString()} object groups.</p>
+              </div>
+              <div className="card sourceWorkflowCard">
+                <p className="editorKicker">Created</p>
+                <h3>{formatDate(dataset.createdAt)}</h3>
+                <p className="small">Owner: {dataset.accountUser?.email ?? visibility.detail}</p>
+              </div>
+            </div>
+          </Section>
+
+          <Section title="Snapshot facts">
+            <div className="grid grid-4">
+              <div className="card">
+                <p className="small">Tool</p>
+                <div className="workspaceSettingValue">{dataset.app}</div>
+              </div>
+              <div className="card">
+                <p className="small">Source</p>
+                <div className="workspaceSettingValue">{sourceTypeLabel(dataset.sourceType)}</div>
+              </div>
+              <div className="card">
+                <p className="small">Rows</p>
+                <div className="kpi">{rows.toLocaleString()}</div>
+              </div>
+              <div className="card">
+                <p className="small">Workspace</p>
+                <div className="workspaceSettingValue">{dataset.workspace.name}</div>
+              </div>
+            </div>
+          </Section>
+
+          {isProviderSnapshot ? (
+            <Section title="Provider sync">
+              <div className="grid grid-4">
+                <div className="card">
+                  <p className="small">Provider</p>
+                  <div className="workspaceSettingValue">{sourceTypeLabel(providerFacts.provider || dataset.sourceType)}</div>
+                </div>
+                <div className="card">
+                  <p className="small">Account</p>
+                  <div className="workspaceSettingValue">{providerFacts.externalAccountId || "Unknown"}</div>
+                </div>
+                <div className="card">
+                  <p className="small">Connection</p>
+                  <div className="workspaceSettingValue">{providerFacts.connectionId ? providerFacts.connectionId.slice(0, 8) : "None"}</div>
+                </div>
+                <div className="card">
+                  <p className="small">Synced</p>
+                  <div className="workspaceSettingValue">{formatDate(providerFacts.syncedAt) || "Unknown"}</div>
+                </div>
+              </div>
+              {hasProviderRows ? (
+                <div className="grid grid-4" style={{ marginTop: 12 }}>
+                  {Object.entries(providerFacts.providerRowCounts).map(([label, value]) => (
+                    <div className="card" key={label}>
+                      <p className="small">{label}</p>
+                      <div className="kpi">{typeof value === "number" ? value.toLocaleString() : String(value)}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </Section>
+          ) : null}
+
+          <Section title="Object coverage">
+            {rowObjects.length === 0 ? (
+              <div className="card">
+                <p>No object row counts have been recorded for this snapshot yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-3">
+                {rowObjects.map(([objectKey, count]) => (
+                  <div className="card sourceObjectCoverageCard" key={objectKey}>
+                    <p className="editorKicker">Object</p>
+                    <h3>{objectKey}</h3>
+                    <div className="kpi">{count.toLocaleString()}</div>
+                    <p className="small">Persisted rows</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <Section title="Technical details">
+            <div className="card sourceMetadataDisclosure">
+              <p>
+                Raw dataset payload is available for debugging imports and provider syncs. Normal workspace operation
+                should use the facts and object coverage above.
+              </p>
+              <details className="importMetadataDetails">
+                <summary>View raw metadata</summary>
+                <pre>{jsonPreview(dataset.metadata)}</pre>
+              </details>
+              <details className="importMetadataDetails">
+                <summary>View row data</summary>
+                <pre>{jsonPreview(dataset.rowData)}</pre>
+              </details>
+            </div>
+          </Section>
+        </>
+      );
+    }
 
     const metadata = metadataRecord(config.metadata);
     const sheetId = typeof metadata.sheetId === "string" ? metadata.sheetId : "";

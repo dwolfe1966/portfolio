@@ -493,6 +493,7 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                   </div>
                   <div className="importHistoryActions">
                     <Link className="btn smallBtn primary" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
+                    <Link className="btn smallBtn" href={sourceDetailHref(dataset.id)}>Review dataset</Link>
                     <form action={deleteDatasetSnapshot}>
                       <input type="hidden" name="id" value={dataset.id} />
                       <button className="btn smallBtn" type="submit">Delete snapshot</button>
