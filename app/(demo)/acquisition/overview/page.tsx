@@ -1,11 +1,15 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { buildMetadata } from "@/lib/seo";
 import { Section } from "@/components/site/Section";
 import { AcquisitionFlowDiagram } from "@/components/acquisition/AcquisitionFlowDiagram";
 import { OperatorDecisionCanvas } from "@/components/site/OperatorDecisionCanvas";
 import { ResetDemoDataCard } from "@/components/site/ResetDemoDataCard";
 import { DemoSystemGraph } from "@/components/demo-shell/DemoSystemGraph";
+import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { accountOwnedImportWhere, resolveActiveDataSourceMode } from "@/lib/account-data-scope";
+import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 
@@ -52,7 +56,24 @@ const flow = [
   "6) Promote winning cells to scaling and continue monitoring."
 ];
 
+function sourceLabel(value: string | null | undefined) {
+  if (!value) return "Sample data";
+  if (value === "google_ads") return "Google Ads";
+  if (value === "meta_ads") return "Meta Ads";
+  if (value === "google_sheets") return "Google Sheets";
+  if (value === "csv") return "CSV";
+  if (value === "sample") return "Sample data";
+  return value.replaceAll("_", " ");
+}
+
+function rowCountTotal(rowCounts: unknown) {
+  if (!rowCounts || typeof rowCounts !== "object" || Array.isArray(rowCounts)) return 0;
+  return Object.values(rowCounts).reduce((sum, value) => sum + (typeof value === "number" && Number.isFinite(value) ? value : 0), 0);
+}
+
 export default async function AcquisitionOverviewPage() {
+  const cookieStore = await cookies();
+  const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
   let schemaReady = true;
   let counts = {
     campaigns: 0,
@@ -60,15 +81,43 @@ export default async function AcquisitionOverviewPage() {
     budgetActivities: 0,
     auditLogs: 0
   };
+  let sourceState = {
+    activeMode: "sample" as "sample" | "imported",
+    activeLabel: "Acquisition sample data",
+    activeSourceType: "sample" as string | null,
+    activeRows: 0,
+    providerSnapshots: 0,
+    latestProviderSnapshotAt: null as Date | null
+  };
 
   try {
-    const [campaigns, cells, budgetActivities, auditLogs] = await Promise.all([
+    const [campaigns, cells, budgetActivities, auditLogs, activeSelection, providerSnapshots] = await Promise.all([
       db.acquisitionCampaign.count(),
       db.testCell.count(),
       db.budgetActivity.count(),
-      db.acquisitionAuditLog.count()
+      db.acquisitionAuditLog.count(),
+      getActiveDataSourceSelection("acquisition", accountUserId),
+      db.workspaceDataset.findMany({
+        where: {
+          app: "acquisition",
+          sourceType: { in: ["google_ads", "meta_ads"] },
+          ...accountOwnedImportWhere(accountUserId)
+        },
+        select: { rowCounts: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 25
+      })
     ]);
     counts = { campaigns, cells, budgetActivities, auditLogs };
+    const activeMode = resolveActiveDataSourceMode(accountUserId, activeSelection?.mode);
+    sourceState = {
+      activeMode,
+      activeLabel: activeMode === "imported" ? activeSelection?.label ?? "Imported acquisition data" : "Acquisition sample data",
+      activeSourceType: activeMode === "imported" ? activeSelection?.sourceType ?? null : "sample",
+      activeRows: activeMode === "imported" ? rowCountTotal(activeSelection?.rowCounts) : campaigns + cells,
+      providerSnapshots: providerSnapshots.length,
+      latestProviderSnapshotAt: providerSnapshots[0]?.createdAt ?? null
+    };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
       schemaReady = false;
@@ -96,12 +145,39 @@ export default async function AcquisitionOverviewPage() {
 
       <Section title="Acquisition data readiness">
         {schemaReady ? (
-          <div className="grid grid-2">
-            <div className="card"><p className="small">Campaigns</p><div className="kpi">{counts.campaigns}</div></div>
-            <div className="card"><p className="small">Test cells</p><div className="kpi">{counts.cells}</div></div>
-            <div className="card"><p className="small">Budget actions</p><div className="kpi">{counts.budgetActivities}</div></div>
-            <div className="card"><p className="small">Audit logs</p><div className="kpi">{counts.auditLogs}</div></div>
-          </div>
+          <>
+            <div className="grid grid-3">
+              <div className="card">
+                <p className="small">Active source</p>
+                <p className={`statusPill ${sourceState.activeMode === "imported" ? "live" : "progress"}`}>
+                  {sourceState.activeMode === "imported" ? "Imported" : "Sample"}
+                </p>
+                <h3 style={{ marginTop: 10 }}>{sourceState.activeLabel}</h3>
+                <p className="small">{sourceLabel(sourceState.activeSourceType)} · {sourceState.activeRows.toLocaleString()} source rows</p>
+              </div>
+              <div className="card">
+                <p className="small">Provider snapshots</p>
+                <div className="kpi">{sourceState.providerSnapshots}</div>
+                <p className="small">
+                  Latest sync: {sourceState.latestProviderSnapshotAt ? sourceState.latestProviderSnapshotAt.toLocaleString() : "None"}
+                </p>
+              </div>
+              <div className="card">
+                <p className="small">Next data action</p>
+                <h3>{sourceState.activeMode === "imported" ? "Review applied rows" : "Connect or apply data"}</h3>
+                <div className="ctaRow">
+                  <Link className="btn smallBtn primary" href="/acquisition/inputs">Open inputs</Link>
+                  <Link className="btn smallBtn" href="/acquisition/connections">Connections</Link>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-2" style={{ marginTop: 18 }}>
+              <div className="card"><p className="small">Campaigns</p><div className="kpi">{counts.campaigns}</div></div>
+              <div className="card"><p className="small">Test cells</p><div className="kpi">{counts.cells}</div></div>
+              <div className="card"><p className="small">Budget actions</p><div className="kpi">{counts.budgetActivities}</div></div>
+              <div className="card"><p className="small">Audit logs</p><div className="kpi">{counts.auditLogs}</div></div>
+            </div>
+          </>
         ) : (
           <div className="card">
             <p>Acquisition schema is not initialized yet.</p>
