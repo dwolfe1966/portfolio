@@ -12,6 +12,28 @@ type PageProps = {
   }>;
 };
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function sourceTypeLabel(sourceType: unknown) {
+  if (sourceType === "google_ads") return "Google Ads";
+  if (sourceType === "meta_ads") return "Meta Ads";
+  if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "csv") return "CSV";
+  return typeof sourceType === "string" && sourceType ? sourceType.replaceAll("_", " ") : "Manual/sample";
+}
+
+function campaignSourceLabel(campaign: { auditLogs: Array<{ metadata: unknown }> }) {
+  const metadata = metadataRecord(campaign.auditLogs[0]?.metadata);
+  const sourceType = metadata.sourceType;
+  const sourceName = typeof metadata.sourceName === "string" ? metadata.sourceName : "";
+  return {
+    label: sourceTypeLabel(sourceType),
+    detail: sourceName || "No imported dataset lineage"
+  };
+}
+
 export default async function AcquisitionCampaignsPage({ searchParams }: PageProps) {
   const query = await searchParams;
   const q = (query.q ?? "").trim();
@@ -26,7 +48,14 @@ export default async function AcquisitionCampaignsPage({ searchParams }: PagePro
         ...(stateFilter ? { state: stateFilter as "DRAFT" | "TESTING" | "SCALING" | "PAUSED" | "COMPLETED" } : {})
       },
       orderBy: [{ createdAt: "desc" }],
-      include: { _count: { select: { testCells: true, budgetActivities: true } } },
+      include: {
+        auditLogs: {
+          where: { action: "acquisition_dataset_applied" },
+          orderBy: { createdAt: "desc" },
+          take: 1
+        },
+        _count: { select: { testCells: true, budgetActivities: true } }
+      },
       take: 50
     });
 
@@ -69,18 +98,25 @@ export default async function AcquisitionCampaignsPage({ searchParams }: PagePro
             <div className="card"><p>No campaigns yet. Create your first campaign to begin simulation loops.</p></div>
           ) : (
             <table className="table">
-              <thead><tr><th>Name</th><th>State</th><th>Budget</th><th>Cells</th><th>Budget actions</th><th>Open</th></tr></thead>
+              <thead><tr><th>Name</th><th>Source</th><th>State</th><th>Budget</th><th>Cells</th><th>Budget actions</th><th>Open</th></tr></thead>
               <tbody>
-                {campaigns.map((campaign) => (
-                  <tr key={campaign.id}>
-                    <td>{campaign.name}</td>
-                    <td>{campaign.state}</td>
-                    <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
-                    <td>{campaign._count.testCells}</td>
-                    <td>{campaign._count.budgetActivities}</td>
-                    <td><Link href={`/acquisition/campaigns/${campaign.id}`} className="btn">View details</Link></td>
-                  </tr>
-                ))}
+                {campaigns.map((campaign) => {
+                  const source = campaignSourceLabel(campaign);
+                  return (
+                    <tr key={campaign.id}>
+                      <td>{campaign.name}</td>
+                      <td>
+                        {source.label}
+                        <p className="small">{source.detail}</p>
+                      </td>
+                      <td>{campaign.state}</td>
+                      <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
+                      <td>{campaign._count.testCells}</td>
+                      <td>{campaign._count.budgetActivities}</td>
+                      <td><Link href={`/acquisition/campaigns/${campaign.id}`} className="btn">View details</Link></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

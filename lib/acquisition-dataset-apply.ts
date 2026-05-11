@@ -66,6 +66,10 @@ function jsonValue(value: unknown) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
 function isAcquisitionSnapshotRows(value: unknown): value is AcquisitionSnapshotRows {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const normalized = (value as Record<string, unknown>).normalized;
@@ -105,6 +109,7 @@ export async function applyLoadedAcquisitionDatasetSnapshot(dataset: Acquisition
   }
 
   const normalized = dataset.rowData.normalized;
+  const datasetMetadata = metadataRecord(dataset.metadata);
   const applied = await db.$transaction(async (tx) => {
     await tx.acquisitionAuditLog.deleteMany();
     await tx.budgetActivity.deleteMany();
@@ -270,6 +275,11 @@ export async function applyLoadedAcquisitionDatasetSnapshot(dataset: Acquisition
             sourceType: dataset.sourceType,
             campaignName,
             rowCounts: dataset.rowCounts,
+            provider: datasetMetadata.provider ?? null,
+            externalAccountId: datasetMetadata.externalAccountId ?? null,
+            connectionId: datasetMetadata.connectionId ?? null,
+            syncedAt: datasetMetadata.syncedAt ?? null,
+            providerRowCounts: datasetMetadata.providerRowCounts ?? null,
             applied: { campaignsApplied, audiencesApplied, creativesApplied, performanceApplied }
           }
         }

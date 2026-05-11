@@ -16,6 +16,37 @@ export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ id: string }> };
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function sourceTypeLabel(sourceType: unknown) {
+  if (sourceType === "google_ads") return "Google Ads";
+  if (sourceType === "meta_ads") return "Meta Ads";
+  if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "csv") return "CSV";
+  return typeof sourceType === "string" && sourceType ? sourceType.replaceAll("_", " ") : "Manual/sample";
+}
+
+function formatDateTime(value: unknown) {
+  const date = typeof value === "string" || value instanceof Date ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : "Unknown";
+}
+
+function firstProviderAudience(audiences: Array<{ targetingJson: unknown }>) {
+  for (const audience of audiences) {
+    const targeting = metadataRecord(audience.targetingJson);
+    if (targeting.provider || targeting.externalCampaignId || targeting.externalAdGroupId) {
+      return {
+        provider: typeof targeting.provider === "string" ? targeting.provider : "",
+        externalCampaignId: typeof targeting.externalCampaignId === "string" ? targeting.externalCampaignId : "",
+        externalAdGroupId: typeof targeting.externalAdGroupId === "string" ? targeting.externalAdGroupId : ""
+      };
+    }
+  }
+  return { provider: "", externalCampaignId: "", externalAdGroupId: "" };
+}
+
 export default async function AcquisitionCampaignDetailPage({ params }: PageProps) {
   const { id } = await params;
 
@@ -61,6 +92,26 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
     const pendingApprovalCount = campaign.auditLogs.filter(
       (log) => log.action === "budget_shift_pending_approval"
     ).length;
+    const sourceLog = campaign.auditLogs.find((log) => log.action === "acquisition_dataset_applied");
+    const sourceMetadata = metadataRecord(sourceLog?.metadata);
+    const sourceDatasetId = typeof sourceMetadata.datasetId === "string" ? sourceMetadata.datasetId : "";
+    const sourceDataset = sourceDatasetId
+      ? await db.workspaceDataset.findUnique({
+          where: { id: sourceDatasetId },
+          select: { id: true, name: true, sourceType: true, metadata: true, createdAt: true }
+        })
+      : null;
+    const datasetMetadata = metadataRecord(sourceDataset?.metadata);
+    const providerAudience = firstProviderAudience(campaign.audiences);
+    const provider = sourceMetadata.provider ?? datasetMetadata.provider ?? providerAudience.provider;
+    const externalAccountId = sourceMetadata.externalAccountId ?? datasetMetadata.externalAccountId;
+    const connectionId = sourceMetadata.connectionId ?? datasetMetadata.connectionId;
+    const syncedAt = sourceMetadata.syncedAt ?? datasetMetadata.syncedAt ?? sourceDataset?.createdAt;
+    const externalCampaignId = providerAudience.externalCampaignId || (
+      typeof campaign.objective === "string" && campaign.objective.includes(" campaign ")
+        ? campaign.objective.split(" campaign ").at(-1) ?? ""
+        : ""
+    );
 
     const transitionHistory = campaign.auditLogs
       .filter((log) => log.action === "campaign_state_change")
@@ -94,6 +145,35 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
 
         <Section title="Campaign input editor">
           <AcquisitionCampaignEditor campaign={campaign} />
+        </Section>
+
+        <Section title="Source lineage">
+          <div className="grid grid-4">
+            <div className="card">
+              <p className="small">Source</p>
+              <div className="workspaceSettingValue">{sourceTypeLabel(sourceMetadata.sourceType ?? sourceDataset?.sourceType)}</div>
+              <p className="small">{typeof sourceMetadata.sourceName === "string" ? sourceMetadata.sourceName : sourceDataset?.name ?? "No imported dataset lineage"}</p>
+            </div>
+            <div className="card">
+              <p className="small">Provider campaign</p>
+              <div className="workspaceSettingValue">{externalCampaignId || "None"}</div>
+              <p className="small">{sourceTypeLabel(provider)}</p>
+            </div>
+            <div className="card">
+              <p className="small">Provider account</p>
+              <div className="workspaceSettingValue">{typeof externalAccountId === "string" && externalAccountId ? externalAccountId : "None"}</div>
+              <p className="small">Connection {typeof connectionId === "string" && connectionId ? connectionId.slice(0, 8) : "not linked"}</p>
+            </div>
+            <div className="card">
+              <p className="small">Applied</p>
+              <div className="workspaceSettingValue">{sourceLog ? formatDateTime(sourceLog.createdAt) : "Sample/manual"}</div>
+              <p className="small">Synced {formatDateTime(syncedAt)}</p>
+            </div>
+          </div>
+          <div className="ctaRow">
+            {sourceDataset ? <Link className="btn smallBtn" href={`/workspace/datasets/${sourceDataset.id}`}>Review dataset</Link> : null}
+            {typeof connectionId === "string" && connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${connectionId}`}>Open provider account</Link> : null}
+          </div>
         </Section>
 
         <Section title="Policy engine status">
