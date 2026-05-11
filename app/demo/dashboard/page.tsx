@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import type { ProviderCredentialGrant } from "@prisma/client";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
@@ -69,14 +70,43 @@ const toolReadiness = [
   }
 ];
 
+type ProviderConnection = Awaited<ReturnType<typeof db.adAccountConnection.findMany>>[number] & {
+  credentialGrant: ProviderCredentialGrant | null;
+};
+type ProviderDataset = {
+  id: string;
+  name: string;
+  sourceType: string;
+  rowCounts: unknown;
+  metadata: unknown;
+  createdAt: Date;
+};
+
 async function currentAccountUserId() {
   const cookieStore = await cookies();
   return verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
 }
 
 async function loadToolsetSummary(accountUserId: string | null) {
+  const ownedOrLegacy = {
+    OR: accountUserId
+      ? [{ accountUserId }, { accountUserId: null }]
+      : [{ accountUserId: null }]
+  };
+
   try {
-    const [workspace, sourceConfigs, imports, lifecycleRuns, datasetSnapshots, activeSelections, recentDatasets, datasetReadiness] = await Promise.all([
+    const [
+      workspace,
+      sourceConfigs,
+      imports,
+      lifecycleRuns,
+      datasetSnapshots,
+      activeSelections,
+      recentDatasets,
+      datasetReadiness,
+      providerConnections,
+      providerDatasets
+    ] = await Promise.all([
       db.workspace.findUnique({ where: { slug: "default-demo-workspace" } }),
       db.lifecycleMappingPreset.count({ where: { accountUserId } }),
       db.lifecycleImportLog.count({ where: { accountUserId } }),
@@ -101,10 +131,47 @@ async function loadToolsetSummary(accountUserId: string | null) {
           createdAt: true
         }
       }),
-      loadWorkspaceDatasetReadiness(accountUserId)
+      loadWorkspaceDatasetReadiness(accountUserId),
+      db.adAccountConnection.findMany({
+        where: {
+          provider: { in: ["google_ads", "meta_ads"] },
+          ...ownedOrLegacy
+        },
+        include: { credentialGrant: true },
+        orderBy: { createdAt: "desc" }
+      }),
+      db.workspaceDataset.findMany({
+        where: {
+          app: "acquisition",
+          sourceType: { in: ["google_ads", "meta_ads"] },
+          ...ownedOrLegacy
+        },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+        select: {
+          id: true,
+          name: true,
+          sourceType: true,
+          rowCounts: true,
+          metadata: true,
+          createdAt: true
+        }
+      })
     ]);
 
-    return { workspace, sourceConfigs, imports, lifecycleRuns, datasetSnapshots, activeSelections, recentDatasets, datasetReadiness, compatibilityMode: false };
+    return {
+      workspace,
+      sourceConfigs,
+      imports,
+      lifecycleRuns,
+      datasetSnapshots,
+      activeSelections,
+      recentDatasets,
+      datasetReadiness,
+      providerConnections,
+      providerDatasets,
+      compatibilityMode: false
+    };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
       return {
@@ -116,6 +183,8 @@ async function loadToolsetSummary(accountUserId: string | null) {
         activeSelections: [],
         recentDatasets: [],
         datasetReadiness: [],
+        providerConnections: [],
+        providerDatasets: [],
         compatibilityMode: true
       };
     }
@@ -142,19 +211,86 @@ function formatDate(value: Date) {
 
 function sourceTypeLabel(sourceType: string | null | undefined) {
   if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "google_ads") return "Google Ads";
+  if (sourceType === "meta_ads") return "Meta Ads";
   if (sourceType === "csv") return "CSV";
   if (sourceType === "sample") return "Sample";
   return sourceType ? sourceType.toUpperCase() : "Sample";
+}
+
+function providerLabel(provider: string) {
+  if (provider === "google_ads") return "Google Ads";
+  if (provider === "meta_ads") return "Meta Ads";
+  return sourceTypeLabel(provider);
 }
 
 function toolLabel(app: string) {
   return toolReadiness.find((tool) => tool.workflow.startsWith(`/${app}/`) || tool.simulate.startsWith(`/${app}/`))?.name ?? app;
 }
 
+function datasetConnectionId(dataset: ProviderDataset) {
+  const metadata = metadataRecord(dataset.metadata);
+  return typeof metadata.connectionId === "string" ? metadata.connectionId : null;
+}
+
+function formatDateOptional(value: Date | null | undefined) {
+  return value ? formatDate(value) : "Never";
+}
+
+function grantIsHealthy(grant: ProviderCredentialGrant | null) {
+  return Boolean(grant && grant.status === "active" && grant.tokenHealthStatus !== "expired");
+}
+
+function providerConnectionReadiness(connection: ProviderConnection, dataset: ProviderDataset | undefined) {
+  if (!connection.credentialGrant) {
+    return {
+      label: "Reconnect required",
+      tone: "progress",
+      detail: "Credential grant is missing."
+    };
+  }
+  if (!grantIsHealthy(connection.credentialGrant)) {
+    return {
+      label: "Token attention",
+      tone: "warning",
+      detail: "Stored grant needs attention before sync."
+    };
+  }
+  if (!connection.isTestAccount) {
+    return {
+      label: "Production access needed",
+      tone: "warning",
+      detail: "Provider API access is blocking this live account."
+    };
+  }
+  if (dataset) {
+    return {
+      label: "Dataset synced",
+      tone: "live",
+      detail: `${rowCountTotal(dataset.rowCounts).toLocaleString()} rows saved ${formatDate(dataset.createdAt)}.`
+    };
+  }
+  return {
+    label: "Ready to sync",
+    tone: "progress",
+    detail: "Open the account to materialize an acquisition dataset."
+  };
+}
+
 export default async function DemoDashboardPage() {
   const accountUserId = await currentAccountUserId();
   const summary = await loadToolsetSummary(accountUserId);
   const datasetSummary = summarizeDatasetReadiness(summary.datasetReadiness);
+  const providerDatasetByConnectionId = new Map<string, ProviderDataset>();
+  summary.providerDatasets.forEach((dataset) => {
+    const connectionId = datasetConnectionId(dataset);
+    if (connectionId && !providerDatasetByConnectionId.has(connectionId)) {
+      providerDatasetByConnectionId.set(connectionId, dataset);
+    }
+  });
+  const providerReadyCount = summary.providerConnections.filter((connection) => connection.isTestAccount && grantIsHealthy(connection.credentialGrant)).length;
+  const providerBlockedCount = summary.providerConnections.filter((connection) => !connection.isTestAccount || !grantIsHealthy(connection.credentialGrant)).length;
+  const providerSyncedCount = summary.providerConnections.filter((connection) => providerDatasetByConnectionId.has(connection.id)).length;
   const workspaceFlow = ["Connect source", "Import snapshot", "Choose source in tool", "Run and review"];
   const activeSelectionsByApp = new Map<string, (typeof summary.activeSelections)[number]>();
   summary.activeSelections.forEach((selection) => {
@@ -216,6 +352,61 @@ export default async function DemoDashboardPage() {
         </div>
         {summary.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable workspace persistence.</p>
+        ) : null}
+      </Section>
+
+      <Section title="Provider data readiness">
+        <div className="grid grid-4 workspaceCompactMetricGrid">
+          <div className="card workspaceCompactMetric"><p className="small">Connected accounts</p><div className="kpi">{summary.providerConnections.length.toLocaleString()}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Sync eligible</p><div className="kpi">{providerReadyCount.toLocaleString()}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Needs attention</p><div className="kpi">{providerBlockedCount.toLocaleString()}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Provider snapshots</p><div className="kpi">{summary.providerDatasets.length.toLocaleString()}</div></div>
+        </div>
+        {summary.providerConnections.length === 0 ? (
+          <div className="card" style={{ marginTop: 12 }}>
+            <p>No ad provider accounts are connected yet. Connect Google Ads or Meta Ads to start turning provider objects into acquisition datasets.</p>
+            <Link className="btn smallBtn primary" href="/acquisition/connections">Connect provider</Link>
+          </div>
+        ) : (
+          <div className="tableScroll" style={{ marginTop: 12 }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Provider account</th>
+                  <th>Status</th>
+                  <th>Last fetch</th>
+                  <th>Latest dataset</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.providerConnections.map((connection) => {
+                  const dataset = providerDatasetByConnectionId.get(connection.id);
+                  const readiness = providerConnectionReadiness(connection, dataset);
+                  return (
+                    <tr key={connection.id}>
+                      <td>
+                        <strong>{connection.accountName}</strong>
+                        <br />
+                        <span className="small">{providerLabel(connection.provider)} · {connection.externalAccountId}</span>
+                      </td>
+                      <td>
+                        <span className={`statusPill ${readiness.tone}`}>{readiness.label}</span>
+                        <br />
+                        <span className="small">{readiness.detail}</span>
+                      </td>
+                      <td>{formatDateOptional(connection.lastFetchedAt)}</td>
+                      <td>{dataset ? dataset.name : "None"}</td>
+                      <td><Link className="btn smallBtn" href={`/acquisition/connections/${connection.id}`}>Open</Link></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {providerSyncedCount > 0 ? (
+          <p className="small">{providerSyncedCount.toLocaleString()} connected account{providerSyncedCount === 1 ? "" : "s"} currently has a materialized acquisition dataset.</p>
         ) : null}
       </Section>
 
