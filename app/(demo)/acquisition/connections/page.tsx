@@ -22,6 +22,15 @@ type SearchParams = { error?: string; event?: string; connected?: string };
 type ConnectionWithGrant = Awaited<ReturnType<typeof db.adAccountConnection.findMany>>[number] & {
   credentialGrant: ProviderCredentialGrant | null;
 };
+type ProviderKey = "google_ads" | "meta_ads";
+type LatestDataset = {
+  id: string;
+  name: string;
+  sourceType: string;
+  rowCounts: unknown;
+  metadata: unknown;
+  createdAt: Date;
+};
 
 const CONNECTION_ERROR_COPY: Record<string, { message: string; href?: string; linkLabel?: string }> = {
   google_ads_api_disabled: {
@@ -47,6 +56,78 @@ function formatGrantHealth(grant: ProviderCredentialGrant | null) {
   return { tone: "healthy", label: `${grant.environment} grant` };
 }
 
+function providerConnections(provider: ProviderKey, connections: ConnectionWithGrant[]) {
+  return connections.filter((conn) => conn.provider === provider);
+}
+
+function providerReady(provider: ProviderKey, encryptionReady: boolean, googleReady: boolean, metaReady: boolean) {
+  return encryptionReady && (provider === "google_ads" ? googleReady : metaReady);
+}
+
+function providerDescription(provider: ProviderKey) {
+  if (provider === "google_ads") {
+    return "OAuth-backed Google Ads accounts for campaign, ad group, ad, and performance sync.";
+  }
+  return "OAuth-backed Meta Ads accounts for campaign, ad set, ad, and performance sync.";
+}
+
+function providerConnectHref(provider: ProviderKey) {
+  return provider === "google_ads" ? "/api/connections/google/start" : "/api/connections/meta/start";
+}
+
+function datasetConnectionId(dataset: LatestDataset) {
+  const metadata = dataset.metadata && typeof dataset.metadata === "object" && !Array.isArray(dataset.metadata)
+    ? dataset.metadata as Record<string, unknown>
+    : {};
+  return typeof metadata.connectionId === "string" ? metadata.connectionId : null;
+}
+
+function rowCountTotal(rowCounts: unknown) {
+  if (!rowCounts || typeof rowCounts !== "object" || Array.isArray(rowCounts)) return 0;
+  return Object.values(rowCounts).reduce((sum, value) => sum + (typeof value === "number" && Number.isFinite(value) ? value : 0), 0);
+}
+
+function formatDateTime(date: Date | null | undefined) {
+  return date ? new Date(date).toLocaleString() : "None";
+}
+
+function connectionReadiness(conn: ConnectionWithGrant, dataset: LatestDataset | undefined) {
+  const grantHealth = formatGrantHealth(conn.credentialGrant);
+  if (!conn.credentialGrant) {
+    return {
+      label: "Reconnect required",
+      tone: "progress",
+      detail: "Credential grant is missing. Reconnect this provider account before syncing."
+    };
+  }
+  if (grantHealth.tone === "unhealthy") {
+    return {
+      label: "Token attention",
+      tone: "warning",
+      detail: "The stored grant is not healthy. Reconnect before syncing or inspecting live data."
+    };
+  }
+  if (!conn.isTestAccount) {
+    return {
+      label: "Production access needed",
+      tone: "warning",
+      detail: "Connected, but sync is blocked until provider API production access allows this account."
+    };
+  }
+  if (dataset) {
+    return {
+      label: "Dataset synced",
+      tone: "live",
+      detail: `${rowCountTotal(dataset.rowCounts).toLocaleString()} rows saved ${formatDateTime(dataset.createdAt)}.`
+    };
+  }
+  return {
+    label: "Ready to sync",
+    tone: "progress",
+    detail: "Open this account to inspect provider objects and materialize an acquisition dataset."
+  };
+}
+
 export default async function ConnectionsPage({
   searchParams
 }: {
@@ -65,6 +146,7 @@ export default async function ConnectionsPage({
   };
 
   let connections: ConnectionWithGrant[] = [];
+  let latestDatasets: LatestDataset[] = [];
   let tableMissing = false;
 
   try {
@@ -72,6 +154,25 @@ export default async function ConnectionsPage({
       where: ownedOrLegacy,
       include: { credentialGrant: true },
       orderBy: { createdAt: "desc" }
+    });
+    latestDatasets = await db.workspaceDataset.findMany({
+      where: {
+        app: "acquisition",
+        sourceType: { in: ["google_ads", "meta_ads"] },
+        OR: accountUserId
+          ? [{ accountUserId }, { accountUserId: null }]
+          : [{ accountUserId: null }]
+      },
+      select: {
+        id: true,
+        name: true,
+        sourceType: true,
+        rowCounts: true,
+        metadata: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50
     });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
@@ -81,21 +182,28 @@ export default async function ConnectionsPage({
     }
   }
 
-  const googleConnections = connections.filter((conn) => conn.provider === "google_ads");
-  const metaConnections = connections.filter((conn) => conn.provider === "meta_ads");
+  const googleConnections = providerConnections("google_ads", connections);
+  const metaConnections = providerConnections("meta_ads", connections);
+  const datasetByConnectionId = new Map<string, LatestDataset>();
+  for (const dataset of latestDatasets) {
+    const connectionId = datasetConnectionId(dataset);
+    if (connectionId && !datasetByConnectionId.has(connectionId)) {
+      datasetByConnectionId.set(connectionId, dataset);
+    }
+  }
+  const syncedConnectionCount = connections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
+  const syncBlockedCount = connections.filter((conn) => !conn.isTestAccount || formatGrantHealth(conn.credentialGrant).tone === "unhealthy").length;
+  const providers: Array<{ key: ProviderKey; label: string; ready: boolean; connections: ConnectionWithGrant[] }> = [
+    { key: "google_ads", label: "Google Ads", ready: providerReady("google_ads", encryptionReady, googleReady, metaReady), connections: googleConnections },
+    { key: "meta_ads", label: "Meta Ads", ready: providerReady("meta_ads", encryptionReady, googleReady, metaReady), connections: metaConnections }
+  ];
 
   return (
     <>
       <Section eyebrow="Operations" title="Connections">
         <p>
-          OAuth-backed connections to real ad platforms. Scope is{" "}
-          <strong>read-only against test accounts</strong>. The acquisition
-          simulation continues to drive the demo loop; connected accounts
-          surface live remote data alongside the simulation. See{" "}
-          <a href="/docs/ad-connector-setup.md">
-            <code className="small">docs/ad-connector-setup.md</code>
-          </a>{" "}
-          for setup steps.
+          Manage ad-platform accounts, credential health, dataset sync readiness,
+          and the handoff from provider data into acquisition inputs.
         </p>
 
         {params.connected ? (
@@ -126,6 +234,27 @@ export default async function ConnectionsPage({
             </p>
           </div>
         ) : null}
+      </Section>
+
+      <Section title="Provider control center">
+        <div className="grid grid-4">
+          <div className="card compact">
+            <p className="small">Connected accounts</p>
+            <div className="kpi">{connections.length}</div>
+          </div>
+          <div className="card compact">
+            <p className="small">Synced datasets</p>
+            <div className="kpi">{syncedConnectionCount}</div>
+          </div>
+          <div className="card compact">
+            <p className="small">Needs attention</p>
+            <div className="kpi">{syncBlockedCount}</div>
+          </div>
+          <div className="card compact">
+            <p className="small">Configured providers</p>
+            <div className="kpi">{providers.filter((provider) => provider.ready).length}/2</div>
+          </div>
+        </div>
       </Section>
 
       <Section title="Configuration status">
@@ -162,75 +291,62 @@ export default async function ConnectionsPage({
 
       <Section title="Connect a provider">
         <div className="grid grid-2">
-          <div className="card">
-            <h3>Google Ads</h3>
-            <p className="small">
-              Read-only access to your test customer accounts. After consenting,
-              the demo will list accessible customers and store one connection
-              row per customer.
-            </p>
-            {googleConnections.length > 0 ? (
-              <>
-                <p className="small bandText--healthy">
-                  {googleConnections.length} Google Ads account{googleConnections.length === 1 ? "" : "s"} connected.
-                </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  <Link className="btn primary" href={`/acquisition/connections/${googleConnections[0].id}`}>
-                    Review Google Ads accounts
-                  </Link>
-                  {/* OAuth start is a regular HTTP redirect; keep prefetch out of the flow. */}
-                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-                  <a className="btn" href="/api/connections/google/start" rel="external">
-                    Reconnect Google Ads
-                  </a>
+          {providers.map((provider) => {
+            const latestConnection = provider.connections[0];
+            const providerSynced = provider.connections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
+            const providerBlocked = provider.connections.filter((conn) => !conn.isTestAccount || formatGrantHealth(conn.credentialGrant).tone === "unhealthy").length;
+            return (
+              <div className="card" key={provider.key}>
+                <div className="statusPillStack" style={{ alignItems: "flex-start" }}>
+                  <span className={`statusPill ${provider.ready ? "live" : "progress"}`}>
+                    {provider.ready ? "configured" : "setup needed"}
+                  </span>
+                  {provider.connections.length > 0 ? (
+                    <span className={`statusPill ${providerBlocked > 0 ? "warning" : "live"}`}>
+                      {providerBlocked > 0 ? `${providerBlocked} blocked` : "sync eligible"}
+                    </span>
+                  ) : null}
                 </div>
-              </>
-            ) : encryptionReady && googleReady ? (
-              // OAuth start is a regular HTTP redirect; we don't want Link prefetch
-              // because that would trigger the state cookie + redirect prematurely.
-              // eslint-disable-next-line @next/next/no-html-link-for-pages
-              <a className="btn primary" href="/api/connections/google/start" rel="external">
-                Connect Google Ads
-              </a>
-            ) : (
-              <p className="small bandText--watch">
-                Configuration incomplete. Resolve the items above to enable connection.
-              </p>
-            )}
-          </div>
-          <div className="card">
-            <h3>Meta Ads</h3>
-            <p className="small">
-              Read-only access to your Meta test ad accounts. The detail page
-              uses the same campaign, ad set, ad, and performance inspection
-              workflow as Google Ads.
-            </p>
-            {metaConnections.length > 0 ? (
-              <>
-                <p className="small bandText--healthy">
-                  {metaConnections.length} Meta Ads account{metaConnections.length === 1 ? "" : "s"} connected.
-                </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  <Link className="btn primary" href={`/acquisition/connections/${metaConnections[0].id}`}>
-                    Review Meta Ads accounts
-                  </Link>
-                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-                  <a className="btn" href="/api/connections/meta/start" rel="external">
-                    Reconnect Meta Ads
-                  </a>
+                <h3 style={{ marginTop: 12 }}>{provider.label}</h3>
+                <p className="small">{providerDescription(provider.key)}</p>
+                <div className="grid grid-3" style={{ gap: 10, marginTop: 12 }}>
+                  <div>
+                    <p className="small">Accounts</p>
+                    <strong>{provider.connections.length}</strong>
+                  </div>
+                  <div>
+                    <p className="small">Datasets</p>
+                    <strong>{providerSynced}</strong>
+                  </div>
+                  <div>
+                    <p className="small">Last fetch</p>
+                    <strong>{formatDateTime(latestConnection?.lastFetchedAt).split(",")[0]}</strong>
+                  </div>
                 </div>
-              </>
-            ) : encryptionReady && metaReady ? (
-              // eslint-disable-next-line @next/next/no-html-link-for-pages
-              <a className="btn primary" href="/api/connections/meta/start" rel="external">
-                Connect Meta Ads
-              </a>
-            ) : (
-              <p className="small bandText--watch">
-                Configuration incomplete. Resolve the items above to enable connection.
-              </p>
-            )}
-          </div>
+                <div className="ctaRow">
+                  {latestConnection ? (
+                    <Link className="btn primary" href={`/acquisition/connections/${latestConnection.id}`}>
+                      Review accounts
+                    </Link>
+                  ) : provider.ready ? (
+                    // OAuth start is a regular HTTP redirect; keep prefetch out of the flow.
+                    // eslint-disable-next-line @next/next/no-html-link-for-pages
+                    <a className="btn primary" href={providerConnectHref(provider.key)} rel="external">
+                      Connect {provider.label}
+                    </a>
+                  ) : (
+                    <span className="small bandText--watch">Resolve configuration before connecting.</span>
+                  )}
+                  {provider.ready ? (
+                    // eslint-disable-next-line @next/next/no-html-link-for-pages
+                    <a className="btn" href={providerConnectHref(provider.key)} rel="external">
+                      {latestConnection ? "Reconnect" : "Start OAuth"}
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </Section>
 
@@ -250,16 +366,18 @@ export default async function ConnectionsPage({
                 <th>Provider</th>
                 <th>Account</th>
                 <th>Test</th>
-                <th>Grant</th>
+                <th>Sync readiness</th>
+                <th>Latest dataset</th>
                 <th>Scopes</th>
-                <th>Connected</th>
-                <th>Last fetch</th>
+                <th>Token</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {connections.map((conn) => {
                 const grantHealth = formatGrantHealth(conn.credentialGrant);
+                const latestDataset = datasetByConnectionId.get(conn.id);
+                const readiness = connectionReadiness(conn, latestDataset);
                 return (
                   <tr key={conn.id}>
                     <td>{PROVIDER_LABEL[conn.provider] ?? conn.provider}</td>
@@ -275,13 +393,19 @@ export default async function ConnectionsPage({
                       </span>
                     </td>
                     <td>
-                      <span className={`small bandText--${grantHealth.tone}`}>{grantHealth.label}</span>
-                      {conn.credentialGrant ? (
-                        <div className="small">
-                          {conn.credentialGrant.capabilities.length} capabilities · {conn.credentialGrant.tokenHealthStatus}
-                        </div>
+                      <span className={`statusPill ${readiness.tone}`}>{readiness.label}</span>
+                      <div className="small">{readiness.detail}</div>
+                    </td>
+                    <td>
+                      {latestDataset ? (
+                        <>
+                          <Link href={`/workspace/datasets/${latestDataset.id}`}>
+                            {latestDataset.name}
+                          </Link>
+                          <div className="small">{rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows</div>
+                        </>
                       ) : (
-                        <div className="small">Reconnect to create a grant.</div>
+                        <span className="small">No dataset snapshot yet.</span>
                       )}
                     </td>
                     <td>
@@ -291,11 +415,18 @@ export default async function ConnectionsPage({
                         <span className="small">—</span>
                       )}
                     </td>
-                    <td>{new Date(conn.createdAt).toLocaleDateString()}</td>
                     <td>
-                      {conn.lastFetchedAt ? new Date(conn.lastFetchedAt).toLocaleString() : "—"}
+                      <span className={`small bandText--${grantHealth.tone}`}>{grantHealth.label}</span>
+                      {conn.credentialGrant ? (
+                        <div className="small">
+                          {conn.credentialGrant.capabilities.length} capabilities · expires {formatDateTime(conn.expiresAt)}
+                        </div>
+                      ) : (
+                        <div className="small">Reconnect to create a grant.</div>
+                      )}
                     </td>
                     <td>
+                      <Link className="btn smallBtn" href={`/acquisition/connections/${conn.id}`}>Open</Link>
                       <ConnectionDisconnectButton
                         id={conn.id}
                         label={`${PROVIDER_LABEL[conn.provider] ?? conn.provider} ${conn.externalAccountId}`}
@@ -311,10 +442,9 @@ export default async function ConnectionsPage({
 
       <Section title="What's next">
         <p>
-          Google Ads and Meta Ads connections now support live read-only campaign,
-          child group, ad, and recent performance inspection for test accounts.
-          Next, selected provider IDs should flow directly into approval and dry-run payloads.
-          See <Link href="/acquisition/audit">audit feed</Link> for the full activity log.
+          Open an eligible account to inspect provider objects and sync a workspace dataset.
+          Synced snapshots appear in <Link href="/workspace/datasets?tool=acquisition#imported-snapshots">workspace datasets</Link>,
+          then can be applied from acquisition inputs. See <Link href="/acquisition/audit">audit feed</Link> for the full activity log.
         </p>
       </Section>
     </>
