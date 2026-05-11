@@ -40,6 +40,27 @@ function sourceLabel(value: string | null | undefined) {
   return value.replaceAll("_", " ");
 }
 
+function datasetConnectionId(metadata: unknown) {
+  const record = metadataRecord(metadata);
+  return typeof record.connectionId === "string" ? record.connectionId : null;
+}
+
+function providerSnapshotDetail(snapshot: {
+  sourceType: string;
+  rowCounts: unknown;
+  metadata: unknown;
+  createdAt: Date;
+}) {
+  const connectionId = datasetConnectionId(snapshot.metadata);
+  const parts = [
+    sourceLabel(snapshot.sourceType),
+    `${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows`,
+    formatDate(snapshot.createdAt),
+    connectionId ? `connection ${connectionId.slice(0, 8)}` : null
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
 export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: AcquisitionWorkspaceDatasetPanelProps) {
   try {
     const cookieStore = await cookies();
@@ -68,16 +89,26 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
       db.adCreative.count(),
       db.adPerformance.count()
     ]);
+    const activeMode = resolveActiveDataSourceMode(session?.userId, activeSelection?.mode);
+    const activeDataset = activeSelection?.datasetId
+      ? snapshots.find((snapshot) => snapshot.id === activeSelection.datasetId)
+      : null;
+    const providerSnapshots = snapshots.filter((snapshot) => snapshot.sourceType === "google_ads" || snapshot.sourceType === "meta_ads");
+    const activeSourceLabel = activeMode === "imported"
+      ? `${activeSelection?.label ?? activeDataset?.name ?? "Imported dataset"}${activeSelection?.sourceType ? ` · ${sourceLabel(activeSelection.sourceType)}` : ""}`
+      : "Acquisition sample data";
 
     return (
       <div className={`card lifecycleDatasetPanel ${compact ? "lifecycleDatasetPanel--compact" : ""}`}>
         <div>
           <p className="editorKicker">Acquisition app data</p>
-          <h3>Self-contained sample data is ready</h3>
+          <h3>{activeMode === "imported" ? "Imported acquisition data is active" : "Self-contained sample data is ready"}</h3>
           <p>
-            {snapshots.length > 0
-              ? "Account-owned imported datasets are available, but this app remains usable as a standalone tool with the current app data below."
-              : "Acquisition can run immediately with campaign briefs, audiences, creatives, and simulated performance data."}
+            {activeMode === "imported"
+              ? "The acquisition tables are currently populated from a workspace dataset snapshot."
+              : snapshots.length > 0
+                ? "Imported datasets are available. Apply one below to replace the sample app rows."
+                : "Acquisition can run immediately with campaign briefs, audiences, creatives, and simulated performance data."}
           </p>
         </div>
         <div className="lifecycleDatasetStats">
@@ -87,16 +118,35 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
           <div><span>Performance</span><strong>{performance.toLocaleString()}</strong></div>
         </div>
         <div className="lifecycleDatasetMeta">
-          <p><strong>Active source:</strong> {session ? "current acquisition app tables. Apply an imported dataset below to replace them, or reset to sample data." : "current acquisition sample app tables. Sign in to apply imported workspace data."}</p>
-          <p><strong>App data:</strong> current acquisition database rows</p>
+          <p><strong>Active source:</strong> {session ? activeSourceLabel : "current acquisition sample app tables. Sign in to apply imported workspace data."}</p>
+          <p><strong>Current table rows:</strong> {campaigns.toLocaleString()} campaigns, {audiences.toLocaleString()} audiences, {creatives.toLocaleString()} creatives, {performance.toLocaleString()} performance rows</p>
           <p><strong>Available imported datasets:</strong> {snapshots.length.toLocaleString()}</p>
+          <p><strong>Provider snapshots:</strong> {providerSnapshots.length.toLocaleString()}</p>
           <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
         </div>
+        {providerSnapshots.length > 0 ? (
+          <div className="grid grid-3" style={{ marginTop: 12 }}>
+            {providerSnapshots.slice(0, 3).map((snapshot) => {
+              const isActive = activeSelection?.datasetId === snapshot.id;
+              const visibility = workspaceVisibilityLabel(snapshot.accountUserId, session?.userId);
+              return (
+                <div className="card compact" key={snapshot.id}>
+                  <p className={`statusPill ${isActive ? "live" : "progress"}`}>
+                    {isActive ? "active" : sourceLabel(snapshot.sourceType)}
+                  </p>
+                  <h3 style={{ marginTop: 10 }}>{snapshot.name}</h3>
+                  <p className="small">{providerSnapshotDetail(snapshot)}</p>
+                  <p className="small">{visibility.label}</p>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
         <ToolDataSourceSelector
           appLabel="Acquisition"
           scope="acquisition"
-          activeMode={resolveActiveDataSourceMode(session?.userId, activeSelection?.mode)}
-          activeLabel={activeSelection?.label ?? "Acquisition sample data"}
+          activeMode={activeMode}
+          activeLabel={activeSourceLabel}
           activeDatasetId={activeSelection?.datasetId}
           stats={[
             { label: "Campaigns", value: campaigns },
