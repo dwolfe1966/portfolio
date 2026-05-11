@@ -4,6 +4,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Campaign = { id: string; name: string; state: string };
 
+type SourceLineage = {
+  label: string;
+  sourceName: string;
+  provider?: string;
+  datasetId?: string;
+  connectionId?: string;
+  externalAccountId?: string;
+  appliedAt?: string | null;
+};
+
 type InsightSummary = {
   totalCells: number;
   impressions: number;
@@ -68,6 +78,7 @@ export function AcquisitionInsightsPanel() {
   const [creativeTrends, setCreativeTrends] = useState<TrendRow[]>([]);
   const [audienceTrends, setAudienceTrends] = useState<TrendRow[]>([]);
   const [budgetTimeline, setBudgetTimeline] = useState<BudgetTimelineItem[]>([]);
+  const [source, setSource] = useState<SourceLineage | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -84,6 +95,7 @@ export function AcquisitionInsightsPanel() {
         setCreativeTrends([]);
         setAudienceTrends([]);
         setBudgetTimeline([]);
+        setSource(null);
         return;
       }
       if (json.compatibilityMode) {
@@ -96,6 +108,7 @@ export function AcquisitionInsightsPanel() {
       setCreativeTrends(json.creativeTrends ?? []);
       setAudienceTrends(json.audienceTrends ?? []);
       setBudgetTimeline(json.budgetTimeline ?? []);
+      setSource(json.source ?? null);
     } catch {
       setMessage("Network error while loading insights.");
       setSummary(null);
@@ -103,6 +116,7 @@ export function AcquisitionInsightsPanel() {
       setCreativeTrends([]);
       setAudienceTrends([]);
       setBudgetTimeline([]);
+      setSource(null);
     } finally {
       setLoading(false);
     }
@@ -167,6 +181,25 @@ export function AcquisitionInsightsPanel() {
 
       {summary && (
         <>
+          {source ? (
+            <div className="grid grid-3" style={{ marginTop: 12 }}>
+              <div className="card">
+                <p className="small">Insight source</p>
+                <div className="workspaceSettingValue">{source.label}</div>
+                <p className="small">{source.sourceName}</p>
+              </div>
+              <div className="card">
+                <p className="small">Provider account</p>
+                <div className="workspaceSettingValue">{source.externalAccountId || "None"}</div>
+                <p className="small">{source.connectionId ? `Connection ${source.connectionId.slice(0, 8)}` : "No linked provider account"}</p>
+              </div>
+              <div className="card">
+                <p className="small">Applied</p>
+                <div className="workspaceSettingValue">{source.appliedAt ? new Date(source.appliedAt).toLocaleString() : "Sample/manual"}</div>
+                <p className="small">{source.datasetId ? `Dataset ${source.datasetId.slice(0, 8)}` : "No dataset reference"}</p>
+              </div>
+            </div>
+          ) : null}
           <div className="grid grid-3" style={{ marginTop: 12 }}>
             <div className="card"><div className="kpi">{summary.totalCells}</div><p>Test cells</p></div>
             <div className="card"><div className="kpi">{summary.conversions}</div><p>Conversions</p></div>

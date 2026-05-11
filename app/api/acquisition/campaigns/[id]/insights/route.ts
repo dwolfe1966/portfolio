@@ -3,6 +3,37 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { createEventId, logApiEvent } from "@/lib/logging";
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function sourceTypeLabel(sourceType: unknown) {
+  if (sourceType === "google_ads") return "Google Ads";
+  if (sourceType === "meta_ads") return "Meta Ads";
+  if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "csv") return "CSV";
+  return typeof sourceType === "string" && sourceType ? sourceType.replaceAll("_", " ") : "Manual/sample";
+}
+
+function campaignSource(auditLogs: Array<{ action: string; metadata: unknown; createdAt: Date }>) {
+  const log = auditLogs.find((item) => item.action === "acquisition_dataset_applied") ?? null;
+  const metadata = metadataRecord(log?.metadata);
+  const sourceName = typeof metadata.sourceName === "string" ? metadata.sourceName : "";
+  const datasetId = typeof metadata.datasetId === "string" ? metadata.datasetId : "";
+  const connectionId = typeof metadata.connectionId === "string" ? metadata.connectionId : "";
+  const externalAccountId = typeof metadata.externalAccountId === "string" ? metadata.externalAccountId : "";
+  const provider = typeof metadata.provider === "string" ? metadata.provider : "";
+  return {
+    label: sourceTypeLabel(metadata.sourceType),
+    sourceName: sourceName || "No imported dataset lineage",
+    provider: provider || (metadata.sourceType === "google_ads" || metadata.sourceType === "meta_ads" ? String(metadata.sourceType) : ""),
+    datasetId,
+    connectionId,
+    externalAccountId,
+    appliedAt: log?.createdAt.toISOString() ?? null
+  };
+}
+
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const eventId = createEventId("acq_insights");
   const { id } = await params;
@@ -123,6 +154,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
     return apiOk({
       campaign,
+      source: campaignSource(logs),
       summary: {
         totalCells: cells.length,
         impressions,
