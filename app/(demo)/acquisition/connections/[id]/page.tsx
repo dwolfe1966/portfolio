@@ -33,6 +33,12 @@ type ProviderLiveData = {
   ads: RemoteAdUnit[];
   error: string | null;
 };
+type LatestDataset = {
+  id: string;
+  name: string;
+  rowCounts: unknown;
+  createdAt: Date;
+};
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -143,6 +149,98 @@ function preflightTone(severity: string) {
   return "unhealthy";
 }
 
+function rowCountTotal(rowCounts: unknown) {
+  if (!rowCounts || typeof rowCounts !== "object" || Array.isArray(rowCounts)) return 0;
+  return Object.values(rowCounts).reduce((sum, value) => sum + (typeof value === "number" && Number.isFinite(value) ? value : 0), 0);
+}
+
+function formatDateTime(date: Date | null | undefined) {
+  return date ? new Date(date).toLocaleString() : "None";
+}
+
+function tokenStatus(connection: {
+  credentialGrant: { status: string; tokenHealthStatus: string } | null;
+  expiresAt: Date | null;
+}) {
+  if (!connection.credentialGrant) {
+    return {
+      label: "Reconnect required",
+      tone: "progress",
+      detail: "Credential grant is missing for this connection."
+    };
+  }
+  if (connection.credentialGrant.status !== "active") {
+    return {
+      label: "Grant inactive",
+      tone: "warning",
+      detail: `Grant status is ${connection.credentialGrant.status}.`
+    };
+  }
+  if (connection.credentialGrant.tokenHealthStatus === "expired") {
+    return {
+      label: "Token expired",
+      tone: "warning",
+      detail: "Reconnect this provider account before syncing."
+    };
+  }
+  const expiresAt = connection.expiresAt?.getTime() ?? 0;
+  if (expiresAt > 0 && expiresAt <= Date.now()) {
+    return {
+      label: "Token expired",
+      tone: "warning",
+      detail: "Reconnect this provider account before syncing."
+    };
+  }
+  return {
+    label: "Token healthy",
+    tone: "live",
+    detail: `Access token expires ${formatDateTime(connection.expiresAt)}.`
+  };
+}
+
+function syncStatus({
+  connection,
+  live,
+  latestDataset
+}: {
+  connection: {
+    isTestAccount: boolean;
+    credentialGrant: { status: string; tokenHealthStatus: string } | null;
+    expiresAt: Date | null;
+  };
+  live: ProviderLiveData | null;
+  latestDataset: LatestDataset | null;
+}) {
+  const token = tokenStatus(connection);
+  if (token.tone === "warning" || token.label === "Reconnect required") return token;
+  if (!connection.isTestAccount) {
+    return {
+      label: "Production access needed",
+      tone: "warning",
+      detail: "This account is connected, but provider API production access is required before the app can read and sync it."
+    };
+  }
+  if (live?.error) {
+    return {
+      label: "Live read blocked",
+      tone: "warning",
+      detail: live.error
+    };
+  }
+  if (latestDataset) {
+    return {
+      label: "Dataset synced",
+      tone: "live",
+      detail: `${rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows saved ${formatDateTime(latestDataset.createdAt)}.`
+    };
+  }
+  return {
+    label: "Ready to sync",
+    tone: "progress",
+    detail: "Provider objects can be materialized as an acquisition dataset snapshot."
+  };
+}
+
 function syncErrorCopy(error: string | undefined, provider: string) {
   if (error === "permission_denied" && provider === "google_ads") {
     return "Google Ads denied this account read. If this customer is under a manager account, set GOOGLE_ADS_LOGIN_CUSTOMER_ID to the manager customer id, restart localhost, then retry. Otherwise try another connected customer.";
@@ -189,9 +287,33 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
   const isLiveProvider = connection.provider === "google_ads" || connection.provider === "meta_ads";
   const childGroupLabel = connection.provider === "meta_ads" ? "Ad sets" : "Ad groups";
   const childGroupSingular = connection.provider === "meta_ads" ? "ad set" : "ad group";
+  const latestDataset = isLiveProvider
+    ? await db.workspaceDataset.findFirst({
+        where: {
+          app: "acquisition",
+          sourceType: connection.provider,
+          OR: accountUserId
+            ? [{ accountUserId }, { accountUserId: null }]
+            : [{ accountUserId: null }],
+          metadata: {
+            path: ["connectionId"],
+            equals: connection.id
+          }
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          rowCounts: true,
+          createdAt: true
+        }
+      })
+    : null;
   const live = isLiveProvider
     ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId)
     : null;
+  const syncState = syncStatus({ connection, live, latestDataset });
+  const syncReady = isLiveProvider && syncState.label !== "Production access needed" && syncState.label !== "Live read blocked" && syncState.label !== "Token expired" && syncState.label !== "Grant inactive" && syncState.label !== "Reconnect required";
   const selectedAdGroupId = live?.adGroups.some((group) => group.externalAdGroupId === selected.adGroupId)
     ? selected.adGroupId
     : null;
@@ -251,11 +373,10 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
             </p>
           </div>
           <div className="card">
-            <h3>Access token expiry</h3>
-            <p className="small">
-              {connection.expiresAt ? new Date(connection.expiresAt).toLocaleString() : "—"}
-            </p>
-            <p className="small">
+            <h3>Token health</h3>
+            <p className={`statusPill ${tokenStatus(connection).tone}`}>{tokenStatus(connection).label}</p>
+            <p className="small">{tokenStatus(connection).detail}</p>
+            <p className="small" style={{ marginTop: 8 }}>
               {connection.encryptedRefreshToken ? "Refresh token stored." : "No refresh token — reconnect on expiry."}
             </p>
           </div>
@@ -265,15 +386,40 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
       {isLiveProvider ? (
         <Section title="Workspace dataset sync">
           <div className="card">
-            <h3>Materialize this provider account</h3>
-            <p className="small">
-              Fetch campaigns, {childGroupLabel.toLowerCase()}, ads, and recent performance from this connection,
-              then save them as an acquisition dataset snapshot that can be applied from Inputs.
-            </p>
-            <form action={syncProviderConnectionDatasetAction}>
-              <input type="hidden" name="connectionId" value={connection.id} />
-              <button className="btn primary" type="submit">Sync to acquisition dataset</button>
-            </form>
+            <div className="grid grid-2">
+              <div>
+                <p className={`statusPill ${syncState.tone}`}>{syncState.label}</p>
+                <h3 style={{ marginTop: 12 }}>Materialize this provider account</h3>
+                <p className="small">
+                  Fetch campaigns, {childGroupLabel.toLowerCase()}, ads, and recent performance from this connection,
+                  then save them as an acquisition dataset snapshot that can be applied from Inputs.
+                </p>
+                <form action={syncProviderConnectionDatasetAction}>
+                  <input type="hidden" name="connectionId" value={connection.id} />
+                  <button className="btn primary" type="submit" disabled={!syncReady}>Sync to acquisition dataset</button>
+                </form>
+                {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}
+              </div>
+              <div>
+                <h3>Latest dataset</h3>
+                {latestDataset ? (
+                  <>
+                    <p>
+                      <Link href={`/workspace/datasets/${latestDataset.id}`}>{latestDataset.name}</Link>
+                    </p>
+                    <p className="small">
+                      {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows · {formatDateTime(latestDataset.createdAt)}
+                    </p>
+                    <div className="ctaRow">
+                      <Link className="btn smallBtn primary" href="/acquisition/inputs?imported=1">Open acquisition inputs</Link>
+                      <Link className="btn smallBtn" href={`/workspace/datasets/${latestDataset.id}`}>Review dataset</Link>
+                    </div>
+                  </>
+                ) : (
+                  <p className="small">No acquisition dataset has been synced from this provider account yet.</p>
+                )}
+              </div>
+            </div>
             {selected.syncError ? (
               <p className="small bandText--unhealthy">{syncErrorCopy(selected.syncError, connection.provider)}</p>
             ) : null}
