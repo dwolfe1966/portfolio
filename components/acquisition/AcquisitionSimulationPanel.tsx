@@ -7,6 +7,13 @@ type Campaign = {
   name: string;
   state: string;
   createdAt: string;
+  source?: {
+    label: string;
+    sourceName: string;
+    datasetId?: string;
+    connectionId?: string;
+    externalAccountId?: string;
+  };
   _count?: { testCells: number; budgetActivities: number };
 };
 
@@ -336,6 +343,7 @@ export function AcquisitionSimulationPanel() {
   }, [monteCarloRevenues]);
 
   const maxBucket = Math.max(...revenueBuckets, 1);
+  const selectedCampaign = campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
 
   const monteCarloSummary = useMemo(() => {
     if (monteCarloRevenues.length === 0) return null;
@@ -368,11 +376,15 @@ export function AcquisitionSimulationPanel() {
       ) : (
         <>
           <table className="table" style={{ marginTop: 10 }}>
-            <thead><tr><th>Campaign</th><th>State</th><th>Created</th><th>Cells</th><th>Budget actions</th><th>Action</th></tr></thead>
+            <thead><tr><th>Campaign</th><th>Source</th><th>State</th><th>Created</th><th>Cells</th><th>Budget actions</th><th>Action</th></tr></thead>
             <tbody>
               {campaigns.map((campaign) => (
                 <tr key={campaign.id}>
                   <td>{campaign.name}</td>
+                  <td>
+                    {campaign.source?.label ?? "Manual/sample"}
+                    <p className="small">{campaign.source?.sourceName ?? "No imported dataset lineage"}</p>
+                  </td>
                   <td>{campaign.state}</td>
                   <td>{new Date(campaign.createdAt).toLocaleString()}</td>
                   <td>{campaign._count?.testCells ?? "—"}</td>
@@ -390,10 +402,29 @@ export function AcquisitionSimulationPanel() {
               Campaign
               <select value={selectedCampaignId} onChange={(e) => setSelectedCampaignId(e.target.value)}>
                 {campaigns.map((campaign) => (
-                  <option key={campaign.id} value={campaign.id}>{campaign.name}</option>
+                  <option key={campaign.id} value={campaign.id}>{campaign.name} · {campaign.source?.label ?? "Manual/sample"}</option>
                 ))}
               </select>
             </label>
+            {selectedCampaign?.source ? (
+              <div className="grid grid-3" style={{ marginTop: 10 }}>
+                <div className="card">
+                  <p className="small">Selected source</p>
+                  <div className="workspaceSettingValue">{selectedCampaign.source.label}</div>
+                  <p className="small">{selectedCampaign.source.sourceName}</p>
+                </div>
+                <div className="card">
+                  <p className="small">Provider account</p>
+                  <div className="workspaceSettingValue">{selectedCampaign.source.externalAccountId || "None"}</div>
+                  <p className="small">{selectedCampaign.source.connectionId ? `Connection ${selectedCampaign.source.connectionId.slice(0, 8)}` : "No linked provider account"}</p>
+                </div>
+                <div className="card">
+                  <p className="small">Dataset</p>
+                  <div className="workspaceSettingValue">{selectedCampaign.source.datasetId ? selectedCampaign.source.datasetId.slice(0, 8) : "None"}</div>
+                  <p className="small">Simulation uses the currently populated acquisition tables.</p>
+                </div>
+              </div>
+            ) : null}
 
             {performanceSeries.length === 0 ? (
               <p className="small" style={{ marginTop: 10 }}>No performance points yet. Run an iteration to generate chart data.</p>

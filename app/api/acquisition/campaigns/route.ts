@@ -6,6 +6,35 @@ import { apiCompatibilityError, apiError, apiOk, apiUnhandledError } from "@/lib
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function sourceTypeLabel(sourceType: unknown) {
+  if (sourceType === "google_ads") return "Google Ads";
+  if (sourceType === "meta_ads") return "Meta Ads";
+  if (sourceType === "google_sheets") return "Google Sheets";
+  if (sourceType === "csv") return "CSV";
+  return typeof sourceType === "string" && sourceType ? sourceType.replaceAll("_", " ") : "Manual/sample";
+}
+
+function campaignSource(auditLogs: Array<{ metadata: unknown; createdAt: Date }>) {
+  const log = auditLogs[0] ?? null;
+  const metadata = metadataRecord(log?.metadata);
+  const sourceName = typeof metadata.sourceName === "string" ? metadata.sourceName : "";
+  const datasetId = typeof metadata.datasetId === "string" ? metadata.datasetId : "";
+  const connectionId = typeof metadata.connectionId === "string" ? metadata.connectionId : "";
+  const externalAccountId = typeof metadata.externalAccountId === "string" ? metadata.externalAccountId : "";
+  return {
+    label: sourceTypeLabel(metadata.sourceType),
+    sourceName: sourceName || "No imported dataset lineage",
+    datasetId,
+    connectionId,
+    externalAccountId,
+    appliedAt: log?.createdAt.toISOString() ?? null
+  };
+}
+
 export async function GET() {
   const eventId = createEventId("acq_campaigns_get");
 
@@ -13,13 +42,24 @@ export async function GET() {
     const campaigns = await db.acquisitionCampaign.findMany({
       orderBy: { createdAt: "desc" },
       include: {
+        auditLogs: {
+          where: { action: "acquisition_dataset_applied" },
+          orderBy: { createdAt: "desc" },
+          take: 1
+        },
         _count: { select: { creatives: true, audiences: true, testCells: true, budgetActivities: true } }
       },
       take: 20
     });
 
     logApiEvent("info", eventId, "acquisition.campaigns.list.completed", { count: campaigns.length });
-    return apiOk({ campaigns, eventId });
+    return apiOk({
+      campaigns: campaigns.map((campaign) => ({
+        ...campaign,
+        source: campaignSource(campaign.auditLogs)
+      })),
+      eventId
+    });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
       logApiEvent("warn", eventId, "acquisition.campaigns.list.compatibility_mode");
