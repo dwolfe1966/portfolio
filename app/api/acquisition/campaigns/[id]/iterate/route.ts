@@ -12,9 +12,49 @@ import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { createEventId, logApiEvent } from "@/lib/logging";
 import { buildAgentExecutionPlan, persistAgentExecutionPlan } from "@/lib/agent-execution-plan";
 import { getDefaultWorkspace } from "@/lib/workspace";
+import { acquisitionMetadataRecord } from "@/lib/acquisition-source-lineage";
 
 function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+type ProviderWriteContext = {
+  provider?: string;
+  operationType?: string;
+  externalAccountId?: string;
+  externalCampaignId?: string;
+  externalAdGroupId?: string;
+  externalAdSetId?: string;
+};
+
+function providerWriteContextFromCell(
+  cell: { audience: { targetingJson: unknown } },
+  sourceMetadata: Record<string, unknown>
+): ProviderWriteContext {
+  const targeting = acquisitionMetadataRecord(cell.audience.targetingJson);
+  const provider = stringValue(targeting.provider) || stringValue(sourceMetadata.provider);
+  const externalAccountId = stringValue(targeting.externalAccountId) || stringValue(sourceMetadata.externalAccountId);
+  const externalCampaignId = stringValue(targeting.externalCampaignId);
+  const externalAdGroupId = stringValue(targeting.externalAdGroupId);
+  const externalAdSetId = stringValue(targeting.externalAdSetId);
+  const context: ProviderWriteContext = {};
+
+  if (provider) context.provider = provider;
+  if (provider === "meta_ads" && externalAdSetId) {
+    context.operationType = "update_ad_set_budget";
+  } else if (provider === "google_ads" || provider === "meta_ads") {
+    context.operationType = "update_budget";
+  }
+  if (externalAccountId) context.externalAccountId = externalAccountId;
+  if (externalCampaignId) context.externalCampaignId = externalCampaignId;
+  if (externalAdGroupId) context.externalAdGroupId = externalAdGroupId;
+  if (externalAdSetId) context.externalAdSetId = externalAdSetId;
+
+  return context;
 }
 
 export async function POST(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -45,6 +85,13 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
       where: { campaignId: id },
       include: { creative: true, audience: true }
     });
+    const cellById = new Map(cells.map((cell) => [cell.id, cell]));
+    const sourceLog = await db.acquisitionAuditLog.findFirst({
+      where: { campaignId: id, action: "acquisition_dataset_applied" },
+      orderBy: { createdAt: "desc" },
+      select: { metadata: true }
+    });
+    const sourceMetadata = acquisitionMetadataRecord(sourceLog?.metadata);
 
     if (!cells.length) {
       logApiEvent("warn", eventId, "acquisition.iteration.no_cells", { campaignId: id });
@@ -152,6 +199,20 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
             pendingApprovalCount++;
             const runbookId = `acquisition:${campaign.id}:${loser.id}:${winner.id}:${amount}`;
             const approvalTitle = `acquisition approval: request_approval (${runbookId})`;
+            const winnerCell = cellById.get(winner.id);
+            const providerWriteContext = winnerCell
+              ? providerWriteContextFromCell(winnerCell, sourceMetadata)
+              : {};
+            const proposedAction = {
+              campaignId: campaign.id,
+              fromTestCellId: loser.id,
+              toTestCellId: winner.id,
+              amountCents: amount,
+              shiftAmountCents: amount,
+              spendExposureCents: amount,
+              shiftPct: Number(decision.shiftPct.toFixed(4)),
+              ...providerWriteContext
+            };
             const plan = buildAgentExecutionPlan({
               workspaceId: workspace.id,
               app: "acquisition",
@@ -166,13 +227,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
                   reasons: ["Shift exceeds auto-approval cap; operator review required."]
                 }
               ],
-              proposedAction: {
-                campaignId: campaign.id,
-                fromTestCellId: loser.id,
-                toTestCellId: winner.id,
-                amountCents: amount,
-                shiftPct: Number(decision.shiftPct.toFixed(4))
-              },
+              proposedAction,
               approvalPolicy: {
                 approvalCapPct: campaign.approvalCapPct,
                 maxBudgetShiftPct: campaign.maxBudgetShiftPct,
@@ -203,6 +258,12 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
                   toTestCellId: winner.id,
                   amountCents: amount,
                   shiftPct: Number(decision.shiftPct.toFixed(4)),
+                  provider: proposedAction.provider ?? null,
+                  operationType: proposedAction.operationType ?? null,
+                  externalAccountId: proposedAction.externalAccountId ?? null,
+                  externalCampaignId: proposedAction.externalCampaignId ?? null,
+                  externalAdGroupId: proposedAction.externalAdGroupId ?? null,
+                  externalAdSetId: proposedAction.externalAdSetId ?? null,
                   approvalCapPct: campaign.approvalCapPct,
                   reason: "Shift exceeds auto-approval cap; operator review required"
                 }
