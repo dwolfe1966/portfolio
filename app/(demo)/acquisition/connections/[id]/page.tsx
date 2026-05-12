@@ -392,7 +392,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                 <h3 style={{ marginTop: 12 }}>Materialize this provider account</h3>
                 <p className="small">
                   Fetch campaigns, {childGroupLabel.toLowerCase()}, ads, and recent performance from this connection,
-                  then save them as an acquisition dataset snapshot that can be applied from Inputs.
+                  then save the account-level snapshot as an acquisition dataset that can be applied from Inputs.
                 </p>
                 <div className="ctaRow">
                   <form action={syncProviderConnectionDatasetAction}>
@@ -545,9 +545,36 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   )}
                 </div>
                 <div className="card">
-                  <h3>Dry-run context</h3>
-                  <p className="small">These provider IDs are the context that should flow into an approval request and provider-write dry-run.</p>
+                  <h3>Selected provider scope</h3>
+                  <p className="small">
+                    Use this selection to materialize only the current campaign
+                    {selectedAdGroupId ? ` and ${childGroupSingular}` : ""}, or to request a provider-write dry-run.
+                  </p>
                   <pre className="code">{JSON.stringify(dryRunContext(connection, live.selectedCampaign, selectedAdGroupId), null, 2)}</pre>
+                  <div className="ctaRow">
+                    <form action={syncProviderConnectionDatasetAction}>
+                      <input type="hidden" name="connectionId" value={connection.id} />
+                      <input type="hidden" name="externalCampaignId" value={live.selectedCampaign.externalCampaignId} />
+                      {connection.provider === "meta_ads" ? (
+                        <input type="hidden" name="externalAdSetId" value={selectedAdGroupId ?? ""} />
+                      ) : (
+                        <input type="hidden" name="externalAdGroupId" value={selectedAdGroupId ?? ""} />
+                      )}
+                      <button className="btn" type="submit" disabled={!syncReady}>Sync selected scope</button>
+                    </form>
+                    <form action={syncProviderConnectionDatasetAction}>
+                      <input type="hidden" name="connectionId" value={connection.id} />
+                      <input type="hidden" name="externalCampaignId" value={live.selectedCampaign.externalCampaignId} />
+                      <input type="hidden" name="applyAfterSync" value="1" />
+                      {connection.provider === "meta_ads" ? (
+                        <input type="hidden" name="externalAdSetId" value={selectedAdGroupId ?? ""} />
+                      ) : (
+                        <input type="hidden" name="externalAdGroupId" value={selectedAdGroupId ?? ""} />
+                      )}
+                      <button className="btn primary" type="submit" disabled={!syncReady}>Sync selected and apply</button>
+                    </form>
+                  </div>
+                  {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}
                   <form action={requestProviderWriteDryRunApprovalAction} className="stackForm">
                     <input type="hidden" name="connectionId" value={connection.id} />
                     <input type="hidden" name="provider" value={connection.provider} />

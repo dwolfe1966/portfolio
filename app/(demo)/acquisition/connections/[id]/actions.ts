@@ -110,6 +110,11 @@ type ProviderSnapshotBundle = {
   performance: RemotePerformance[];
 };
 
+type ProviderSnapshotScope = {
+  externalCampaignId: string | null;
+  externalAdGroupId: string | null;
+};
+
 function normalizeProviderBundle({
   provider,
   providerLabel,
@@ -218,20 +223,37 @@ function normalizeProviderBundle({
   return { campaigns, audiences, creatives, performance };
 }
 
-async function fetchProviderSnapshot(connector: AdConnector, externalAccountId: string): Promise<ProviderSnapshotBundle> {
+async function fetchProviderSnapshot(
+  connector: AdConnector,
+  externalAccountId: string,
+  scope: ProviderSnapshotScope = { externalCampaignId: null, externalAdGroupId: null }
+): Promise<ProviderSnapshotBundle> {
   const end = new Date();
   const start = new Date(end.getTime() - 13 * 86400000);
   const range = { start: isoDate(start), end: isoDate(end) };
-  const campaigns = (await connector.fetchCampaigns(externalAccountId)).slice(0, 25);
+  const fetchedCampaigns = await connector.fetchCampaigns(externalAccountId);
+  const campaigns = scope.externalCampaignId
+    ? fetchedCampaigns.filter((campaign) => campaign.externalCampaignId === scope.externalCampaignId)
+    : fetchedCampaigns.slice(0, 25);
   const adGroups: RemoteAdGroup[] = [];
   const ads: RemoteAdUnit[] = [];
   const performance: RemotePerformance[] = [];
 
   for (const campaign of campaigns) {
     const groups = await connector.fetchAdGroups(externalAccountId, campaign.externalCampaignId);
-    adGroups.push(...groups);
-    ads.push(...await connector.fetchAds(externalAccountId, campaign.externalCampaignId, null));
+    const scopedGroups = scope.externalAdGroupId
+      ? groups.filter((group) => group.externalAdGroupId === scope.externalAdGroupId)
+      : groups;
+    adGroups.push(...scopedGroups);
+    ads.push(...await connector.fetchAds(externalAccountId, campaign.externalCampaignId, scope.externalAdGroupId));
     performance.push(await connector.fetchPerformance(externalAccountId, campaign.externalCampaignId, range));
+    if (scope.externalAdGroupId && scopedGroups.length === 0) {
+      throw new Error(`Selected ad group ${scope.externalAdGroupId} was not found under campaign ${campaign.externalCampaignId}.`);
+    }
+  }
+
+  if (scope.externalCampaignId && campaigns.length === 0) {
+    throw new Error(`Selected campaign ${scope.externalCampaignId} was not found for this provider account.`);
   }
 
   return { campaigns, adGroups, ads, performance };
@@ -266,9 +288,14 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
 
   const providerLabel = connection.provider === "meta_ads" ? "Meta Ads" : "Google Ads";
   const applyAfterSync = optionalString(formData.get("applyAfterSync")) === "1";
+  const scope = {
+    externalCampaignId: optionalString(formData.get("externalCampaignId")),
+    externalAdGroupId: optionalString(formData.get("externalAdGroupId")) ?? optionalString(formData.get("externalAdSetId"))
+  };
+  const hasSelectedScope = Boolean(scope.externalCampaignId);
   let bundle: ProviderSnapshotBundle;
   try {
-    bundle = await fetchProviderSnapshot(connector, connection.externalAccountId);
+    bundle = await fetchProviderSnapshot(connector, connection.externalAccountId, scope);
   } catch (error) {
     revalidatePath(`/acquisition/connections/${connection.id}`);
     redirect(`/acquisition/connections/${connection.id}?syncError=${syncErrorReason(error)}`);
@@ -284,7 +311,7 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
   const dataset = await createWorkspaceDatasetSnapshot({
     app: "acquisition",
     sourceType: connection.provider,
-    name: `${providerLabel} sync · ${connection.externalAccountId}`,
+    name: `${providerLabel} ${hasSelectedScope ? "selected scope" : "account"} sync · ${connection.externalAccountId}`,
     accountUserId,
     rowCounts,
     rowData: {
@@ -304,12 +331,18 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
     metadata: {
       provider: connection.provider,
       externalAccountId: connection.externalAccountId,
+      externalCampaignId: scope.externalCampaignId,
+      externalAdGroupId: scope.externalAdGroupId,
       connectionId: connection.id,
+      syncScope: hasSelectedScope ? "selected_provider_scope" : "provider_account",
       syncedAt,
       sourceMetadata: {
         sourceFlow: "provider_oauth_sync",
         provider: connection.provider,
-        externalAccountId: connection.externalAccountId
+        externalAccountId: connection.externalAccountId,
+        externalCampaignId: scope.externalCampaignId,
+        externalAdGroupId: scope.externalAdGroupId,
+        syncScope: hasSelectedScope ? "selected_provider_scope" : "provider_account"
       },
       providerRowCounts: {
         campaigns: bundle.campaigns.length,
