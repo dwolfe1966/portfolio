@@ -178,11 +178,17 @@ export function AcquisitionInsightsPanel() {
                 <p className="small">Insight source</p>
                 <div className="workspaceSettingValue">{source.label}</div>
                 <p className="small">{source.sourceName}</p>
+                {source.datasetId ? (
+                  <a className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Review dataset</a>
+                ) : null}
               </div>
               <div className="card">
                 <p className="small">Provider account</p>
                 <div className="workspaceSettingValue">{source.externalAccountId || "None"}</div>
                 <p className="small">{source.connectionId ? `Connection ${source.connectionId.slice(0, 8)}` : "No linked provider account"}</p>
+                {source.connectionId ? (
+                  <a className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Open provider</a>
+                ) : null}
               </div>
               <div className="card">
                 <p className="small">Applied</p>
