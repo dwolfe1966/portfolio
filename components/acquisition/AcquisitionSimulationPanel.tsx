@@ -176,6 +176,7 @@ export function AcquisitionSimulationPanel({ initialCampaignId = "" }: Acquisiti
   async function runIteration(campaignId: string) {
     setLoading(true);
     setMessage("");
+    setSelectedCampaignId(campaignId);
     try {
       const res = await fetch(`/api/acquisition/campaigns/${campaignId}/iterate`, { method: "POST" });
       const json = await res.json();
@@ -380,26 +381,37 @@ export function AcquisitionSimulationPanel({ initialCampaignId = "" }: Acquisiti
           <table className="table" style={{ marginTop: 10 }}>
             <thead><tr><th>Campaign</th><th>Source</th><th>State</th><th>Created</th><th>Cells</th><th>Budget actions</th><th>Action</th></tr></thead>
             <tbody>
-              {campaigns.map((campaign) => (
-                <tr key={campaign.id}>
-                  <td>{campaign.name}</td>
-                  <td>
-                    {campaign.source?.label ?? "Manual/sample"}
-                    <p className="small">{campaign.source?.sourceName ?? "No imported dataset lineage"}</p>
-                    {campaign.source?.datasetId || campaign.source?.connectionId ? (
-                      <div className="ctaRow">
-                        {campaign.source.datasetId ? <a className="btn smallBtn" href={`/workspace/datasets/${campaign.source.datasetId}`}>Dataset</a> : null}
-                        {campaign.source.connectionId ? <a className="btn smallBtn" href={`/acquisition/connections/${campaign.source.connectionId}`}>Provider</a> : null}
+              {campaigns.map((campaign) => {
+                const isSelected = campaign.id === selectedCampaignId;
+                return (
+                  <tr key={campaign.id}>
+                    <td>
+                      <a href={`/acquisition/campaigns/${campaign.id}`}>{campaign.name}</a>
+                      {isSelected ? <div><span className="statusPill live">selected</span></div> : null}
+                    </td>
+                    <td>
+                      {campaign.source?.label ?? "Manual/sample"}
+                      <p className="small">{campaign.source?.sourceName ?? "No imported dataset lineage"}</p>
+                      {campaign.source?.datasetId || campaign.source?.connectionId ? (
+                        <div className="ctaRow">
+                          {campaign.source.datasetId ? <a className="btn smallBtn" href={`/workspace/datasets/${campaign.source.datasetId}`}>Dataset</a> : null}
+                          {campaign.source.connectionId ? <a className="btn smallBtn" href={`/acquisition/connections/${campaign.source.connectionId}`}>Provider</a> : null}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td>{campaign.state}</td>
+                    <td>{new Date(campaign.createdAt).toLocaleString()}</td>
+                    <td>{campaign._count?.testCells ?? "—"}</td>
+                    <td>{campaign._count?.budgetActivities ?? "—"}</td>
+                    <td>
+                      <div className="ctaRow" style={{ marginTop: 0 }}>
+                        <button type="button" onClick={() => setSelectedCampaignId(campaign.id)} disabled={loading || isSelected}>Select</button>
+                        <button type="button" onClick={() => runIteration(campaign.id)} disabled={loading}>Run iteration</button>
                       </div>
-                    ) : null}
-                  </td>
-                  <td>{campaign.state}</td>
-                  <td>{new Date(campaign.createdAt).toLocaleString()}</td>
-                  <td>{campaign._count?.testCells ?? "—"}</td>
-                  <td>{campaign._count?.budgetActivities ?? "—"}</td>
-                  <td><button onClick={() => runIteration(campaign.id)} disabled={loading}>Run iteration</button></td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
