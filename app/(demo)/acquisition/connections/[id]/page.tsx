@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { GoogleAdsConnector, GoogleAdsNotTestAccountError, MetaAdsConnector, MetaAdsNotTestAccountError } from "@/lib/ad-connectors";
 import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
@@ -330,6 +331,11 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
       })
     : [];
   const latestDataset = syncedDatasets[0] ?? null;
+  const activeSelection = isLiveProvider
+    ? await getActiveDataSourceSelection("acquisition", accountUserId)
+    : null;
+  const activeDatasetId = activeSelection?.mode === "imported" ? activeSelection.datasetId : null;
+  const activeProviderDataset = syncedDatasets.find((dataset) => dataset.id === activeDatasetId) ?? null;
   const live = isLiveProvider
     ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId)
     : null;
@@ -440,14 +446,40 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                 {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}
               </div>
               <div>
-                <h3>Latest dataset</h3>
-                {latestDataset ? (
+                <h3>Active provider snapshot</h3>
+                {activeProviderDataset ? (
                   <>
+                    <p className="statusPill live">Active inputs source</p>
+                    <p style={{ marginTop: 10 }}>
+                      <Link href={`/workspace/datasets/${activeProviderDataset.id}`}>{activeProviderDataset.name}</Link>
+                    </p>
+                    <p className="small">
+                      {acquisitionProviderSnapshotScopeLabel(activeProviderDataset.metadata, { sentenceCase: true })}
+                      {" · "}
+                      {rowCountTotal(activeProviderDataset.rowCounts).toLocaleString()} rows
+                      {" · "}
+                      {formatDateTime(activeProviderDataset.createdAt)}
+                    </p>
+                    <div className="ctaRow">
+                      <Link className="btn smallBtn primary" href="/acquisition/inputs?imported=1">Open acquisition inputs</Link>
+                      <Link className="btn smallBtn" href={`/workspace/datasets/${activeProviderDataset.id}`}>Review dataset</Link>
+                    </div>
+                  </>
+                ) : activeSelection?.mode === "imported" ? (
+                  <>
+                    <p className="statusPill progress">Different dataset active</p>
+                    <p className="small">
+                      Acquisition inputs are currently powered by {activeSelection.label}. Apply a provider snapshot below to switch this account into inputs.
+                    </p>
+                  </>
+                ) : latestDataset ? (
+                  <>
+                    <p className="statusPill progress">Ready to apply</p>
                     <p>
                       <Link href={`/workspace/datasets/${latestDataset.id}`}>{latestDataset.name}</Link>
                     </p>
                     <p className="small">
-                      {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows · {formatDateTime(latestDataset.createdAt)}
+                      Latest sync · {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows · {formatDateTime(latestDataset.createdAt)}
                     </p>
                     <div className="ctaRow">
                       <Link className="btn smallBtn primary" href="/acquisition/inputs?imported=1">Open acquisition inputs</Link>
@@ -484,6 +516,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   <td>
                     <Link href={`/workspace/datasets/${dataset.id}`}>{dataset.name}</Link>
                     {dataset.id === latestDataset?.id ? <p className="small">Latest sync</p> : null}
+                    {dataset.id === activeDatasetId ? <p className="small">Active inputs source</p> : null}
                   </td>
                   <td>{acquisitionProviderSnapshotScopeLabel(dataset.metadata, { sentenceCase: true })}</td>
                   <td>{rowCountTotal(dataset.rowCounts).toLocaleString()}</td>
@@ -494,7 +527,9 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       <form action={applyProviderConnectionDatasetAction}>
                         <input type="hidden" name="connectionId" value={connection.id} />
                         <input type="hidden" name="datasetId" value={dataset.id} />
-                        <button className="btn smallBtn primary" type="submit">Apply</button>
+                        <button className="btn smallBtn primary" type="submit" disabled={dataset.id === activeDatasetId}>
+                          {dataset.id === activeDatasetId ? "Active" : "Apply"}
+                        </button>
                       </form>
                     </div>
                   </td>
