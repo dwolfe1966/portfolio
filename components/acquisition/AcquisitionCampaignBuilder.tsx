@@ -287,7 +287,7 @@ export function AcquisitionCampaignBuilder() {
           <Link className="btn primary" href={`/acquisition/campaigns/${createdCampaign.id}`}>
             Open {createdCampaign.name}
           </Link>
-          <Link className="btn" href="/acquisition/simulations">
+          <Link className="btn" href={`/acquisition/simulations?campaignId=${createdCampaign.id}`}>
             Run simulation
           </Link>
         </div>

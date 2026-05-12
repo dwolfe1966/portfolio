@@ -107,11 +107,15 @@ function writeLocalPresets(presets: ScenarioPreset[]) {
   }))));
 }
 
-export function AcquisitionSimulationPanel() {
+type AcquisitionSimulationPanelProps = {
+  initialCampaignId?: string;
+};
+
+export function AcquisitionSimulationPanel({ initialCampaignId = "" }: AcquisitionSimulationPanelProps) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>("");
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(initialCampaignId);
   const [performanceSeries, setPerformanceSeries] = useState<PerformancePoint[]>([]);
 
   const [runCount, setRunCount] = useState(50);
@@ -137,15 +141,18 @@ export function AcquisitionSimulationPanel() {
       }
       const nextCampaigns: Campaign[] = json.campaigns ?? [];
       setCampaigns(nextCampaigns);
-      if (nextCampaigns.length && !selectedCampaignId) {
-        setSelectedCampaignId(nextCampaigns[0].id);
+      const selectedExists = nextCampaigns.some((campaign) => campaign.id === selectedCampaignId);
+      if (nextCampaigns.length && (!selectedCampaignId || !selectedExists)) {
+        setSelectedCampaignId(initialCampaignId && nextCampaigns.some((campaign) => campaign.id === initialCampaignId)
+          ? initialCampaignId
+          : nextCampaigns[0].id);
       }
     } catch {
       setMessage("Network error while loading campaigns.");
     } finally {
       setLoading(false);
     }
-  }, [selectedCampaignId]);
+  }, [initialCampaignId, selectedCampaignId]);
 
   const loadInsights = useCallback(async function loadInsights(campaignId: string) {
     if (!campaignId) {

@@ -130,7 +130,7 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
             <div className="card"><div className="kpi">{campaign.cooldownHours}h</div><p>Budget-shift cooldown</p></div>
           </div>
           <div className="ctaRow">
-            <Link href="/acquisition/simulations" className="btn primary">Run iteration</Link>
+            <Link href={`/acquisition/simulations?campaignId=${campaign.id}`} className="btn primary">Run iteration</Link>
             <Link href="/acquisition/campaigns" className="btn">Back to campaigns</Link>
           </div>
         </Section>

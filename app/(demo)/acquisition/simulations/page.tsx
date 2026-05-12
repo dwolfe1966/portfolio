@@ -3,7 +3,14 @@ import { Section } from "@/components/site/Section";
 import { AcquisitionSimulationPanel } from "@/components/acquisition/AcquisitionSimulationPanel";
 import { DemoAppMotionVisual } from "@/components/demo-shell/DemoAppMotionVisual";
 
-export default function AcquisitionSimulationsPage() {
+type PageProps = {
+  searchParams?: Promise<{ campaignId?: string }>;
+};
+
+export default async function AcquisitionSimulationsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const initialCampaignId = typeof params?.campaignId === "string" ? params.campaignId : "";
+
   return (
     <>
       <Section title="Simulations: orchestrator loop and budget decisions">
@@ -34,7 +41,7 @@ export default function AcquisitionSimulationsPage() {
       </Section>
 
       <Section title="Interactive iteration panel">
-        <AcquisitionSimulationPanel />
+        <AcquisitionSimulationPanel initialCampaignId={initialCampaignId} />
       </Section>
     </>
   );
