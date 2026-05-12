@@ -71,6 +71,12 @@ function rowCountTotal(rowCounts: unknown) {
   return Object.values(rowCounts).reduce((sum, value) => sum + (typeof value === "number" && Number.isFinite(value) ? value : 0), 0);
 }
 
+function metadataString(metadata: unknown, key: string) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return "";
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
+}
+
 export default async function AcquisitionOverviewPage() {
   const cookieStore = await cookies();
   const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
@@ -86,6 +92,9 @@ export default async function AcquisitionOverviewPage() {
     activeLabel: "Acquisition sample data",
     activeSourceType: "sample" as string | null,
     activeRows: 0,
+    activeDatasetId: "",
+    activeConnectionId: "",
+    activeExternalAccountId: "",
     providerSnapshots: 0,
     latestProviderSnapshotAt: null as Date | null
   };
@@ -108,13 +117,32 @@ export default async function AcquisitionOverviewPage() {
         take: 25
       })
     ]);
+    const activeDataset = activeSelection?.mode === "imported" && activeSelection.datasetId
+      ? await db.workspaceDataset.findFirst({
+          where: {
+            id: activeSelection.datasetId,
+            app: "acquisition",
+            ...accountOwnedImportWhere(accountUserId)
+          },
+          select: {
+            id: true,
+            name: true,
+            sourceType: true,
+            rowCounts: true,
+            metadata: true
+          }
+        })
+      : null;
     counts = { campaigns, cells, budgetActivities, auditLogs };
     const activeMode = resolveActiveDataSourceMode(accountUserId, activeSelection?.mode);
     sourceState = {
       activeMode,
-      activeLabel: activeMode === "imported" ? activeSelection?.label ?? "Imported acquisition data" : "Acquisition sample data",
-      activeSourceType: activeMode === "imported" ? activeSelection?.sourceType ?? null : "sample",
-      activeRows: activeMode === "imported" ? rowCountTotal(activeSelection?.rowCounts) : campaigns + cells,
+      activeLabel: activeMode === "imported" ? activeDataset?.name ?? activeSelection?.label ?? "Imported acquisition data" : "Acquisition sample data",
+      activeSourceType: activeMode === "imported" ? activeDataset?.sourceType ?? activeSelection?.sourceType ?? null : "sample",
+      activeRows: activeMode === "imported" ? rowCountTotal(activeDataset?.rowCounts ?? activeSelection?.rowCounts) : campaigns + cells,
+      activeDatasetId: activeDataset?.id ?? "",
+      activeConnectionId: metadataString(activeDataset?.metadata, "connectionId"),
+      activeExternalAccountId: metadataString(activeDataset?.metadata, "externalAccountId"),
       providerSnapshots: providerSnapshots.length,
       latestProviderSnapshotAt: providerSnapshots[0]?.createdAt ?? null
     };
@@ -154,6 +182,18 @@ export default async function AcquisitionOverviewPage() {
                 </p>
                 <h3 style={{ marginTop: 10 }}>{sourceState.activeLabel}</h3>
                 <p className="small">{sourceLabel(sourceState.activeSourceType)} · {sourceState.activeRows.toLocaleString()} source rows</p>
+                {sourceState.activeDatasetId || sourceState.activeConnectionId ? (
+                  <div className="ctaRow">
+                    {sourceState.activeDatasetId ? (
+                      <Link className="btn smallBtn" href={`/workspace/datasets/${sourceState.activeDatasetId}`}>Review dataset</Link>
+                    ) : null}
+                    {sourceState.activeConnectionId ? (
+                      <Link className="btn smallBtn" href={`/acquisition/connections/${sourceState.activeConnectionId}`}>
+                        Provider account
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               <div className="card">
                 <p className="small">Provider snapshots</p>
@@ -164,10 +204,15 @@ export default async function AcquisitionOverviewPage() {
               </div>
               <div className="card">
                 <p className="small">Next data action</p>
-                <h3>{sourceState.activeMode === "imported" ? "Review applied rows" : "Connect or apply data"}</h3>
+                <h3>{sourceState.activeConnectionId ? "Inspect provider account" : sourceState.activeMode === "imported" ? "Review applied rows" : "Connect or apply data"}</h3>
+                {sourceState.activeExternalAccountId ? (
+                  <p className="small">Active account: <code className="small">{sourceState.activeExternalAccountId}</code></p>
+                ) : null}
                 <div className="ctaRow">
                   <Link className="btn smallBtn primary" href="/acquisition/inputs">Open inputs</Link>
-                  <Link className="btn smallBtn" href="/acquisition/connections">Connections</Link>
+                  <Link className="btn smallBtn" href={sourceState.activeConnectionId ? `/acquisition/connections/${sourceState.activeConnectionId}` : "/acquisition/connections"}>
+                    {sourceState.activeConnectionId ? "Open provider" : "Connections"}
+                  </Link>
                 </div>
               </div>
             </div>
