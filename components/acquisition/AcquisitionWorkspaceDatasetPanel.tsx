@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { applyAcquisitionDatasetSnapshotAction } from "@/app/(demo)/acquisition/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { accountOwnedImportWhere, canUseImportedData, resolveActiveDataSourceMode } from "@/lib/account-data-scope";
@@ -44,6 +45,12 @@ function sourceLabel(value: string | null | undefined) {
 function datasetConnectionId(metadata: unknown) {
   const record = metadataRecord(metadata);
   return typeof record.connectionId === "string" ? record.connectionId : null;
+}
+
+function metadataString(metadata: unknown, key: string) {
+  const record = metadataRecord(metadata);
+  const value = record[key];
+  return typeof value === "string" ? value : "";
 }
 
 function providerSnapshotDetail(snapshot: {
@@ -92,12 +99,27 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
       db.adPerformance.count()
     ]);
     const activeMode = resolveActiveDataSourceMode(session?.userId, activeSelection?.mode);
-    const activeDataset = activeSelection?.datasetId
-      ? snapshots.find((snapshot) => snapshot.id === activeSelection.datasetId)
+    const activeDatasetFromList = activeSelection?.datasetId
+      ? snapshots.find((snapshot) => snapshot.id === activeSelection.datasetId) ?? null
       : null;
-    const providerSnapshots = snapshots.filter((snapshot) => snapshot.sourceType === "google_ads" || snapshot.sourceType === "meta_ads");
+    const activeDataset = activeDatasetFromList
+      ?? (activeSelection?.datasetId
+        ? await db.workspaceDataset.findFirst({
+            where: {
+              id: activeSelection.datasetId,
+              app: "acquisition",
+              ...accountOwnedImportWhere(session?.userId)
+            }
+          })
+        : null);
+    const displayedSnapshots = activeDataset && !snapshots.some((snapshot) => snapshot.id === activeDataset.id)
+      ? [activeDataset, ...snapshots]
+      : snapshots;
+    const providerSnapshots = displayedSnapshots.filter((snapshot) => snapshot.sourceType === "google_ads" || snapshot.sourceType === "meta_ads");
+    const activeConnectionId = activeDataset ? datasetConnectionId(activeDataset.metadata) : null;
+    const activeExternalAccountId = activeDataset ? metadataString(activeDataset.metadata, "externalAccountId") : "";
     const activeSourceLabel = activeMode === "imported"
-      ? `${activeSelection?.label ?? activeDataset?.name ?? "Imported dataset"}${activeSelection?.sourceType ? ` · ${sourceLabel(activeSelection.sourceType)}` : ""}`
+      ? `${activeDataset?.name ?? activeSelection?.label ?? "Imported dataset"} · ${sourceLabel(activeDataset?.sourceType ?? activeSelection?.sourceType)}`
       : "Acquisition sample data";
 
     return (
@@ -121,8 +143,21 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
         </div>
         <div className="lifecycleDatasetMeta">
           <p><strong>Active source:</strong> {session ? activeSourceLabel : "current acquisition sample app tables. Sign in to apply imported workspace data."}</p>
+          {activeDataset ? (
+            <p>
+              <strong>Active snapshot:</strong>{" "}
+              <Link href={`/workspace/datasets/${activeDataset.id}`}>{activeDataset.name}</Link>
+              {activeConnectionId ? (
+                <>
+                  {" · "}
+                  <Link href={`/acquisition/connections/${activeConnectionId}`}>provider account</Link>
+                </>
+              ) : null}
+              {activeExternalAccountId ? <> · <code className="small">{activeExternalAccountId}</code></> : null}
+            </p>
+          ) : null}
           <p><strong>Current table rows:</strong> {campaigns.toLocaleString()} campaigns, {audiences.toLocaleString()} audiences, {creatives.toLocaleString()} creatives, {performance.toLocaleString()} performance rows</p>
-          <p><strong>Available imported datasets:</strong> {snapshots.length.toLocaleString()}</p>
+          <p><strong>Available imported datasets:</strong> {displayedSnapshots.length.toLocaleString()}</p>
           <p><strong>Provider snapshots:</strong> {providerSnapshots.length.toLocaleString()}</p>
           <p><strong>Workspace source:</strong> {latestSource?.name ?? "None available"}</p>
         </div>
@@ -139,6 +174,12 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
                   <h3 style={{ marginTop: 10 }}>{snapshot.name}</h3>
                   <p className="small">{providerSnapshotDetail(snapshot)}</p>
                   <p className="small">{visibility.label}</p>
+                  <div className="ctaRow">
+                    <Link className="btn smallBtn" href={`/workspace/datasets/${snapshot.id}`}>Dataset</Link>
+                    {datasetConnectionId(snapshot.metadata) ? (
+                      <Link className="btn smallBtn" href={`/acquisition/connections/${datasetConnectionId(snapshot.metadata)}`}>Provider</Link>
+                    ) : null}
+                  </div>
                 </div>
               );
             })}
@@ -156,7 +197,7 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
             { label: "Creatives", value: creatives },
             { label: "Performance", value: performance }
           ]}
-          datasets={snapshots.map((snapshot) => {
+          datasets={displayedSnapshots.map((snapshot) => {
             const visibility = workspaceVisibilityLabel(snapshot.accountUserId, session?.userId);
             return {
               id: snapshot.id,
