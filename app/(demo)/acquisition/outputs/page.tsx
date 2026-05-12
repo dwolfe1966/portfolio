@@ -65,6 +65,9 @@ export default async function AcquisitionOutputsPage() {
               <p className="small">Top campaign source</p>
               <div className="workspaceSettingValue">{topSource?.label ?? "None"}</div>
               <p className="small">{topSource?.sourceName ?? "No campaign selected"}</p>
+              {topSource?.datasetId ? (
+                <Link className="btn smallBtn" href={`/workspace/datasets/${topSource.datasetId}`}>Review dataset</Link>
+              ) : null}
             </div>
             <div className="card">
               <p className="small">Provider-backed campaigns</p>
@@ -75,6 +78,9 @@ export default async function AcquisitionOutputsPage() {
               <p className="small">Provider account</p>
               <div className="workspaceSettingValue">{topSource?.externalAccountId || "None"}</div>
               <p className="small">{topSource?.connectionId ? `Connection ${topSource.connectionId.slice(0, 8)}` : "No linked provider account"}</p>
+              {topSource?.connectionId ? (
+                <Link className="btn smallBtn" href={`/acquisition/connections/${topSource.connectionId}`}>Open provider</Link>
+              ) : null}
             </div>
           </div>
         </Section>
@@ -139,6 +145,12 @@ export default async function AcquisitionOutputsPage() {
                       <td>
                         {source.label}
                         <p className="small">{source.sourceName}</p>
+                        {source.datasetId || source.connectionId ? (
+                          <div className="ctaRow">
+                            {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
+                            {source.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Provider</Link> : null}
+                          </div>
+                        ) : null}
                       </td>
                       <td>{campaign.state}</td>
                       <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
