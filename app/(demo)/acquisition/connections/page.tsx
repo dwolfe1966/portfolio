@@ -4,6 +4,7 @@ import type { ProviderCredentialGrant } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { isGoogleOAuthConfigured } from "@/lib/ad-connectors/google-oauth";
@@ -148,6 +149,8 @@ export default async function ConnectionsPage({
 
   let connections: ConnectionWithGrant[] = [];
   let latestDatasets: LatestDataset[] = [];
+  let activeDataset: LatestDataset | null = null;
+  let activeSelectionLabel: string | null = null;
   let tableMissing = false;
 
   try {
@@ -175,6 +178,29 @@ export default async function ConnectionsPage({
       orderBy: { createdAt: "desc" },
       take: 50
     });
+    const activeSelection = await getActiveDataSourceSelection("acquisition", accountUserId);
+    activeSelectionLabel = activeSelection?.label ?? null;
+    activeDataset = activeSelection?.mode === "imported" && activeSelection.datasetId
+      ? latestDatasets.find((dataset) => dataset.id === activeSelection.datasetId)
+        ?? await db.workspaceDataset.findFirst({
+          where: {
+            id: activeSelection.datasetId,
+            app: "acquisition",
+            sourceType: { in: ["google_ads", "meta_ads"] },
+            OR: accountUserId
+              ? [{ accountUserId }, { accountUserId: null }]
+              : [{ accountUserId: null }]
+          },
+          select: {
+            id: true,
+            name: true,
+            sourceType: true,
+            rowCounts: true,
+            metadata: true,
+            createdAt: true
+          }
+        })
+      : null;
   } catch (error) {
     if (isMissingDemoTableError(error)) {
       tableMissing = true;
@@ -192,6 +218,11 @@ export default async function ConnectionsPage({
       datasetByConnectionId.set(connectionId, dataset);
     }
   }
+  const activeConnectionId = activeDataset ? datasetConnectionId(activeDataset) : null;
+  if (activeConnectionId && activeDataset && !datasetByConnectionId.has(activeConnectionId)) {
+    datasetByConnectionId.set(activeConnectionId, activeDataset);
+  }
+  const activeConnection = activeConnectionId ? connections.find((conn) => conn.id === activeConnectionId) ?? null : null;
   const syncedConnectionCount = connections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
   const syncBlockedCount = connections.filter((conn) => !conn.isTestAccount || formatGrantHealth(conn.credentialGrant).tone === "unhealthy").length;
   const providers: Array<{ key: ProviderKey; label: string; ready: boolean; connections: ConnectionWithGrant[] }> = [
@@ -252,8 +283,13 @@ export default async function ConnectionsPage({
             <div className="kpi">{syncBlockedCount}</div>
           </div>
           <div className="card compact">
-            <p className="small">Configured providers</p>
-            <div className="kpi">{providers.filter((provider) => provider.ready).length}/2</div>
+            <p className="small">Active input source</p>
+            <div className="kpi">{activeConnection ? PROVIDER_LABEL[activeConnection.provider] ?? activeConnection.provider : activeDataset ? "Other" : "Sample"}</div>
+            <p className="small">
+              {activeConnection
+                ? activeConnection.accountName
+                : activeSelectionLabel ?? "Default acquisition sample data"}
+            </p>
           </div>
         </div>
       </Section>
@@ -296,6 +332,7 @@ export default async function ConnectionsPage({
             const latestConnection = provider.connections[0];
             const providerSynced = provider.connections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
             const providerBlocked = provider.connections.filter((conn) => !conn.isTestAccount || formatGrantHealth(conn.credentialGrant).tone === "unhealthy").length;
+            const providerActive = activeConnection?.provider === provider.key;
             return (
               <div className="card" key={provider.key}>
                 <div className="statusPillStack" style={{ alignItems: "flex-start" }}>
@@ -307,6 +344,7 @@ export default async function ConnectionsPage({
                       {providerBlocked > 0 ? `${providerBlocked} blocked` : "sync eligible"}
                     </span>
                   ) : null}
+                  {providerActive ? <span className="statusPill live">active inputs</span> : null}
                 </div>
                 <h3 style={{ marginTop: 12 }}>{provider.label}</h3>
                 <p className="small">{providerDescription(provider.key)}</p>
@@ -379,6 +417,7 @@ export default async function ConnectionsPage({
                 const grantHealth = formatGrantHealth(conn.credentialGrant);
                 const latestDataset = datasetByConnectionId.get(conn.id);
                 const readiness = connectionReadiness(conn, latestDataset);
+                const isActiveConnection = conn.id === activeConnectionId;
                 return (
                   <tr key={conn.id}>
                     <td>{PROVIDER_LABEL[conn.provider] ?? conn.provider}</td>
@@ -404,6 +443,15 @@ export default async function ConnectionsPage({
                             {latestDataset.name}
                           </Link>
                           <div className="small">{acquisitionProviderSnapshotScopeLabel(latestDataset.metadata, { sentenceCase: true })} · {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows</div>
+                          {isActiveConnection ? <div className="small bandText--healthy">Active inputs source</div> : null}
+                        </>
+                      ) : isActiveConnection && activeDataset ? (
+                        <>
+                          <Link href={`/workspace/datasets/${activeDataset.id}`}>
+                            {activeDataset.name}
+                          </Link>
+                          <div className="small">{acquisitionProviderSnapshotScopeLabel(activeDataset.metadata, { sentenceCase: true })} · {rowCountTotal(activeDataset.rowCounts).toLocaleString()} rows</div>
+                          <div className="small bandText--healthy">Active inputs source</div>
                         </>
                       ) : (
                         <span className="small">No dataset snapshot yet.</span>
