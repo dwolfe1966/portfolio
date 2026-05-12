@@ -78,12 +78,14 @@ function auditEventSummary(action: string, metadata: unknown) {
     const amountCents = numberValue(meta.amountCents);
     const shiftPct = numberValue(meta.shiftPct);
     const approvalCapPct = numberValue(meta.approvalCapPct);
+    const approvalRequestId = stringValue(meta.approvalRequestId);
     return {
       title: `${formatMoney(amountCents)} budget shift needs approval`,
       lines: [
         `Shift ${(shiftPct * 100).toFixed(1)}% · approval cap ${(approvalCapPct * 100).toFixed(1)}%`,
         stringValue(meta.reason) || "Operator review required before this budget move."
-      ]
+      ],
+      href: approvalRequestId ? `/workspace/agents?approvalId=${approvalRequestId}` : "/workspace/agents"
     };
   }
 
@@ -295,6 +297,9 @@ export default async function AcquisitionAuditPage({
                             {eventSummary.lines.map((line) => (
                               <p className="small" key={line}>{line}</p>
                             ))}
+                            {"href" in eventSummary && eventSummary.href ? (
+                              <Link className="btn smallBtn" href={eventSummary.href}>Open approval</Link>
+                            ) : null}
                           </div>
                         ) : null}
                         <details className="importMetadataDetails">

@@ -151,6 +151,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
           if (!decision.approved) {
             pendingApprovalCount++;
             const runbookId = `acquisition:${campaign.id}:${loser.id}:${winner.id}:${amount}`;
+            const approvalTitle = `acquisition approval: request_approval (${runbookId})`;
             const plan = buildAgentExecutionPlan({
               workspaceId: workspace.id,
               app: "acquisition",
@@ -181,12 +182,23 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
               now: new Date()
             });
             await persistAgentExecutionPlan(plan, tx);
+            const approvalRequest = await tx.agentApprovalRequest.findFirst({
+              where: {
+                workspaceId: workspace.id,
+                app: "acquisition",
+                actionType: "request_approval",
+                title: approvalTitle,
+                status: { in: ["pending", "escalated"] }
+              },
+              select: { id: true }
+            });
             await tx.acquisitionAuditLog.create({
               data: {
                 campaignId: campaign.id,
                 actor: "agent-orchestrator",
                 action: "budget_shift_pending_approval",
                 metadata: {
+                  approvalRequestId: approvalRequest?.id ?? null,
                   fromTestCellId: loser.id,
                   toTestCellId: winner.id,
                   amountCents: amount,
