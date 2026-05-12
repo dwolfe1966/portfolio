@@ -31,6 +31,86 @@ function parseWindow(value: string | undefined): TimeWindow {
   return "7d";
 }
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function numberValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function booleanValue(value: unknown) {
+  return typeof value === "boolean" ? value : false;
+}
+
+function formatMoney(cents: number) {
+  return `$${(cents / 100).toFixed(0)}`;
+}
+
+function auditEventSummary(action: string, metadata: unknown) {
+  const meta = metadataRecord(metadata);
+
+  if (action === "iteration_executed") {
+    const averageScore = numberValue(meta.averageScore);
+    const reallocationCount = numberValue(meta.reallocationCount);
+    const pendingApprovalCount = numberValue(meta.pendingApprovalCount);
+    const winners = numberValue(meta.winners);
+    const losers = numberValue(meta.losers);
+    const observedCacCents = numberValue(meta.observedCacCents);
+    const observedRatio = numberValue(meta.observedRatio);
+    const policyBand = stringValue(meta.policyBand) || "unknown";
+    const cooldownActive = booleanValue(meta.cooldownActive);
+    return {
+      title: `Iteration scored ${winners.toLocaleString()} winners and ${losers.toLocaleString()} lower-ranked cells`,
+      lines: [
+        `Average score ${averageScore.toFixed(3)} · policy ${policyBand}`,
+        `${reallocationCount.toLocaleString()} reallocations · ${pendingApprovalCount.toLocaleString()} approvals · ${cooldownActive ? "cooldown active" : "cooldown clear"}`,
+        `${formatMoney(observedCacCents)} CAC · ${observedRatio.toFixed(2)}x LTV:CAC`
+      ]
+    };
+  }
+
+  if (action === "budget_shift_pending_approval") {
+    const amountCents = numberValue(meta.amountCents);
+    const shiftPct = numberValue(meta.shiftPct);
+    const approvalCapPct = numberValue(meta.approvalCapPct);
+    return {
+      title: `${formatMoney(amountCents)} budget shift needs approval`,
+      lines: [
+        `Shift ${(shiftPct * 100).toFixed(1)}% · approval cap ${(approvalCapPct * 100).toFixed(1)}%`,
+        stringValue(meta.reason) || "Operator review required before this budget move."
+      ]
+    };
+  }
+
+  if (action === "policy_auto_pause") {
+    const observedCacCents = numberValue(meta.observedCacCents);
+    const observedRatio = numberValue(meta.observedRatio);
+    const band = stringValue(meta.band) || "unhealthy";
+    const reasons = Array.isArray(meta.reasons) ? meta.reasons.filter((item): item is string => typeof item === "string") : [];
+    return {
+      title: `Policy auto-paused campaign (${band})`,
+      lines: [
+        `${formatMoney(observedCacCents)} CAC · ${observedRatio.toFixed(2)}x LTV:CAC`,
+        reasons[0] ?? "Policy guardrail triggered."
+      ]
+    };
+  }
+
+  if (action === "campaign_state_change") {
+    return {
+      title: `State changed from ${stringValue(meta.from) || "unknown"} to ${stringValue(meta.to) || "unknown"}`,
+      lines: [stringValue(meta.reason) || "Campaign state updated."]
+    };
+  }
+
+  return null;
+}
+
 export default async function AcquisitionAuditPage({
   searchParams
 }: {
@@ -188,6 +268,7 @@ export default async function AcquisitionAuditPage({
               <tbody>
                 {logs.map((log) => {
                   const source = acquisitionSourceLineageFromMetadata(log.metadata);
+                  const eventSummary = auditEventSummary(log.action, log.metadata);
                   return (
                     <tr key={log.id}>
                       <td>{new Date(log.createdAt).toLocaleString()}</td>
@@ -208,6 +289,14 @@ export default async function AcquisitionAuditPage({
                       <td>{log.actor}</td>
                       <td><code className="small">{log.action}</code></td>
                       <td>
+                        {eventSummary ? (
+                          <div style={{ marginBottom: 8 }}>
+                            <strong>{eventSummary.title}</strong>
+                            {eventSummary.lines.map((line) => (
+                              <p className="small" key={line}>{line}</p>
+                            ))}
+                          </div>
+                        ) : null}
                         <details className="importMetadataDetails">
                           <summary>Metadata</summary>
                           <pre>{JSON.stringify(log.metadata ?? {}, null, 2)}</pre>
