@@ -1,19 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { AcquisitionSourceLineage } from "@/lib/acquisition-source-lineage";
 
 type Campaign = {
   id: string;
   name: string;
   state: string;
   createdAt: string;
-  source?: {
-    label: string;
-    sourceName: string;
-    datasetId?: string;
-    connectionId?: string;
-    externalAccountId?: string;
-  };
+  source?: AcquisitionSourceLineage;
   _count?: { testCells: number; budgetActivities: number };
 };
 

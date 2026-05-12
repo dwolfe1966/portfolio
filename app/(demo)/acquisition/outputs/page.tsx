@@ -4,37 +4,12 @@ import { AcquisitionInsightsPanel } from "@/components/acquisition/AcquisitionIn
 import { AcquisitionOperatorControls } from "@/components/acquisition/AcquisitionOperatorControls";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import {
+  acquisitionLineageIsProviderBacked,
+  acquisitionSourceLineageFromAuditLogs
+} from "@/lib/acquisition-source-lineage";
 
 export const dynamic = "force-dynamic";
-
-function metadataRecord(value: unknown) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function sourceTypeLabel(sourceType: unknown) {
-  if (sourceType === "google_ads") return "Google Ads";
-  if (sourceType === "meta_ads") return "Meta Ads";
-  if (sourceType === "google_sheets") return "Google Sheets";
-  if (sourceType === "csv") return "CSV";
-  return typeof sourceType === "string" && sourceType ? sourceType.replaceAll("_", " ") : "Manual/sample";
-}
-
-function sourceFacts(campaign: { auditLogs?: Array<{ metadata: unknown; createdAt: Date }> }) {
-  const log = campaign.auditLogs?.[0] ?? null;
-  const metadata = metadataRecord(log?.metadata);
-  const datasetId = typeof metadata.datasetId === "string" ? metadata.datasetId : "";
-  const connectionId = typeof metadata.connectionId === "string" ? metadata.connectionId : "";
-  const externalAccountId = typeof metadata.externalAccountId === "string" ? metadata.externalAccountId : "";
-  const sourceName = typeof metadata.sourceName === "string" ? metadata.sourceName : "";
-  return {
-    label: sourceTypeLabel(metadata.sourceType),
-    sourceName: sourceName || "No imported dataset lineage",
-    datasetId,
-    connectionId,
-    externalAccountId,
-    appliedAt: log?.createdAt ?? null
-  };
-}
 
 export default async function AcquisitionOutputsPage() {
   try {
@@ -67,10 +42,10 @@ export default async function AcquisitionOutputsPage() {
     const revenue = top?.testCells.reduce((sum, cell) => sum + cell.revenueCents, 0) ?? 0;
     const conversions = top?.testCells.reduce((sum, cell) => sum + cell.conversions, 0) ?? 0;
     const cpa = conversions ? Math.round(spend / conversions) : 0;
-    const topSource = top ? sourceFacts(top) : null;
+    const topSource = top ? acquisitionSourceLineageFromAuditLogs(top.auditLogs) : null;
     const providerBackedCampaigns = campaigns.filter((campaign) => {
-      const source = sourceFacts(campaign);
-      return source.label === "Google Ads" || source.label === "Meta Ads";
+      const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
+      return acquisitionLineageIsProviderBacked(source);
     }).length;
 
     return (
@@ -157,7 +132,7 @@ export default async function AcquisitionOutputsPage() {
               <thead><tr><th>Name</th><th>Source</th><th>State</th><th>Budget</th><th>Test cells</th><th>Budget activities</th></tr></thead>
               <tbody>
                 {campaigns.map((campaign) => {
-                  const source = sourceFacts(campaign);
+                  const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
                   return (
                     <tr key={campaign.id}>
                       <td><Link href={`/acquisition/campaigns/${campaign.id}`}>{campaign.name}</Link></td>

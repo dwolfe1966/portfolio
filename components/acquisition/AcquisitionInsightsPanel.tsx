@@ -1,18 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { AcquisitionSourceLineage } from "@/lib/acquisition-source-lineage";
 
 type Campaign = { id: string; name: string; state: string };
-
-type SourceLineage = {
-  label: string;
-  sourceName: string;
-  provider?: string;
-  datasetId?: string;
-  connectionId?: string;
-  externalAccountId?: string;
-  appliedAt?: string | null;
-};
 
 type InsightSummary = {
   totalCells: number;
@@ -78,7 +69,7 @@ export function AcquisitionInsightsPanel() {
   const [creativeTrends, setCreativeTrends] = useState<TrendRow[]>([]);
   const [audienceTrends, setAudienceTrends] = useState<TrendRow[]>([]);
   const [budgetTimeline, setBudgetTimeline] = useState<BudgetTimelineItem[]>([]);
-  const [source, setSource] = useState<SourceLineage | null>(null);
+  const [source, setSource] = useState<AcquisitionSourceLineage | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 

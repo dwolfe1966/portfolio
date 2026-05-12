@@ -2,6 +2,12 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import {
+  ACQUISITION_DEFAULT_SOURCE_NAME,
+  acquisitionLineageHasLinks,
+  acquisitionLineageIsProviderBacked,
+  acquisitionSourceLineageFromMetadata
+} from "@/lib/acquisition-source-lineage";
 
 export const dynamic = "force-dynamic";
 
@@ -23,35 +29,6 @@ type SearchParams = {
 function parseWindow(value: string | undefined): TimeWindow {
   if (value && value in TIME_WINDOWS) return value as TimeWindow;
   return "7d";
-}
-
-function metadataRecord(value: unknown) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function sourceTypeLabel(sourceType: unknown) {
-  if (sourceType === "google_ads") return "Google Ads";
-  if (sourceType === "meta_ads") return "Meta Ads";
-  if (sourceType === "google_sheets") return "Google Sheets";
-  if (sourceType === "csv") return "CSV";
-  return typeof sourceType === "string" && sourceType ? sourceType.replaceAll("_", " ") : "Manual/sample";
-}
-
-function sourceFacts(metadata: unknown) {
-  const record = metadataRecord(metadata);
-  const sourceName = typeof record.sourceName === "string" ? record.sourceName : "";
-  const datasetId = typeof record.datasetId === "string" ? record.datasetId : "";
-  const connectionId = typeof record.connectionId === "string" ? record.connectionId : "";
-  const externalAccountId = typeof record.externalAccountId === "string" ? record.externalAccountId : "";
-  const provider = typeof record.provider === "string" ? record.provider : "";
-  return {
-    label: sourceTypeLabel(record.sourceType ?? provider),
-    sourceName: sourceName || "",
-    datasetId,
-    connectionId,
-    externalAccountId,
-    provider
-  };
 }
 
 export default async function AcquisitionAuditPage({
@@ -101,12 +78,12 @@ export default async function AcquisitionAuditPage({
       db.acquisitionAuditLog.count({ where })
     ]);
     const sourceLinkedLogs = logs.filter((log) => {
-      const source = sourceFacts(log.metadata);
-      return Boolean(source.datasetId || source.connectionId || source.externalAccountId);
+      const source = acquisitionSourceLineageFromMetadata(log.metadata);
+      return acquisitionLineageHasLinks(source);
     });
     const providerLinkedLogs = sourceLinkedLogs.filter((log) => {
-      const source = sourceFacts(log.metadata);
-      return source.label === "Google Ads" || source.label === "Meta Ads";
+      const source = acquisitionSourceLineageFromMetadata(log.metadata);
+      return acquisitionLineageIsProviderBacked(source);
     });
     const datasetApplyLogs = logs.filter((log) => log.action === "acquisition_dataset_applied");
 
@@ -210,7 +187,7 @@ export default async function AcquisitionAuditPage({
               </thead>
               <tbody>
                 {logs.map((log) => {
-                  const source = sourceFacts(log.metadata);
+                  const source = acquisitionSourceLineageFromMetadata(log.metadata);
                   return (
                     <tr key={log.id}>
                       <td>{new Date(log.createdAt).toLocaleString()}</td>
@@ -221,7 +198,7 @@ export default async function AcquisitionAuditPage({
                       </td>
                       <td>
                         <span>{source.label}</span>
-                        {source.sourceName ? <p className="small">{source.sourceName}</p> : null}
+                        {source.sourceName !== ACQUISITION_DEFAULT_SOURCE_NAME ? <p className="small">{source.sourceName}</p> : null}
                         {source.externalAccountId ? <p className="small">Account {source.externalAccountId}</p> : null}
                         <div className="importHistoryActions">
                           {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}

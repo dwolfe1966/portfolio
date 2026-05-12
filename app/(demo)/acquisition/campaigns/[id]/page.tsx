@@ -11,40 +11,21 @@ import { AcquisitionCreativeEditor } from "@/components/acquisition/AcquisitionC
 import { AcquisitionTestCellEditor } from "@/components/acquisition/AcquisitionTestCellEditor";
 import { StatusDot, type StatusBand } from "@/components/demo-shell/StatusDot";
 import { evaluateCampaignPolicy, type AcquisitionCampaignState } from "@/lib/acquisition";
+import {
+  ACQUISITION_DEFAULT_SOURCE_NAME,
+  acquisitionMetadataRecord,
+  acquisitionProviderAudienceLineage,
+  acquisitionSourceLineageFromMetadata,
+  acquisitionSourceTypeLabel
+} from "@/lib/acquisition-source-lineage";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ id: string }> };
 
-function metadataRecord(value: unknown) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function sourceTypeLabel(sourceType: unknown) {
-  if (sourceType === "google_ads") return "Google Ads";
-  if (sourceType === "meta_ads") return "Meta Ads";
-  if (sourceType === "google_sheets") return "Google Sheets";
-  if (sourceType === "csv") return "CSV";
-  return typeof sourceType === "string" && sourceType ? sourceType.replaceAll("_", " ") : "Manual/sample";
-}
-
 function formatDateTime(value: unknown) {
   const date = typeof value === "string" || value instanceof Date ? new Date(value) : null;
   return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : "Unknown";
-}
-
-function firstProviderAudience(audiences: Array<{ targetingJson: unknown }>) {
-  for (const audience of audiences) {
-    const targeting = metadataRecord(audience.targetingJson);
-    if (targeting.provider || targeting.externalCampaignId || targeting.externalAdGroupId) {
-      return {
-        provider: typeof targeting.provider === "string" ? targeting.provider : "",
-        externalCampaignId: typeof targeting.externalCampaignId === "string" ? targeting.externalCampaignId : "",
-        externalAdGroupId: typeof targeting.externalAdGroupId === "string" ? targeting.externalAdGroupId : ""
-      };
-    }
-  }
-  return { provider: "", externalCampaignId: "", externalAdGroupId: "" };
 }
 
 export default async function AcquisitionCampaignDetailPage({ params }: PageProps) {
@@ -93,20 +74,29 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
       (log) => log.action === "budget_shift_pending_approval"
     ).length;
     const sourceLog = campaign.auditLogs.find((log) => log.action === "acquisition_dataset_applied");
-    const sourceMetadata = metadataRecord(sourceLog?.metadata);
-    const sourceDatasetId = typeof sourceMetadata.datasetId === "string" ? sourceMetadata.datasetId : "";
+    const sourceLineage = acquisitionSourceLineageFromMetadata(sourceLog?.metadata, sourceLog?.createdAt ?? null);
+    const sourceDatasetId = sourceLineage.datasetId;
     const sourceDataset = sourceDatasetId
       ? await db.workspaceDataset.findUnique({
           where: { id: sourceDatasetId },
           select: { id: true, name: true, sourceType: true, metadata: true, createdAt: true }
         })
       : null;
-    const datasetMetadata = metadataRecord(sourceDataset?.metadata);
-    const providerAudience = firstProviderAudience(campaign.audiences);
-    const provider = sourceMetadata.provider ?? datasetMetadata.provider ?? providerAudience.provider;
-    const externalAccountId = sourceMetadata.externalAccountId ?? datasetMetadata.externalAccountId;
-    const connectionId = sourceMetadata.connectionId ?? datasetMetadata.connectionId;
-    const syncedAt = sourceMetadata.syncedAt ?? datasetMetadata.syncedAt ?? sourceDataset?.createdAt;
+    const datasetLineage = acquisitionSourceLineageFromMetadata(
+      sourceDataset
+        ? {
+            ...acquisitionMetadataRecord(sourceDataset.metadata),
+            sourceName: sourceDataset.name,
+            sourceType: sourceDataset.sourceType
+          }
+        : null,
+      null
+    );
+    const providerAudience = acquisitionProviderAudienceLineage(campaign.audiences);
+    const provider = sourceLineage.provider || datasetLineage.provider || providerAudience.provider;
+    const externalAccountId = sourceLineage.externalAccountId || datasetLineage.externalAccountId;
+    const connectionId = sourceLineage.connectionId || datasetLineage.connectionId;
+    const syncedAt = sourceLineage.syncedAt || datasetLineage.syncedAt || sourceDataset?.createdAt;
     const externalCampaignId = providerAudience.externalCampaignId || (
       typeof campaign.objective === "string" && campaign.objective.includes(" campaign ")
         ? campaign.objective.split(" campaign ").at(-1) ?? ""
@@ -151,13 +141,13 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
           <div className="grid grid-4">
             <div className="card">
               <p className="small">Source</p>
-              <div className="workspaceSettingValue">{sourceTypeLabel(sourceMetadata.sourceType ?? sourceDataset?.sourceType)}</div>
-              <p className="small">{typeof sourceMetadata.sourceName === "string" ? sourceMetadata.sourceName : sourceDataset?.name ?? "No imported dataset lineage"}</p>
+              <div className="workspaceSettingValue">{sourceLineage.label !== "Manual/sample" ? sourceLineage.label : datasetLineage.label}</div>
+              <p className="small">{sourceLineage.sourceName !== ACQUISITION_DEFAULT_SOURCE_NAME ? sourceLineage.sourceName : datasetLineage.sourceName}</p>
             </div>
             <div className="card">
               <p className="small">Provider campaign</p>
               <div className="workspaceSettingValue">{externalCampaignId || "None"}</div>
-              <p className="small">{sourceTypeLabel(provider)}</p>
+              <p className="small">{acquisitionSourceTypeLabel(provider)}</p>
             </div>
             <div className="card">
               <p className="small">Provider account</p>

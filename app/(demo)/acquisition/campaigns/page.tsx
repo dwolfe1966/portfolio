@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import { acquisitionSourceLineageFromAuditLogs } from "@/lib/acquisition-source-lineage";
 
 export const dynamic = "force-dynamic";
 
@@ -11,28 +12,6 @@ type PageProps = {
     state?: string;
   }>;
 };
-
-function metadataRecord(value: unknown) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function sourceTypeLabel(sourceType: unknown) {
-  if (sourceType === "google_ads") return "Google Ads";
-  if (sourceType === "meta_ads") return "Meta Ads";
-  if (sourceType === "google_sheets") return "Google Sheets";
-  if (sourceType === "csv") return "CSV";
-  return typeof sourceType === "string" && sourceType ? sourceType.replaceAll("_", " ") : "Manual/sample";
-}
-
-function campaignSourceLabel(campaign: { auditLogs: Array<{ metadata: unknown }> }) {
-  const metadata = metadataRecord(campaign.auditLogs[0]?.metadata);
-  const sourceType = metadata.sourceType;
-  const sourceName = typeof metadata.sourceName === "string" ? metadata.sourceName : "";
-  return {
-    label: sourceTypeLabel(sourceType),
-    detail: sourceName || "No imported dataset lineage"
-  };
-}
 
 export default async function AcquisitionCampaignsPage({ searchParams }: PageProps) {
   const query = await searchParams;
@@ -101,13 +80,13 @@ export default async function AcquisitionCampaignsPage({ searchParams }: PagePro
               <thead><tr><th>Name</th><th>Source</th><th>State</th><th>Budget</th><th>Cells</th><th>Budget actions</th><th>Open</th></tr></thead>
               <tbody>
                 {campaigns.map((campaign) => {
-                  const source = campaignSourceLabel(campaign);
+                  const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
                   return (
                     <tr key={campaign.id}>
                       <td>{campaign.name}</td>
                       <td>
                         {source.label}
-                        <p className="small">{source.detail}</p>
+                        <p className="small">{source.sourceName}</p>
                       </td>
                       <td>{campaign.state}</td>
                       <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
