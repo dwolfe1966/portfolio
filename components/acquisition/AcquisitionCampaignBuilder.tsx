@@ -14,6 +14,10 @@ type TemplateOption = {
   predictedCacCents: number;
   targetingJson: unknown;
 };
+type CreatedCampaign = {
+  id: string;
+  name: string;
+};
 
 const DEFAULT_CHANNELS: Channel[] = ["SEARCH", "SOCIAL"];
 
@@ -32,6 +36,7 @@ export function AcquisitionCampaignBuilder() {
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string>("");
+  const [createdCampaign, setCreatedCampaign] = useState<CreatedCampaign | null>(null);
 
   const startAt = useMemo(() => new Date().toISOString(), []);
   const endAt = useMemo(() => new Date(Date.now() + 14 * 86400000).toISOString(), []);
@@ -81,6 +86,7 @@ export function AcquisitionCampaignBuilder() {
     event.preventDefault();
     setLoading(true);
     setStatus("");
+    setCreatedCampaign(null);
 
     const templateIds =
       audienceSource === "templates" && selectedTemplateIds.length > 0
@@ -114,7 +120,8 @@ export function AcquisitionCampaignBuilder() {
         return;
       }
 
-      setStatus(`Created campaign: ${json.campaign.name}. Next: run an iteration in Simulations.`);
+      setCreatedCampaign({ id: json.campaign.id, name: json.campaign.name });
+      setStatus("Campaign created. Review the campaign setup or run the next simulation iteration.");
     } catch {
       setStatus("Error: network issue while creating campaign.");
     } finally {
@@ -275,6 +282,16 @@ export function AcquisitionCampaignBuilder() {
         <Link className="btn" href="/acquisition/simulations">Go to simulations</Link>
       </div>
       {status ? <p className="small" style={{ marginTop: 10 }}>{status}</p> : null}
+      {createdCampaign ? (
+        <div className="ctaRow" style={{ marginTop: 10 }}>
+          <Link className="btn primary" href={`/acquisition/campaigns/${createdCampaign.id}`}>
+            Open {createdCampaign.name}
+          </Link>
+          <Link className="btn" href="/acquisition/simulations">
+            Run simulation
+          </Link>
+        </div>
+      ) : null}
     </form>
   );
 }
