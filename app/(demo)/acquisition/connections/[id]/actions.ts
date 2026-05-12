@@ -40,6 +40,22 @@ function syncErrorReason(error: unknown) {
   return "sync_failed";
 }
 
+function connectionRedirectUrl({
+  connectionId,
+  datasetId,
+  applied
+}: {
+  connectionId: string;
+  datasetId: string;
+  applied: boolean;
+}) {
+  const params = new URLSearchParams({
+    syncedDatasetId: datasetId,
+    syncApplied: applied ? "1" : "0"
+  });
+  return `/acquisition/connections/${connectionId}?${params.toString()}`;
+}
+
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
@@ -370,11 +386,13 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
   revalidatePath("/acquisition/inputs");
   revalidatePath("/acquisition/overview");
   revalidatePath("/acquisition/simulations");
+  revalidatePath("/acquisition/outputs");
+  revalidatePath("/acquisition/campaigns");
   revalidatePath(`/acquisition/connections/${connection.id}`);
-  if (dataset && applyAfterSync) {
-    redirect(`/acquisition/inputs?datasetApplied=${encodeURIComponent(dataset.id)}`);
+  if (dataset) {
+    redirect(connectionRedirectUrl({ connectionId: connection.id, datasetId: dataset.id, applied: applyAfterSync }));
   }
-  redirect(`/workspace/datasets?tool=acquisition&source=${encodeURIComponent(connection.provider)}#imported-snapshots`);
+  redirect(`/acquisition/connections/${connection.id}?syncError=snapshot_failed`);
 }
 
 export async function requestProviderWriteDryRunApprovalAction(formData: FormData) {

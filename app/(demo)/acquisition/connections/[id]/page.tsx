@@ -120,7 +120,13 @@ async function loadProviderLiveData(
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ campaignId?: string; adGroupId?: string; syncError?: string }>;
+  searchParams: Promise<{
+    campaignId?: string;
+    adGroupId?: string;
+    syncError?: string;
+    syncedDatasetId?: string;
+    syncApplied?: string;
+  }>;
 };
 
 function campaignHref(connectionId: string, campaignId: string, adGroupId?: string | null) {
@@ -255,6 +261,12 @@ function syncErrorCopy(error: string | undefined, provider: string) {
     return "Provider sync failed. Try another connected account or check the server log for the provider response.";
   }
   return "";
+}
+
+function syncSuccessCopy(applied: boolean) {
+  return applied
+    ? "Provider snapshot synced and applied to acquisition inputs."
+    : "Provider snapshot synced and saved as an acquisition dataset.";
 }
 
 export default async function ConnectionDetailPage({ params, searchParams }: PageProps) {
@@ -392,6 +404,17 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
       {isLiveProvider ? (
         <Section title="Workspace dataset sync">
           <div className="card">
+            {selected.syncedDatasetId ? (
+              <div className="card compact" style={{ marginBottom: 12 }}>
+                <p className="statusPill live">{selected.syncApplied === "1" ? "Synced and applied" : "Synced"}</p>
+                <h3 style={{ marginTop: 10 }}>{syncSuccessCopy(selected.syncApplied === "1")}</h3>
+                <p className="small">Dataset {selected.syncedDatasetId.slice(0, 8)} is now listed in this account history.</p>
+                <div className="ctaRow">
+                  <Link className="btn smallBtn" href={`/workspace/datasets/${selected.syncedDatasetId}`}>Review dataset</Link>
+                  <Link className="btn smallBtn primary" href="/acquisition/inputs?imported=1">Open acquisition inputs</Link>
+                </div>
+              </div>
+            ) : null}
             <div className="grid grid-2">
               <div>
                 <p className={`statusPill ${syncState.tone}`}>{syncState.label}</p>
