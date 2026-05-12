@@ -8,6 +8,7 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { isGoogleOAuthConfigured } from "@/lib/ad-connectors/google-oauth";
 import { isMetaOAuthConfigured } from "@/lib/ad-connectors/meta-oauth";
+import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provider-snapshots";
 import { ConnectionDisconnectButton } from "@/components/acquisition/ConnectionDisconnectButton";
 
 export const dynamic = "force-dynamic";
@@ -402,7 +403,7 @@ export default async function ConnectionsPage({
                           <Link href={`/workspace/datasets/${latestDataset.id}`}>
                             {latestDataset.name}
                           </Link>
-                          <div className="small">{rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows</div>
+                          <div className="small">{acquisitionProviderSnapshotScopeLabel(latestDataset.metadata, { sentenceCase: true })} · {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows</div>
                         </>
                       ) : (
                         <span className="small">No dataset snapshot yet.</span>

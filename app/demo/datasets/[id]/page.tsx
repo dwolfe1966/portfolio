@@ -14,6 +14,7 @@ import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { getDefaultWorkspace } from "@/lib/workspace";
 import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
+import { acquisitionProviderSnapshotFacts } from "@/lib/acquisition-provider-snapshots";
 
 export const dynamic = "force-dynamic";
 
@@ -172,19 +173,6 @@ async function loadDatasetSnapshot(id: string, accountUserId: string | null) {
   });
 }
 
-function providerSnapshotFacts(metadata: unknown) {
-  const record = metadataRecord(metadata);
-  const sourceMetadata = metadataRecord(record.sourceMetadata);
-  const providerRowCounts = metadataRecord(record.providerRowCounts);
-  return {
-    connectionId: typeof record.connectionId === "string" ? record.connectionId : "",
-    provider: typeof record.provider === "string" ? record.provider : typeof sourceMetadata.provider === "string" ? sourceMetadata.provider : "",
-    externalAccountId: typeof record.externalAccountId === "string" ? record.externalAccountId : typeof sourceMetadata.externalAccountId === "string" ? sourceMetadata.externalAccountId : "",
-    syncedAt: typeof record.syncedAt === "string" ? record.syncedAt : "",
-    providerRowCounts
-  };
-}
-
 async function deleteSourceConfig(formData: FormData) {
   "use server";
 
@@ -211,7 +199,7 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
       const visibility = workspaceVisibilityLabel(dataset.accountUserId, accountUserId);
       const rows = persistedDatasetRows(dataset.rowCounts);
       const rowObjects = objectRowsFromCounts(dataset.rowCounts);
-      const providerFacts = providerSnapshotFacts(dataset.metadata);
+      const providerFacts = acquisitionProviderSnapshotFacts(dataset.metadata);
       const isProviderSnapshot = dataset.sourceType === "google_ads" || dataset.sourceType === "meta_ads";
       const hasProviderRows = Object.keys(providerFacts.providerRowCounts).length > 0;
 
@@ -308,6 +296,17 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
                 <div className="card">
                   <p className="small">Synced</p>
                   <div className="workspaceSettingValue">{formatDate(providerFacts.syncedAt) || "Unknown"}</div>
+                </div>
+                <div className="card">
+                  <p className="small">Scope</p>
+                  <div className="workspaceSettingValue">{providerFacts.syncScope === "selected_provider_scope" ? "Selected scope" : "Account"}</div>
+                  <p className="small">
+                    {providerFacts.externalAdGroupId
+                      ? `Campaign ${providerFacts.externalCampaignId || "unknown"} / group ${providerFacts.externalAdGroupId}`
+                      : providerFacts.externalCampaignId
+                        ? `Campaign ${providerFacts.externalCampaignId}`
+                        : "All synced provider objects"}
+                  </p>
                 </div>
               </div>
               {hasProviderRows ? (

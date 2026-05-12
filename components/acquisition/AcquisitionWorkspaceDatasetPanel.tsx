@@ -6,6 +6,7 @@ import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
+import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provider-snapshots";
 import { ToolDataSourceSelector } from "@/components/site/ToolDataSourceSelector";
 
 type AcquisitionWorkspaceDatasetPanelProps = {
@@ -54,6 +55,7 @@ function providerSnapshotDetail(snapshot: {
   const connectionId = datasetConnectionId(snapshot.metadata);
   const parts = [
     sourceLabel(snapshot.sourceType),
+    acquisitionProviderSnapshotScopeLabel(snapshot.metadata),
     `${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows`,
     formatDate(snapshot.createdAt),
     connectionId ? `connection ${connectionId.slice(0, 8)}` : null
@@ -158,7 +160,7 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
             const visibility = workspaceVisibilityLabel(snapshot.accountUserId, session?.userId);
             return {
               id: snapshot.id,
-              label: `${visibility.label} · ${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
+              label: `${visibility.label} · ${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${acquisitionProviderSnapshotScopeLabel(snapshot.metadata)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
             };
           })}
           canUseImportedData={canUseImportedData(session?.userId)}
