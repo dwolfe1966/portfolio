@@ -19,6 +19,7 @@ import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import { getDefaultWorkspace } from "@/lib/workspace";
 import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 import { providerConnectionSyncRedirectUrl } from "@/lib/acquisition-provider-sync-redirect";
+import { acquisitionProviderSnapshotFacts } from "@/lib/acquisition-provider-snapshots";
 
 function optionalString(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
@@ -378,6 +379,56 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
     redirect(providerConnectionSyncRedirectUrl({ connectionId: connection.id, datasetId: dataset.id, applied: applyAfterSync, scope }));
   }
   redirect(`/acquisition/connections/${connection.id}?syncError=snapshot_failed`);
+}
+
+export async function applyProviderConnectionDatasetAction(formData: FormData) {
+  if (!isDemoMutationAllowed()) return;
+
+  const cookieStore = await cookies();
+  const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+  if (!accountUserId) return;
+
+  const connectionId = optionalString(formData.get("connectionId"));
+  const datasetId = optionalString(formData.get("datasetId"));
+  if (!connectionId || !datasetId) return;
+
+  const dataset = await db.workspaceDataset.findFirst({
+    where: {
+      id: datasetId,
+      app: "acquisition",
+      OR: [{ accountUserId }, { accountUserId: null }],
+      metadata: {
+        path: ["connectionId"],
+        equals: connectionId
+      }
+    },
+    select: { id: true, metadata: true }
+  });
+  if (!dataset) {
+    redirect(`/acquisition/connections/${connectionId}?syncError=dataset_not_found`);
+  }
+
+  const result = await applyAcquisitionDatasetSnapshot(dataset.id, accountUserId);
+  if (!result.ok) {
+    redirect(`/acquisition/connections/${connectionId}?syncError=dataset_apply_failed`);
+  }
+
+  const facts = acquisitionProviderSnapshotFacts(dataset.metadata);
+  revalidatePath("/acquisition/inputs");
+  revalidatePath("/acquisition/overview");
+  revalidatePath("/acquisition/simulations");
+  revalidatePath("/acquisition/outputs");
+  revalidatePath("/acquisition/campaigns");
+  revalidatePath(`/acquisition/connections/${connectionId}`);
+  redirect(providerConnectionSyncRedirectUrl({
+    connectionId,
+    datasetId: result.datasetId,
+    applied: true,
+    scope: {
+      externalCampaignId: facts.externalCampaignId || null,
+      externalAdGroupId: facts.externalAdGroupId || null
+    }
+  }));
 }
 
 export async function requestProviderWriteDryRunApprovalAction(formData: FormData) {

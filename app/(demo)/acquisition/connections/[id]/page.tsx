@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
-import { applyAcquisitionDatasetSnapshotAction } from "@/app/(demo)/acquisition/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { GoogleAdsConnector, GoogleAdsNotTestAccountError, MetaAdsConnector, MetaAdsNotTestAccountError } from "@/lib/ad-connectors";
@@ -11,7 +10,11 @@ import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } f
 import { acquisitionProviderDryRunAdapterAvailable } from "@/lib/acquisition-agent-generalization";
 import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provider-snapshots";
 import { buildProviderWritePreflight } from "@/lib/provider-preflight";
-import { requestProviderWriteDryRunApprovalAction, syncProviderConnectionDatasetAction } from "./actions";
+import {
+  applyProviderConnectionDatasetAction,
+  requestProviderWriteDryRunApprovalAction,
+  syncProviderConnectionDatasetAction
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -488,7 +491,8 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   <td>
                     <div className="ctaRow">
                       <Link className="btn smallBtn" href={`/workspace/datasets/${dataset.id}`}>Review</Link>
-                      <form action={applyAcquisitionDatasetSnapshotAction}>
+                      <form action={applyProviderConnectionDatasetAction}>
+                        <input type="hidden" name="connectionId" value={connection.id} />
                         <input type="hidden" name="datasetId" value={dataset.id} />
                         <button className="btn smallBtn primary" type="submit">Apply</button>
                       </form>
