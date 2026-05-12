@@ -18,6 +18,7 @@ import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import { getDefaultWorkspace } from "@/lib/workspace";
 import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
+import { providerConnectionSyncRedirectUrl } from "@/lib/acquisition-provider-sync-redirect";
 
 function optionalString(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
@@ -38,22 +39,6 @@ function syncErrorReason(error: unknown) {
     return "not_test_account";
   }
   return "sync_failed";
-}
-
-function connectionRedirectUrl({
-  connectionId,
-  datasetId,
-  applied
-}: {
-  connectionId: string;
-  datasetId: string;
-  applied: boolean;
-}) {
-  const params = new URLSearchParams({
-    syncedDatasetId: datasetId,
-    syncApplied: applied ? "1" : "0"
-  });
-  return `/acquisition/connections/${connectionId}?${params.toString()}`;
 }
 
 function isoDate(date: Date): string {
@@ -390,7 +375,7 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
   revalidatePath("/acquisition/campaigns");
   revalidatePath(`/acquisition/connections/${connection.id}`);
   if (dataset) {
-    redirect(connectionRedirectUrl({ connectionId: connection.id, datasetId: dataset.id, applied: applyAfterSync }));
+    redirect(providerConnectionSyncRedirectUrl({ connectionId: connection.id, datasetId: dataset.id, applied: applyAfterSync, scope }));
   }
   redirect(`/acquisition/connections/${connection.id}?syncError=snapshot_failed`);
 }
