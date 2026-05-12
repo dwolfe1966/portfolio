@@ -99,6 +99,25 @@ function approvalProviderContext(value: unknown) {
   };
 }
 
+function approvalAcquisitionContext(value: unknown) {
+  const proposedAction = objectRecord(value);
+  if (!proposedAction) return null;
+  const campaignId = stringField(proposedAction.campaignId);
+  const fromTestCellId = stringField(proposedAction.fromTestCellId);
+  const toTestCellId = stringField(proposedAction.toTestCellId);
+  const amountCents = numericField(proposedAction.amountCents ?? proposedAction.shiftAmountCents);
+  const shiftPct = Number(proposedAction.shiftPct ?? 0);
+  if (!campaignId && !fromTestCellId && !toTestCellId && !amountCents) return null;
+
+  return {
+    campaignId,
+    fromTestCellId,
+    toTestCellId,
+    amountCents,
+    shiftPct: Number.isFinite(shiftPct) ? shiftPct : 0
+  };
+}
+
 function ApprovalProviderContext({ proposedAction }: { proposedAction: unknown }) {
   const context = approvalProviderContext(proposedAction);
   if (!context) return null;
@@ -116,6 +135,27 @@ function ApprovalProviderContext({ proposedAction }: { proposedAction: unknown }
       <span>Campaign: {context.externalCampaignId ?? "not selected"}</span>
       {childTarget ? <span>{childTarget}</span> : null}
       <span>Exposure: {formatCents(context.spendExposureCents)}</span>
+    </div>
+  );
+}
+
+function ApprovalAcquisitionContext({ proposedAction }: { proposedAction: unknown }) {
+  const context = approvalAcquisitionContext(proposedAction);
+  if (!context) return null;
+
+  return (
+    <div className="agentJobResult">
+      <span>Campaign: {context.campaignId ?? "not linked"}</span>
+      <span>Shift: {formatCents(context.amountCents)}{context.shiftPct ? ` · ${(context.shiftPct * 100).toFixed(1)}%` : ""}</span>
+      {context.fromTestCellId ? <span>From cell: {context.fromTestCellId}</span> : null}
+      {context.toTestCellId ? <span>To cell: {context.toTestCellId}</span> : null}
+      {context.campaignId ? (
+        <div className="ctaRow" style={{ marginTop: 4 }}>
+          <Link className="btn smallBtn" href={`/acquisition/campaigns/${context.campaignId}`}>Open campaign</Link>
+          <Link className="btn smallBtn" href={`/acquisition/simulations?campaignId=${context.campaignId}`}>Simulate</Link>
+          <Link className="btn smallBtn" href={`/acquisition/audit?campaignId=${context.campaignId}&action=budget_shift_pending_approval&window=all`}>Audit trail</Link>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -534,6 +574,7 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
                   <div>
                     <p>{approval.summary}</p>
                     <p className="small">Due: {formatDate(approval.dueAt)} · Expires: {formatDate(approval.expiresAt)} · Role: {approval.requiredApproverRole ?? "owner"}</p>
+                    <ApprovalAcquisitionContext proposedAction={approval.proposedAction} />
                     <ApprovalProviderContext proposedAction={approval.proposedAction} />
                   </div>
                   {isOpenApproval(approval.status) ? (
