@@ -83,10 +83,16 @@ export default async function AcquisitionCampaignsPage({ searchParams }: PagePro
                   const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
                   return (
                     <tr key={campaign.id}>
-                      <td>{campaign.name}</td>
+                      <td><Link href={`/acquisition/campaigns/${campaign.id}`}>{campaign.name}</Link></td>
                       <td>
                         {source.label}
                         <p className="small">{source.sourceName}</p>
+                        {source.datasetId || source.connectionId ? (
+                          <div className="ctaRow">
+                            {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
+                            {source.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Provider</Link> : null}
+                          </div>
+                        ) : null}
                       </td>
                       <td>{campaign.state}</td>
                       <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
