@@ -53,6 +53,18 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
 
     const scored: Array<{ id: string; score: number; budgetCents: number }> = [];
     const aggregate = { spendCents: 0, revenueCents: 0, conversions: 0 };
+    let iterationSummary = {
+      averageScore: 0,
+      winners: 0,
+      losers: 0,
+      cooldownActive: false,
+      reallocationCount: 0,
+      pendingApprovalCount: 0,
+      policyBand: "healthy",
+      observedCacCents: 0,
+      observedRatio: 0,
+      nextState: campaign.state
+    };
 
     await db.$transaction(async (tx) => {
       for (const cell of cells) {
@@ -279,10 +291,23 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
           }
         }
       });
+
+      iterationSummary = {
+        averageScore: Number(averageScore.toFixed(4)),
+        winners: winners.length,
+        losers: losers.length,
+        cooldownActive,
+        reallocationCount,
+        pendingApprovalCount,
+        policyBand: policy.band,
+        observedCacCents,
+        observedRatio: Number(policy.observedRatio.toFixed(4)),
+        nextState
+      };
     });
 
     logApiEvent("info", eventId, "acquisition.iteration.completed", { campaignId: id, iteratedCells: cells.length });
-    return apiOk({ campaignId: id, iteratedCells: cells.length, eventId });
+    return apiOk({ campaignId: id, iteratedCells: cells.length, summary: iterationSummary, eventId });
   } catch (error) {
     if (isMissingDemoTableError(error)) {
       logApiEvent("warn", eventId, "acquisition.iteration.compatibility_mode", { campaignId: id });

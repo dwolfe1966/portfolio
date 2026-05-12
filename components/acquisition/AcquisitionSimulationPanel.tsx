@@ -35,6 +35,21 @@ type InsightsPayload = {
   performanceSeries: PerformancePoint[];
 };
 
+type IterationSummary = {
+  campaignId: string;
+  iteratedCells: number;
+  averageScore: number;
+  winners: number;
+  losers: number;
+  cooldownActive: boolean;
+  reallocationCount: number;
+  pendingApprovalCount: number;
+  policyBand: string;
+  observedCacCents: number;
+  observedRatio: number;
+  nextState: string;
+};
+
 type ScenarioPreset = {
   id?: string;
   name: string;
@@ -125,6 +140,7 @@ export function AcquisitionSimulationPanel({ initialCampaignId = "" }: Acquisiti
   const [presets, setPresets] = useState<ScenarioPreset[]>([]);
   const [presetStorage, setPresetStorage] = useState<"server" | "local">("local");
   const [monteCarloRevenues, setMonteCarloRevenues] = useState<number[]>([]);
+  const [lastIteration, setLastIteration] = useState<IterationSummary | null>(null);
 
   const refreshCampaigns = useCallback(async function refreshCampaigns() {
     setLoading(true);
@@ -181,6 +197,22 @@ export function AcquisitionSimulationPanel({ initialCampaignId = "" }: Acquisiti
       const res = await fetch(`/api/acquisition/campaigns/${campaignId}/iterate`, { method: "POST" });
       const json = await res.json();
       setMessage(json.ok ? `Iteration complete. Updated ${json.iteratedCells} test cells.` : json.error ?? "Iteration failed");
+      if (json.ok && json.summary) {
+        setLastIteration({
+          campaignId,
+          iteratedCells: Number(json.iteratedCells ?? 0),
+          averageScore: Number(json.summary.averageScore ?? 0),
+          winners: Number(json.summary.winners ?? 0),
+          losers: Number(json.summary.losers ?? 0),
+          cooldownActive: Boolean(json.summary.cooldownActive),
+          reallocationCount: Number(json.summary.reallocationCount ?? 0),
+          pendingApprovalCount: Number(json.summary.pendingApprovalCount ?? 0),
+          policyBand: typeof json.summary.policyBand === "string" ? json.summary.policyBand : "unknown",
+          observedCacCents: Number(json.summary.observedCacCents ?? 0),
+          observedRatio: Number(json.summary.observedRatio ?? 0),
+          nextState: typeof json.summary.nextState === "string" ? json.summary.nextState : "Unknown"
+        });
+      }
       await refreshCampaigns();
       await loadInsights(campaignId);
     } catch {
@@ -371,6 +403,32 @@ export function AcquisitionSimulationPanel({ initialCampaignId = "" }: Acquisiti
         <button onClick={refreshCampaigns} disabled={loading}>{loading ? "Refreshing..." : "Refresh campaigns"}</button>
       </div>
       {message ? <p className="small">{message}</p> : null}
+      {lastIteration ? (
+        <div className="grid grid-4" style={{ marginTop: 10 }}>
+          <div className="card">
+            <p className="small">Last iteration</p>
+            <div className="workspaceSettingValue">{lastIteration.iteratedCells.toLocaleString()} cells</div>
+            <p className="small">Score {lastIteration.averageScore.toFixed(3)} · state {lastIteration.nextState}</p>
+          </div>
+          <div className="card">
+            <p className="small">Budget movement</p>
+            <div className="workspaceSettingValue">{lastIteration.reallocationCount.toLocaleString()}</div>
+            <p className="small">
+              {lastIteration.cooldownActive ? "Cooldown active" : "Cooldown clear"} · {lastIteration.pendingApprovalCount.toLocaleString()} approvals
+            </p>
+          </div>
+          <div className="card">
+            <p className="small">Cell ranking</p>
+            <div className="workspaceSettingValue">{lastIteration.winners.toLocaleString()} winners</div>
+            <p className="small">{lastIteration.losers.toLocaleString()} lower-ranked cells</p>
+          </div>
+          <div className="card">
+            <p className="small">Policy economics</p>
+            <div className="workspaceSettingValue">${(lastIteration.observedCacCents / 100).toFixed(0)} CAC</div>
+            <p className="small">{lastIteration.policyBand} · {lastIteration.observedRatio.toFixed(2)}x LTV:CAC</p>
+          </div>
+        </div>
+      ) : null}
 
       {campaigns.length === 0 ? (
         <div className="card" style={{ marginTop: 10 }}>
