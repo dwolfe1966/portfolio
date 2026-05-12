@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
+import { applyAcquisitionDatasetSnapshotAction } from "@/app/(demo)/acquisition/inputs/actions";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { GoogleAdsConnector, GoogleAdsNotTestAccountError, MetaAdsConnector, MetaAdsNotTestAccountError } from "@/lib/ad-connectors";
 import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
 import { acquisitionProviderDryRunAdapterAvailable } from "@/lib/acquisition-agent-generalization";
+import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provider-snapshots";
 import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import { requestProviderWriteDryRunApprovalAction, syncProviderConnectionDatasetAction } from "./actions";
 
@@ -37,6 +39,7 @@ type LatestDataset = {
   id: string;
   name: string;
   rowCounts: unknown;
+  metadata: unknown;
   createdAt: Date;
 };
 
@@ -287,8 +290,8 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
   const isLiveProvider = connection.provider === "google_ads" || connection.provider === "meta_ads";
   const childGroupLabel = connection.provider === "meta_ads" ? "Ad sets" : "Ad groups";
   const childGroupSingular = connection.provider === "meta_ads" ? "ad set" : "ad group";
-  const latestDataset = isLiveProvider
-    ? await db.workspaceDataset.findFirst({
+  const syncedDatasets = isLiveProvider
+    ? await db.workspaceDataset.findMany({
         where: {
           app: "acquisition",
           sourceType: connection.provider,
@@ -301,14 +304,17 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
           }
         },
         orderBy: { createdAt: "desc" },
+        take: 8,
         select: {
           id: true,
           name: true,
           rowCounts: true,
+          metadata: true,
           createdAt: true
         }
       })
-    : null;
+    : [];
+  const latestDataset = syncedDatasets[0] ?? null;
   const live = isLiveProvider
     ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId)
     : null;
@@ -431,6 +437,44 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
               <p className="small bandText--unhealthy">{syncErrorCopy(selected.syncError, connection.provider)}</p>
             ) : null}
           </div>
+        </Section>
+      ) : null}
+
+      {isLiveProvider && syncedDatasets.length > 0 ? (
+        <Section title="Synced dataset history">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Dataset</th>
+                <th>Scope</th>
+                <th>Rows</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {syncedDatasets.map((dataset) => (
+                <tr key={dataset.id}>
+                  <td>
+                    <Link href={`/workspace/datasets/${dataset.id}`}>{dataset.name}</Link>
+                    {dataset.id === latestDataset?.id ? <p className="small">Latest sync</p> : null}
+                  </td>
+                  <td>{acquisitionProviderSnapshotScopeLabel(dataset.metadata, { sentenceCase: true })}</td>
+                  <td>{rowCountTotal(dataset.rowCounts).toLocaleString()}</td>
+                  <td>{formatDateTime(dataset.createdAt)}</td>
+                  <td>
+                    <div className="ctaRow">
+                      <Link className="btn smallBtn" href={`/workspace/datasets/${dataset.id}`}>Review</Link>
+                      <form action={applyAcquisitionDatasetSnapshotAction}>
+                        <input type="hidden" name="datasetId" value={dataset.id} />
+                        <button className="btn smallBtn primary" type="submit">Apply</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </Section>
       ) : null}
 
