@@ -4,6 +4,8 @@ import {
   ACQUISITION_DEFAULT_SOURCE_NAME,
   acquisitionLineageIsProviderBacked,
   acquisitionProviderAudienceLineage,
+  acquisitionProviderLabel,
+  acquisitionProviderTargetingFacts,
   acquisitionSourceLineageFromAuditLogs,
   acquisitionSourceLineageFromMetadata
 } from "../lib/acquisition-source-lineage";
@@ -74,4 +76,28 @@ test("acquisitionProviderAudienceLineage finds provider campaign context", () =>
     externalCampaignId: "campaign_1",
     externalAdGroupId: "group_1"
   });
+});
+
+test("acquisitionProviderTargetingFacts normalizes ad group and ad set ids", () => {
+  assert.deepEqual(acquisitionProviderTargetingFacts({
+    provider: "google_ads",
+    externalCampaignId: "campaign_1",
+    externalAdGroupId: "group_1"
+  }), {
+    provider: "google_ads",
+    externalCampaignId: "campaign_1",
+    externalChildId: "group_1"
+  });
+
+  assert.deepEqual(acquisitionProviderTargetingFacts({
+    provider: "meta_ads",
+    externalCampaignId: "campaign_2",
+    externalAdSetId: "set_1"
+  }), {
+    provider: "meta_ads",
+    externalCampaignId: "campaign_2",
+    externalChildId: "set_1"
+  });
+  assert.equal(acquisitionProviderLabel("google_ads"), "Google Ads");
+  assert.equal(acquisitionProviderLabel("unknown_provider"), "unknown provider");
 });

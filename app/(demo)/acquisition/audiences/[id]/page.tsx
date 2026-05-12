@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { AudienceTemplateForm } from "@/components/acquisition/AudienceTemplateForm";
+import { acquisitionProviderLabel, acquisitionProviderTargetingFacts } from "@/lib/acquisition-source-lineage";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function AudienceTemplateDetailPage({ params }: PageProps) 
     if (!template) notFound();
 
     const targetingString = JSON.stringify(template.targetingJson, null, 2);
+    const templateProviderFacts = acquisitionProviderTargetingFacts(template.targetingJson);
 
     return (
       <>
@@ -58,6 +60,26 @@ export default async function AudienceTemplateDetailPage({ params }: PageProps) 
           />
         </Section>
 
+        <Section title="Provider targeting context">
+          <div className="grid grid-3">
+            <div className="card">
+              <p className="small">Provider</p>
+              <div className="workspaceSettingValue">{acquisitionProviderLabel(templateProviderFacts.provider)}</div>
+              <p className="small">{templateProviderFacts.provider ? "Template targeting includes provider ids." : "No provider-specific targeting found."}</p>
+            </div>
+            <div className="card">
+              <p className="small">Campaign</p>
+              <div className="workspaceSettingValue">{templateProviderFacts.externalCampaignId || "None"}</div>
+              <p className="small">Provider campaign id from targeting JSON.</p>
+            </div>
+            <div className="card">
+              <p className="small">Child object</p>
+              <div className="workspaceSettingValue">{templateProviderFacts.externalChildId || "None"}</div>
+              <p className="small">Ad group or ad set id from targeting JSON.</p>
+            </div>
+          </div>
+        </Section>
+
         <Section title={`Used by ${template.segments.length} campaign segment${template.segments.length === 1 ? "" : "s"}`}>
           {template.segments.length === 0 ? (
             <div className="card">
@@ -72,16 +94,26 @@ export default async function AudienceTemplateDetailPage({ params }: PageProps) 
                 </tr>
               </thead>
               <tbody>
-                {template.segments.map((segment) => (
-                  <tr key={segment.id}>
-                    <td>
-                      <Link href={`/acquisition/campaigns/${segment.campaign.id}`}>
-                        {segment.campaign.name}
-                      </Link>
-                    </td>
-                    <td><code className="small">{segment.campaign.state}</code></td>
-                  </tr>
-                ))}
+                {template.segments.map((segment) => {
+                  const segmentProviderFacts = acquisitionProviderTargetingFacts(segment.targetingJson);
+                  return (
+                    <tr key={segment.id}>
+                      <td>
+                        <Link href={`/acquisition/campaigns/${segment.campaign.id}`}>
+                          {segment.campaign.name}
+                        </Link>
+                        {segmentProviderFacts.provider ? (
+                          <p className="small">
+                            {acquisitionProviderLabel(segmentProviderFacts.provider)}
+                            {segmentProviderFacts.externalCampaignId ? ` · campaign ${segmentProviderFacts.externalCampaignId}` : ""}
+                            {segmentProviderFacts.externalChildId ? ` · child ${segmentProviderFacts.externalChildId}` : ""}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td><code className="small">{segment.campaign.state}</code></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

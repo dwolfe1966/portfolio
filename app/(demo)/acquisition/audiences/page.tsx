@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { Section } from "@/components/site/Section";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { AudienceTemplateForm } from "@/components/acquisition/AudienceTemplateForm";
+import { acquisitionProviderLabel, acquisitionProviderTargetingFacts } from "@/lib/acquisition-source-lineage";
 
 export const dynamic = "force-dynamic";
 
@@ -41,26 +42,41 @@ export default async function AudienceLibraryPage() {
                   <th>Pred. CPC</th>
                   <th>Pred. CAC</th>
                   <th>Used by</th>
+                  <th>Provider context</th>
                   <th>Created</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {templates.map((template) => (
-                  <tr key={template.id}>
-                    <td>
-                      <Link href={`/acquisition/audiences/${template.id}`}>{template.name}</Link>
-                    </td>
-                    <td><code className="small">{template.audienceType}</code></td>
-                    <td>${(template.predictedCpcCents / 100).toFixed(2)}</td>
-                    <td>${(template.predictedCacCents / 100).toFixed(0)}</td>
-                    <td>{template._count.segments} segment{template._count.segments === 1 ? "" : "s"}</td>
-                    <td>{new Date(template.createdAt).toLocaleDateString()}</td>
-                    <td>
-                      <Link href={`/acquisition/audiences/${template.id}`} className="btn">Edit</Link>
-                    </td>
-                  </tr>
-                ))}
+                {templates.map((template) => {
+                  const providerFacts = acquisitionProviderTargetingFacts(template.targetingJson);
+                  return (
+                    <tr key={template.id}>
+                      <td>
+                        <Link href={`/acquisition/audiences/${template.id}`}>{template.name}</Link>
+                      </td>
+                      <td><code className="small">{template.audienceType}</code></td>
+                      <td>${(template.predictedCpcCents / 100).toFixed(2)}</td>
+                      <td>${(template.predictedCacCents / 100).toFixed(0)}</td>
+                      <td>{template._count.segments} segment{template._count.segments === 1 ? "" : "s"}</td>
+                      <td>
+                        {providerFacts.provider ? (
+                          <>
+                            {acquisitionProviderLabel(providerFacts.provider)}
+                            {providerFacts.externalCampaignId ? <p className="small">Campaign {providerFacts.externalCampaignId}</p> : null}
+                            {providerFacts.externalChildId ? <p className="small">Child {providerFacts.externalChildId}</p> : null}
+                          </>
+                        ) : (
+                          <span className="small">No provider targeting</span>
+                        )}
+                      </td>
+                      <td>{new Date(template.createdAt).toLocaleDateString()}</td>
+                      <td>
+                        <Link href={`/acquisition/audiences/${template.id}`} className="btn">Edit</Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

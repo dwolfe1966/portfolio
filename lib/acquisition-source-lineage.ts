@@ -16,6 +16,12 @@ export type AcquisitionProviderAudienceLineage = {
   externalAdGroupId: string;
 };
 
+export type AcquisitionProviderTargetingFacts = {
+  provider: string;
+  externalCampaignId: string;
+  externalChildId: string;
+};
+
 type AuditLogLike = {
   action?: string;
   metadata: unknown;
@@ -96,4 +102,21 @@ export function acquisitionProviderAudienceLineage(
   }
 
   return { provider: "", externalCampaignId: "", externalAdGroupId: "" };
+}
+
+export function acquisitionProviderTargetingFacts(targetingJson: unknown): AcquisitionProviderTargetingFacts {
+  const targeting = acquisitionMetadataRecord(targetingJson);
+  const externalAdGroupId = stringValue(targeting.externalAdGroupId);
+  const externalAdSetId = stringValue(targeting.externalAdSetId);
+  return {
+    provider: stringValue(targeting.provider),
+    externalCampaignId: stringValue(targeting.externalCampaignId),
+    externalChildId: externalAdGroupId || externalAdSetId
+  };
+}
+
+export function acquisitionProviderLabel(provider: string) {
+  if (provider === "google_ads") return "Google Ads";
+  if (provider === "meta_ads") return "Meta Ads";
+  return provider ? provider.replaceAll("_", " ") : "None";
 }
