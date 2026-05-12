@@ -335,7 +335,34 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
     ? await getActiveDataSourceSelection("acquisition", accountUserId)
     : null;
   const activeDatasetId = activeSelection?.mode === "imported" ? activeSelection.datasetId : null;
-  const activeProviderDataset = syncedDatasets.find((dataset) => dataset.id === activeDatasetId) ?? null;
+  const activeProviderDatasetFromHistory = syncedDatasets.find((dataset) => dataset.id === activeDatasetId) ?? null;
+  const activeProviderDataset = activeProviderDatasetFromHistory
+    ?? (isLiveProvider && activeDatasetId
+      ? await db.workspaceDataset.findFirst({
+          where: {
+            id: activeDatasetId,
+            app: "acquisition",
+            sourceType: connection.provider,
+            OR: accountUserId
+              ? [{ accountUserId }, { accountUserId: null }]
+              : [{ accountUserId: null }],
+            metadata: {
+              path: ["connectionId"],
+              equals: connection.id
+            }
+          },
+          select: {
+            id: true,
+            name: true,
+            rowCounts: true,
+            metadata: true,
+            createdAt: true
+          }
+        })
+      : null);
+  const displayedSyncedDatasets = activeProviderDataset && !syncedDatasets.some((dataset) => dataset.id === activeProviderDataset.id)
+    ? [activeProviderDataset, ...syncedDatasets]
+    : syncedDatasets;
   const live = isLiveProvider
     ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId)
     : null;
@@ -498,7 +525,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
         </Section>
       ) : null}
 
-      {isLiveProvider && syncedDatasets.length > 0 ? (
+      {isLiveProvider && displayedSyncedDatasets.length > 0 ? (
         <Section title="Synced dataset history">
           <table className="table">
             <thead>
@@ -511,7 +538,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
               </tr>
             </thead>
             <tbody>
-              {syncedDatasets.map((dataset) => (
+              {displayedSyncedDatasets.map((dataset) => (
                 <tr key={dataset.id}>
                   <td>
                     <Link href={`/workspace/datasets/${dataset.id}`}>{dataset.name}</Link>
