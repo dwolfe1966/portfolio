@@ -15,6 +15,8 @@ import {
   ACQUISITION_DEFAULT_SOURCE_NAME,
   acquisitionMetadataRecord,
   acquisitionProviderAudienceLineage,
+  acquisitionProviderLabel,
+  acquisitionProviderTargetingFacts,
   acquisitionSourceLineageFromMetadata,
   acquisitionSourceTypeLabel
 } from "@/lib/acquisition-source-lineage";
@@ -232,6 +234,49 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
               metadata: log.metadata
             }))}
           />
+        </Section>
+
+        <Section title="Audience provider targeting">
+          {campaign.audiences.length === 0 ? (
+            <div className="card"><p>No audience segments are attached to this campaign.</p></div>
+          ) : (
+            <div className="tableScroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Audience</th>
+                    <th>Template</th>
+                    <th>Provider</th>
+                    <th>Provider campaign</th>
+                    <th>Child object</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaign.audiences.map((audience) => {
+                    const facts = acquisitionProviderTargetingFacts(audience.targetingJson);
+                    return (
+                      <tr key={audience.id}>
+                        <td>
+                          <strong>{audience.name}</strong>
+                          <div className="small">{audience.audienceType}</div>
+                        </td>
+                        <td>
+                          {audience.templateId ? (
+                            <Link href={`/acquisition/audiences/${audience.templateId}`}>Open template</Link>
+                          ) : (
+                            <span className="small">Default segment</span>
+                          )}
+                        </td>
+                        <td>{acquisitionProviderLabel(facts.provider)}</td>
+                        <td>{facts.externalCampaignId || "None"}</td>
+                        <td>{facts.externalChildId || "None"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Section>
 
         <Section title="Test cell matrix (creative × audience)">
