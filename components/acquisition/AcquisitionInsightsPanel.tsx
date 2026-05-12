@@ -61,6 +61,20 @@ type BudgetTimelineItem = {
   toLabel: string;
 };
 
+type LatestIteration = {
+  id: string;
+  createdAt: string;
+  averageScore: number;
+  winners: number;
+  losers: number;
+  cooldownActive: boolean;
+  reallocationCount: number;
+  pendingApprovalCount: number;
+  policyBand: string;
+  observedCacCents: number;
+  observedRatio: number;
+};
+
 export function AcquisitionInsightsPanel() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignId, setCampaignId] = useState("");
@@ -70,6 +84,7 @@ export function AcquisitionInsightsPanel() {
   const [audienceTrends, setAudienceTrends] = useState<TrendRow[]>([]);
   const [budgetTimeline, setBudgetTimeline] = useState<BudgetTimelineItem[]>([]);
   const [source, setSource] = useState<AcquisitionSourceLineage | null>(null);
+  const [latestIteration, setLatestIteration] = useState<LatestIteration | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -87,6 +102,7 @@ export function AcquisitionInsightsPanel() {
         setAudienceTrends([]);
         setBudgetTimeline([]);
         setSource(null);
+        setLatestIteration(null);
         return;
       }
       if (json.compatibilityMode) {
@@ -100,6 +116,7 @@ export function AcquisitionInsightsPanel() {
       setAudienceTrends(json.audienceTrends ?? []);
       setBudgetTimeline(json.budgetTimeline ?? []);
       setSource(json.source ?? null);
+      setLatestIteration(json.latestIteration ?? null);
     } catch {
       setMessage("Network error while loading insights.");
       setSummary(null);
@@ -108,6 +125,7 @@ export function AcquisitionInsightsPanel() {
       setAudienceTrends([]);
       setBudgetTimeline([]);
       setSource(null);
+      setLatestIteration(null);
     } finally {
       setLoading(false);
     }
@@ -211,6 +229,32 @@ export function AcquisitionInsightsPanel() {
             <div className="card"><div className="kpi">{summary.ltvCacRatio.toFixed(2)}x</div><p>LTV/CAC ratio</p></div>
             <div className="card"><div className="kpi">{(summary.budgetUtilizationPct * 100).toFixed(0)}%</div><p>Budget utilized</p></div>
           </div>
+          {latestIteration ? (
+            <div className="grid grid-4" style={{ marginTop: 12 }}>
+              <div className="card">
+                <p className="small">Latest iteration</p>
+                <div className="workspaceSettingValue">{new Date(latestIteration.createdAt).toLocaleString()}</div>
+                <p className="small">Score {latestIteration.averageScore.toFixed(3)}</p>
+              </div>
+              <div className="card">
+                <p className="small">Budget movement</p>
+                <div className="workspaceSettingValue">{latestIteration.reallocationCount.toLocaleString()}</div>
+                <p className="small">
+                  {latestIteration.cooldownActive ? "Cooldown active" : "Cooldown clear"} · {latestIteration.pendingApprovalCount.toLocaleString()} approvals
+                </p>
+              </div>
+              <div className="card">
+                <p className="small">Cell ranking</p>
+                <div className="workspaceSettingValue">{latestIteration.winners.toLocaleString()} winners</div>
+                <p className="small">{latestIteration.losers.toLocaleString()} lower-ranked cells</p>
+              </div>
+              <div className="card">
+                <p className="small">Policy band</p>
+                <div className="workspaceSettingValue">{latestIteration.policyBand || "Unknown"}</div>
+                <p className="small">${(latestIteration.observedCacCents / 100).toFixed(0)} CAC · {latestIteration.observedRatio.toFixed(2)}x LTV:CAC</p>
+              </div>
+            </div>
+          ) : null}
 
           <div style={{ marginTop: 16 }}>
             {funnel.map((item) => (

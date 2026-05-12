@@ -4,6 +4,22 @@ import { apiError, apiOk, apiUnhandledError } from "@/lib/api-contract";
 import { createEventId, logApiEvent } from "@/lib/logging";
 import { acquisitionSourceLineageFromAuditLogs } from "@/lib/acquisition-source-lineage";
 
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function numberValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function booleanValue(value: unknown) {
+  return typeof value === "boolean" ? value : false;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const eventId = createEventId("acq_insights");
   const { id } = await params;
@@ -48,6 +64,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const averageScore = cells.length ? cells.reduce((sum, cell) => sum + cell.score, 0) / cells.length : 0;
     const cpaCents = conversions ? Math.round(spendCents / conversions) : 0;
     const roas = spendCents > 0 ? Number((revenueCents / spendCents).toFixed(4)) : 0;
+    const latestIterationLog = logs.find((log) => log.action === "iteration_executed") ?? null;
+    const latestIterationMetadata = metadataRecord(latestIterationLog?.metadata);
 
     const creativeMap = new Map<string, {
       id: string;
@@ -125,6 +143,19 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     return apiOk({
       campaign,
       source: acquisitionSourceLineageFromAuditLogs(logs),
+      latestIteration: latestIterationLog ? {
+        id: latestIterationLog.id,
+        createdAt: latestIterationLog.createdAt,
+        averageScore: numberValue(latestIterationMetadata.averageScore),
+        winners: numberValue(latestIterationMetadata.winners),
+        losers: numberValue(latestIterationMetadata.losers),
+        cooldownActive: booleanValue(latestIterationMetadata.cooldownActive),
+        reallocationCount: numberValue(latestIterationMetadata.reallocationCount),
+        pendingApprovalCount: numberValue(latestIterationMetadata.pendingApprovalCount),
+        policyBand: stringValue(latestIterationMetadata.policyBand),
+        observedCacCents: numberValue(latestIterationMetadata.observedCacCents),
+        observedRatio: numberValue(latestIterationMetadata.observedRatio)
+      } : null,
       summary: {
         totalCells: cells.length,
         impressions,
