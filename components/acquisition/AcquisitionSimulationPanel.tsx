@@ -379,6 +379,12 @@ export function AcquisitionSimulationPanel() {
                   <td>
                     {campaign.source?.label ?? "Manual/sample"}
                     <p className="small">{campaign.source?.sourceName ?? "No imported dataset lineage"}</p>
+                    {campaign.source?.datasetId || campaign.source?.connectionId ? (
+                      <div className="ctaRow">
+                        {campaign.source.datasetId ? <a className="btn smallBtn" href={`/workspace/datasets/${campaign.source.datasetId}`}>Dataset</a> : null}
+                        {campaign.source.connectionId ? <a className="btn smallBtn" href={`/acquisition/connections/${campaign.source.connectionId}`}>Provider</a> : null}
+                      </div>
+                    ) : null}
                   </td>
                   <td>{campaign.state}</td>
                   <td>{new Date(campaign.createdAt).toLocaleString()}</td>
@@ -412,11 +418,17 @@ export function AcquisitionSimulationPanel() {
                   <p className="small">Provider account</p>
                   <div className="workspaceSettingValue">{selectedCampaign.source.externalAccountId || "None"}</div>
                   <p className="small">{selectedCampaign.source.connectionId ? `Connection ${selectedCampaign.source.connectionId.slice(0, 8)}` : "No linked provider account"}</p>
+                  {selectedCampaign.source.connectionId ? (
+                    <a className="btn smallBtn" href={`/acquisition/connections/${selectedCampaign.source.connectionId}`}>Open provider</a>
+                  ) : null}
                 </div>
                 <div className="card">
                   <p className="small">Dataset</p>
                   <div className="workspaceSettingValue">{selectedCampaign.source.datasetId ? selectedCampaign.source.datasetId.slice(0, 8) : "None"}</div>
                   <p className="small">Simulation uses the currently populated acquisition tables.</p>
+                  {selectedCampaign.source.datasetId ? (
+                    <a className="btn smallBtn" href={`/workspace/datasets/${selectedCampaign.source.datasetId}`}>Review dataset</a>
+                  ) : null}
                 </div>
               </div>
             ) : null}
