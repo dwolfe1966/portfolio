@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { acquisitionProviderLabel, acquisitionProviderTargetingFacts } from "@/lib/acquisition-source-lineage";
 
 type Channel = "SEARCH" | "SOCIAL" | "DISPLAY" | "VIDEO";
 type AudienceSource = "defaults" | "templates";
@@ -11,6 +12,7 @@ type TemplateOption = {
   audienceType: string;
   predictedCpcCents: number;
   predictedCacCents: number;
+  targetingJson: unknown;
 };
 
 const DEFAULT_CHANNELS: Channel[] = ["SEARCH", "SOCIAL"];
@@ -48,7 +50,8 @@ export function AcquisitionCampaignBuilder() {
               name: t.name,
               audienceType: t.audienceType,
               predictedCpcCents: t.predictedCpcCents,
-              predictedCacCents: t.predictedCacCents
+              predictedCacCents: t.predictedCacCents,
+              targetingJson: t.targetingJson
             }))
           );
         }
@@ -218,20 +221,39 @@ export function AcquisitionCampaignBuilder() {
                   audience segments and tagged with their template id.
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {templates.map((template) => (
-                    <label key={template.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedTemplateIds.includes(template.id)}
-                        onChange={() => toggleTemplate(template.id)}
-                      />
-                      <span style={{ fontWeight: 500 }}>{template.name}</span>
-                      <code className="small">{template.audienceType}</code>
-                      <span className="small">
-                        CPC ${(template.predictedCpcCents / 100).toFixed(2)} · CAC ${(template.predictedCacCents / 100).toFixed(0)}
-                      </span>
-                    </label>
-                  ))}
+                  {templates.map((template) => {
+                    const providerFacts = acquisitionProviderTargetingFacts(template.targetingJson);
+                    return (
+                      <label key={template.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedTemplateIds.includes(template.id)}
+                          onChange={() => toggleTemplate(template.id)}
+                          style={{ marginTop: 3 }}
+                        />
+                        <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 500 }}>{template.name}</span>
+                            <code className="small">{template.audienceType}</code>
+                            <span className="small">
+                              CPC ${(template.predictedCpcCents / 100).toFixed(2)} · CAC ${(template.predictedCacCents / 100).toFixed(0)}
+                            </span>
+                          </span>
+                          <span className="small">
+                            {providerFacts.provider ? (
+                              <>
+                                {acquisitionProviderLabel(providerFacts.provider)}
+                                {providerFacts.externalCampaignId ? ` · campaign ${providerFacts.externalCampaignId}` : ""}
+                                {providerFacts.externalChildId ? ` · child ${providerFacts.externalChildId}` : ""}
+                              </>
+                            ) : (
+                              "No provider targeting"
+                            )}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </>
             )}
