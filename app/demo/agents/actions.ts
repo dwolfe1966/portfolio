@@ -16,6 +16,7 @@ export async function decideAgentApprovalAction(formData: FormData) {
 
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
+  const runAfterApproval = String(formData.get("runAfterApproval") ?? "") === "true";
   if (!id || !["approved", "rejected", "cancelled"].includes(status)) return;
 
   const workspace = await db.workspace.findUnique({ where: { slug: "default-demo-workspace" } });
@@ -50,10 +51,19 @@ export async function decideAgentApprovalAction(formData: FormData) {
       proposedAction: updated.proposedAction
     });
     await persistAgentExecutionPlan(continuationPlan);
+    const providerWriteJob = continuationPlan.jobs[0];
+    if (runAfterApproval && providerWriteJob) {
+      await runAgentWorkerOnce({
+        workspaceId: workspace.id,
+        queueName: providerWriteJob.queueName,
+        workerId: `workspace:${accountUserId}:approval`
+      });
+    }
   }
 
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");
+  revalidatePath("/workspace/activity");
 }
 
 export async function decideAgentJobAction(formData: FormData) {

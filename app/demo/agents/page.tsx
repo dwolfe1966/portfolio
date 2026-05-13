@@ -584,6 +584,14 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
                         <input type="hidden" name="status" value="approved" />
                         <button className="btn smallBtn" type="submit">Approve</button>
                       </form>
+                      {approval.app === "acquisition" ? (
+                        <form action={decideAgentApprovalAction}>
+                          <input type="hidden" name="id" value={approval.id} />
+                          <input type="hidden" name="status" value="approved" />
+                          <input type="hidden" name="runAfterApproval" value="true" />
+                          <button className="btn smallBtn" type="submit">Approve and run dry run</button>
+                        </form>
+                      ) : null}
                       <form action={decideAgentApprovalAction}>
                         <input type="hidden" name="id" value={approval.id} />
                         <input type="hidden" name="status" value="rejected" />
