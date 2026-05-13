@@ -36,6 +36,9 @@ function syncErrorReason(error: unknown) {
   if (message.includes("PERMISSION_DENIED") || message.includes("does not have permission")) {
     return "permission_denied";
   }
+  if (message.includes("GoogleAdsDeveloperTokenAccessError") || message.includes("developer token is not approved")) {
+    return "developer_token_not_approved";
+  }
   if (message.includes("GoogleAdsNotTestAccountError") || message.includes("MetaAdsNotTestAccountError") || message.includes("Refusing to fetch from non-test") || message.includes("Refusing to fetch from live")) {
     return "not_test_account";
   }

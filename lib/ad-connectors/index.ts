@@ -22,7 +22,12 @@ export type {
   NormalizedPerformancePoint
 } from "./normalization";
 export { SimulatedConnector } from "./simulated";
-export { GoogleAdsConnector, GoogleAdsConnectorError, GoogleAdsNotTestAccountError } from "./google-ads-connector";
+export {
+  GoogleAdsConnector,
+  GoogleAdsConnectorError,
+  GoogleAdsDeveloperTokenAccessError,
+  GoogleAdsNotTestAccountError
+} from "./google-ads-connector";
 export { MetaAdsConnector, MetaAdsConnectorError, MetaAdsNotTestAccountError } from "./meta-ads-connector";
 export {
   GoogleAdsProviderWriteDryRunAdapter,

@@ -31,6 +31,20 @@ export class GoogleAdsNotTestAccountError extends GoogleAdsConnectorError {
     this.name = "GoogleAdsNotTestAccountError";
   }
 }
+export class GoogleAdsDeveloperTokenAccessError extends GoogleAdsConnectorError {
+  constructor(externalAccountId: string) {
+    super(
+      [
+        `Google Ads developer token is not approved for live customer ${externalAccountId}.`,
+        liveProviderReadsEnabled()
+          ? "Live provider reads are enabled locally, but Google Ads still requires a developer token with Basic or Standard access for live customer reads."
+          : "Set ACQUISITION_ALLOW_LIVE_PROVIDER_READS=true for local live-read inspection and use a Google Ads developer token with Basic or Standard access.",
+        "Provider writes remain dry-run/governed separately."
+      ].join(" ")
+    );
+    this.name = "GoogleAdsDeveloperTokenAccessError";
+  }
+}
 
 type StoredConnection = {
   id: string;
@@ -457,7 +471,7 @@ export class GoogleAdsConnector implements AdConnector {
     if (!response.ok) {
       const text = await response.text().catch(() => "");
       if (isDeveloperTokenTestAccountOnlyError(response.status, text)) {
-        throw new GoogleAdsNotTestAccountError(customerId);
+        throw new GoogleAdsDeveloperTokenAccessError(customerId);
       }
       throw new GoogleAdsConnectorError(
         `Google Ads search failed (${response.status}) for customer ${customerId}: ${summarizeGoogleAdsError(response.status, text)}`

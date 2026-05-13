@@ -261,6 +261,9 @@ function syncErrorCopy(error: string | undefined, provider: string) {
   if (error === "permission_denied" && provider === "google_ads") {
     return "Google Ads denied this account read. If this customer is under a manager account, set GOOGLE_ADS_LOGIN_CUSTOMER_ID to the manager customer id, restart localhost, then retry. Otherwise try another connected customer.";
   }
+  if (error === "developer_token_not_approved") {
+    return "Live-read inspection is enabled, but Google Ads rejected the request because this developer token is not approved for live customer reads. Apply for Google Ads API Basic or Standard access, or use an approved developer token.";
+  }
   if (error === "not_test_account") {
     return `This is a live provider account. Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect it in read-only mode. Provider writes remain dry-run/governed separately.`;
   }
