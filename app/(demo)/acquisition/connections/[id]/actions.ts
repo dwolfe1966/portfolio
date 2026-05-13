@@ -11,7 +11,7 @@ import {
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { acquisitionProviderDryRunAdapterAvailable } from "@/lib/acquisition-agent-generalization";
 import { applyAcquisitionDatasetSnapshot } from "@/lib/acquisition-dataset-apply";
-import { GoogleAdsConnector, MetaAdsConnector } from "@/lib/ad-connectors";
+import { GoogleAdsConnector, MetaAdsConnector, SimulatedConnector } from "@/lib/ad-connectors";
 import type { AdConnector, RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
 import { db } from "@/lib/db";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
@@ -380,6 +380,113 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
   revalidatePath(`/acquisition/connections/${connection.id}`);
   if (dataset) {
     redirect(providerConnectionSyncRedirectUrl({ connectionId: connection.id, datasetId: dataset.id, applied: applyAfterSync, scope }));
+  }
+  redirect(`/acquisition/connections/${connection.id}?syncError=snapshot_failed`);
+}
+
+export async function createProviderFallbackDatasetAction(formData: FormData) {
+  if (!isDemoMutationAllowed()) return;
+
+  const cookieStore = await cookies();
+  const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
+  if (!accountUserId) return;
+
+  const connectionId = optionalString(formData.get("connectionId"));
+  if (!connectionId) return;
+
+  const connection = await db.adAccountConnection.findFirst({
+    where: {
+      id: connectionId,
+      OR: [{ accountUserId }, { accountUserId: null }]
+    },
+    select: {
+      id: true,
+      provider: true,
+      externalAccountId: true,
+      accountName: true
+    }
+  });
+  if (!connection) return;
+
+  const providerLabel = connection.provider === "meta_ads" ? "Meta Ads" : "Google Ads";
+  const applyAfterSync = optionalString(formData.get("applyAfterSync")) === "1";
+  const connector = new SimulatedConnector();
+  const bundle = await fetchProviderSnapshot(connector, connection.externalAccountId);
+  const normalized = normalizeProviderBundle({ provider: connection.provider, providerLabel, bundle });
+  const rowCounts = {
+    campaigns: normalized.campaigns.length,
+    audiences: normalized.audiences.length,
+    creatives: normalized.creatives.length,
+    performance: normalized.performance.length
+  };
+  const syncedAt = new Date().toISOString();
+  const dataset = await createWorkspaceDatasetSnapshot({
+    app: "acquisition",
+    sourceType: connection.provider,
+    name: `${providerLabel} fallback snapshot · ${connection.externalAccountId}`,
+    accountUserId,
+    rowCounts,
+    rowData: {
+      source: {
+        account: {
+          provider: connection.provider,
+          externalAccountId: connection.externalAccountId,
+          accountName: connection.accountName,
+          fallbackSource: "simulated_provider_shape"
+        },
+        campaigns: bundle.campaigns,
+        adGroups: bundle.adGroups,
+        ads: bundle.ads,
+        performance: bundle.performance
+      },
+      normalized
+    },
+    metadata: {
+      provider: connection.provider,
+      externalAccountId: connection.externalAccountId,
+      connectionId: connection.id,
+      syncScope: "provider_account",
+      syncedAt,
+      fallbackSnapshot: true,
+      sourceMetadata: {
+        sourceFlow: "provider_fallback_snapshot",
+        provider: connection.provider,
+        externalAccountId: connection.externalAccountId,
+        syncScope: "provider_account",
+        liveProviderReadBlocked: true,
+        fallbackSource: "deterministic_simulated_provider_shape"
+      },
+      providerRowCounts: {
+        campaigns: bundle.campaigns.length,
+        adGroups: bundle.adGroups.length,
+        ads: bundle.ads.length,
+        performanceSeries: bundle.performance.length,
+        performancePoints: bundle.performance.reduce((sum, item) => sum + item.daily.length, 0)
+      }
+    }
+  });
+
+  if (dataset && applyAfterSync) {
+    await applyAcquisitionDatasetSnapshot(dataset.id, accountUserId);
+  }
+
+  revalidatePath("/workspace/datasets");
+  revalidatePath("/demo/datasets");
+  revalidatePath("/workspace/activity");
+  revalidatePath("/demo/activity");
+  revalidatePath("/acquisition/inputs");
+  revalidatePath("/acquisition/overview");
+  revalidatePath("/acquisition/simulations");
+  revalidatePath("/acquisition/outputs");
+  revalidatePath("/acquisition/campaigns");
+  revalidatePath(`/acquisition/connections/${connection.id}`);
+  if (dataset) {
+    redirect(providerConnectionSyncRedirectUrl({
+      connectionId: connection.id,
+      datasetId: dataset.id,
+      applied: applyAfterSync,
+      scope: { externalCampaignId: null, externalAdGroupId: null }
+    }));
   }
   redirect(`/acquisition/connections/${connection.id}?syncError=snapshot_failed`);
 }

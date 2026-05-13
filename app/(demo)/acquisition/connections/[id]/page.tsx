@@ -14,6 +14,7 @@ import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provide
 import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import {
   applyProviderConnectionDatasetAction,
+  createProviderFallbackDatasetAction,
   requestProviderWriteDryRunApprovalAction,
   syncProviderConnectionDatasetAction
 } from "./actions";
@@ -605,6 +606,26 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   </form>
                 </div>
                 {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}
+                {!syncReady && connection.credentialGrant ? (
+                  <div className="card compact" style={{ marginTop: 12 }}>
+                    <p className="statusPill progress">Fallback available</p>
+                    <h3 style={{ marginTop: 10 }}>Use provider-shaped fallback data</h3>
+                    <p className="small">
+                      Create a deterministic acquisition dataset tied to this provider account while live Google Ads reads wait for API approval.
+                    </p>
+                    <div className="ctaRow">
+                      <form action={createProviderFallbackDatasetAction}>
+                        <input type="hidden" name="connectionId" value={connection.id} />
+                        <button className="btn smallBtn" type="submit">Create fallback dataset</button>
+                      </form>
+                      <form action={createProviderFallbackDatasetAction}>
+                        <input type="hidden" name="connectionId" value={connection.id} />
+                        <input type="hidden" name="applyAfterSync" value="1" />
+                        <button className="btn smallBtn primary" type="submit">Create and apply fallback</button>
+                      </form>
+                    </div>
+                  </div>
+                ) : null}
               </div>
               <div>
                 <h3>Active provider snapshot</h3>
