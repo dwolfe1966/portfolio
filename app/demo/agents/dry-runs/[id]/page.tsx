@@ -7,6 +7,7 @@ import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { db } from "@/lib/db";
 import { buildMetadata } from "@/lib/seo";
+import { runAgentJobOnceAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +93,27 @@ function statusClass(status: string) {
   return "progress";
 }
 
+function HandoffJobAction({
+  jobId,
+  jobStatus,
+  returnPath
+}: {
+  jobId: string | null | undefined;
+  jobStatus: string | null | undefined;
+  returnPath: string;
+}) {
+  if (!jobId) return null;
+  if (jobStatus !== "queued") return null;
+
+  return (
+    <form action={runAgentJobOnceAction} className="agentInlineAction">
+      <input type="hidden" name="id" value={jobId} />
+      <input type="hidden" name="returnPath" value={returnPath} />
+      <button className="btn smallBtn" type="submit">Execute</button>
+    </form>
+  );
+}
+
 export default async function ProviderDryRunDetailPage({ params }: PageProps) {
   const { id } = await params;
   const accountUserId = await currentAccountUserId();
@@ -109,6 +131,20 @@ export default async function ProviderDryRunDetailPage({ params }: PageProps) {
   const providerObjects = jsonArray(dryRun.providerObjects);
   const handoff = dryRun.measurementHandoff;
   const acquisitionContext = acquisitionDryRunContext(dryRun.agentJob.payload);
+  const handoffJobIds = [handoff?.observationJobId, handoff?.measurementJobId].filter((value): value is string => Boolean(value));
+  const handoffJobs = handoffJobIds.length
+    ? await db.agentJob.findMany({
+        where: {
+          id: { in: handoffJobIds },
+          OR: [{ accountUserId }, { accountUserId: null }]
+        },
+        select: { id: true, status: true, completedAt: true, failedAt: true, errorMessage: true }
+      })
+    : [];
+  const handoffJobById = new Map(handoffJobs.map((job) => [job.id, job]));
+  const observationJob = handoff?.observationJobId ? handoffJobById.get(handoff.observationJobId) : null;
+  const measurementJob = handoff?.measurementJobId ? handoffJobById.get(handoff.measurementJobId) : null;
+  const returnPath = `/workspace/agents/dry-runs/${dryRun.id}`;
 
   return (
     <>
@@ -276,13 +312,15 @@ export default async function ProviderDryRunDetailPage({ params }: PageProps) {
             </div>
             <div className="activitySummaryCard">
               <p className="small">Observation job</p>
-              <strong>{handoff.observationJobId ?? "Not queued"}</strong>
-              <span>Queue: acquisition:observation</span>
+              <strong>{observationJob ? label(observationJob.status) : handoff.observationJobId ?? "Not queued"}</strong>
+              <span>{observationJob?.errorMessage ?? "Queue: acquisition:observation"}</span>
+              <HandoffJobAction jobId={handoff.observationJobId} jobStatus={observationJob?.status} returnPath={returnPath} />
             </div>
             <div className="activitySummaryCard">
               <p className="small">Measurement job</p>
-              <strong>{handoff.measurementJobId ?? "Not queued"}</strong>
-              <span>Queue: acquisition:measurement</span>
+              <strong>{measurementJob ? label(measurementJob.status) : handoff.measurementJobId ?? "Not queued"}</strong>
+              <span>{measurementJob?.errorMessage ?? "Queue: acquisition:measurement"}</span>
+              <HandoffJobAction jobId={handoff.measurementJobId} jobStatus={measurementJob?.status} returnPath={returnPath} />
             </div>
             <div className="activitySummaryCard">
               <p className="small">Outputs</p>

@@ -174,6 +174,7 @@ export async function runAgentJobOnceAction(formData: FormData) {
   if (!accountUserId) return;
 
   const id = String(formData.get("id") ?? "");
+  const returnPath = String(formData.get("returnPath") ?? "");
   if (!id) return;
 
   const workspace = await db.workspace.findUnique({ where: { slug: "default-demo-workspace" } });
@@ -198,6 +199,9 @@ export async function runAgentJobOnceAction(formData: FormData) {
 
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");
+  if (returnPath.startsWith("/workspace/agents/dry-runs/") || returnPath.startsWith("/demo/agents/dry-runs/")) {
+    revalidatePath(returnPath);
+  }
 }
 
 export async function runAgentWorkerBatchAction() {
