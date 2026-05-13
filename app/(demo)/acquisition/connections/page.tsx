@@ -9,6 +9,7 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { isGoogleOAuthConfigured } from "@/lib/ad-connectors/google-oauth";
 import { isMetaOAuthConfigured } from "@/lib/ad-connectors/meta-oauth";
+import { LIVE_PROVIDER_READS_ENV, liveProviderReadsEnabled } from "@/lib/ad-connectors/live-read-scope";
 import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provider-snapshots";
 import { ConnectionDisconnectButton } from "@/components/acquisition/ConnectionDisconnectButton";
 
@@ -111,9 +112,11 @@ function connectionReadiness(conn: ConnectionWithGrant, dataset: LatestDataset |
   }
   if (!conn.isTestAccount) {
     return {
-      label: "Production access needed",
+      label: liveProviderReadsEnabled() ? "Live read enabled" : "Live read blocked",
       tone: "warning",
-      detail: "Connected, but sync is blocked until provider API production access allows this account."
+      detail: liveProviderReadsEnabled()
+        ? "Read-only inspection is enabled for this live provider account."
+        : `Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect this live account in read-only mode.`
     };
   }
   if (dataset) {

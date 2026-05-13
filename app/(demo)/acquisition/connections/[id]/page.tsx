@@ -8,6 +8,7 @@ import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { GoogleAdsConnector, GoogleAdsNotTestAccountError, MetaAdsConnector, MetaAdsNotTestAccountError } from "@/lib/ad-connectors";
 import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
+import { LIVE_PROVIDER_READS_ENV, liveProviderReadsEnabled } from "@/lib/ad-connectors/live-read-scope";
 import { acquisitionProviderDryRunAdapterAvailable } from "@/lib/acquisition-agent-generalization";
 import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provider-snapshots";
 import { buildProviderWritePreflight } from "@/lib/provider-preflight";
@@ -228,9 +229,11 @@ function syncStatus({
   if (token.tone === "warning" || token.label === "Reconnect required") return token;
   if (!connection.isTestAccount) {
     return {
-      label: "Production access needed",
+      label: liveProviderReadsEnabled() ? "Live read enabled" : "Live read blocked",
       tone: "warning",
-      detail: "This account is connected, but provider API production access is required before the app can read and sync it."
+      detail: liveProviderReadsEnabled()
+        ? "This live provider account can be inspected in read-only mode. Provider writes remain dry-run/governed separately."
+        : `This is a live provider account. Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect it in read-only mode.`
     };
   }
   if (live?.error) {
@@ -259,7 +262,7 @@ function syncErrorCopy(error: string | undefined, provider: string) {
     return "Google Ads denied this account read. If this customer is under a manager account, set GOOGLE_ADS_LOGIN_CUSTOMER_ID to the manager customer id, restart localhost, then retry. Otherwise try another connected customer.";
   }
   if (error === "not_test_account") {
-    return "This account is not marked as a Google Ads test account, so the demo will not read or mutate it.";
+    return `This is a live provider account. Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect it in read-only mode. Provider writes remain dry-run/governed separately.`;
   }
   if (error) {
     return "Provider sync failed. Try another connected account or check the server log for the provider response.";
@@ -597,6 +600,12 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
             {live?.error ? (
               <div className="card">
                 <p className="bandText--unhealthy small">Could not fetch campaigns: {live.error}</p>
+                {(live.error.includes(LIVE_PROVIDER_READS_ENV) || live.error.includes("live")) ? (
+                  <div className="ctaRow">
+                    <code className="small">{LIVE_PROVIDER_READS_ENV}=true</code>
+                    <p className="small">Add this to `.env.local`, restart localhost, then reload this account. This only enables read-only provider inspection.</p>
+                  </div>
+                ) : null}
               </div>
             ) : live && live.campaigns.length === 0 ? (
               <div className="card">

@@ -9,6 +9,7 @@ import {
   refreshGoogleAccessToken,
   type GoogleOAuthConfig
 } from "./google-oauth";
+import { liveProviderReadsBlockedMessage, liveProviderReadsEnabled } from "./live-read-scope";
 import type {
   AdConnector,
   AdProvider,
@@ -26,9 +27,7 @@ const ACCESS_TOKEN_REFRESH_BUFFER_MS = 60_000;
 export class GoogleAdsConnectorError extends Error {}
 export class GoogleAdsNotTestAccountError extends GoogleAdsConnectorError {
   constructor(externalAccountId: string) {
-    super(
-      `Refusing to fetch from non-test customer ${externalAccountId}. Demo scope is read-only against test accounts only.`
-    );
+    super(liveProviderReadsBlockedMessage("Google Ads customer", externalAccountId));
     this.name = "GoogleAdsNotTestAccountError";
   }
 }
@@ -408,6 +407,7 @@ export class GoogleAdsConnector implements AdConnector {
           data: { isTestAccount: false }
         });
       }
+      if (liveProviderReadsEnabled()) return;
       throw new GoogleAdsNotTestAccountError(connection.externalAccountId);
     }
   }

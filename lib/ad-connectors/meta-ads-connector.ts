@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { decryptOAuthToken, isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { loadMetaOAuthConfig, metaGraphApiBase, type MetaOAuthConfig } from "./meta-oauth";
+import { liveProviderReadsBlockedMessage, liveProviderReadsEnabled } from "./live-read-scope";
 import type {
   AdConnector,
   AdProvider,
@@ -16,7 +17,7 @@ import type {
 export class MetaAdsConnectorError extends Error {}
 export class MetaAdsNotTestAccountError extends MetaAdsConnectorError {
   constructor(externalAccountId: string) {
-    super(`Refusing to fetch from non-test Meta ad account ${externalAccountId}. Demo scope is read-only against test accounts only.`);
+    super(liveProviderReadsBlockedMessage("Meta ad account", externalAccountId));
     this.name = "MetaAdsNotTestAccountError";
   }
 }
@@ -189,7 +190,7 @@ export class MetaAdsConnector implements AdConnector {
   }
 
   private assertTestAccount(connection: StoredConnection) {
-    if (!connection.isTestAccount) throw new MetaAdsNotTestAccountError(connection.externalAccountId);
+    if (!connection.isTestAccount && !liveProviderReadsEnabled()) throw new MetaAdsNotTestAccountError(connection.externalAccountId);
     if (connection.expiresAt && connection.expiresAt.getTime() <= Date.now()) {
       throw new MetaAdsConnectorError(`Access token expired for Meta ad account ${connection.externalAccountId}. Reconnect from /acquisition/connections.`);
     }
