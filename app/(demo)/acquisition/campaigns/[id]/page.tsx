@@ -48,6 +48,26 @@ function providerDryRunCampaignId(payload: unknown) {
   return stringField(proposedAction?.campaignId);
 }
 
+function handoffJobSummary(result: unknown, fallback: string) {
+  const record = objectRecord(result);
+  const output = objectRecord(record?.output);
+  if (!output) return fallback;
+
+  if (output.observed === true) {
+    return `Observed ${stringField(output.externalCampaignId) || "provider target"}.`;
+  }
+
+  if (output.attributed === true) {
+    const outputs = Array.isArray(output.measurementOutputs)
+      ? output.measurementOutputs.map((item) => String(item ?? "").replaceAll("_", " ")).filter(Boolean)
+      : [];
+    const exposure = Number(output.spendExposureCents ?? 0);
+    return `${outputs.length} outputs${Number.isFinite(exposure) && exposure > 0 ? ` · ${formatCents(exposure)} exposure` : ""}.`;
+  }
+
+  return fallback;
+}
+
 export default async function AcquisitionCampaignDetailPage({ params }: PageProps) {
   const { id } = await params;
 
@@ -150,6 +170,18 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
         return payloadCampaignId === campaign.id || Boolean(externalCampaignId && dryRun.externalCampaignId === externalCampaignId);
       })
       .slice(0, 8);
+    const handoffJobIds = new Set<string>();
+    for (const dryRun of campaignProviderDryRuns) {
+      if (dryRun.measurementHandoff?.observationJobId) handoffJobIds.add(dryRun.measurementHandoff.observationJobId);
+      if (dryRun.measurementHandoff?.measurementJobId) handoffJobIds.add(dryRun.measurementHandoff.measurementJobId);
+    }
+    const handoffJobs = handoffJobIds.size
+      ? await db.agentJob.findMany({
+          where: { id: { in: [...handoffJobIds] } },
+          select: { id: true, status: true, result: true, completedAt: true, errorMessage: true }
+        })
+      : [];
+    const handoffJobById = new Map(handoffJobs.map((job) => [job.id, job]));
 
     const transitionHistory = campaign.auditLogs
       .filter((log) => log.action === "campaign_state_change")
@@ -309,9 +341,25 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
                       {dryRun.rollbackPlan ? <p className="small">{dryRun.rollbackPlan}</p> : null}
                       {dryRun.blockers.length > 0 ? <p className="small">Blockers: {dryRun.blockers.map((blocker) => blocker.replaceAll("_", " ")).join(" · ")}</p> : null}
                       {dryRun.measurementHandoff ? (
-                        <p className="small">
-                          Measurement: {dryRun.measurementHandoff.status.replaceAll("_", " ")} · Observation job {dryRun.measurementHandoff.observationJobId ?? "not queued"} · Attribution job {dryRun.measurementHandoff.measurementJobId ?? "not queued"}
-                        </p>
+                        <div>
+                          <p className="small">Measurement: {dryRun.measurementHandoff.status.replaceAll("_", " ")}</p>
+                          {dryRun.measurementHandoff.observationJobId ? (() => {
+                            const observationJob = handoffJobById.get(dryRun.measurementHandoff.observationJobId!);
+                            return (
+                              <p className="small">
+                                Observation: {observationJob?.status.replaceAll("_", " ") ?? "queued"} · {handoffJobSummary(observationJob?.result, observationJob?.errorMessage ?? "No observation output yet.")}
+                              </p>
+                            );
+                          })() : null}
+                          {dryRun.measurementHandoff.measurementJobId ? (() => {
+                            const measurementJob = handoffJobById.get(dryRun.measurementHandoff.measurementJobId!);
+                            return (
+                              <p className="small">
+                                Attribution: {measurementJob?.status.replaceAll("_", " ") ?? "queued"} · {handoffJobSummary(measurementJob?.result, measurementJob?.errorMessage ?? "No attribution output yet.")}
+                              </p>
+                            );
+                          })() : null}
+                        </div>
                       ) : null}
                     </div>
                     <Link className="btn smallBtn" href={`/workspace/agents/dry-runs/${dryRun.id}`}>Inspect dry run</Link>
