@@ -9,6 +9,41 @@ import { buildApprovedApprovalContinuationPlan, persistAgentExecutionPlan } from
 import { runAgentWorkerBatch, runAgentWorkerOnce } from "@/lib/agent-worker";
 import { db } from "@/lib/db";
 
+function measurementHandoffStatus(jobStatuses: string[]) {
+  if (jobStatuses.some((status) => status === "failed" || status === "dead_lettered" || status === "cancelled")) return "failed";
+  if (jobStatuses.length > 0 && jobStatuses.every((status) => status === "completed")) return "completed";
+  if (jobStatuses.some((status) => status === "running")) return "running";
+  return "queued";
+}
+
+async function syncMeasurementHandoffsForJob(jobId: string) {
+  const handoffs = await db.agentProviderWriteMeasurementHandoff.findMany({
+    where: {
+      OR: [
+        { observationJobId: jobId },
+        { measurementJobId: jobId }
+      ]
+    },
+    select: {
+      id: true,
+      observationJobId: true,
+      measurementJobId: true
+    }
+  });
+
+  for (const handoff of handoffs) {
+    const jobIds = [handoff.observationJobId, handoff.measurementJobId].filter((value): value is string => Boolean(value));
+    const jobs = await db.agentJob.findMany({
+      where: { id: { in: jobIds } },
+      select: { status: true }
+    });
+    await db.agentProviderWriteMeasurementHandoff.update({
+      where: { id: handoff.id },
+      data: { status: measurementHandoffStatus(jobs.map((job) => job.status)) }
+    });
+  }
+}
+
 export async function decideAgentApprovalAction(formData: FormData) {
   const cookieStore = await cookies();
   const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
@@ -164,6 +199,8 @@ export async function decideAgentJobAction(formData: FormData) {
     });
   }
 
+  await syncMeasurementHandoffsForJob(job.id);
+
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");
 }
@@ -196,6 +233,7 @@ export async function runAgentJobOnceAction(formData: FormData) {
     queueName: job.queueName,
     workerId: `workspace:${accountUserId}`
   });
+  await syncMeasurementHandoffsForJob(id);
 
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");
@@ -217,6 +255,19 @@ export async function runAgentWorkerBatchAction() {
     workerId: `workspace:${accountUserId}`,
     maxJobs: 10
   });
+
+  const handoffs = await db.agentProviderWriteMeasurementHandoff.findMany({
+    where: { workspaceId: workspace.id },
+    select: { observationJobId: true, measurementJobId: true }
+  });
+  const jobIds = new Set<string>();
+  for (const handoff of handoffs) {
+    if (handoff.observationJobId) jobIds.add(handoff.observationJobId);
+    if (handoff.measurementJobId) jobIds.add(handoff.measurementJobId);
+  }
+  for (const jobId of jobIds) {
+    await syncMeasurementHandoffsForJob(jobId);
+  }
 
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");
