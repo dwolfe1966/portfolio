@@ -167,6 +167,10 @@ export default async function AcquisitionAuditPage({
       const source = acquisitionSourceLineageFromMetadata(log.metadata);
       return acquisitionLineageIsProviderBacked(source);
     });
+    const providerFallbackLogs = providerLinkedLogs.filter((log) => {
+      const source = acquisitionSourceLineageFromMetadata(log.metadata);
+      return source.fallbackSnapshot;
+    });
     const datasetApplyLogs = logs.filter((log) => log.action === "acquisition_dataset_applied");
 
     return (
@@ -238,9 +242,14 @@ export default async function AcquisitionAuditPage({
               <p className="small">Dataset, account, or connection metadata</p>
             </div>
             <div className="card">
-              <p className="small">Provider-linked</p>
-              <div className="kpi">{providerLinkedLogs.length.toLocaleString()}</div>
-              <p className="small">Google Ads or Meta Ads lineage</p>
+              <p className="small">Live provider-linked</p>
+              <div className="kpi">{Math.max(0, providerLinkedLogs.length - providerFallbackLogs.length).toLocaleString()}</div>
+              <p className="small">Google Ads or Meta Ads sync lineage</p>
+            </div>
+            <div className="card">
+              <p className="small">Fallback provider-linked</p>
+              <div className="kpi">{providerFallbackLogs.length.toLocaleString()}</div>
+              <p className="small">Provider-shaped fallback lineage</p>
             </div>
             <div className="card">
               <p className="small">Dataset applies</p>
@@ -282,6 +291,7 @@ export default async function AcquisitionAuditPage({
                       <td>
                         <span>{source.label}</span>
                         {source.sourceName !== ACQUISITION_DEFAULT_SOURCE_NAME ? <p className="small">{source.sourceName}</p> : null}
+                        {source.fallbackSnapshot ? <p className="small bandText--watch">Fallback provider-shaped data</p> : null}
                         {source.externalAccountId ? <p className="small">Account {source.externalAccountId}</p> : null}
                         <div className="importHistoryActions">
                           {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}

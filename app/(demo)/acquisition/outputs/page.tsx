@@ -47,6 +47,11 @@ export default async function AcquisitionOutputsPage() {
       const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
       return acquisitionLineageIsProviderBacked(source);
     }).length;
+    const providerFallbackCampaigns = campaigns.filter((campaign) => {
+      const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
+      return acquisitionLineageIsProviderBacked(source) && source.fallbackSnapshot;
+    }).length;
+    const liveProviderCampaigns = Math.max(0, providerBackedCampaigns - providerFallbackCampaigns);
 
     return (
       <>
@@ -70,9 +75,14 @@ export default async function AcquisitionOutputsPage() {
               ) : null}
             </div>
             <div className="card">
-              <p className="small">Provider-backed campaigns</p>
-              <div className="kpi">{providerBackedCampaigns.toLocaleString()}</div>
-              <p className="small">Google Ads or Meta Ads lineage</p>
+              <p className="small">Live provider campaigns</p>
+              <div className="kpi">{liveProviderCampaigns.toLocaleString()}</div>
+              <p className="small">Google Ads or Meta Ads sync lineage</p>
+            </div>
+            <div className="card">
+              <p className="small">Fallback provider campaigns</p>
+              <div className="kpi">{providerFallbackCampaigns.toLocaleString()}</div>
+              <p className="small">Provider-shaped fallback lineage</p>
             </div>
             <div className="card">
               <p className="small">Provider account</p>
@@ -92,6 +102,9 @@ export default async function AcquisitionOutputsPage() {
                 {top?.name} is currently tied to {topSource.label} data
                 {topSource.sourceName ? ` from ${topSource.sourceName}` : ""}.
               </p>
+              {topSource.fallbackSnapshot ? (
+                <p className="small bandText--watch">This is provider-shaped fallback data, not rows returned by the live Ads API.</p>
+              ) : null}
               <div className="ctaRow">
                 {topSource.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${topSource.datasetId}`}>Review dataset</Link> : null}
                 {topSource.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${topSource.connectionId}`}>Open provider account</Link> : null}
@@ -145,6 +158,7 @@ export default async function AcquisitionOutputsPage() {
                       <td>
                         {source.label}
                         <p className="small">{source.sourceName}</p>
+                        {source.fallbackSnapshot ? <p className="small bandText--watch">Fallback provider-shaped data</p> : null}
                         {source.datasetId || source.connectionId ? (
                           <div className="ctaRow">
                             {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
