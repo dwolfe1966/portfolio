@@ -52,6 +52,40 @@ function formatJson(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
+function objectRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function stringField(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function numberField(value: unknown) {
+  const amount = Number(value ?? 0);
+  return Number.isFinite(amount) && amount > 0 ? Math.round(amount) : 0;
+}
+
+function acquisitionDryRunContext(payload: unknown) {
+  const record = objectRecord(payload);
+  const proposedAction = objectRecord(record?.proposedAction);
+  if (!proposedAction) return null;
+
+  const campaignId = stringField(proposedAction.campaignId);
+  const fromTestCellId = stringField(proposedAction.fromTestCellId);
+  const toTestCellId = stringField(proposedAction.toTestCellId);
+  const amountCents = numberField(proposedAction.amountCents ?? proposedAction.shiftAmountCents ?? proposedAction.spendExposureCents);
+  const shiftPct = Number(proposedAction.shiftPct ?? 0);
+  if (!campaignId && !fromTestCellId && !toTestCellId && !amountCents) return null;
+
+  return {
+    campaignId,
+    fromTestCellId,
+    toTestCellId,
+    amountCents,
+    shiftPct: Number.isFinite(shiftPct) ? shiftPct : 0
+  };
+}
+
 function statusClass(status: string) {
   if (["completed", "approved", "ready", "queued"].includes(status)) return "live";
   if (["failed", "dead_lettered", "rejected", "expired", "blocked"].includes(status)) return "warning";
@@ -74,6 +108,7 @@ export default async function ProviderDryRunDetailPage({ params }: PageProps) {
   const permissionChecks = jsonArray(dryRun.permissionChecks);
   const providerObjects = jsonArray(dryRun.providerObjects);
   const handoff = dryRun.measurementHandoff;
+  const acquisitionContext = acquisitionDryRunContext(dryRun.agentJob.payload);
 
   return (
     <>
@@ -87,6 +122,39 @@ export default async function ProviderDryRunDetailPage({ params }: PageProps) {
           <Link className="btn secondary" href="/workspace/agents">Back to operations</Link>
         </div>
       </Section>
+
+      {acquisitionContext ? (
+        <Section title="Acquisition context">
+          <div className="activitySummaryGrid">
+            <div className="activitySummaryCard">
+              <p className="small">Campaign</p>
+              <strong>{acquisitionContext.campaignId ?? "Not linked"}</strong>
+              {acquisitionContext.campaignId ? <Link className="btn smallBtn" href={`/acquisition/campaigns/${acquisitionContext.campaignId}`}>Open campaign</Link> : null}
+            </div>
+            <div className="activitySummaryCard">
+              <p className="small">Shift</p>
+              <strong>{formatCents(acquisitionContext.amountCents)}</strong>
+              <span>{acquisitionContext.shiftPct ? `${(acquisitionContext.shiftPct * 100).toFixed(1)}% budget move` : "Approved provider-write dry run"}</span>
+            </div>
+            <div className="activitySummaryCard">
+              <p className="small">From cell</p>
+              <strong>{acquisitionContext.fromTestCellId ?? "Not captured"}</strong>
+              <span>Budget source cell</span>
+            </div>
+            <div className="activitySummaryCard">
+              <p className="small">To cell</p>
+              <strong>{acquisitionContext.toTestCellId ?? "Not captured"}</strong>
+              <span>Winning destination cell</span>
+            </div>
+          </div>
+          {acquisitionContext.campaignId ? (
+            <div className="ctaRow">
+              <Link className="btn smallBtn" href={`/acquisition/audit?campaignId=${acquisitionContext.campaignId}&action=budget_shift_pending_approval&window=all`}>Review approval audit</Link>
+              <Link className="btn smallBtn" href={`/acquisition/simulations?campaignId=${acquisitionContext.campaignId}`}>Run next iteration</Link>
+            </div>
+          ) : null}
+        </Section>
+      ) : null}
 
       <Section title="Summary">
         <div className="activitySummaryGrid">
