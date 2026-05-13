@@ -7,7 +7,10 @@ import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
-import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provider-snapshots";
+import {
+  acquisitionProviderSnapshotScopeLabel,
+  acquisitionProviderSnapshotSourceLabel
+} from "@/lib/acquisition-provider-snapshots";
 import { ToolDataSourceSelector } from "@/components/site/ToolDataSourceSelector";
 
 type AcquisitionWorkspaceDatasetPanelProps = {
@@ -62,6 +65,7 @@ function providerSnapshotDetail(snapshot: {
   const connectionId = datasetConnectionId(snapshot.metadata);
   const parts = [
     sourceLabel(snapshot.sourceType),
+    acquisitionProviderSnapshotSourceLabel(snapshot.metadata),
     acquisitionProviderSnapshotScopeLabel(snapshot.metadata),
     `${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows`,
     formatDate(snapshot.createdAt),
@@ -169,7 +173,7 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
               return (
                 <div className="card compact" key={snapshot.id}>
                   <p className={`statusPill ${isActive ? "live" : "progress"}`}>
-                    {isActive ? "active" : sourceLabel(snapshot.sourceType)}
+                    {isActive ? "active" : acquisitionProviderSnapshotSourceLabel(snapshot.metadata)}
                   </p>
                   <h3 style={{ marginTop: 10 }}>{snapshot.name}</h3>
                   <p className="small">{providerSnapshotDetail(snapshot)}</p>
@@ -201,7 +205,7 @@ export async function AcquisitionWorkspaceDatasetPanel({ compact = false }: Acqu
             const visibility = workspaceVisibilityLabel(snapshot.accountUserId, session?.userId);
             return {
               id: snapshot.id,
-              label: `${visibility.label} · ${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${acquisitionProviderSnapshotScopeLabel(snapshot.metadata)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
+              label: `${visibility.label} · ${snapshot.name} · ${sourceLabel(snapshot.sourceType)} · ${acquisitionProviderSnapshotSourceLabel(snapshot.metadata)} · ${acquisitionProviderSnapshotScopeLabel(snapshot.metadata)} · ${rowCountTotal(snapshot.rowCounts).toLocaleString()} rows · ${formatDate(snapshot.createdAt)}`
             };
           })}
           canUseImportedData={canUseImportedData(session?.userId)}

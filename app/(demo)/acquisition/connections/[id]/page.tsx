@@ -10,7 +10,10 @@ import { GoogleAdsConnector, GoogleAdsNotTestAccountError, MetaAdsConnector, Met
 import type { RemoteAdGroup, RemoteAdUnit, RemoteCampaign, RemotePerformance } from "@/lib/ad-connectors";
 import { LIVE_PROVIDER_READS_ENV, liveProviderReadsEnabled } from "@/lib/ad-connectors/live-read-scope";
 import { acquisitionProviderDryRunAdapterAvailable } from "@/lib/acquisition-agent-generalization";
-import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provider-snapshots";
+import {
+  acquisitionProviderSnapshotScopeLabel,
+  acquisitionProviderSnapshotSourceLabel
+} from "@/lib/acquisition-provider-snapshots";
 import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import {
   applyProviderConnectionDatasetAction,
@@ -636,6 +639,8 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       <Link href={`/workspace/datasets/${activeProviderDataset.id}`}>{activeProviderDataset.name}</Link>
                     </p>
                     <p className="small">
+                      {acquisitionProviderSnapshotSourceLabel(activeProviderDataset.metadata)}
+                      {" · "}
                       {acquisitionProviderSnapshotScopeLabel(activeProviderDataset.metadata, { sentenceCase: true })}
                       {" · "}
                       {rowCountTotal(activeProviderDataset.rowCounts).toLocaleString()} rows
@@ -697,6 +702,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                 <tr key={dataset.id}>
                   <td>
                     <Link href={`/workspace/datasets/${dataset.id}`}>{dataset.name}</Link>
+                    <p className="small">{acquisitionProviderSnapshotSourceLabel(dataset.metadata)}</p>
                     {dataset.id === latestDataset?.id ? <p className="small">Latest sync</p> : null}
                     {dataset.id === activeDatasetId ? <p className="small">Active inputs source</p> : null}
                   </td>

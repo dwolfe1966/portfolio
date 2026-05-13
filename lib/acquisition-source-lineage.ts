@@ -8,6 +8,8 @@ export type AcquisitionSourceLineage = {
   externalAccountId: string;
   syncedAt: string | null;
   appliedAt: string | null;
+  fallbackSnapshot: boolean;
+  sourceFlow: string;
 };
 
 export type AcquisitionProviderAudienceLineage = {
@@ -60,9 +62,11 @@ export function acquisitionSourceLineageFromMetadata(
   const sourceType = stringValue(record.sourceType);
   const provider = stringValue(record.provider) || (sourceType === "google_ads" || sourceType === "meta_ads" ? sourceType : "");
   const sourceName = stringValue(record.sourceName);
+  const sourceFlow = stringValue(record.sourceFlow);
+  const fallbackSnapshot = record.fallbackSnapshot === true || sourceFlow === "provider_fallback_snapshot";
 
   return {
-    label: acquisitionSourceTypeLabel(sourceType || provider),
+    label: fallbackSnapshot ? `${acquisitionSourceTypeLabel(sourceType || provider)} fallback` : acquisitionSourceTypeLabel(sourceType || provider),
     sourceName: sourceName || ACQUISITION_DEFAULT_SOURCE_NAME,
     sourceType,
     provider,
@@ -70,7 +74,9 @@ export function acquisitionSourceLineageFromMetadata(
     connectionId: stringValue(record.connectionId),
     externalAccountId: stringValue(record.externalAccountId),
     syncedAt: isoDateValue(record.syncedAt),
-    appliedAt: isoDateValue(appliedAt)
+    appliedAt: isoDateValue(appliedAt),
+    fallbackSnapshot,
+    sourceFlow
   };
 }
 
@@ -84,7 +90,7 @@ export function acquisitionLineageHasLinks(source: AcquisitionSourceLineage) {
 }
 
 export function acquisitionLineageIsProviderBacked(source: AcquisitionSourceLineage) {
-  return source.label === "Google Ads" || source.label === "Meta Ads";
+  return source.provider === "google_ads" || source.provider === "meta_ads";
 }
 
 export function acquisitionProviderAudienceLineage(

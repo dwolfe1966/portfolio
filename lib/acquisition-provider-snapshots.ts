@@ -6,6 +6,9 @@ export type AcquisitionProviderSnapshotFacts = {
   externalAdGroupId: string;
   syncScope: string;
   syncedAt: string;
+  fallbackSnapshot: boolean;
+  sourceFlow: string;
+  fallbackSource: string;
   providerRowCounts: Record<string, unknown>;
 };
 
@@ -29,19 +32,32 @@ export function acquisitionProviderSnapshotFacts(metadata: unknown): Acquisition
     externalAdGroupId: stringField(record.externalAdGroupId, sourceMetadata.externalAdGroupId),
     syncScope: stringField(record.syncScope, sourceMetadata.syncScope) || "provider_account",
     syncedAt: stringField(record.syncedAt),
+    fallbackSnapshot: record.fallbackSnapshot === true || sourceMetadata.sourceFlow === "provider_fallback_snapshot",
+    sourceFlow: stringField(sourceMetadata.sourceFlow),
+    fallbackSource: stringField(sourceMetadata.fallbackSource),
     providerRowCounts: metadataRecord(record.providerRowCounts)
   };
 }
 
+export function acquisitionProviderSnapshotSourceLabel(metadata: unknown) {
+  const facts = acquisitionProviderSnapshotFacts(metadata);
+  if (facts.fallbackSnapshot) return "Provider-shaped fallback";
+  if (facts.sourceFlow === "provider_oauth_sync") return "Live provider sync";
+  return "Provider snapshot";
+}
+
 export function acquisitionProviderSnapshotScopeLabel(metadata: unknown, options: { sentenceCase?: boolean } = {}) {
   const facts = acquisitionProviderSnapshotFacts(metadata);
+  const fallbackPrefix = facts.fallbackSnapshot ? (options.sentenceCase ? "Fallback " : "fallback ") : "";
   const prefix = options.sentenceCase ? "Selected" : "selected";
-  const accountLabel = options.sentenceCase ? "Account sync" : "account sync";
+  const accountLabel = facts.fallbackSnapshot
+    ? `${fallbackPrefix}account sync`
+    : options.sentenceCase ? "Account sync" : "account sync";
 
   if (facts.syncScope === "selected_provider_scope") {
     return facts.externalAdGroupId
-      ? `${prefix} campaign ${facts.externalCampaignId || "unknown"} / group ${facts.externalAdGroupId}`
-      : `${prefix} campaign ${facts.externalCampaignId || "unknown"}`;
+      ? `${fallbackPrefix}${prefix} campaign ${facts.externalCampaignId || "unknown"} / group ${facts.externalAdGroupId}`
+      : `${fallbackPrefix}${prefix} campaign ${facts.externalCampaignId || "unknown"}`;
   }
 
   return accountLabel;

@@ -28,6 +28,22 @@ test("acquisitionSourceLineageFromMetadata normalizes provider dataset metadata"
   assert.equal(source.externalAccountId, "1234567890");
   assert.equal(source.syncedAt, "2026-05-01T12:00:00.000Z");
   assert.equal(source.appliedAt, "2026-05-02T12:00:00.000Z");
+  assert.equal(source.fallbackSnapshot, false);
+  assert.equal(acquisitionLineageIsProviderBacked(source), true);
+});
+
+test("acquisitionSourceLineageFromMetadata marks provider fallback datasets", () => {
+  const source = acquisitionSourceLineageFromMetadata({
+    sourceType: "google_ads",
+    sourceName: "Google Ads fallback",
+    provider: "google_ads",
+    fallbackSnapshot: true,
+    sourceFlow: "provider_fallback_snapshot"
+  });
+
+  assert.equal(source.label, "Google Ads fallback");
+  assert.equal(source.fallbackSnapshot, true);
+  assert.equal(source.sourceFlow, "provider_fallback_snapshot");
   assert.equal(acquisitionLineageIsProviderBacked(source), true);
 });
 
@@ -56,6 +72,7 @@ test("acquisition lineage defaults manual metadata without links", () => {
   assert.equal(source.label, "Manual/sample");
   assert.equal(source.sourceName, ACQUISITION_DEFAULT_SOURCE_NAME);
   assert.equal(source.datasetId, "");
+  assert.equal(source.fallbackSnapshot, false);
   assert.equal(acquisitionLineageIsProviderBacked(source), false);
 });
 

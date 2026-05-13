@@ -279,6 +279,9 @@ export async function applyLoadedAcquisitionDatasetSnapshot(dataset: Acquisition
             externalAccountId: datasetMetadata.externalAccountId ?? null,
             connectionId: datasetMetadata.connectionId ?? null,
             syncedAt: datasetMetadata.syncedAt ?? null,
+            fallbackSnapshot: datasetMetadata.fallbackSnapshot ?? null,
+            sourceFlow: metadataRecord(datasetMetadata.sourceMetadata).sourceFlow ?? null,
+            fallbackSource: metadataRecord(datasetMetadata.sourceMetadata).fallbackSource ?? null,
             providerRowCounts: datasetMetadata.providerRowCounts ?? null,
             applied: { campaignsApplied, audiencesApplied, creativesApplied, performanceApplied }
           }

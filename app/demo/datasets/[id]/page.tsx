@@ -14,7 +14,10 @@ import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { getDefaultWorkspace } from "@/lib/workspace";
 import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
-import { acquisitionProviderSnapshotFacts } from "@/lib/acquisition-provider-snapshots";
+import {
+  acquisitionProviderSnapshotFacts,
+  acquisitionProviderSnapshotSourceLabel
+} from "@/lib/acquisition-provider-snapshots";
 
 export const dynamic = "force-dynamic";
 
@@ -284,6 +287,15 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
                 <div className="card">
                   <p className="small">Provider</p>
                   <div className="workspaceSettingValue">{sourceTypeLabel(providerFacts.provider || dataset.sourceType)}</div>
+                </div>
+                <div className="card">
+                  <p className="small">Snapshot type</p>
+                  <div className="workspaceSettingValue">{acquisitionProviderSnapshotSourceLabel(dataset.metadata)}</div>
+                  <p className="small">
+                    {providerFacts.fallbackSnapshot
+                      ? "Provider-shaped fallback data. Not returned by the live Ads API."
+                      : "Rows returned by the provider sync path."}
+                  </p>
                 </div>
                 <div className="card">
                   <p className="small">Account</p>

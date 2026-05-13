@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   acquisitionProviderSnapshotFacts,
-  acquisitionProviderSnapshotScopeLabel
+  acquisitionProviderSnapshotScopeLabel,
+  acquisitionProviderSnapshotSourceLabel
 } from "../lib/acquisition-provider-snapshots";
 
 test("acquisitionProviderSnapshotFacts reads selected provider scope metadata", () => {
@@ -23,6 +24,7 @@ test("acquisitionProviderSnapshotFacts reads selected provider scope metadata", 
   assert.equal(facts.externalCampaignId, "camp_1");
   assert.equal(facts.externalAdGroupId, "group_1");
   assert.equal(facts.syncScope, "selected_provider_scope");
+  assert.equal(facts.fallbackSnapshot, false);
   assert.deepEqual(facts.providerRowCounts, { campaigns: 1, adGroups: 1, ads: 3 });
 });
 
@@ -37,6 +39,25 @@ test("acquisitionProviderSnapshotScopeLabel describes selected and account syncs
   );
 
   assert.equal(acquisitionProviderSnapshotScopeLabel({}, { sentenceCase: true }), "Account sync");
+});
+
+test("acquisition provider labels mark fallback snapshots", () => {
+  const metadata = {
+    fallbackSnapshot: true,
+    syncScope: "provider_account",
+    sourceMetadata: {
+      sourceFlow: "provider_fallback_snapshot",
+      fallbackSource: "deterministic_simulated_provider_shape"
+    }
+  };
+
+  const facts = acquisitionProviderSnapshotFacts(metadata);
+  assert.equal(facts.fallbackSnapshot, true);
+  assert.equal(facts.sourceFlow, "provider_fallback_snapshot");
+  assert.equal(facts.fallbackSource, "deterministic_simulated_provider_shape");
+  assert.equal(acquisitionProviderSnapshotSourceLabel(metadata), "Provider-shaped fallback");
+  assert.equal(acquisitionProviderSnapshotScopeLabel(metadata), "fallback account sync");
+  assert.equal(acquisitionProviderSnapshotScopeLabel(metadata, { sentenceCase: true }), "Fallback account sync");
 });
 
 test("acquisitionProviderSnapshotFacts falls back to nested source metadata", () => {
