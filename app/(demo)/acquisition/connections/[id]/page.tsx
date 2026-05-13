@@ -273,6 +273,18 @@ function syncErrorCopy(error: string | undefined, provider: string) {
   return "";
 }
 
+function liveDataErrorCopy(error: string) {
+  if (error.includes("developer token is not approved")) {
+    return "Google Ads rejected this live read because the developer token is not approved for live customer reads. Apply for Google Ads API Basic or Standard access, or use an approved developer token.";
+  }
+  if (error.includes(LIVE_PROVIDER_READS_ENV) || error.includes("Refusing to fetch from live")) {
+    return liveProviderReadsEnabled()
+      ? "Live-read inspection is enabled locally, but Google Ads is still blocking this account read. The usual cause is Google Ads developer-token access level for live customers."
+      : `This is a live provider account. Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect it in read-only mode.`;
+  }
+  return error;
+}
+
 function syncSuccessCopy(applied: boolean) {
   return applied
     ? "Provider snapshot synced and applied to acquisition inputs."
@@ -602,8 +614,9 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
           <Section title="Provider object selection">
             {live?.error ? (
               <div className="card">
-                <p className="bandText--unhealthy small">Could not fetch campaigns: {live.error}</p>
-                {(live.error.includes(LIVE_PROVIDER_READS_ENV) || live.error.includes("live")) ? (
+                <p className="bandText--unhealthy small">Could not fetch campaigns: {liveDataErrorCopy(live.error)}</p>
+                <p className="small">Live-read inspection: {liveProviderReadsEnabled() ? "enabled" : "blocked"}</p>
+                {(!liveProviderReadsEnabled() && (live.error.includes(LIVE_PROVIDER_READS_ENV) || live.error.includes("live"))) ? (
                   <div className="ctaRow">
                     <code className="small">{LIVE_PROVIDER_READS_ENV}=true</code>
                     <p className="small">Add this to `.env.local`, restart localhost, then reload this account. This only enables read-only provider inspection.</p>
