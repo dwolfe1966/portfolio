@@ -30,6 +30,24 @@ function formatDateTime(value: unknown) {
   return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : "Unknown";
 }
 
+function formatCents(value: number) {
+  return new Intl.NumberFormat("en", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value / 100);
+}
+
+function objectRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function stringField(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function providerDryRunCampaignId(payload: unknown) {
+  const record = objectRecord(payload);
+  const proposedAction = objectRecord(record?.proposedAction);
+  return stringField(proposedAction?.campaignId);
+}
+
 export default async function AcquisitionCampaignDetailPage({ params }: PageProps) {
   const { id } = await params;
 
@@ -104,6 +122,34 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
         ? campaign.objective.split(" campaign ").at(-1) ?? ""
         : ""
     );
+    const recentProviderDryRuns = await db.agentProviderWriteDryRun.findMany({
+      where: { app: "acquisition" },
+      include: {
+        agentJob: {
+          select: {
+            status: true,
+            payload: true,
+            completedAt: true
+          }
+        },
+        measurementHandoff: {
+          select: {
+            id: true,
+            status: true,
+            observationJobId: true,
+            measurementJobId: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    });
+    const campaignProviderDryRuns = recentProviderDryRuns
+      .filter((dryRun) => {
+        const payloadCampaignId = providerDryRunCampaignId(dryRun.agentJob.payload);
+        return payloadCampaignId === campaign.id || Boolean(externalCampaignId && dryRun.externalCampaignId === externalCampaignId);
+      })
+      .slice(0, 8);
 
     const transitionHistory = campaign.auditLogs
       .filter((log) => log.action === "campaign_state_change")
@@ -234,6 +280,46 @@ export default async function AcquisitionCampaignDetailPage({ params }: PageProp
               metadata: log.metadata
             }))}
           />
+        </Section>
+
+        <Section title="Provider write evidence">
+          {campaignProviderDryRuns.length === 0 ? (
+            <div className="card">
+              <p>No provider-write dry-runs are linked to this campaign yet. Approve an over-cap acquisition shift and run the dry-run worker to generate evidence here.</p>
+            </div>
+          ) : (
+            <div className="activityFeed">
+              {campaignProviderDryRuns.map((dryRun) => (
+                <details className="activityFeedItem" key={dryRun.id}>
+                  <summary>
+                    <span className="activityFeedDate">{formatDateTime(dryRun.createdAt)}</span>
+                    <span className={`statusPill ${dryRun.status === "ready" ? "live" : "warning"}`}>{dryRun.status.replaceAll("_", " ")}</span>
+                    <span className="activityFeedTitle">
+                      <strong>{dryRun.operationType.replaceAll("_", " ")}</strong>
+                      <span>{acquisitionProviderLabel(dryRun.provider)} · {formatCents(dryRun.spendExposureCents)} exposure</span>
+                    </span>
+                    <span className="activityFeedApp">{dryRun.agentJob.status.replaceAll("_", " ")}</span>
+                  </summary>
+                  <div className="activityFeedDetail">
+                    <div>
+                      <p>{dryRun.externalCampaignId ?? dryRun.externalAccountId ?? "Provider target not resolved yet."}</p>
+                      <p className="small">
+                        Account: {dryRun.externalAccountId ?? "none"} · Rollback: {dryRun.rollbackSupported ? "supported" : "not supported"}
+                      </p>
+                      {dryRun.rollbackPlan ? <p className="small">{dryRun.rollbackPlan}</p> : null}
+                      {dryRun.blockers.length > 0 ? <p className="small">Blockers: {dryRun.blockers.map((blocker) => blocker.replaceAll("_", " ")).join(" · ")}</p> : null}
+                      {dryRun.measurementHandoff ? (
+                        <p className="small">
+                          Measurement: {dryRun.measurementHandoff.status.replaceAll("_", " ")} · Observation job {dryRun.measurementHandoff.observationJobId ?? "not queued"} · Attribution job {dryRun.measurementHandoff.measurementJobId ?? "not queued"}
+                        </p>
+                      ) : null}
+                    </div>
+                    <Link className="btn smallBtn" href={`/workspace/agents/dry-runs/${dryRun.id}`}>Inspect dry run</Link>
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
         </Section>
 
         <Section title="Audience provider targeting">
