@@ -47,6 +47,14 @@ type LatestDataset = {
   metadata: unknown;
   createdAt: Date;
 };
+type DiagnosticTone = "live" | "progress" | "warning";
+type ProviderDiagnostic = {
+  key: string;
+  label: string;
+  status: string;
+  tone: DiagnosticTone;
+  detail: string;
+};
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -212,6 +220,14 @@ function tokenStatus(connection: {
   };
 }
 
+function liveDataErrorKind(error: string | null | undefined) {
+  if (!error) return null;
+  if (error.includes("developer token is not approved")) return "developer_token";
+  if (error.includes("PERMISSION_DENIED") || error.includes("does not have permission")) return "permission";
+  if (error.includes(LIVE_PROVIDER_READS_ENV) || error.includes("Refusing to fetch from live")) return "live_read_env";
+  return "provider_error";
+}
+
 function syncStatus({
   connection,
   live,
@@ -227,6 +243,14 @@ function syncStatus({
 }) {
   const token = tokenStatus(connection);
   if (token.tone === "warning" || token.label === "Reconnect required") return token;
+  if (live?.error) {
+    const kind = liveDataErrorKind(live.error);
+    return {
+      label: kind === "developer_token" ? "Developer token blocked" : "Live read blocked",
+      tone: "warning",
+      detail: liveDataErrorCopy(live.error)
+    };
+  }
   if (!connection.isTestAccount) {
     return {
       label: liveProviderReadsEnabled() ? "Live read enabled" : "Live read blocked",
@@ -234,13 +258,6 @@ function syncStatus({
       detail: liveProviderReadsEnabled()
         ? "This live provider account can be inspected in read-only mode. Provider writes remain dry-run/governed separately."
         : `This is a live provider account. Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect it in read-only mode.`
-    };
-  }
-  if (live?.error) {
-    return {
-      label: "Live read blocked",
-      tone: "warning",
-      detail: live.error
     };
   }
   if (latestDataset) {
@@ -283,6 +300,88 @@ function liveDataErrorCopy(error: string) {
       : `This is a live provider account. Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect it in read-only mode.`;
   }
   return error;
+}
+
+function buildProviderDiagnostics({
+  connection,
+  live,
+  latestDataset,
+  syncReady
+}: {
+  connection: {
+    provider: string;
+    externalAccountId: string;
+    isTestAccount: boolean;
+    credentialGrant: { status: string; tokenHealthStatus: string; environment: string; capabilities: string[] } | null;
+    expiresAt: Date | null;
+  };
+  live: ProviderLiveData | null;
+  latestDataset: LatestDataset | null;
+  syncReady: boolean;
+}): ProviderDiagnostic[] {
+  const token = tokenStatus(connection);
+  const liveKind = liveDataErrorKind(live?.error);
+  const localLiveReadsEnabled = connection.isTestAccount || liveProviderReadsEnabled();
+  const providerLabel = PROVIDER_LABEL[connection.provider] ?? connection.provider;
+
+  return [
+    {
+      key: "oauth",
+      label: "OAuth grant",
+      status: token.label,
+      tone: token.tone === "live" ? "live" : "warning",
+      detail: connection.credentialGrant
+        ? `${connection.credentialGrant.environment} grant · ${connection.credentialGrant.capabilities.length} capabilities · ${token.detail}`
+        : token.detail
+    },
+    {
+      key: "account",
+      label: "Account discovery",
+      status: "Connected",
+      tone: "live",
+      detail: `${providerLabel} account ${connection.externalAccountId} is stored and visible to this workspace.`
+    },
+    {
+      key: "live_reads",
+      label: "Local live reads",
+      status: localLiveReadsEnabled ? "Enabled" : "Blocked",
+      tone: localLiveReadsEnabled ? "live" : "warning",
+      detail: connection.isTestAccount
+        ? "This is a test account, so provider reads are allowed without the live-read opt-in."
+        : localLiveReadsEnabled
+          ? "Read-only inspection is enabled locally. Provider writes remain dry-run/governed separately."
+          : `Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost before inspecting live accounts.`
+    },
+    {
+      key: "provider_access",
+      label: "Provider API access",
+      status: liveKind === "developer_token" ? "Token approval needed" : live?.error ? "Blocked" : "Readable",
+      tone: live?.error ? "warning" : "live",
+      detail: live?.error
+        ? liveDataErrorCopy(live.error)
+        : "Campaign, audience, creative, and performance reads are available for this account."
+    },
+    {
+      key: "dataset_sync",
+      label: "Dataset sync",
+      status: latestDataset ? "Synced" : syncReady ? "Ready" : "Blocked",
+      tone: latestDataset ? "live" : syncReady ? "progress" : "warning",
+      detail: latestDataset
+        ? `${rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows saved ${formatDateTime(latestDataset.createdAt)}.`
+        : syncReady
+          ? "This account can be materialized as an acquisition dataset snapshot."
+          : "Dataset sync is waiting on the blocked diagnostic above."
+    },
+    {
+      key: "provider_writes",
+      label: "Provider writes",
+      status: acquisitionProviderDryRunAdapterAvailable() ? "Dry-run only" : "Adapter unavailable",
+      tone: acquisitionProviderDryRunAdapterAvailable() ? "progress" : "warning",
+      detail: acquisitionProviderDryRunAdapterAvailable()
+        ? "Write proposals can be previewed with provider-shaped dry-runs; live mutations remain governed separately."
+        : "No provider write dry-run adapter is available for this workspace."
+    }
+  ];
 }
 
 function syncSuccessCopy(applied: boolean) {
@@ -385,7 +484,10 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
     ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId)
     : null;
   const syncState = syncStatus({ connection, live, latestDataset });
-  const syncReady = isLiveProvider && syncState.label !== "Production access needed" && syncState.label !== "Live read blocked" && syncState.label !== "Token expired" && syncState.label !== "Grant inactive" && syncState.label !== "Reconnect required";
+  const syncReady = isLiveProvider && syncState.label !== "Production access needed" && syncState.label !== "Developer token blocked" && syncState.label !== "Live read blocked" && syncState.label !== "Token expired" && syncState.label !== "Grant inactive" && syncState.label !== "Reconnect required";
+  const diagnostics = isLiveProvider
+    ? buildProviderDiagnostics({ connection, live, latestDataset, syncReady })
+    : [];
   const selectedAdGroupId = live?.adGroups.some((group) => group.externalAdGroupId === selected.adGroupId)
     ? selected.adGroupId
     : null;
@@ -454,6 +556,20 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
           </div>
         </div>
       </Section>
+
+      {isLiveProvider ? (
+        <Section title="Connection diagnostics">
+          <div className="grid grid-3">
+            {diagnostics.map((item) => (
+              <div className="card compact" key={item.key}>
+                <h3>{item.label}</h3>
+                <p className={`statusPill ${item.tone}`}>{item.status}</p>
+                <p className="small">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
 
       {isLiveProvider ? (
         <Section title="Workspace dataset sync">
