@@ -28,7 +28,7 @@ Recommendation-only mode can start before all gates pass. Human-approved executi
 | L57 | Baseline snapshot contract | Completed: tested helper produces frozen/reportable/billing-ready decisions from eligibility, period, exclusions, source snapshots, metrics, confidence, control method, and owner approvals. |
 | L58 | Revenue proof dashboard foundation | Completed: shared model and overview panels show baseline, treatment/control, actions, outcomes, incremental lift/profit, confidence flags, and export links for Lifecycle and Acquisition. |
 | L59 | Billable execution gate | Completed: tested helper blocks performance billing and agent-managed execution unless onboarding, data quality, baseline, policy, credentials, rollback, audit, emergency stop, revenue proof, and fee-trigger approvals pass. |
-| L60 | Customer launch packet export | Exportable packet showing owners, grants, mappings, policy, baseline, evidence, unresolved risks, and launch decision. |
+| L60 | Customer launch packet export | Completed: tested builder emits stable JSON plus Markdown for owners, connected systems, mappings, policy, baseline, evidence exports, unresolved risks, billable gate, and launch decision. |
 
 ## First Implementation Target
 
@@ -85,4 +85,16 @@ L59 now exists as a shared gate in `lib/billable-execution-gates.ts`. It combine
 - revenue proof readiness;
 - performance billing approval.
 
-The next implementation target is L60: a customer launch packet export with owners, connected systems, approved mappings, policy constraints, baseline snapshot, evidence exports, unresolved risks, and launch decision.
+L60 now exists as a shared export builder in `lib/customer-launch-packet.ts`. It produces stable JSON and Markdown for:
+
+- customer/workspace identity;
+- owner roster;
+- connected systems and credential references;
+- approved mappings and source-of-truth notes;
+- policy constraints;
+- onboarding, data quality, baseline, revenue proof, and billable gate decisions;
+- unresolved risks;
+- evidence export links;
+- launch decision and review timing.
+
+Sprint S16 is now complete at the code-contract layer. The next product step is wiring these contracts into persisted workspace state and customer-visible operations pages.
