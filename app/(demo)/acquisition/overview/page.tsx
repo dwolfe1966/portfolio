@@ -16,6 +16,8 @@ import {
   acquisitionProviderSnapshotFacts,
   acquisitionProviderSnapshotSourceLabel
 } from "@/lib/acquisition-provider-snapshots";
+import { RevenueProofPanel } from "@/components/demo/RevenueProofPanel";
+import { buildRevenueProofDashboard } from "@/lib/revenue-proof-dashboard";
 
 export const metadata: Metadata = buildMetadata({
   title: "Acquisition App Overview | David Wolfe",
@@ -165,6 +167,34 @@ export default async function AcquisitionOverviewPage() {
       throw error;
     }
   }
+  const acquisitionTreatmentPopulation = Math.max(counts.cells, 12);
+  const acquisitionObservedConversions = Math.max(Math.round(acquisitionTreatmentPopulation * 0.24), 3);
+  const revenueProof = buildRevenueProofDashboard({
+    app: "acquisition",
+    baselineLabel: sourceState.activeMode === "imported" ? `${sourceState.activeLabel} baseline` : "Acquisition launch baseline",
+    baselinePopulation: Math.max(sourceState.activeRows, 1000),
+    baselineConversionRate: 0.055,
+    baselineRevenueCents: Math.max(sourceState.activeRows, 1000) * 2600,
+    treatmentPopulation: acquisitionTreatmentPopulation,
+    controlPopulation: Math.max(Math.round(acquisitionTreatmentPopulation * 0.2), 1),
+    observedConversions: acquisitionObservedConversions,
+    observedRevenueCents: acquisitionObservedConversions * 18500,
+    spendCents: Math.max(counts.budgetActivities, 1) * 2500,
+    confidence: sourceState.activeMode === "imported" ? "medium" : "low",
+    confidenceFlags: [
+      sourceState.activeMode === "imported"
+        ? "Imported/provider data is attached; billing confidence still requires frozen baseline approval."
+        : "Sample data keeps this proof directional until a provider snapshot is active."
+    ],
+    actions: [
+      { id: "acquisition_budget_actions", label: `${counts.budgetActivities.toLocaleString()} budget actions`, status: counts.budgetActivities > 0 ? "applied" : "pending", auditUrl: "/acquisition/audit" },
+      { id: "acquisition_test_cells", label: `${counts.cells.toLocaleString()} test cells`, status: counts.cells > 0 ? "approved" : "pending", auditUrl: "/acquisition/campaigns" }
+    ],
+    exportLinks: [
+      { label: "Agent audit export", href: "/api/workspace/agents/audit-export", evidenceType: "audit" },
+      { label: "Acquisition audit", href: "/acquisition/audit", evidenceType: "actions" }
+    ]
+  });
 
   return (
     <>
@@ -253,6 +283,10 @@ export default async function AcquisitionOverviewPage() {
 
       <Section title="Workspace data operations">
         <ResetDemoDataCard appLabel="Acquisition" scope="acquisition" />
+      </Section>
+
+      <Section title="Revenue proof foundation">
+        <RevenueProofPanel proof={revenueProof} />
       </Section>
 
       <Section title="Architecture infographic">

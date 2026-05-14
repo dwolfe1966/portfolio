@@ -273,6 +273,20 @@ section { padding: 36px 0; border-bottom: 1px solid var(--line); }
   font-size: 14px;
   line-height: 1.35;
 }
+.revenueProofMetric {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--card) 92%, var(--bg));
+}
+.cleanList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.cleanList li {
+  margin: 6px 0;
+}
 .heroSystemVisual {
   overflow: hidden;
   border: 1px solid #c9ced8;

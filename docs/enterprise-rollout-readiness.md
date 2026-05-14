@@ -26,7 +26,7 @@ Recommendation-only mode can start before all gates pass. Human-approved executi
 | L55 | Customer onboarding readiness model | Completed: tested helper produces launch readiness, blockers, warnings, missing-owner lists, maximum allowed launch mode, and next required action from workspace/customer setup evidence. |
 | L56 | Data quality gate model | Completed: tested helper produces recommendation/execution readiness from field coverage, row reconciliation, timestamp/currency semantics, identity match, freshness, duplicates, rejected rows, and source-of-truth order. |
 | L57 | Baseline snapshot contract | Completed: tested helper produces frozen/reportable/billing-ready decisions from eligibility, period, exclusions, source snapshots, metrics, confidence, control method, and owner approvals. |
-| L58 | Revenue proof dashboard foundation | Customer-visible evidence layer for baseline, actions, outcomes, incremental lift, confidence flags, and exports. |
+| L58 | Revenue proof dashboard foundation | Completed: shared model and overview panels show baseline, treatment/control, actions, outcomes, incremental lift/profit, confidence flags, and export links for Lifecycle and Acquisition. |
 | L59 | Billable execution gate | A fail-closed gate before performance billing or agent-managed execution can be enabled. |
 | L60 | Customer launch packet export | Exportable packet showing owners, grants, mappings, policy, baseline, evidence, unresolved risks, and launch decision. |
 
@@ -63,4 +63,13 @@ L57 now exists as a pure code-facing contract in `lib/customer-baseline-snapshot
 - confidence level and rationale;
 - data-owner and finance-owner approvals.
 
-The next implementation target is L58: a revenue proof dashboard foundation that can surface baseline, treatment/control, agent actions, outcomes, incremental lift, confidence flags, and export links across Lifecycle and Acquisition first.
+L58 now exists as a shared model in `lib/revenue-proof-dashboard.ts` and a reusable panel in `components/demo/RevenueProofPanel.tsx`. Lifecycle and Acquisition overview pages now expose the first customer-visible proof surface with:
+
+- baseline and observed revenue;
+- treatment and control counts;
+- action evidence links;
+- outcome and lift calculations;
+- confidence flags;
+- audit/export links.
+
+The next implementation target is L59: a billable execution gate that blocks performance-fee and agent-managed execution modes unless onboarding, data quality, baseline, policy, credential, rollback, audit, and emergency-stop gates pass.
