@@ -17,6 +17,7 @@ import {
 } from "@/lib/acquisition-agent-generalization";
 import { AGENT_WORKER_QUEUE_ALLOWLIST, DEFAULT_AGENT_WORKER_QUEUES } from "@/lib/agent-worker";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
+import { buildWorkspaceLaunchReadiness } from "@/lib/workspace-launch-readiness";
 import { decideAgentApprovalAction, decideAgentJobAction, runAgentJobOnceAction, runAgentWorkerBatchAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -207,6 +208,16 @@ function loadAcquisitionProviderWriteReadiness() {
   });
 }
 
+function loadWorkspaceLaunchReadiness(workspace: { id: string; name: string } | null, providerWriteReady: boolean) {
+  return buildWorkspaceLaunchReadiness({
+    customerName: workspace?.name ?? "Default demo workspace",
+    workspaceId: workspace?.id ?? "default-demo-workspace",
+    providerReadReady: true,
+    providerWriteReady,
+    auditExportHref: "/api/workspace/agents/audit-export"
+  });
+}
+
 async function loadAgentOperations(accountUserId: string | null) {
   const scheduler = loadSchedulerStatus();
   const acquisitionProviderWriteReadiness = loadAcquisitionProviderWriteReadiness();
@@ -224,6 +235,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
         acquisitionProviderWriteReadiness,
+        launchReadiness: loadWorkspaceLaunchReadiness(null, acquisitionProviderWriteReadiness.readyForApprovedMutation),
         posture: evaluateAgentCompliancePosture({
           tenantIsolationEnforced: false,
           secretPosture: evaluateSecretPosture({ encryptionAvailable: isOAuthEncryptionAvailable(), tokenPresent: false }),
@@ -288,6 +300,7 @@ async function loadAgentOperations(accountUserId: string | null) {
       counts: { queued, running, deadLettered, pendingApprovals },
       scheduler,
       acquisitionProviderWriteReadiness,
+      launchReadiness: loadWorkspaceLaunchReadiness(workspace, acquisitionProviderWriteReadiness.readyForApprovedMutation),
       posture
     };
   } catch (error) {
@@ -302,6 +315,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
         acquisitionProviderWriteReadiness,
+        launchReadiness: loadWorkspaceLaunchReadiness(null, acquisitionProviderWriteReadiness.readyForApprovedMutation),
         posture: evaluateAgentCompliancePosture({
           tenantIsolationEnforced: false,
           secretPosture: evaluateSecretPosture({ encryptionAvailable: false, tokenPresent: false }),
@@ -322,6 +336,11 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
   const operations = await loadAgentOperations(accountUserId);
   const postureReasons = [...operations.posture.blockers, ...operations.posture.warnings];
   const acquisitionBlockers = operations.acquisitionProviderWriteReadiness.blockers.map(label);
+  const launchStatusClass = operations.launchReadiness.status === "ready"
+    ? "live"
+    : operations.launchReadiness.status === "blocked"
+      ? "warning"
+      : "progress";
 
   return (
     <>
@@ -427,6 +446,33 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
             <p className="small">Approved mutation</p>
             <strong>{operations.acquisitionProviderWriteReadiness.readyForApprovedMutation ? "Ready" : "Blocked"}</strong>
             <span>{acquisitionBlockers.length ? acquisitionBlockers.join(" · ") : "All mutation controls are configured."}</span>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Customer launch readiness">
+        <div className="activitySummaryGrid">
+          <div className="activitySummaryCard">
+            <p className="small">Launch packet</p>
+            <strong>{label(operations.launchReadiness.status)}</strong>
+            <span className={`statusPill ${launchStatusClass}`}>
+              {operations.launchReadiness.exportable ? "exportable" : "blocked"}
+            </span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Max launch mode</p>
+            <strong>{label(operations.launchReadiness.maxAllowedLaunchMode)}</strong>
+            <span>Customer execution cannot move beyond this mode until every launch gate passes.</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Billable gate</p>
+            <strong>{label(operations.launchReadiness.packet.sections.billableGate?.status ?? "missing")}</strong>
+            <span>{operations.launchReadiness.packet.sections.billableGate?.nextRequiredAction ?? "Attach billable execution evidence."}</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Next action</p>
+            <strong>{operations.launchReadiness.blockers.length > 0 ? "Blocked" : operations.launchReadiness.warnings.length > 0 ? "Review" : "Ready"}</strong>
+            <span>{operations.launchReadiness.nextRequiredAction}</span>
           </div>
         </div>
       </Section>
