@@ -136,6 +136,42 @@ function connectionReadiness(conn: ConnectionWithGrant, dataset: LatestDataset |
   };
 }
 
+function providerAttentionSummary(connections: ConnectionWithGrant[]) {
+  const unhealthyGrantCount = connections.filter((conn) => formatGrantHealth(conn.credentialGrant).tone === "unhealthy").length;
+  const missingGrantCount = connections.filter((conn) => !conn.credentialGrant).length;
+  const liveReadBlockedCount = connections.filter((conn) => conn.credentialGrant && formatGrantHealth(conn.credentialGrant).tone !== "unhealthy" && !conn.isTestAccount).length;
+  const readyCount = connections.length - unhealthyGrantCount - missingGrantCount - liveReadBlockedCount;
+
+  if (unhealthyGrantCount > 0 || missingGrantCount > 0) {
+    return {
+      label: `${unhealthyGrantCount + missingGrantCount} need reconnect`,
+      tone: "warning",
+      detail: "Reconnect these accounts before syncing or creating provider-shaped fallback datasets."
+    };
+  }
+  if (liveReadBlockedCount > 0) {
+    return {
+      label: liveProviderReadsEnabled() ? `${liveReadBlockedCount} live-read opt-in` : `${liveReadBlockedCount} live-read blocked`,
+      tone: "warning",
+      detail: liveProviderReadsEnabled()
+        ? "Read-only live inspection is enabled locally; provider writes remain dry-run/governed separately."
+        : "Live provider reads are gated locally. Fallback datasets are available from each account page."
+    };
+  }
+  if (readyCount > 0) {
+    return {
+      label: "sync eligible",
+      tone: "live",
+      detail: "Open an account to inspect objects and materialize a dataset."
+    };
+  }
+  return {
+    label: "no accounts",
+    tone: "progress",
+    detail: "Connect this provider to start account discovery."
+  };
+}
+
 export default async function ConnectionsPage({
   searchParams
 }: {
@@ -337,7 +373,7 @@ export default async function ConnectionsPage({
           {providers.map((provider) => {
             const latestConnection = provider.connections[0];
             const providerSynced = provider.connections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
-            const providerBlocked = provider.connections.filter((conn) => !conn.isTestAccount || formatGrantHealth(conn.credentialGrant).tone === "unhealthy").length;
+            const providerAttention = providerAttentionSummary(provider.connections);
             const providerActive = activeConnection?.provider === provider.key;
             return (
               <div className="card" key={provider.key}>
@@ -346,14 +382,19 @@ export default async function ConnectionsPage({
                     {provider.ready ? "configured" : "setup needed"}
                   </span>
                   {provider.connections.length > 0 ? (
-                    <span className={`statusPill ${providerBlocked > 0 ? "warning" : "live"}`}>
-                      {providerBlocked > 0 ? `${providerBlocked} blocked` : "sync eligible"}
+                    <span className={`statusPill ${providerAttention.tone}`}>
+                      {providerAttention.label}
                     </span>
                   ) : null}
                   {providerActive ? <span className="statusPill live">active inputs</span> : null}
                 </div>
                 <h3 style={{ marginTop: 12 }}>{provider.label}</h3>
                 <p className="small">{providerDescription(provider.key)}</p>
+                {provider.connections.length > 0 ? (
+                  <p className={`small bandText--${providerAttention.tone === "live" ? "healthy" : "watch"}`}>
+                    {providerAttention.detail}
+                  </p>
+                ) : null}
                 <div className="grid grid-3" style={{ gap: 10, marginTop: 12 }}>
                   <div>
                     <p className="small">Accounts</p>
