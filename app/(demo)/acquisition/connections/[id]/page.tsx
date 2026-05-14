@@ -287,7 +287,8 @@ function syncErrorCopy(error: string | undefined, provider: string) {
     return "Live-read inspection is enabled, but Google Ads rejected the request because this developer token is not approved for live customer reads. Apply for Google Ads API Basic or Standard access, or use an approved developer token.";
   }
   if (error === "not_test_account") {
-    return `This is a live provider account. Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect it in read-only mode. Provider writes remain dry-run/governed separately.`;
+    const providerLabel = PROVIDER_LABEL[provider] ?? "provider";
+    return `This is a live ${providerLabel} account. Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect it in read-only mode. Provider writes remain dry-run/governed separately.`;
   }
   if (error) {
     return "Provider sync failed. Try another connected account or check the server log for the provider response.";
@@ -305,6 +306,13 @@ function liveDataErrorCopy(error: string) {
       : `This is a live provider account. Set ${LIVE_PROVIDER_READS_ENV}=true and restart localhost to inspect it in read-only mode.`;
   }
   return error;
+}
+
+function fallbackProviderCopy(providerLabel: string, liveError: string | null | undefined) {
+  if (liveError && liveDataErrorKind(liveError) === "developer_token") {
+    return `Create a deterministic acquisition dataset tied to this ${providerLabel} account while live reads wait for provider API approval.`;
+  }
+  return `Create a deterministic acquisition dataset tied to this ${providerLabel} account while live provider reads are unavailable.`;
 }
 
 function buildProviderDiagnostics({
@@ -440,7 +448,6 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
 
   if (!connection) notFound();
 
-  const isGoogle = connection.provider === "google_ads";
   const isLiveProvider = connection.provider === "google_ads" || connection.provider === "meta_ads";
   const childGroupLabel = connection.provider === "meta_ads" ? "Ad sets" : "Ad groups";
   const childGroupSingular = connection.provider === "meta_ads" ? "ad set" : "ad group";
@@ -637,7 +644,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                     <p className="statusPill progress">Fallback available</p>
                     <h3 style={{ marginTop: 10 }}>Use provider-shaped fallback data</h3>
                     <p className="small">
-                      Create a deterministic acquisition dataset tied to this provider account while live Google Ads reads wait for API approval.
+                      {fallbackProviderCopy(providerLabel, live?.error)}
                     </p>
                     <div className="ctaRow">
                       <form action={createProviderFallbackDatasetAction}>
