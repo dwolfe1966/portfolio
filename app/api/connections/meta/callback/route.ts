@@ -98,13 +98,15 @@ export async function GET(req: NextRequest) {
       provider: "meta_ads",
       externalAccountId: account.id,
       displayName: account.name,
-      isTestAccount: true,
+      isTestAccount: false,
       scopes,
       tokenExpiresAt: tokens.expiresAt,
       metadata: {
         source: "oauth_callback",
         connectionMode: "read_only",
-        providerAccountKind: "ad_account"
+        providerAccountKind: "ad_account",
+        accountStatus: account.accountStatus,
+        liveReadRequiresOptIn: true
       }
     });
     const existing = await db.adAccountConnection.findFirst({
@@ -117,6 +119,7 @@ export async function GET(req: NextRequest) {
           where: { id: existing.id },
           data: {
             accountName: account.name,
+            isTestAccount: false,
             scopes,
             credentialGrantId: credentialGrant.id,
             encryptedAccessToken,
@@ -129,7 +132,7 @@ export async function GET(req: NextRequest) {
             provider: "meta_ads",
             externalAccountId: account.id,
             accountName: account.name,
-            isTestAccount: true,
+            isTestAccount: false,
             scopes,
             credentialGrantId: credentialGrant.id,
             encryptedAccessToken,

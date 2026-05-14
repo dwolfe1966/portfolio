@@ -93,7 +93,14 @@ export async function exchangeMetaAuthCode(code: string, config?: MetaOAuthConfi
   };
 }
 
-export async function listMetaAdAccounts(accessToken: string, config?: MetaOAuthConfig): Promise<Array<{ id: string; name: string; currency: string }>> {
+export type MetaAdAccountSummary = {
+  id: string;
+  name: string;
+  currency: string;
+  accountStatus: number | null;
+};
+
+export async function listMetaAdAccounts(accessToken: string, config?: MetaOAuthConfig): Promise<MetaAdAccountSummary[]> {
   const base = metaGraphApiBase(config);
   const params = new URLSearchParams({
     fields: "id,name,currency,account_status",
@@ -107,11 +114,16 @@ export async function listMetaAdAccounts(accessToken: string, config?: MetaOAuth
   }
 
   const json = (await response.json()) as {
-    data?: Array<{ id: string; name?: string; currency?: string }>;
+    data?: Array<{ id: string; name?: string; currency?: string; account_status?: number | string }>;
   };
   return (json.data ?? []).map((account) => ({
     id: account.id,
     name: account.name ?? `Meta Ads ${account.id}`,
-    currency: account.currency ?? "USD"
+    currency: account.currency ?? "USD",
+    accountStatus: typeof account.account_status === "number"
+      ? account.account_status
+      : Number.isFinite(Number(account.account_status))
+        ? Number(account.account_status)
+        : null
   }));
 }

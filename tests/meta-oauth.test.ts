@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildMetaAuthorizeUrl,
   isMetaOAuthConfigured,
+  listMetaAdAccounts,
   loadMetaOAuthConfig
 } from "@/lib/ad-connectors/meta-oauth";
 
@@ -55,4 +56,29 @@ test("buildMetaAuthorizeUrl includes ads_read scope and state", () => {
     assert.equal(url.searchParams.get("state"), "state_123");
     assert.equal(url.searchParams.get("scope"), "ads_read");
   });
+});
+
+test("listMetaAdAccounts preserves account status metadata", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    data: [
+      { id: "act_123", name: "Acme Ads", currency: "USD", account_status: 1 },
+      { id: "act_456", account_status: "2" }
+    ]
+  }), { status: 200 })) as typeof fetch;
+  try {
+    const accounts = await listMetaAdAccounts("token", {
+      appId: "app_123",
+      appSecret: "secret",
+      redirectUri: "http://localhost:3000/api/connections/meta/callback",
+      graphApiVersion: "v25.0"
+    });
+
+    assert.deepEqual(accounts, [
+      { id: "act_123", name: "Acme Ads", currency: "USD", accountStatus: 1 },
+      { id: "act_456", name: "Meta Ads act_456", currency: "USD", accountStatus: 2 }
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
