@@ -25,7 +25,7 @@ Recommendation-only mode can start before all gates pass. Human-approved executi
 |---|---|---|
 | L55 | Customer onboarding readiness model | Completed: tested helper produces launch readiness, blockers, warnings, missing-owner lists, maximum allowed launch mode, and next required action from workspace/customer setup evidence. |
 | L56 | Data quality gate model | Completed: tested helper produces recommendation/execution readiness from field coverage, row reconciliation, timestamp/currency semantics, identity match, freshness, duplicates, rejected rows, and source-of-truth order. |
-| L57 | Baseline snapshot contract | Durable baseline definitions and frozen snapshots with eligibility, period, exclusions, metrics, confidence, and owner approvals. |
+| L57 | Baseline snapshot contract | Completed: tested helper produces frozen/reportable/billing-ready decisions from eligibility, period, exclusions, source snapshots, metrics, confidence, control method, and owner approvals. |
 | L58 | Revenue proof dashboard foundation | Customer-visible evidence layer for baseline, actions, outcomes, incremental lift, confidence flags, and exports. |
 | L59 | Billable execution gate | A fail-closed gate before performance billing or agent-managed execution can be enabled. |
 | L60 | Customer launch packet export | Exportable packet showing owners, grants, mappings, policy, baseline, evidence, unresolved risks, and launch decision. |
@@ -51,4 +51,16 @@ L56 now exists as a pure code-facing contract in `lib/customer-data-quality-gate
 - duplicate and rejected rows;
 - source-of-truth precedence.
 
-The next implementation target is L57: a baseline snapshot contract for eligible population, measurement period, exclusions, metrics, confidence, and owner approval before performance billing.
+L57 now exists as a pure code-facing contract in `lib/customer-baseline-snapshots.ts`. It evaluates:
+
+- covered workspace/app and baseline method;
+- baseline period and freeze timestamp;
+- eligible population and revenue basis;
+- frozen source snapshots and mapping versions;
+- baseline metrics and units;
+- approved exclusions;
+- control/holdout requirements;
+- confidence level and rationale;
+- data-owner and finance-owner approvals.
+
+The next implementation target is L58: a revenue proof dashboard foundation that can surface baseline, treatment/control, agent actions, outcomes, incremental lift, confidence flags, and export links across Lifecycle and Acquisition first.
