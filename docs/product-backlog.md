@@ -111,7 +111,7 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | L51 | Mutation enablement gates | DW | M | S15 | ✅ | Add a tested helper that blocks approved mutations unless workspace, provider, account, operation, credential, dry-run, approval, rollback, idempotency, measurement, and emergency-stop gates pass. |
 | L52 | Sandbox write adapter contract | DW | L | S15 | ✅ | Define and implement a sandbox-only mutation adapter interface for narrow reversible approved writes after dry-run evidence is persisted and mutation gates pass. |
 | L53 | Rollback retention and review surface | DW | M | S15 | ✅ | Persist rollback records with before-state, provider operation ids, retention windows, reversal status, and operator review controls. |
-| L54 | Production write audit evidence | DW | M | S15 | ⏳ | Extend audit export and activity views with mutation enablement decisions, sandbox mutation attempts, provider operation ids, rollback records, and emergency-stop state. |
+| L54 | Production write audit evidence | DW | M | S15 | ✅ | Extend audit export and activity views with mutation enablement decisions, sandbox mutation attempts, provider operation ids, rollback records, and emergency-stop state. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -415,6 +415,7 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L51. Added a fail-closed mutation enablement helper that requires workspace, provider, account, operation, credential mutation capability, ready dry-run evidence, mutation-specific approval, rollback, distinct idempotency, measurement handoff, and explicit emergency-stop clearance before any approved mutation path can proceed.
 - ✅ L52. Added an opt-in sandbox mutation adapter contract with a simulated sandbox adapter that only applies narrow reversible operations after the mutation gate passes, returns deterministic provider operation ids, preserves dry-run before/after evidence, and emits rollback operation metadata without calling live ad APIs.
 - ✅ L53. Added durable provider-write rollback records with before/after state, provider operation ids, rollback operation ids, retention windows, reversal status, review decisions, and a rollback review section on provider dry-run detail pages.
+- ✅ L54. Extended agent audit evidence export with rollback records, mutation idempotency keys, provider operation ids, rollback operation ids, reversal status, retention expiry, review decisions, emergency-stop state, and mutation-gate status.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.

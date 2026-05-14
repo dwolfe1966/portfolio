@@ -26,6 +26,14 @@ const CSV_HEADERS: Array<keyof AgentAuditExportRow> = [
   "spendExposureCents",
   "rollbackSupported",
   "rollbackPlan",
+  "mutationIdempotencyKey",
+  "providerOperationId",
+  "rollbackProviderOperationId",
+  "reversalStatus",
+  "retentionExpiresAt",
+  "reviewDecision",
+  "emergencyStopState",
+  "mutationGateStatus",
   "relatedJobId"
 ];
 
@@ -52,7 +60,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const workspace = await getDefaultWorkspace();
-    const [jobs, approvals, dryRuns, handoffs] = await Promise.all([
+    const [jobs, approvals, dryRuns, handoffs, rollbackRecords] = await Promise.all([
       db.agentJob.findMany({
         where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
         orderBy: { createdAt: "desc" },
@@ -69,6 +77,11 @@ export async function GET(request: NextRequest) {
         take: 250
       }),
       db.agentProviderWriteMeasurementHandoff.findMany({
+        where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
+        orderBy: { createdAt: "desc" },
+        take: 250
+      }),
+      db.agentProviderWriteRollbackRecord.findMany({
         where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
         orderBy: { createdAt: "desc" },
         take: 250
@@ -132,6 +145,31 @@ export async function GET(request: NextRequest) {
         provider: handoff.provider,
         operationType: handoff.operationType,
         relatedJobId: handoff.measurementJobId ?? handoff.observationJobId ?? handoff.sourceAgentJobId
+      })),
+      ...rollbackRecords.map((record) => ({
+        id: record.id,
+        workspaceId: record.workspaceId,
+        app: "acquisition",
+        action: "provider_write_rollback_record",
+        status: record.status,
+        evidenceType: "rollback_record",
+        actorAccountUserId: record.accountUserId,
+        createdAt: record.createdAt,
+        provider: record.provider,
+        operationType: record.operationType,
+        externalAccountId: record.externalAccountId,
+        externalCampaignId: record.externalCampaignId,
+        rollbackSupported: record.status !== "not_reversible",
+        rollbackPlan: record.rollbackPlan,
+        mutationIdempotencyKey: record.mutationIdempotencyKey,
+        providerOperationId: record.providerOperationId,
+        rollbackProviderOperationId: record.rollbackProviderOperationId,
+        reversalStatus: record.reversalStatus,
+        retentionExpiresAt: record.retentionExpiresAt,
+        reviewDecision: record.reviewDecision,
+        emergencyStopState: "clear_at_record_creation",
+        mutationGateStatus: record.status === "blocked" ? "blocked" : "passed",
+        relatedJobId: record.providerWriteDryRunId
       }))
     ];
 

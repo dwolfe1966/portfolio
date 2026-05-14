@@ -159,6 +159,44 @@ test("buildAgentAuditExportRows includes provider-write evidence fields", () => 
   assert.equal(rows[0].relatedJobId, "job_1");
 });
 
+test("buildAgentAuditExportRows includes mutation and rollback evidence fields", () => {
+  const rows = buildAgentAuditExportRows([
+    {
+      id: "rollback_1",
+      workspaceId: "workspace_1",
+      app: "acquisition",
+      action: "provider_write_rollback_record",
+      status: "pending_review",
+      evidenceType: "rollback_record",
+      provider: "google_ads",
+      operationType: "update_budget",
+      externalAccountId: "1234567890",
+      externalCampaignId: "customers/1234567890/campaigns/987",
+      rollbackSupported: true,
+      rollbackPlan: "Restore previous budget.",
+      mutationIdempotencyKey: "mutation:dry_1:update_budget",
+      providerOperationId: "sandbox_google_ads_abc123",
+      rollbackProviderOperationId: "rollback_sandbox_google_ads_abc123",
+      reversalStatus: "not_started",
+      retentionExpiresAt: new Date("2026-08-12T00:00:00.000Z"),
+      reviewDecision: "approve_reversal",
+      emergencyStopState: "clear_at_record_creation",
+      mutationGateStatus: "passed",
+      relatedJobId: "dry_1",
+      createdAt: new Date("2026-05-14T12:00:00.000Z")
+    }
+  ]);
+
+  assert.equal(rows[0].evidenceType, "rollback_record");
+  assert.equal(rows[0].mutationIdempotencyKey, "mutation:dry_1:update_budget");
+  assert.equal(rows[0].providerOperationId, "sandbox_google_ads_abc123");
+  assert.equal(rows[0].rollbackProviderOperationId, "rollback_sandbox_google_ads_abc123");
+  assert.equal(rows[0].reversalStatus, "not_started");
+  assert.equal(rows[0].retentionExpiresAt, "2026-08-12T00:00:00.000Z");
+  assert.equal(rows[0].emergencyStopState, "clear_at_record_creation");
+  assert.equal(rows[0].mutationGateStatus, "passed");
+});
+
 test("evaluateAgentCompliancePosture promotes blockers over warnings", () => {
   const posture = evaluateAgentCompliancePosture({
     tenantIsolationEnforced: false,

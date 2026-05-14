@@ -50,6 +50,14 @@ export type AgentAuditExportRecord = {
   spendExposureCents?: number | null;
   rollbackSupported?: boolean | null;
   rollbackPlan?: string | null;
+  mutationIdempotencyKey?: string | null;
+  providerOperationId?: string | null;
+  rollbackProviderOperationId?: string | null;
+  reversalStatus?: string | null;
+  retentionExpiresAt?: Date | null;
+  reviewDecision?: string | null;
+  emergencyStopState?: string | null;
+  mutationGateStatus?: string | null;
   relatedJobId?: string | null;
 };
 
@@ -72,6 +80,14 @@ export type AgentAuditExportRow = {
   spendExposureCents: string;
   rollbackSupported: string;
   rollbackPlan: string;
+  mutationIdempotencyKey: string;
+  providerOperationId: string;
+  rollbackProviderOperationId: string;
+  reversalStatus: string;
+  retentionExpiresAt: string;
+  reviewDecision: string;
+  emergencyStopState: string;
+  mutationGateStatus: string;
   relatedJobId: string;
 };
 
@@ -190,6 +206,14 @@ export function buildAgentAuditExportRows(records: AgentAuditExportRecord[]): Ag
       spendExposureCents: Number.isFinite(record.spendExposureCents) ? String(Math.round(Number(record.spendExposureCents))) : "",
       rollbackSupported: typeof record.rollbackSupported === "boolean" ? String(record.rollbackSupported) : "",
       rollbackPlan: record.rollbackPlan ? clean(record.rollbackPlan, 500) : "",
+      mutationIdempotencyKey: record.mutationIdempotencyKey ? clean(record.mutationIdempotencyKey, 240) : "",
+      providerOperationId: record.providerOperationId ? clean(record.providerOperationId, 240) : "",
+      rollbackProviderOperationId: record.rollbackProviderOperationId ? clean(record.rollbackProviderOperationId, 240) : "",
+      reversalStatus: record.reversalStatus ? clean(record.reversalStatus, 80) : "",
+      retentionExpiresAt: record.retentionExpiresAt ? record.retentionExpiresAt.toISOString() : "",
+      reviewDecision: record.reviewDecision ? clean(record.reviewDecision, 120) : "",
+      emergencyStopState: record.emergencyStopState ? clean(record.emergencyStopState, 80) : "",
+      mutationGateStatus: record.mutationGateStatus ? clean(record.mutationGateStatus, 80) : "",
       relatedJobId: record.relatedJobId ? clean(record.relatedJobId, 120) : ""
     }))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
