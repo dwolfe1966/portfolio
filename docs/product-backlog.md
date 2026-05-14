@@ -116,7 +116,7 @@ S16 moves from provider-write safety foundations into customer onboarding and en
 | L56 | Data quality gate model | DW | M | S16 | ✅ | Add reusable validation gates for required fields, row-count reconciliation, timestamp/currency semantics, identity match rate, freshness, duplicate/rejected rows, and source-of-truth ordering. |
 | L57 | Baseline snapshot contract | DW | L | S16 | ✅ | Persist baseline definitions and frozen snapshots for eligible population, period, exclusions, metrics, confidence, and finance/data-owner approval before performance billing. |
 | L58 | Revenue proof dashboard foundation | DW | L | S16 | ✅ | Surface customer-visible baseline, treatment/control, agent actions, outcomes, incremental lift, confidence flags, and export links across Lifecycle and Acquisition first. |
-| L59 | Billable execution gate | DW | M | S16 | ⏳ | Block performance-fee and agent-managed execution modes unless onboarding, data quality, baseline, policy, credential, rollback, audit, and emergency-stop gates pass. |
+| L59 | Billable execution gate | DW | M | S16 | ✅ | Block performance-fee and agent-managed execution modes unless onboarding, data quality, baseline, policy, credential, rollback, audit, and emergency-stop gates pass. |
 | L60 | Customer launch packet export | DW | M | S16 | ⏳ | Generate an exportable launch packet with owners, connected systems, approved mappings, policy constraints, baseline snapshot, evidence exports, unresolved risks, and launch decision. |
 
 ### S8-S10 status snapshot (2026-05-07)
@@ -131,7 +131,7 @@ S16 moves from provider-write safety foundations into customer onboarding and en
 | S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
 | S14 | L39, L40, L41, L42, L43, L44, L45, L46, L46.1, L46.2, L46.3, L47 | — | — |
 | S15 | L48, L49, L50, L51, L52, L53, L54 | — | — |
-| S16 | L55, L56, L57, L58 | L59 | L60 |
+| S16 | L55, L56, L57, L58, L59 | L60 | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -427,6 +427,7 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L56. Added a tested customer data quality gate helper that evaluates required field coverage, row-count reconciliation, timestamp and currency semantics, identity match rate, source freshness, duplicates, rejected rows, and source-of-truth ordering before recommendation or execution launch.
 - ✅ L57. Added a tested customer baseline snapshot helper that validates baseline period, eligible population, source snapshots, exclusions, metric definitions, confidence posture, holdout/control requirements, and data/finance approvals before billing readiness.
 - ✅ L58. Added a tested revenue proof dashboard model and shared panel on Lifecycle and Acquisition overviews showing baseline, treatment/control, actions, observed outcomes, incremental lift/profit, confidence flags, and evidence export links.
+- ✅ L59. Added a tested billable execution gate that blocks performance billing and agent-managed execution unless onboarding, data quality, baseline, policy, credential, rollback, audit, emergency-stop, revenue-proof, and performance-billing approvals are ready.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.
@@ -518,5 +519,5 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ L56
 - ✅ L57
 - ✅ L58
-- 🟡 L59
-- ⏳ L60
+- ✅ L59
+- 🟡 L60
