@@ -1,6 +1,6 @@
 # Product Backlog (Execution Plan)
 
-Last updated: 2026-05-07
+Last updated: 2026-05-14
 
 This backlog is the canonical source of truth for the portfolio, product-app, workspace, and performance-business workstreams.
 
@@ -25,9 +25,9 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 - ⏳ To do
 - 🚧 Blocked (waiting on dependency)
 
-## Active sprint: S14 (acquisition provider dry-run foundation)
+## Active sprint: S16 (enterprise rollout readiness)
 
-S14 starts the safe transition from simulated acquisition provider writes to real-provider dry-run readiness. The goal is to produce exact proposed diffs, permission checks, spend exposure, rollback metadata, and measurement handoff data without mutating any ad platform account.
+S16 moves from provider-write safety foundations into customer onboarding and enterprise rollout readiness. The goal is to make a workspace launchable for a real customer: owners named, grants reviewed, mappings validated, baseline frozen, policy approved, evidence exportable, and billable execution explicitly gated.
 
 | ID | Item | Owner | Size | Sprint | Status | Acceptance criteria |
 |---|---|---|---|---|---|---|
@@ -112,6 +112,12 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | L52 | Sandbox write adapter contract | DW | L | S15 | ✅ | Define and implement a sandbox-only mutation adapter interface for narrow reversible approved writes after dry-run evidence is persisted and mutation gates pass. |
 | L53 | Rollback retention and review surface | DW | M | S15 | ✅ | Persist rollback records with before-state, provider operation ids, retention windows, reversal status, and operator review controls. |
 | L54 | Production write audit evidence | DW | M | S15 | ✅ | Extend audit export and activity views with mutation enablement decisions, sandbox mutation attempts, provider operation ids, rollback records, and emergency-stop state. |
+| L55 | Customer onboarding readiness model | DW | M | S16 | ⏳ | Add a tested workspace readiness helper covering required owners, commercial scope, source/channel grants, mapping approval, policy signoff, baseline approval, audit export, and launch mode. |
+| L56 | Data quality gate model | DW | M | S16 | ⏳ | Add reusable validation gates for required fields, row-count reconciliation, timestamp/currency semantics, identity match rate, freshness, duplicate/rejected rows, and source-of-truth ordering. |
+| L57 | Baseline snapshot contract | DW | L | S16 | ⏳ | Persist baseline definitions and frozen snapshots for eligible population, period, exclusions, metrics, confidence, and finance/data-owner approval before performance billing. |
+| L58 | Revenue proof dashboard foundation | DW | L | S16 | ⏳ | Surface customer-visible baseline, treatment/control, agent actions, outcomes, incremental lift, confidence flags, and export links across Lifecycle and Acquisition first. |
+| L59 | Billable execution gate | DW | M | S16 | ⏳ | Block performance-fee and agent-managed execution modes unless onboarding, data quality, baseline, policy, credential, rollback, audit, and emergency-stop gates pass. |
+| L60 | Customer launch packet export | DW | M | S16 | ⏳ | Generate an exportable launch packet with owners, connected systems, approved mappings, policy constraints, baseline snapshot, evidence exports, unresolved risks, and launch decision. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -123,8 +129,9 @@ S14 starts the safe transition from simulated acquisition provider writes to rea
 | S11 | L0, L1, L2, L3, L4, L5, L5.1, L5.2, L5.3, L5.4, L6, L7, L8, L9, L10, L11, L12, L13, L14, M1, M2, M3, M4, M5, M6, M7 | — | — |
 | S12 | L15, L16, L17 | — | — |
 | S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
-| S14 | L39, L40, L41, L42, L43, L44, L45, L46, L46.1, L46.2, L46.3, L47 | — | Define S15 production provider hardening |
-| S15 | L48, L49, L50 | L51 | L52, L53, L54 |
+| S14 | L39, L40, L41, L42, L43, L44, L45, L46, L46.1, L46.2, L46.3, L47 | — | — |
+| S15 | L48, L49, L50, L51, L52, L53, L54 | — | — |
+| S16 | — | L55 | L56, L57, L58, L59, L60 |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -495,3 +502,13 @@ Business-model workstream for using the tools and agents to operate customer rev
 
 ### Sprint S13 (agent operations control loop)
 - ✅ L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35
+
+### Sprint S14 (acquisition provider dry-run foundation)
+- ✅ L36, L37, L38, L39, L40, L41, L42, L43, L44, L45, L46, L46.1, L46.2, L46.3, L47
+
+### Sprint S15 (production provider hardening)
+- ✅ L48, L49, L50, L51, L52, L53, L54
+
+### Sprint S16 (enterprise rollout readiness)
+- 🟡 L55
+- ⏳ L56, L57, L58, L59, L60
