@@ -121,7 +121,10 @@ export default async function ProviderDryRunDetailPage({ params }: PageProps) {
     where: { id, OR: [{ accountUserId }, { accountUserId: null }] },
     include: {
       agentJob: true,
-      measurementHandoff: true
+      measurementHandoff: true,
+      rollbackRecords: {
+        orderBy: { createdAt: "desc" }
+      }
     }
   });
 
@@ -294,6 +297,49 @@ export default async function ProviderDryRunDetailPage({ params }: PageProps) {
                 </div>
               );
             })}
+          </div>
+        )}
+      </Section>
+
+      <Section title="Rollback Records">
+        {dryRun.rollbackRecords.length === 0 ? (
+          <div className="card">
+            <p>No rollback record exists yet. Sandbox mutation evidence will create one before any reversible provider write graduates beyond dry-run review.</p>
+          </div>
+        ) : (
+          <div className="activityFeed">
+            {dryRun.rollbackRecords.map((record) => (
+              <details className="activityFeedItem" key={record.id}>
+                <summary className="dryRunStaticSummary">
+                  <span className={`statusPill ${statusClass(record.status)}`}>{label(record.status)}</span>
+                  <span className="activityFeedTitle">
+                    <strong>{record.providerOperationId}</strong>
+                    <span>
+                      Reversal {label(record.reversalStatus)} · Retain until {formatDate(record.retentionExpiresAt)}
+                    </span>
+                  </span>
+                </summary>
+                <div className="dryRunStaticSummary">
+                  <div>
+                    <p className="small">Rollback plan</p>
+                    <p>{record.rollbackPlan ?? "No rollback plan captured."}</p>
+                    <p className="small">
+                      Rollback operation: {record.rollbackProviderOperationId ?? "not assigned"} · Review: {record.reviewDecision ? label(record.reviewDecision) : "pending"}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-2">
+                  <div className="dryRunJsonPanel">
+                    <p className="small">Before state</p>
+                    <pre>{formatJson(record.beforeState)}</pre>
+                  </div>
+                  <div className="dryRunJsonPanel">
+                    <p className="small">After state</p>
+                    <pre>{formatJson(record.afterState)}</pre>
+                  </div>
+                </div>
+              </details>
+            ))}
           </div>
         )}
       </Section>

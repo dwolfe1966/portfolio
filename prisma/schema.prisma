@@ -26,6 +26,7 @@ model Workspace {
   agentApprovalRequests AgentApprovalRequest[]
   agentProviderWriteDryRuns AgentProviderWriteDryRun[]
   agentProviderWriteMeasurementHandoffs AgentProviderWriteMeasurementHandoff[]
+  agentProviderWriteRollbackRecords AgentProviderWriteRollbackRecord[]
   providerCredentialGrants ProviderCredentialGrant[]
 }
 
@@ -56,6 +57,7 @@ model AccountUser {
   decidedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalDecider")
   agentProviderWriteDryRuns AgentProviderWriteDryRun[]
   agentProviderWriteMeasurementHandoffs AgentProviderWriteMeasurementHandoff[]
+  agentProviderWriteRollbackRecords AgentProviderWriteRollbackRecord[]
   providerCredentialGrants ProviderCredentialGrant[]
 
   @@index([updatedAt])
@@ -966,12 +968,52 @@ model AgentProviderWriteDryRun {
   accountUser        AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
   agentJob           AgentJob @relation(fields: [agentJobId], references: [id], onDelete: Cascade)
   measurementHandoff AgentProviderWriteMeasurementHandoff?
+  rollbackRecords    AgentProviderWriteRollbackRecord[]
 
   @@unique([agentJobId])
   @@index([workspaceId, provider, operationType, createdAt])
   @@index([accountUserId, createdAt])
   @@index([status, createdAt])
   @@index([idempotencyKey])
+}
+
+model AgentProviderWriteRollbackRecord {
+  id                          String   @id @default(cuid())
+  workspaceId                 String
+  accountUserId               String?
+  providerWriteDryRunId       String
+  provider                    String
+  operationType               String
+  externalAccountId           String?
+  externalCampaignId          String?
+  mutationIdempotencyKey      String
+  providerOperationId         String
+  rollbackProviderOperationId String?
+  status                      String   @default("pending_review")
+  reversalStatus              String   @default("not_started")
+  beforeState                 Json
+  afterState                  Json
+  rollbackPlan                String?
+  retentionExpiresAt          DateTime
+  reviewedByAccountUserId     String?
+  reviewedAt                  DateTime?
+  reviewDecision              String?
+  reversalProviderOperationId String?
+  reversedAt                  DateTime?
+  rawMutationResult           Json
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  workspace                   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser                 AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  providerWriteDryRun         AgentProviderWriteDryRun @relation(fields: [providerWriteDryRunId], references: [id], onDelete: Cascade)
+
+  @@unique([mutationIdempotencyKey])
+  @@index([workspaceId, status, retentionExpiresAt])
+  @@index([workspaceId, provider, operationType, createdAt])
+  @@index([accountUserId, createdAt])
+  @@index([providerWriteDryRunId, createdAt])
+  @@index([providerOperationId])
+  @@index([reversalStatus, retentionExpiresAt])
 }
 
 model AgentProviderWriteMeasurementHandoff {

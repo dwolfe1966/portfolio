@@ -21,7 +21,7 @@ The next phase should keep mutation disabled by default and add the missing prod
 | L50 | Provider health and permission preflight | Add an operations preflight that checks credential availability, read permissions, mutate permissions, selected provider object existence, policy readiness, and measurement readiness before approval or execution. |
 | L51 | Mutation enablement gates | Added a tested helper that blocks approved mutations unless workspace, provider, external account, operation type, credential mutation capability, dry-run status, approval status, rollback metadata, idempotency, measurement handoff, and emergency-stop state all pass. |
 | L52 | Sandbox write adapter contract | Added an opt-in sandbox-only mutation adapter interface that can execute narrow reversible actions after mutation gates pass, returning provider operation ids, before/after evidence, and rollback metadata without live API mutation. |
-| L53 | Rollback retention and review surface | Persist rollback records with before-state, provider operation ids, retention window, reversal status, and operator review controls. |
+| L53 | Rollback retention and review surface | Added durable rollback records with before-state, provider operation ids, retention window, reversal status, review decisions, and operator review visibility on provider dry-run detail pages. |
 | L54 | Production write audit evidence | Extend audit export and activity views to include mutation enablement decisions, sandbox mutation attempts, provider operation ids, rollback records, and emergency-stop state. |
 
 ## Mutation Enablement Gates
