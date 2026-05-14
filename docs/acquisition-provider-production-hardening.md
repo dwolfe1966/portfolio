@@ -20,7 +20,7 @@ The next phase should keep mutation disabled by default and add the missing prod
 | L49 | Provider credential grant model | Persist workspace-scoped credential grants with provider, account scope, granted capabilities, token health, rotation metadata, test/live mode, and owner approval state. |
 | L50 | Provider health and permission preflight | Add an operations preflight that checks credential availability, read permissions, mutate permissions, selected provider object existence, policy readiness, and measurement readiness before approval or execution. |
 | L51 | Mutation enablement gates | Added a tested helper that blocks approved mutations unless workspace, provider, external account, operation type, credential mutation capability, dry-run status, approval status, rollback metadata, idempotency, measurement handoff, and emergency-stop state all pass. |
-| L52 | Sandbox write adapter contract | Define and implement a sandbox-only mutation adapter interface that can execute one narrow reversible action after approval and dry-run, returning provider operation ids and rollback metadata. |
+| L52 | Sandbox write adapter contract | Added an opt-in sandbox-only mutation adapter interface that can execute narrow reversible actions after mutation gates pass, returning provider operation ids, before/after evidence, and rollback metadata without live API mutation. |
 | L53 | Rollback retention and review surface | Persist rollback records with before-state, provider operation ids, retention window, reversal status, and operator review controls. |
 | L54 | Production write audit evidence | Extend audit export and activity views to include mutation enablement decisions, sandbox mutation attempts, provider operation ids, rollback records, and emergency-stop state. |
 
@@ -44,7 +44,7 @@ Approved mutation should require all of the following:
 
 The first write should be intentionally narrow:
 
-- provider: Google Ads or Meta Ads test/sandbox account only;
+- provider: simulated sandbox adapter first, then Google Ads or Meta Ads test/sandbox account only;
 - operation: pause/resume or small budget update on a selected test campaign/ad set;
 - precondition: approved request plus persisted ready dry-run;
 - output: provider operation id, before/after state, rollback plan, measurement handoff, and activity/audit rows;

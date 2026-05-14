@@ -41,6 +41,14 @@ export {
   type AdProviderWriteDryRunResult
 } from "./write-dry-run";
 export {
+  SimulatedAdProviderSandboxWriteAdapter,
+  getAdProviderSandboxWriteAdapter,
+  hasAdProviderSandboxWriteAdapter,
+  type AdProviderSandboxWriteAdapter,
+  type AdProviderSandboxWriteInput,
+  type AdProviderSandboxWriteResult
+} from "./sandbox-write";
+export {
   canonicalCampaignName,
   inferAdChannel,
   normalizeAttributionWindow,
