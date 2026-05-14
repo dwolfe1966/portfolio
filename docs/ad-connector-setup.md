@@ -22,7 +22,7 @@ This guide is what you need to configure Google Ads and Meta Ads OAuth for the p
    - User type: **External**
    - App name: `Portfolio Demo`
    - User support email: your email
-   - Scopes: leave blank for now; we'll add `https://www.googleapis.com/auth/adwords` programmatically in Phase 2
+   - Scopes: leave blank for now; the app requests `https://www.googleapis.com/auth/adwords` programmatically.
    - Test users: add your Google account email (required while the app is in "Testing" mode)
    - Save without publishing — keeping it in **Testing** mode is fine for test-tier scope.
 5. Create OAuth credentials: **APIs & Services → Credentials → Create credentials → OAuth client ID**.
@@ -52,7 +52,7 @@ This guide is what you need to configure Google Ads and Meta Ads OAuth for the p
 
 1. Inside your Manager account, **Tools & Settings → Setup → Sub-account settings**.
 2. Either select an existing test customer or create one: **Create account → Test account**. (Test accounts cannot run real ads — that's the point.)
-3. Note the customer ID (format `XXX-XXX-XXXX`). You'll be prompted for it on first connect in Phase 2.
+3. Note the customer ID (format `XXX-XXX-XXXX`). The app discovers accessible customers during OAuth and stores each connected account.
 
 ## 2. Meta Ads setup
 
