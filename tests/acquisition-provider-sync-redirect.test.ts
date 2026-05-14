@@ -32,3 +32,18 @@ test("providerConnectionSyncRedirectUrl omits empty provider scope", () => {
 
   assert.equal(url, "/acquisition/connections/conn_123?syncedDatasetId=dataset_123&syncApplied=0");
 });
+
+test("providerConnectionSyncRedirectUrl can label fallback snapshots", () => {
+  const url = providerConnectionSyncRedirectUrl({
+    connectionId: "conn_123",
+    datasetId: "dataset_123",
+    applied: true,
+    source: "fallback",
+    scope: {
+      externalCampaignId: null,
+      externalAdGroupId: null
+    }
+  });
+
+  assert.equal(url, "/acquisition/connections/conn_123?syncedDatasetId=dataset_123&syncApplied=1&snapshotSource=fallback");
+});

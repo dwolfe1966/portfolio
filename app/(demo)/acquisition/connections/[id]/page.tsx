@@ -143,6 +143,7 @@ type PageProps = {
     syncError?: string;
     syncedDatasetId?: string;
     syncApplied?: string;
+    snapshotSource?: string;
   }>;
 };
 
@@ -388,10 +389,26 @@ function buildProviderDiagnostics({
   ];
 }
 
-function syncSuccessCopy(applied: boolean) {
+function syncSuccessCopy(applied: boolean, source?: string) {
+  if (source === "fallback") {
+    return applied
+      ? "Provider-shaped fallback snapshot created and applied to acquisition inputs."
+      : "Provider-shaped fallback snapshot created and saved as an acquisition dataset.";
+  }
   return applied
     ? "Provider snapshot synced and applied to acquisition inputs."
     : "Provider snapshot synced and saved as an acquisition dataset.";
+}
+
+function syncSuccessLabel(applied: boolean, source?: string) {
+  if (source === "fallback") return applied ? "Fallback created and applied" : "Fallback created";
+  return applied ? "Synced and applied" : "Synced";
+}
+
+function materializeActionCopy(syncReady: boolean, providerLabel: string) {
+  return syncReady
+    ? `Live ${providerLabel} reads are available for this account.`
+    : `Live ${providerLabel} reads are blocked for this account. Use the provider-shaped fallback while provider access is pending.`;
 }
 
 export default async function ConnectionDetailPage({ params, searchParams }: PageProps) {
@@ -489,6 +506,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
     : null;
   const syncState = syncStatus({ connection, live, latestDataset });
   const syncReady = isLiveProvider && syncState.label !== "Production access needed" && syncState.label !== "Developer token blocked" && syncState.label !== "Live read blocked" && syncState.label !== "Token expired" && syncState.label !== "Grant inactive" && syncState.label !== "Reconnect required";
+  const providerLabel = PROVIDER_LABEL[connection.provider] ?? connection.provider;
   const diagnostics = isLiveProvider
     ? buildProviderDiagnostics({ connection, live, latestDataset, syncReady })
     : [];
@@ -524,7 +542,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
     <>
       <Section
         eyebrow="Connection"
-        title={`${PROVIDER_LABEL[connection.provider] ?? connection.provider} · ${connection.externalAccountId}`}
+        title={`${providerLabel} · ${connection.externalAccountId}`}
       >
         <p>
           {connection.accountName}
@@ -580,8 +598,10 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
           <div className="card">
             {selected.syncedDatasetId ? (
               <div className="card compact" style={{ marginBottom: 12 }}>
-                <p className="statusPill live">{selected.syncApplied === "1" ? "Synced and applied" : "Synced"}</p>
-                <h3 style={{ marginTop: 10 }}>{syncSuccessCopy(selected.syncApplied === "1")}</h3>
+                <p className={`statusPill ${selected.snapshotSource === "fallback" ? "progress" : "live"}`}>
+                  {syncSuccessLabel(selected.syncApplied === "1", selected.snapshotSource)}
+                </p>
+                <h3 style={{ marginTop: 10 }}>{syncSuccessCopy(selected.syncApplied === "1", selected.snapshotSource)}</h3>
                 <p className="small">Dataset {selected.syncedDatasetId.slice(0, 8)} is now listed in this account history.</p>
                 <div className="ctaRow">
                   <Link className="btn smallBtn" href={`/workspace/datasets/${selected.syncedDatasetId}`}>Review dataset</Link>
@@ -597,15 +617,18 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   Fetch campaigns, {childGroupLabel.toLowerCase()}, ads, and recent performance from this connection,
                   then save the account-level snapshot as an acquisition dataset that can be applied from Inputs.
                 </p>
+                <p className={`small ${syncReady ? "bandText--healthy" : "bandText--watch"}`}>
+                  {materializeActionCopy(syncReady, providerLabel)}
+                </p>
                 <div className="ctaRow">
                   <form action={syncProviderConnectionDatasetAction}>
                     <input type="hidden" name="connectionId" value={connection.id} />
-                    <button className="btn" type="submit" disabled={!syncReady}>Sync dataset only</button>
+                    <button className="btn" type="submit" disabled={!syncReady}>{syncReady ? "Sync live dataset" : "Live sync blocked"}</button>
                   </form>
                   <form action={syncProviderConnectionDatasetAction}>
                     <input type="hidden" name="connectionId" value={connection.id} />
                     <input type="hidden" name="applyAfterSync" value="1" />
-                    <button className="btn primary" type="submit" disabled={!syncReady}>Sync and apply to inputs</button>
+                    <button className="btn primary" type="submit" disabled={!syncReady}>{syncReady ? "Sync live and apply" : "Live apply blocked"}</button>
                   </form>
                 </div>
                 {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}

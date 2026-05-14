@@ -485,6 +485,7 @@ export async function createProviderFallbackDatasetAction(formData: FormData) {
       connectionId: connection.id,
       datasetId: dataset.id,
       applied: applyAfterSync,
+      source: "fallback",
       scope: { externalCampaignId: null, externalAdGroupId: null }
     }));
   }
@@ -534,6 +535,7 @@ export async function applyProviderConnectionDatasetAction(formData: FormData) {
     connectionId,
     datasetId: result.datasetId,
     applied: true,
+    source: facts.fallbackSnapshot ? "fallback" : "live",
     scope: {
       externalCampaignId: facts.externalCampaignId || null,
       externalAdGroupId: facts.externalAdGroupId || null
