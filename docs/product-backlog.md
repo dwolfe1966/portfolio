@@ -113,7 +113,7 @@ S16 moves from provider-write safety foundations into customer onboarding and en
 | L53 | Rollback retention and review surface | DW | M | S15 | ✅ | Persist rollback records with before-state, provider operation ids, retention windows, reversal status, and operator review controls. |
 | L54 | Production write audit evidence | DW | M | S15 | ✅ | Extend audit export and activity views with mutation enablement decisions, sandbox mutation attempts, provider operation ids, rollback records, and emergency-stop state. |
 | L55 | Customer onboarding readiness model | DW | M | S16 | ✅ | Add a tested workspace readiness helper covering required owners, commercial scope, source/channel grants, mapping approval, policy signoff, baseline approval, audit export, and launch mode. |
-| L56 | Data quality gate model | DW | M | S16 | ⏳ | Add reusable validation gates for required fields, row-count reconciliation, timestamp/currency semantics, identity match rate, freshness, duplicate/rejected rows, and source-of-truth ordering. |
+| L56 | Data quality gate model | DW | M | S16 | ✅ | Add reusable validation gates for required fields, row-count reconciliation, timestamp/currency semantics, identity match rate, freshness, duplicate/rejected rows, and source-of-truth ordering. |
 | L57 | Baseline snapshot contract | DW | L | S16 | ⏳ | Persist baseline definitions and frozen snapshots for eligible population, period, exclusions, metrics, confidence, and finance/data-owner approval before performance billing. |
 | L58 | Revenue proof dashboard foundation | DW | L | S16 | ⏳ | Surface customer-visible baseline, treatment/control, agent actions, outcomes, incremental lift, confidence flags, and export links across Lifecycle and Acquisition first. |
 | L59 | Billable execution gate | DW | M | S16 | ⏳ | Block performance-fee and agent-managed execution modes unless onboarding, data quality, baseline, policy, credential, rollback, audit, and emergency-stop gates pass. |
@@ -131,7 +131,7 @@ S16 moves from provider-write safety foundations into customer onboarding and en
 | S13 | L18, L19, L20, L21, L22, L23, L24, L25, L26, L27, L28, L29, L30, L31, L32, L33, L34, L35, L36, L37, L38 | — | — |
 | S14 | L39, L40, L41, L42, L43, L44, L45, L46, L46.1, L46.2, L46.3, L47 | — | — |
 | S15 | L48, L49, L50, L51, L52, L53, L54 | — | — |
-| S16 | L55 | L56 | L57, L58, L59, L60 |
+| S16 | L55, L56 | L57 | L58, L59, L60 |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -424,6 +424,7 @@ Enterprise app operating model: [`docs/enterprise-app-operating-model.md`](./ent
 - ✅ L53. Added durable provider-write rollback records with before/after state, provider operation ids, rollback operation ids, retention windows, reversal status, review decisions, and a rollback review section on provider dry-run detail pages.
 - ✅ L54. Extended agent audit evidence export with rollback records, mutation idempotency keys, provider operation ids, rollback operation ids, reversal status, retention expiry, review decisions, emergency-stop state, and mutation-gate status.
 - ✅ L55. Added a tested customer onboarding readiness helper that reports status, maximum allowed launch mode, requested-mode allowance, missing owners, phase blockers/warnings, unresolved-risk readiness, and next required action before enterprise launch.
+- ✅ L56. Added a tested customer data quality gate helper that evaluates required field coverage, row-count reconciliation, timestamp and currency semantics, identity match rate, source freshness, duplicates, rejected rows, and source-of-truth ordering before recommendation or execution launch.
 
 ### Cross-app generalization path
 - Keep shared: `AgentJob`, `AgentApprovalRequest`, runbook-to-queue plans, worker claim/complete/fail semantics, retry/dead-letter policy, scheduler auth, queue allowlists, operations visibility, and governance posture.
@@ -512,5 +513,6 @@ Business-model workstream for using the tools and agents to operate customer rev
 
 ### Sprint S16 (enterprise rollout readiness)
 - ✅ L55
-- 🟡 L56
-- ⏳ L57, L58, L59, L60
+- ✅ L56
+- 🟡 L57
+- ⏳ L58, L59, L60

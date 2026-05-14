@@ -24,7 +24,7 @@ Recommendation-only mode can start before all gates pass. Human-approved executi
 | ID | Item | Outcome |
 |---|---|---|
 | L55 | Customer onboarding readiness model | Completed: tested helper produces launch readiness, blockers, warnings, missing-owner lists, maximum allowed launch mode, and next required action from workspace/customer setup evidence. |
-| L56 | Data quality gate model | Reusable gates for field coverage, row reconciliation, identity match, freshness, duplicates, rejected rows, and source-of-truth order. |
+| L56 | Data quality gate model | Completed: tested helper produces recommendation/execution readiness from field coverage, row reconciliation, timestamp/currency semantics, identity match, freshness, duplicates, rejected rows, and source-of-truth order. |
 | L57 | Baseline snapshot contract | Durable baseline definitions and frozen snapshots with eligibility, period, exclusions, metrics, confidence, and owner approvals. |
 | L58 | Revenue proof dashboard foundation | Customer-visible evidence layer for baseline, actions, outcomes, incremental lift, confidence flags, and exports. |
 | L59 | Billable execution gate | A fail-closed gate before performance billing or agent-managed execution can be enabled. |
@@ -41,4 +41,14 @@ L55 now exists as a pure code-facing contract in `lib/customer-onboarding-readin
 - missing owners;
 - next required action.
 
-The next implementation target is L56: data quality gates for field coverage, row-count reconciliation, identity match rate, source freshness, duplicates, rejected rows, timestamp/currency semantics, and source-of-truth ordering.
+L56 now exists as a pure code-facing contract in `lib/customer-data-quality-gates.ts`. It evaluates:
+
+- required field presence and coverage;
+- source/import/rejected row reconciliation;
+- timestamp and currency semantics;
+- identity match rate;
+- source freshness;
+- duplicate and rejected rows;
+- source-of-truth precedence.
+
+The next implementation target is L57: a baseline snapshot contract for eligible population, measurement period, exclusions, metrics, confidence, and owner approval before performance billing.
