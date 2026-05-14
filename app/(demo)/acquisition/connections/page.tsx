@@ -176,6 +176,20 @@ function providerAttentionSummary(connections: ConnectionWithGrant[]) {
   };
 }
 
+function connectionAttentionCounts(connections: ConnectionWithGrant[]) {
+  let reconnect = 0;
+  let liveReadGated = 0;
+  for (const conn of connections) {
+    const grantHealth = formatGrantHealth(conn.credentialGrant);
+    if (!conn.credentialGrant || grantHealth.tone === "unhealthy") {
+      reconnect += 1;
+    } else if (!conn.isTestAccount) {
+      liveReadGated += 1;
+    }
+  }
+  return { reconnect, liveReadGated };
+}
+
 export default async function ConnectionsPage({
   searchParams
 }: {
@@ -277,7 +291,7 @@ export default async function ConnectionsPage({
   }
   const activeConnection = activeConnectionId ? connections.find((conn) => conn.id === activeConnectionId) ?? null : null;
   const syncedConnectionCount = connections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
-  const syncBlockedCount = connections.filter((conn) => !conn.isTestAccount || formatGrantHealth(conn.credentialGrant).tone === "unhealthy").length;
+  const attentionCounts = connectionAttentionCounts(connections);
   const providers: Array<{ key: ProviderKey; label: string; ready: boolean; connections: ConnectionWithGrant[] }> = [
     { key: "google_ads", label: "Google Ads", ready: providerReady("google_ads", encryptionReady, googleReady, metaReady), connections: googleConnections },
     { key: "meta_ads", label: "Meta Ads", ready: providerReady("meta_ads", encryptionReady, googleReady, metaReady), connections: metaConnections }
@@ -332,8 +346,13 @@ export default async function ConnectionsPage({
             <div className="kpi">{syncedConnectionCount}</div>
           </div>
           <div className="card compact">
-            <p className="small">Needs attention</p>
-            <div className="kpi">{syncBlockedCount}</div>
+            <p className="small">Reconnect needed</p>
+            <div className="kpi">{attentionCounts.reconnect}</div>
+          </div>
+          <div className="card compact">
+            <p className="small">Live-read gated</p>
+            <div className="kpi">{attentionCounts.liveReadGated}</div>
+            <p className="small">{liveProviderReadsEnabled() ? "Opt-in enabled locally" : "Fallback available"}</p>
           </div>
           <div className="card compact">
             <p className="small">Active input source</p>
