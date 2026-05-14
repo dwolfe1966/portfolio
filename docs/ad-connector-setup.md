@@ -1,14 +1,14 @@
 # Ad-Connector Setup Guide
 
-Setup checklist for connecting real ad platforms (Google Ads + Meta Ads) to the demo. Scope is **test-tier credentials, read-only API calls against your own test accounts**. No real campaigns are read or written; no production OAuth review is required.
+Setup checklist for connecting real ad platforms (Google Ads + Meta Ads) to the demo. The current app supports OAuth account discovery, guarded read-only provider inspection, provider-shaped fallback snapshots, workspace dataset application, and dry-run-only provider write handoff. Live provider writes are not executed.
 
-This guide is what you need to configure Google Ads and Meta Ads OAuth for the read-only provider workflows. Until you complete the steps in [Section 1](#1-google-ads-setup) and [Section 2](#2-meta-ads-setup) and provide env vars per [Section 3](#3-environment-variables), connected-provider pages will remain unavailable and the demo continues to run on sample/simulated data.
+This guide is what you need to configure Google Ads and Meta Ads OAuth for the provider workflows. Until you complete the provider setup steps and provide env vars per [Section 3](#3-environment-variables), connected-provider pages will remain unavailable and the demo continues to run on sample/simulated data.
 
 ## Prerequisites
 
 - A Google account that owns or can create a Google Ads test Manager account
 - A Meta (Facebook) account that owns a Business Manager and an ad account
-- Approximately 30–60 minutes for Google setup (the developer-token application takes 1–3 business days to be approved)
+- Approximately 30–60 minutes for Google setup. Google Ads developer-token approval for live customer reads can take longer than local OAuth setup.
 - Approximately 20–30 minutes for Meta setup
 
 ## 1. Google Ads setup
@@ -45,8 +45,8 @@ This guide is what you need to configure Google Ads and Meta Ads OAuth for the r
    >
    > **Data handling:** OAuth tokens are encrypted at rest with AES-256-GCM. Only campaign metadata and aggregate performance metrics are read. No PII is stored.
 
-4. While the token is in pending state, you can use it in **test mode only**. Test mode is sufficient for this project.
-5. Once issued (1–3 business days), copy the developer token. You'll paste it into env vars in Section 3.
+4. While the token is pending or limited, OAuth can still connect accounts, but Google may block live customer reads with `PERMISSION_DENIED` or developer-token access errors.
+5. Once issued, copy the developer token. You'll paste it into env vars in Section 3.
 
 ### 1c. Create or designate a test customer
 
@@ -82,7 +82,7 @@ App dashboard → **Settings → Basic**. Copy:
 1. Open [Meta Business Manager](https://business.facebook.com/).
 2. **Business settings → Accounts → Ad Accounts → Add → Create a new ad account**.
 3. Pick any small currency / time zone. Mark as a **dev** account if the option is offered.
-4. Note the ad account ID (format `act_XXXXXXXXXX`). Phase 2 will fetch the list automatically; you don't need to wire it manually.
+4. Note the ad account ID (format `act_XXXXXXXXXX`). The app fetches the list automatically; you don't need to wire it manually.
 
 ## 3. Environment variables
 
@@ -102,6 +102,9 @@ GOOGLE_OAUTH_REDIRECT_URI=http://localhost:3000/api/connections/google/callback 
 META_APP_ID=...
 META_APP_SECRET=...
 META_OAUTH_REDIRECT_URI=http://localhost:3000/api/connections/meta/callback
+
+# Optional local-only read gate for live provider inspection
+ACQUISITION_ALLOW_LIVE_PROVIDER_READS=true
 ```
 
 ### Generating the OAuth encryption key
@@ -114,22 +117,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 This key is used to encrypt OAuth refresh tokens at rest in the `AdAccountConnection` table. **Use the same key in local and production** if you want connections made locally to be readable in production (typically not what you want — generate a fresh key per environment).
 
-## 4. What I'll build in Phase 2
+## 4. Current behavior
 
-Once Section 1 and 2 are done and the env vars are set, Phase 2 delivers:
-
-- `/api/connections/google/start`, `/api/connections/google/callback`, `/api/connections/meta/start`, and `/api/connections/meta/callback` — OAuth code exchange, token storage in `AdAccountConnection`, encrypted at rest.
-- `/acquisition/connections` page — list of connected accounts, "Connect Google" / "Connect Meta" buttons, disconnect action, last-fetched timestamps.
-- Side-nav entry for Connections.
-- Token refresh helpers (Google access tokens last ~1 hour; refresh tokens last until revoked).
-- Tests for the OAuth state-token CSRF guard and the encrypt/decrypt helper.
-
-## 5. Phase 3 (after dev tokens approved)
-
-- `GoogleAdsConnector` and `MetaAdsConnector` implementing the `AdConnector` interface (`fetchAccounts`, `fetchCampaigns`, `fetchAdGroups`, `fetchAds`, `fetchPerformance`).
-- Hard guard: any account marked non-test is rejected at the connector layer before any API call.
-- Connections page renders live remote campaign + performance data alongside the simulation.
-- Dispatch in `lib/ad-connectors/index.ts` swaps the SimulatedConnector fallback for the real implementation per provider.
+- `/api/connections/google/start`, `/api/connections/google/callback`, `/api/connections/meta/start`, and `/api/connections/meta/callback` perform OAuth code exchange and store encrypted tokens in `AdAccountConnection`.
+- `/acquisition/connections` lists connected accounts, provider readiness, latest provider datasets, reconnect actions, and disconnect actions.
+- `/acquisition/connections/[id]` inspects provider objects when reads are available, syncs provider datasets, creates provider-shaped fallback datasets when reads are blocked, and can apply a dataset into acquisition inputs.
+- Google and Meta connectors implement `fetchAccounts`, `fetchCampaigns`, `fetchAdGroups` / ad sets, `fetchAds`, and `fetchPerformance`.
+- Live provider reads are guarded by `ACQUISITION_ALLOW_LIVE_PROVIDER_READS=true`. Provider writes remain dry-run/governed separately.
 
 ## Status checklist
 

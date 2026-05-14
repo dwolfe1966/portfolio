@@ -81,6 +81,10 @@ function providerConnectHref(provider: ProviderKey) {
   return provider === "google_ads" ? "/api/connections/google/start" : "/api/connections/meta/start";
 }
 
+function missingEnv(keys: string[]) {
+  return keys.filter((key) => !process.env[key]?.trim());
+}
+
 function datasetConnectionId(dataset: LatestDataset) {
   const metadata = dataset.metadata && typeof dataset.metadata === "object" && !Array.isArray(dataset.metadata)
     ? dataset.metadata as Record<string, unknown>
@@ -181,6 +185,13 @@ export default async function ConnectionsPage({
   const encryptionReady = isOAuthEncryptionAvailable();
   const googleReady = isGoogleOAuthConfigured();
   const metaReady = isMetaOAuthConfigured();
+  const googleMissing = missingEnv([
+    "GOOGLE_OAUTH_CLIENT_ID",
+    "GOOGLE_OAUTH_CLIENT_SECRET",
+    "GOOGLE_ADS_DEVELOPER_TOKEN",
+    "GOOGLE_OAUTH_REDIRECT_URI"
+  ]);
+  const metaMissing = missingEnv(["META_APP_ID", "META_APP_SECRET", "META_OAUTH_REDIRECT_URI"]);
   const cookieStore = await cookies();
   const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
   const ownedOrLegacy = {
@@ -356,6 +367,12 @@ export default async function ConnectionsPage({
                 ? "Google OAuth client + developer token detected."
                 : "Google OAuth env vars missing. See setup guide."}
             </p>
+            <p className="small">
+              Redirect URI: <code className="small">{process.env.GOOGLE_OAUTH_REDIRECT_URI || "not set"}</code>
+            </p>
+            {googleMissing.length > 0 ? (
+              <p className="small bandText--watch">Missing: <code className="small">{googleMissing.join(", ")}</code></p>
+            ) : null}
           </div>
           <div className="card">
             <h3>Meta Ads</h3>
@@ -364,6 +381,12 @@ export default async function ConnectionsPage({
                 ? "Meta app credentials detected."
                 : "Meta OAuth env vars missing. See setup guide."}
             </p>
+            <p className="small">
+              Redirect URI: <code className="small">{process.env.META_OAUTH_REDIRECT_URI || "not set"}</code>
+            </p>
+            {metaMissing.length > 0 ? (
+              <p className="small bandText--watch">Missing: <code className="small">{metaMissing.join(", ")}</code></p>
+            ) : null}
           </div>
         </div>
       </Section>
