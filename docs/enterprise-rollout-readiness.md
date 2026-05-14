@@ -23,7 +23,7 @@ Recommendation-only mode can start before all gates pass. Human-approved executi
 
 | ID | Item | Outcome |
 |---|---|---|
-| L55 | Customer onboarding readiness model | A tested helper that produces launch readiness, blockers, warnings, and missing-owner lists from workspace/customer setup evidence. |
+| L55 | Customer onboarding readiness model | Completed: tested helper produces launch readiness, blockers, warnings, missing-owner lists, maximum allowed launch mode, and next required action from workspace/customer setup evidence. |
 | L56 | Data quality gate model | Reusable gates for field coverage, row reconciliation, identity match, freshness, duplicates, rejected rows, and source-of-truth order. |
 | L57 | Baseline snapshot contract | Durable baseline definitions and frozen snapshots with eligibility, period, exclusions, metrics, confidence, and owner approvals. |
 | L58 | Revenue proof dashboard foundation | Customer-visible evidence layer for baseline, actions, outcomes, incremental lift, confidence flags, and exports. |
@@ -32,7 +32,7 @@ Recommendation-only mode can start before all gates pass. Human-approved executi
 
 ## First Implementation Target
 
-Start with L55 as a pure code-facing contract. It should not depend on a new database table yet. The helper should accept structured onboarding evidence and return:
+L55 now exists as a pure code-facing contract in `lib/customer-onboarding-readiness.ts`. It does not depend on a new database table yet. The helper accepts structured onboarding evidence and returns:
 
 - overall status: `ready`, `warning`, or `blocked`;
 - launch mode allowed: audit-only, recommendation-only, human-approved execution, or agent-managed execution;
@@ -41,4 +41,4 @@ Start with L55 as a pure code-facing contract. It should not depend on a new dat
 - missing owners;
 - next required action.
 
-Once this helper is stable and tested, it can be wired into Workspace Settings or Agent Operations as a customer launch-readiness panel.
+The next implementation target is L56: data quality gates for field coverage, row-count reconciliation, identity match rate, source freshness, duplicates, rejected rows, timestamp/currency semantics, and source-of-truth ordering.
