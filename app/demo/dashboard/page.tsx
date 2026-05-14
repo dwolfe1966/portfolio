@@ -258,9 +258,9 @@ function providerConnectionReadiness(connection: ProviderConnection, dataset: Pr
   }
   if (!connection.isTestAccount) {
     return {
-      label: "Production access needed",
+      label: "Live-read gated",
       tone: "warning",
-      detail: "Provider API access is blocking this live account."
+      detail: "Open the account to create a provider-shaped fallback dataset while live reads are gated."
     };
   }
   if (dataset) {
@@ -277,6 +277,19 @@ function providerConnectionReadiness(connection: ProviderConnection, dataset: Pr
   };
 }
 
+function providerAttentionCounts(connections: ProviderConnection[]) {
+  let reconnect = 0;
+  let liveReadGated = 0;
+  for (const connection of connections) {
+    if (!connection.credentialGrant || !grantIsHealthy(connection.credentialGrant)) {
+      reconnect += 1;
+    } else if (!connection.isTestAccount) {
+      liveReadGated += 1;
+    }
+  }
+  return { reconnect, liveReadGated };
+}
+
 export default async function DemoDashboardPage() {
   const accountUserId = await currentAccountUserId();
   const summary = await loadToolsetSummary(accountUserId);
@@ -289,7 +302,7 @@ export default async function DemoDashboardPage() {
     }
   });
   const providerReadyCount = summary.providerConnections.filter((connection) => connection.isTestAccount && grantIsHealthy(connection.credentialGrant)).length;
-  const providerBlockedCount = summary.providerConnections.filter((connection) => !connection.isTestAccount || !grantIsHealthy(connection.credentialGrant)).length;
+  const providerAttention = providerAttentionCounts(summary.providerConnections);
   const providerSyncedCount = summary.providerConnections.filter((connection) => providerDatasetByConnectionId.has(connection.id)).length;
   const workspaceFlow = ["Connect source", "Import snapshot", "Choose source in tool", "Run and review"];
   const activeSelectionsByApp = new Map<string, (typeof summary.activeSelections)[number]>();
@@ -359,7 +372,8 @@ export default async function DemoDashboardPage() {
         <div className="grid grid-4 workspaceCompactMetricGrid">
           <div className="card workspaceCompactMetric"><p className="small">Connected accounts</p><div className="kpi">{summary.providerConnections.length.toLocaleString()}</div></div>
           <div className="card workspaceCompactMetric"><p className="small">Sync eligible</p><div className="kpi">{providerReadyCount.toLocaleString()}</div></div>
-          <div className="card workspaceCompactMetric"><p className="small">Needs attention</p><div className="kpi">{providerBlockedCount.toLocaleString()}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Reconnect needed</p><div className="kpi">{providerAttention.reconnect.toLocaleString()}</div></div>
+          <div className="card workspaceCompactMetric"><p className="small">Live-read gated</p><div className="kpi">{providerAttention.liveReadGated.toLocaleString()}</div></div>
           <div className="card workspaceCompactMetric"><p className="small">Provider snapshots</p><div className="kpi">{summary.providerDatasets.length.toLocaleString()}</div></div>
         </div>
         {summary.providerConnections.length === 0 ? (
