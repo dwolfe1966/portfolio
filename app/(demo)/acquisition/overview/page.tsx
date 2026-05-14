@@ -12,6 +12,10 @@ import { accountOwnedImportWhere, resolveActiveDataSourceMode } from "@/lib/acco
 import { getActiveDataSourceSelection } from "@/lib/app-data-source-selection";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
+import {
+  acquisitionProviderSnapshotFacts,
+  acquisitionProviderSnapshotSourceLabel
+} from "@/lib/acquisition-provider-snapshots";
 
 export const metadata: Metadata = buildMetadata({
   title: "Acquisition App Overview | David Wolfe",
@@ -95,7 +99,10 @@ export default async function AcquisitionOverviewPage() {
     activeDatasetId: "",
     activeConnectionId: "",
     activeExternalAccountId: "",
+    activeSnapshotType: "",
     providerSnapshots: 0,
+    liveProviderSnapshots: 0,
+    fallbackProviderSnapshots: 0,
     latestProviderSnapshotAt: null as Date | null
   };
 
@@ -112,7 +119,7 @@ export default async function AcquisitionOverviewPage() {
           sourceType: { in: ["google_ads", "meta_ads"] },
           ...accountOwnedImportWhere(accountUserId)
         },
-        select: { rowCounts: true, createdAt: true },
+        select: { rowCounts: true, metadata: true, createdAt: true },
         orderBy: { createdAt: "desc" },
         take: 25
       })
@@ -135,6 +142,8 @@ export default async function AcquisitionOverviewPage() {
       : null;
     counts = { campaigns, cells, budgetActivities, auditLogs };
     const activeMode = resolveActiveDataSourceMode(accountUserId, activeSelection?.mode);
+    const liveProviderSnapshots = providerSnapshots.filter((snapshot) => !acquisitionProviderSnapshotFacts(snapshot.metadata).fallbackSnapshot).length;
+    const fallbackProviderSnapshots = providerSnapshots.length - liveProviderSnapshots;
     sourceState = {
       activeMode,
       activeLabel: activeMode === "imported" ? activeDataset?.name ?? activeSelection?.label ?? "Imported acquisition data" : "Acquisition sample data",
@@ -143,7 +152,10 @@ export default async function AcquisitionOverviewPage() {
       activeDatasetId: activeDataset?.id ?? "",
       activeConnectionId: metadataString(activeDataset?.metadata, "connectionId"),
       activeExternalAccountId: metadataString(activeDataset?.metadata, "externalAccountId"),
+      activeSnapshotType: activeDataset ? acquisitionProviderSnapshotSourceLabel(activeDataset.metadata) : "",
       providerSnapshots: providerSnapshots.length,
+      liveProviderSnapshots,
+      fallbackProviderSnapshots,
       latestProviderSnapshotAt: providerSnapshots[0]?.createdAt ?? null
     };
   } catch (error) {
@@ -182,6 +194,7 @@ export default async function AcquisitionOverviewPage() {
                 </p>
                 <h3 style={{ marginTop: 10 }}>{sourceState.activeLabel}</h3>
                 <p className="small">{sourceLabel(sourceState.activeSourceType)} · {sourceState.activeRows.toLocaleString()} source rows</p>
+                {sourceState.activeSnapshotType ? <p className="small">{sourceState.activeSnapshotType}</p> : null}
                 {sourceState.activeDatasetId || sourceState.activeConnectionId ? (
                   <div className="ctaRow">
                     {sourceState.activeDatasetId ? (
@@ -199,7 +212,10 @@ export default async function AcquisitionOverviewPage() {
                 <p className="small">Provider snapshots</p>
                 <div className="kpi">{sourceState.providerSnapshots}</div>
                 <p className="small">
-                  Latest sync: {sourceState.latestProviderSnapshotAt ? sourceState.latestProviderSnapshotAt.toLocaleString() : "None"}
+                  {sourceState.liveProviderSnapshots.toLocaleString()} live · {sourceState.fallbackProviderSnapshots.toLocaleString()} fallback
+                </p>
+                <p className="small">
+                  Latest: {sourceState.latestProviderSnapshotAt ? sourceState.latestProviderSnapshotAt.toLocaleString() : "None"}
                 </p>
               </div>
               <div className="card">
