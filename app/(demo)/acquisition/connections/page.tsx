@@ -10,7 +10,10 @@ import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { isGoogleOAuthConfigured } from "@/lib/ad-connectors/google-oauth";
 import { isMetaOAuthConfigured } from "@/lib/ad-connectors/meta-oauth";
 import { LIVE_PROVIDER_READS_ENV, liveProviderReadsEnabled } from "@/lib/ad-connectors/live-read-scope";
-import { acquisitionProviderSnapshotScopeLabel } from "@/lib/acquisition-provider-snapshots";
+import {
+  acquisitionProviderSnapshotScopeLabel,
+  acquisitionProviderSnapshotSourceLabel
+} from "@/lib/acquisition-provider-snapshots";
 import { ConnectionDisconnectButton } from "@/components/acquisition/ConnectionDisconnectButton";
 
 export const dynamic = "force-dynamic";
@@ -445,7 +448,13 @@ export default async function ConnectionsPage({
                           <Link href={`/workspace/datasets/${latestDataset.id}`}>
                             {latestDataset.name}
                           </Link>
-                          <div className="small">{acquisitionProviderSnapshotScopeLabel(latestDataset.metadata, { sentenceCase: true })} · {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows</div>
+                          <div className="small">
+                            {acquisitionProviderSnapshotSourceLabel(latestDataset.metadata)}
+                            {" · "}
+                            {acquisitionProviderSnapshotScopeLabel(latestDataset.metadata, { sentenceCase: true })}
+                            {" · "}
+                            {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows
+                          </div>
                           {isActiveConnection ? <div className="small bandText--healthy">Active inputs source</div> : null}
                         </>
                       ) : isActiveConnection && activeDataset ? (
@@ -453,7 +462,13 @@ export default async function ConnectionsPage({
                           <Link href={`/workspace/datasets/${activeDataset.id}`}>
                             {activeDataset.name}
                           </Link>
-                          <div className="small">{acquisitionProviderSnapshotScopeLabel(activeDataset.metadata, { sentenceCase: true })} · {rowCountTotal(activeDataset.rowCounts).toLocaleString()} rows</div>
+                          <div className="small">
+                            {acquisitionProviderSnapshotSourceLabel(activeDataset.metadata)}
+                            {" · "}
+                            {acquisitionProviderSnapshotScopeLabel(activeDataset.metadata, { sentenceCase: true })}
+                            {" · "}
+                            {rowCountTotal(activeDataset.rowCounts).toLocaleString()} rows
+                          </div>
                           <div className="small bandText--healthy">Active inputs source</div>
                         </>
                       ) : (

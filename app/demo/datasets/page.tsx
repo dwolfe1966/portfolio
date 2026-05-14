@@ -13,6 +13,10 @@ import { buildMetadata } from "@/lib/seo";
 import { getDefaultWorkspace } from "@/lib/workspace";
 import { loadWorkspaceDatasetReadiness, summarizeDatasetReadiness } from "@/lib/workspace-datasets";
 import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
+import {
+  acquisitionProviderSnapshotFacts,
+  acquisitionProviderSnapshotSourceLabel
+} from "@/lib/acquisition-provider-snapshots";
 
 export const dynamic = "force-dynamic";
 
@@ -456,12 +460,19 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
           <div className="datasetSnapshotGrid">
             {inventory.snapshots.map((dataset) => {
               const visibility = workspaceVisibilityLabel(dataset.accountUserId, accountUserId);
+              const providerFacts = acquisitionProviderSnapshotFacts(dataset.metadata);
+              const isProviderSnapshot = dataset.sourceType === "google_ads" || dataset.sourceType === "meta_ads";
               return (
                 <div className="card datasetSnapshotCard" key={dataset.id}>
                   <div className="editorHeader">
                     <div>
                       <p className="editorKicker">{dataset.app} · {sourceTypeLabel(dataset.sourceType)}</p>
                       <h3>{dataset.name}</h3>
+                      {isProviderSnapshot ? (
+                        <p className={`small ${providerFacts.fallbackSnapshot ? "bandText--watch" : ""}`}>
+                          {acquisitionProviderSnapshotSourceLabel(dataset.metadata)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="statusPillStack">
                       <span className="statusPill live">{dataset.status}</span>
