@@ -97,4 +97,4 @@ L60 now exists as a shared export builder in `lib/customer-launch-packet.ts`. It
 - evidence export links;
 - launch decision and review timing.
 
-Sprint S16 is now complete at the code-contract layer. Sprint S17 has started by composing those contracts into a customer launch readiness panel on Agent Operations. The remaining product steps are persisted workspace evidence, protected launch packet exports, UI enforcement for billable execution gates, and explicit customer readiness review approvals.
+Sprint S16 is now complete at the code-contract layer. Sprint S17 has started by composing those contracts into a customer launch readiness panel on Agent Operations and persisting the resulting workspace/account-scoped readiness evidence. The remaining product steps are protected launch packet exports, UI enforcement for billable execution gates, and explicit customer readiness review approvals.

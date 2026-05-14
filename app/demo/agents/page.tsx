@@ -18,6 +18,7 @@ import {
 import { AGENT_WORKER_QUEUE_ALLOWLIST, DEFAULT_AGENT_WORKER_QUEUES } from "@/lib/agent-worker";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { buildWorkspaceLaunchReadiness } from "@/lib/workspace-launch-readiness";
+import { upsertWorkspaceLaunchReadinessRecord } from "@/lib/workspace-launch-readiness-records";
 import { decideAgentApprovalAction, decideAgentJobAction, runAgentJobOnceAction, runAgentWorkerBatchAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -208,7 +209,7 @@ function loadAcquisitionProviderWriteReadiness() {
   });
 }
 
-function loadWorkspaceLaunchReadiness(workspace: { id: string; name: string } | null, providerWriteReady: boolean) {
+function buildFallbackWorkspaceLaunchReadiness(workspace: { id: string; name: string } | null, providerWriteReady: boolean) {
   return buildWorkspaceLaunchReadiness({
     customerName: workspace?.name ?? "Default demo workspace",
     workspaceId: workspace?.id ?? "default-demo-workspace",
@@ -216,6 +217,19 @@ function loadWorkspaceLaunchReadiness(workspace: { id: string; name: string } | 
     providerWriteReady,
     auditExportHref: "/api/workspace/agents/audit-export"
   });
+}
+
+async function loadWorkspaceLaunchReadiness(workspace: { id: string; name: string } | null, accountUserId: string | null, providerWriteReady: boolean) {
+  if (!workspace) return buildFallbackWorkspaceLaunchReadiness(null, providerWriteReady);
+  const { readiness } = await upsertWorkspaceLaunchReadinessRecord({
+    customerName: workspace.name,
+    workspaceId: workspace.id,
+    accountUserId,
+    providerReadReady: true,
+    providerWriteReady,
+    auditExportHref: "/api/workspace/agents/audit-export"
+  });
+  return readiness;
 }
 
 async function loadAgentOperations(accountUserId: string | null) {
@@ -235,7 +249,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
         acquisitionProviderWriteReadiness,
-        launchReadiness: loadWorkspaceLaunchReadiness(null, acquisitionProviderWriteReadiness.readyForApprovedMutation),
+        launchReadiness: buildFallbackWorkspaceLaunchReadiness(null, acquisitionProviderWriteReadiness.readyForApprovedMutation),
         posture: evaluateAgentCompliancePosture({
           tenantIsolationEnforced: false,
           secretPosture: evaluateSecretPosture({ encryptionAvailable: isOAuthEncryptionAvailable(), tokenPresent: false }),
@@ -246,7 +260,7 @@ async function loadAgentOperations(accountUserId: string | null) {
       };
     }
 
-    const [jobs, approvals, dryRuns, measurementHandoffs, queued, running, deadLettered, pendingApprovals] = await Promise.all([
+    const [jobs, approvals, dryRuns, measurementHandoffs, queued, running, deadLettered, pendingApprovals, launchReadiness] = await Promise.all([
       db.agentJob.findMany({
         where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
         orderBy: [{ createdAt: "desc" }],
@@ -273,7 +287,8 @@ async function loadAgentOperations(accountUserId: string | null) {
       db.agentJob.count({ where: { workspaceId: workspace.id, status: "queued" } }),
       db.agentJob.count({ where: { workspaceId: workspace.id, status: "running" } }),
       db.agentJob.count({ where: { workspaceId: workspace.id, status: "dead_lettered" } }),
-      db.agentApprovalRequest.count({ where: { workspaceId: workspace.id, status: { in: ["pending", "escalated"] } } })
+      db.agentApprovalRequest.count({ where: { workspaceId: workspace.id, status: { in: ["pending", "escalated"] } } }),
+      loadWorkspaceLaunchReadiness(workspace, accountUserId, acquisitionProviderWriteReadiness.readyForApprovedMutation)
     ]);
 
     const secretPosture = evaluateSecretPosture({
@@ -300,7 +315,7 @@ async function loadAgentOperations(accountUserId: string | null) {
       counts: { queued, running, deadLettered, pendingApprovals },
       scheduler,
       acquisitionProviderWriteReadiness,
-      launchReadiness: loadWorkspaceLaunchReadiness(workspace, acquisitionProviderWriteReadiness.readyForApprovedMutation),
+      launchReadiness,
       posture
     };
   } catch (error) {
@@ -315,7 +330,7 @@ async function loadAgentOperations(accountUserId: string | null) {
         counts: { queued: 0, running: 0, deadLettered: 0, pendingApprovals: 0 },
         scheduler,
         acquisitionProviderWriteReadiness,
-        launchReadiness: loadWorkspaceLaunchReadiness(null, acquisitionProviderWriteReadiness.readyForApprovedMutation),
+        launchReadiness: buildFallbackWorkspaceLaunchReadiness(null, acquisitionProviderWriteReadiness.readyForApprovedMutation),
         posture: evaluateAgentCompliancePosture({
           tenantIsolationEnforced: false,
           secretPosture: evaluateSecretPosture({ encryptionAvailable: false, tokenPresent: false }),

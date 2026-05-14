@@ -9,56 +9,58 @@ datasource db {
 }
 
 model Workspace {
-  id             String                 @id @default(cuid())
-  slug           String                 @unique
-  name           String
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
-  mappingPresets LifecycleMappingPreset[]
-  presets        WorkspacePreset[]
-  memberships    WorkspaceMembership[]
-  datasets       WorkspaceDataset[]
-  lifecycleConnectorConfigs LifecycleConnectorConfig[]
-  lifecycleConnectorHealthSnapshots LifecycleConnectorHealthSnapshot[]
-  lifecycleConnectorSyncRuns LifecycleConnectorSyncRun[]
-  lifecycleConnectorAuditEvents LifecycleConnectorAuditEvent[]
-  agentJobs     AgentJob[]
-  agentApprovalRequests AgentApprovalRequest[]
-  agentProviderWriteDryRuns AgentProviderWriteDryRun[]
+  id                                    String                                 @id @default(cuid())
+  slug                                  String                                 @unique
+  name                                  String
+  createdAt                             DateTime                               @default(now())
+  updatedAt                             DateTime                               @updatedAt
+  mappingPresets                        LifecycleMappingPreset[]
+  presets                               WorkspacePreset[]
+  memberships                           WorkspaceMembership[]
+  datasets                              WorkspaceDataset[]
+  lifecycleConnectorConfigs             LifecycleConnectorConfig[]
+  lifecycleConnectorHealthSnapshots     LifecycleConnectorHealthSnapshot[]
+  lifecycleConnectorSyncRuns            LifecycleConnectorSyncRun[]
+  lifecycleConnectorAuditEvents         LifecycleConnectorAuditEvent[]
+  agentJobs                             AgentJob[]
+  agentApprovalRequests                 AgentApprovalRequest[]
+  agentProviderWriteDryRuns             AgentProviderWriteDryRun[]
   agentProviderWriteMeasurementHandoffs AgentProviderWriteMeasurementHandoff[]
-  agentProviderWriteRollbackRecords AgentProviderWriteRollbackRecord[]
-  providerCredentialGrants ProviderCredentialGrant[]
+  agentProviderWriteRollbackRecords     AgentProviderWriteRollbackRecord[]
+  providerCredentialGrants              ProviderCredentialGrant[]
+  launchReadinessRecords                WorkspaceLaunchReadinessRecord[]
 }
 
 model AccountUser {
-  id          String                @id @default(cuid())
-  email       String                @unique
-  name        String
-  zipCode     String?
-  company     String?
-  title       String?
-  passwordHash String?
-  passwordSetAt DateTime?
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  memberships WorkspaceMembership[]
-  datasets    WorkspaceDataset[]
-  dataSourceSelections AppDataSourceSelection[]
-  sourceConfigs LifecycleMappingPreset[]
-  presets     WorkspacePreset[]
-  lifecycleImportLogs LifecycleImportLog[]
-  campaignRuns CampaignRun[]
-  adAccountConnections AdAccountConnection[]
-  lifecycleConnectorConfigs LifecycleConnectorConfig[]
-  lifecycleConnectorSyncRuns LifecycleConnectorSyncRun[]
-  lifecycleConnectorAuditEvents LifecycleConnectorAuditEvent[]
-  agentJobs    AgentJob[]
-  requestedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalRequester")
-  decidedAgentApprovals AgentApprovalRequest[] @relation("AgentApprovalDecider")
-  agentProviderWriteDryRuns AgentProviderWriteDryRun[]
+  id                                    String                                 @id @default(cuid())
+  email                                 String                                 @unique
+  name                                  String
+  zipCode                               String?
+  company                               String?
+  title                                 String?
+  passwordHash                          String?
+  passwordSetAt                         DateTime?
+  createdAt                             DateTime                               @default(now())
+  updatedAt                             DateTime                               @updatedAt
+  memberships                           WorkspaceMembership[]
+  datasets                              WorkspaceDataset[]
+  dataSourceSelections                  AppDataSourceSelection[]
+  sourceConfigs                         LifecycleMappingPreset[]
+  presets                               WorkspacePreset[]
+  lifecycleImportLogs                   LifecycleImportLog[]
+  campaignRuns                          CampaignRun[]
+  adAccountConnections                  AdAccountConnection[]
+  lifecycleConnectorConfigs             LifecycleConnectorConfig[]
+  lifecycleConnectorSyncRuns            LifecycleConnectorSyncRun[]
+  lifecycleConnectorAuditEvents         LifecycleConnectorAuditEvent[]
+  agentJobs                             AgentJob[]
+  requestedAgentApprovals               AgentApprovalRequest[]                 @relation("AgentApprovalRequester")
+  decidedAgentApprovals                 AgentApprovalRequest[]                 @relation("AgentApprovalDecider")
+  agentProviderWriteDryRuns             AgentProviderWriteDryRun[]
   agentProviderWriteMeasurementHandoffs AgentProviderWriteMeasurementHandoff[]
-  agentProviderWriteRollbackRecords AgentProviderWriteRollbackRecord[]
-  providerCredentialGrants ProviderCredentialGrant[]
+  agentProviderWriteRollbackRecords     AgentProviderWriteRollbackRecord[]
+  providerCredentialGrants              ProviderCredentialGrant[]
+  launchReadinessRecords                WorkspaceLaunchReadinessRecord[]
 
   @@index([updatedAt])
 }
@@ -98,20 +100,20 @@ model AppDataSourceSelection {
 }
 
 model WorkspaceDataset {
-  id            String       @id @default(cuid())
-  workspaceId   String
-  accountUserId String?
-  app           String
-  sourceType    String
-  name          String
-  status        String       @default("imported")
-  rowData       Json
-  rowCounts     Json
-  metadata      Json?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser   AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  id               String                   @id @default(cuid())
+  workspaceId      String
+  accountUserId    String?
+  app              String
+  sourceType       String
+  name             String
+  status           String                   @default("imported")
+  rowData          Json
+  rowCounts        Json
+  metadata         Json?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  workspace        Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser      AccountUser?             @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
   activeSelections AppDataSourceSelection[]
 
   @@index([workspaceId, app, createdAt])
@@ -169,29 +171,29 @@ enum AcquisitionCampaignState {
 }
 
 model AcquisitionCampaign {
-  id                String                   @id @default(cuid())
-  name              String
-  objective         String
-  budgetCents       Int
-  startAt           DateTime
-  endAt             DateTime
-  channels          AcquisitionChannel[]
-  maxBudgetShiftPct Float                    @default(0.2)
-  minConfidence     Float                    @default(0.65)
-  cooldownHours     Int                      @default(24)
-  targetCacCents    Int
-  targetLtvCents    Int
-  cacAutoPausePctOfTarget Float              @default(1.25)
-  minLtvCacRatio    Float                    @default(2.5)
-  approvalCapPct    Float                    @default(0.15)
-  state             AcquisitionCampaignState @default(DRAFT)
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
-  creatives         AdCreative[]
-  audiences         AudienceSegment[]
-  testCells         TestCell[]
-  budgetActivities  BudgetActivity[]
-  auditLogs         AcquisitionAuditLog[]
+  id                      String                   @id @default(cuid())
+  name                    String
+  objective               String
+  budgetCents             Int
+  startAt                 DateTime
+  endAt                   DateTime
+  channels                AcquisitionChannel[]
+  maxBudgetShiftPct       Float                    @default(0.2)
+  minConfidence           Float                    @default(0.65)
+  cooldownHours           Int                      @default(24)
+  targetCacCents          Int
+  targetLtvCents          Int
+  cacAutoPausePctOfTarget Float                    @default(1.25)
+  minLtvCacRatio          Float                    @default(2.5)
+  approvalCapPct          Float                    @default(0.15)
+  state                   AcquisitionCampaignState @default(DRAFT)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  creatives               AdCreative[]
+  audiences               AudienceSegment[]
+  testCells               TestCell[]
+  budgetActivities        BudgetActivity[]
+  auditLogs               AcquisitionAuditLog[]
 
   @@index([state, updatedAt])
   @@index([startAt, endAt])
@@ -235,18 +237,18 @@ model AudienceSegment {
 }
 
 model AuctionAdvertiser {
-  id                String                    @id @default(cuid())
-  name              String
-  qualityScore      Float
-  dailyBudgetCents  Int
-  smoothingFactor   Float                     @default(0.5)
-  behaviorMode      String                    @default("truthful")
-  targetCacCents    Int?
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  bids              AuctionBid[]
-  results           AuctionResultRow[]
-  spends            AuctionAdvertiserSpend[]
+  id               String                   @id @default(cuid())
+  name             String
+  qualityScore     Float
+  dailyBudgetCents Int
+  smoothingFactor  Float                    @default(0.5)
+  behaviorMode     String                   @default("truthful")
+  targetCacCents   Int?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  bids             AuctionBid[]
+  results          AuctionResultRow[]
+  spends           AuctionAdvertiserSpend[]
 
   @@index([behaviorMode])
 }
@@ -279,18 +281,18 @@ model AuctionBid {
 }
 
 model AuctionRun {
-  id                   String                   @id @default(cuid())
-  totalAuctions        Int
-  totalRevenueCents    Int
-  fillRate             Float
-  fillQuality          Float
-  revenueStability     Float
-  bidderTrustProxy     Float
-  notes                String?
-  createdAt            DateTime                 @default(now())
-  results              AuctionResult[]
-  spendSnapshots       AuctionAdvertiserSpend[]
-  auditLogs            AuctionAuditLog[]
+  id                String                   @id @default(cuid())
+  totalAuctions     Int
+  totalRevenueCents Int
+  fillRate          Float
+  fillQuality       Float
+  revenueStability  Float
+  bidderTrustProxy  Float
+  notes             String?
+  createdAt         DateTime                 @default(now())
+  results           AuctionResult[]
+  spendSnapshots    AuctionAdvertiserSpend[]
+  auditLogs         AuctionAuditLog[]
 
   @@index([createdAt])
 }
@@ -440,39 +442,39 @@ model PricingExperimentVariant {
 
 model PricingExperimentRun {
   id                     String                 @id @default(cuid())
-  experimentId            String
-  arpuLiftPercent         Float
-  conversionDeltaPercent  Float
-  churnDeltaPercent       Float
-  grossMarginPercent      Float
-  netRevenueLiftCents     Int
-  supportLoadDelta        Float
-  confidence              Float
-  holdoutHealth           String
-  recommendation          String
-  createdAt               DateTime               @default(now())
-  experiment              PricingExperiment      @relation(fields: [experimentId], references: [id], onDelete: Cascade)
-  segmentResults          PricingSegmentResult[]
+  experimentId           String
+  arpuLiftPercent        Float
+  conversionDeltaPercent Float
+  churnDeltaPercent      Float
+  grossMarginPercent     Float
+  netRevenueLiftCents    Int
+  supportLoadDelta       Float
+  confidence             Float
+  holdoutHealth          String
+  recommendation         String
+  createdAt              DateTime               @default(now())
+  experiment             PricingExperiment      @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  segmentResults         PricingSegmentResult[]
 
   @@index([experimentId, createdAt])
   @@index([recommendation, createdAt])
 }
 
 model PricingSegmentResult {
-  id                    String               @id @default(cuid())
-  runId                 String
-  segmentId             String
-  variantId             String
-  sampleSize            Int
-  conversionRate        Float
-  churnRate             Float
-  arpuCents             Int
-  grossMarginPercent    Float
-  netRevenueLiftCents   Int
-  guardrailBand         String
-  run                   PricingExperimentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  segment               PricingSegment       @relation(fields: [segmentId], references: [id])
-  variant               PricingVariant       @relation(fields: [variantId], references: [id])
+  id                  String               @id @default(cuid())
+  runId               String
+  segmentId           String
+  variantId           String
+  sampleSize          Int
+  conversionRate      Float
+  churnRate           Float
+  arpuCents           Int
+  grossMarginPercent  Float
+  netRevenueLiftCents Int
+  guardrailBand       String
+  run                 PricingExperimentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  segment             PricingSegment       @relation(fields: [segmentId], references: [id])
+  variant             PricingVariant       @relation(fields: [variantId], references: [id])
 
   @@index([runId])
   @@index([segmentId])
@@ -558,39 +560,39 @@ model RetentionPolicy {
 }
 
 model RetentionRiskRun {
-  id                         String                @id @default(cuid())
-  policyId                   String
-  averageRiskScore           Float
-  highRiskAccounts           Int
-  preventableChurnCents      Int
-  expectedSavedRevenueCents  Int
-  saveRate                   Float
-  paybackRatio               Float
-  recommendation             String
-  createdAt                  DateTime              @default(now())
-  policy                     RetentionPolicy       @relation(fields: [policyId], references: [id])
-  rows                       RetentionRiskRunRow[]
-  auditLogs                  RetentionAuditLog[]
+  id                        String                @id @default(cuid())
+  policyId                  String
+  averageRiskScore          Float
+  highRiskAccounts          Int
+  preventableChurnCents     Int
+  expectedSavedRevenueCents Int
+  saveRate                  Float
+  paybackRatio              Float
+  recommendation            String
+  createdAt                 DateTime              @default(now())
+  policy                    RetentionPolicy       @relation(fields: [policyId], references: [id])
+  rows                      RetentionRiskRunRow[]
+  auditLogs                 RetentionAuditLog[]
 
   @@index([policyId, createdAt])
   @@index([recommendation, createdAt])
 }
 
 model RetentionRiskRunRow {
-  id                         String             @id @default(cuid())
-  runId                      String
-  accountId                  String
-  playbookId                 String?
-  riskScore                  Float
-  riskBand                   String
-  primaryDriver              String
-  expectedSavedRevenueCents  Int
-  interventionCostCents      Int
-  paybackRatio               Float
-  slaHours                   Int
-  run                        RetentionRiskRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
-  account                    RetentionAccount   @relation(fields: [accountId], references: [id])
-  playbook                   RetentionPlaybook? @relation(fields: [playbookId], references: [id])
+  id                        String             @id @default(cuid())
+  runId                     String
+  accountId                 String
+  playbookId                String?
+  riskScore                 Float
+  riskBand                  String
+  primaryDriver             String
+  expectedSavedRevenueCents Int
+  interventionCostCents     Int
+  paybackRatio              Float
+  slaHours                  Int
+  run                       RetentionRiskRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  account                   RetentionAccount   @relation(fields: [accountId], references: [id])
+  playbook                  RetentionPlaybook? @relation(fields: [playbookId], references: [id])
 
   @@index([runId])
   @@index([accountId])
@@ -599,18 +601,18 @@ model RetentionRiskRunRow {
 }
 
 model RetentionIntervention {
-  id                String               @id @default(cuid())
+  id                String              @id @default(cuid())
   accountId         String
   playbookId        String
-  status            String               @default("queued")
+  status            String              @default("queued")
   owner             String
   rationale         String
   dueAt             DateTime?
   savedRevenueCents Int?
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
-  account           RetentionAccount     @relation(fields: [accountId], references: [id])
-  playbook          RetentionPlaybook    @relation(fields: [playbookId], references: [id])
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  account           RetentionAccount    @relation(fields: [accountId], references: [id])
+  playbook          RetentionPlaybook   @relation(fields: [playbookId], references: [id])
   auditLogs         RetentionAuditLog[]
 
   @@index([accountId, createdAt])
@@ -636,22 +638,22 @@ model RetentionAuditLog {
 }
 
 model ExpansionAccount {
-  id                   String                    @id @default(cuid())
-  name                 String
-  segment              String
-  currentArrCents      Int
-  seatsPurchased       Int
-  seatsActive          Int
-  usageGrowthRate      Float
+  id                    String            @id @default(cuid())
+  name                  String
+  segment               String
+  currentArrCents       Int
+  seatsPurchased        Int
+  seatsActive           Int
+  usageGrowthRate       Float
   productQualifiedScore Float
-  supportHealthScore   Float
-  renewalDays          Int
-  executiveSponsor     Boolean                   @default(false)
-  openExpansionSignals Int
-  trend                String
-  createdAt            DateTime                  @default(now())
-  updatedAt            DateTime                  @updatedAt
-  runRows              ExpansionRunRow[]
+  supportHealthScore    Float
+  renewalDays           Int
+  executiveSponsor      Boolean           @default(false)
+  openExpansionSignals  Int
+  trend                 String
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  runRows               ExpansionRunRow[]
 
   @@index([segment])
   @@index([renewalDays])
@@ -688,7 +690,7 @@ model ExpansionPolicy {
 }
 
 model ExpansionRun {
-  id                        String             @id @default(cuid())
+  id                        String              @id @default(cuid())
   policyId                  String
   averageReadinessScore     Float
   highReadinessAccounts     Int
@@ -697,8 +699,8 @@ model ExpansionRun {
   averageMarginPercent      Float
   paybackRatio              Float
   recommendation            String
-  createdAt                 DateTime           @default(now())
-  policy                    ExpansionPolicy    @relation(fields: [policyId], references: [id])
+  createdAt                 DateTime            @default(now())
+  policy                    ExpansionPolicy     @relation(fields: [policyId], references: [id])
   rows                      ExpansionRunRow[]
   auditLogs                 ExpansionAuditLog[]
 
@@ -746,22 +748,22 @@ model ExpansionAuditLog {
 }
 
 model AdAccountConnection {
-  id                  String   @id @default(cuid())
-  accountUserId       String?
-  credentialGrantId   String?
-  provider            String
-  externalAccountId   String
-  accountName         String
-  isTestAccount       Boolean  @default(true)
-  scopes              String[]
-  encryptedAccessToken String
+  id                    String                   @id @default(cuid())
+  accountUserId         String?
+  credentialGrantId     String?
+  provider              String
+  externalAccountId     String
+  accountName           String
+  isTestAccount         Boolean                  @default(true)
+  scopes                String[]
+  encryptedAccessToken  String
   encryptedRefreshToken String?
-  expiresAt           DateTime?
-  lastFetchedAt       DateTime?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  accountUser         AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
-  credentialGrant     ProviderCredentialGrant? @relation(fields: [credentialGrantId], references: [id], onDelete: SetNull)
+  expiresAt             DateTime?
+  lastFetchedAt         DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  accountUser           AccountUser?             @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  credentialGrant       ProviderCredentialGrant? @relation(fields: [credentialGrantId], references: [id], onDelete: SetNull)
 
   @@index([accountUserId, createdAt])
   @@index([accountUserId, provider])
@@ -771,27 +773,27 @@ model AdAccountConnection {
 }
 
 model ProviderCredentialGrant {
-  id                String   @id @default(cuid())
-  workspaceId       String
-  accountUserId     String?
-  provider          String
-  externalAccountId String
-  displayName       String
-  status            String   @default("active")
-  environment       String   @default("test")
-  capabilities      String[]
-  scopes            String[]
-  tokenHealthStatus String   @default("unknown")
-  tokenExpiresAt    DateTime?
-  lastValidatedAt   DateTime?
-  rotationDueAt     DateTime?
-  ownerApprovedAt   DateTime?
-  revokedAt         DateTime?
-  metadata          Json?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser       AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  id                   String                @id @default(cuid())
+  workspaceId          String
+  accountUserId        String?
+  provider             String
+  externalAccountId    String
+  displayName          String
+  status               String                @default("active")
+  environment          String                @default("test")
+  capabilities         String[]
+  scopes               String[]
+  tokenHealthStatus    String                @default("unknown")
+  tokenExpiresAt       DateTime?
+  lastValidatedAt      DateTime?
+  rotationDueAt        DateTime?
+  ownerApprovedAt      DateTime?
+  revokedAt            DateTime?
+  metadata             Json?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser          AccountUser?          @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
   adAccountConnections AdAccountConnection[]
 
   @@unique([workspaceId, accountUserId, provider, externalAccountId])
@@ -803,20 +805,20 @@ model ProviderCredentialGrant {
 }
 
 model LifecycleConnectorConfig {
-  id                String   @id @default(cuid())
+  id                String                             @id @default(cuid())
   workspaceId       String
   accountUserId     String?
   provider          String
   kind              String
   displayName       String
-  status            String   @default("configured")
+  status            String                             @default("configured")
   capabilities      String[]
   credentialGrantId String?
   settings          Json?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser       AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                           @default(now())
+  updatedAt         DateTime                           @updatedAt
+  workspace         Workspace                          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser       AccountUser?                       @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
   healthSnapshots   LifecycleConnectorHealthSnapshot[]
   syncRuns          LifecycleConnectorSyncRun[]
   auditEvents       LifecycleConnectorAuditEvent[]
@@ -828,7 +830,7 @@ model LifecycleConnectorConfig {
 }
 
 model LifecycleConnectorHealthSnapshot {
-  id                 String   @id @default(cuid())
+  id                 String                   @id @default(cuid())
   workspaceId        String
   connectorConfigId  String
   provider           String
@@ -838,10 +840,10 @@ model LifecycleConnectorHealthSnapshot {
   capabilities       String[]
   permissionWarnings Json?
   freshnessWarnings  Json?
-  checkedAt          DateTime @default(now())
+  checkedAt          DateTime                 @default(now())
   lastSyncAt         DateTime?
   nextSyncAt         DateTime?
-  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace          Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   connectorConfig    LifecycleConnectorConfig @relation(fields: [connectorConfigId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, checkedAt])
@@ -851,26 +853,26 @@ model LifecycleConnectorHealthSnapshot {
 }
 
 model LifecycleConnectorSyncRun {
-  id                 String   @id @default(cuid())
-  workspaceId        String
-  accountUserId      String?
-  connectorConfigId  String
-  provider           String
-  action             String
-  status             String
-  idempotencyKey     String?
-  cursor             String?
-  objectKeys         String[]
-  normalizedCounts   Json?
-  rejectedRows       Int      @default(0)
-  warnings           Json?
-  metadata           Json?
-  startedAt          DateTime @default(now())
-  completedAt        DateTime?
-  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser        AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
-  connectorConfig    LifecycleConnectorConfig @relation(fields: [connectorConfigId], references: [id], onDelete: Cascade)
-  auditEvents        LifecycleConnectorAuditEvent[]
+  id                String                         @id @default(cuid())
+  workspaceId       String
+  accountUserId     String?
+  connectorConfigId String
+  provider          String
+  action            String
+  status            String
+  idempotencyKey    String?
+  cursor            String?
+  objectKeys        String[]
+  normalizedCounts  Json?
+  rejectedRows      Int                            @default(0)
+  warnings          Json?
+  metadata          Json?
+  startedAt         DateTime                       @default(now())
+  completedAt       DateTime?
+  workspace         Workspace                      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser       AccountUser?                   @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  connectorConfig   LifecycleConnectorConfig       @relation(fields: [connectorConfigId], references: [id], onDelete: Cascade)
+  auditEvents       LifecycleConnectorAuditEvent[]
 
   @@index([workspaceId, startedAt])
   @@index([accountUserId, startedAt])
@@ -880,7 +882,7 @@ model LifecycleConnectorSyncRun {
 }
 
 model LifecycleConnectorAuditEvent {
-  id                String   @id @default(cuid())
+  id                String                     @id @default(cuid())
   workspaceId       String
   accountUserId     String?
   connectorConfigId String?
@@ -891,10 +893,10 @@ model LifecycleConnectorAuditEvent {
   idempotencyKey    String?
   metadata          Json
   occurredAt        DateTime
-  createdAt         DateTime @default(now())
-  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser       AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
-  connectorConfig   LifecycleConnectorConfig? @relation(fields: [connectorConfigId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                   @default(now())
+  workspace         Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser       AccountUser?               @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  connectorConfig   LifecycleConnectorConfig?  @relation(fields: [connectorConfigId], references: [id], onDelete: SetNull)
   syncRun           LifecycleConnectorSyncRun? @relation(fields: [syncRunId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, occurredAt])
@@ -905,32 +907,32 @@ model LifecycleConnectorAuditEvent {
 }
 
 model AgentJob {
-  id              String   @id @default(cuid())
-  workspaceId     String
-  accountUserId   String?
-  app             String
-  queueName       String
-  jobType         String
-  status          String   @default("queued")
-  priority        Int      @default(100)
-  idempotencyKey  String?
-  payload         Json
-  result          Json?
-  errorCode       String?
-  errorMessage    String?
-  attemptCount    Int      @default(0)
-  maxAttempts     Int      @default(3)
-  runAfter        DateTime @default(now())
-  lockedAt        DateTime?
-  lockedBy        String?
-  completedAt     DateTime?
-  failedAt        DateTime?
-  deadLetteredAt  DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser     AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
-  approvalRequests AgentApprovalRequest[]
+  id                   String                     @id @default(cuid())
+  workspaceId          String
+  accountUserId        String?
+  app                  String
+  queueName            String
+  jobType              String
+  status               String                     @default("queued")
+  priority             Int                        @default(100)
+  idempotencyKey       String?
+  payload              Json
+  result               Json?
+  errorCode            String?
+  errorMessage         String?
+  attemptCount         Int                        @default(0)
+  maxAttempts          Int                        @default(3)
+  runAfter             DateTime                   @default(now())
+  lockedAt             DateTime?
+  lockedBy             String?
+  completedAt          DateTime?
+  failedAt             DateTime?
+  deadLetteredAt       DateTime?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  workspace            Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser          AccountUser?               @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  approvalRequests     AgentApprovalRequest[]
   providerWriteDryRuns AgentProviderWriteDryRun[]
 
   @@unique([workspaceId, queueName, idempotencyKey])
@@ -941,32 +943,63 @@ model AgentJob {
   @@index([deadLetteredAt])
 }
 
+model WorkspaceLaunchReadinessRecord {
+  id                   String       @id @default(cuid())
+  workspaceId          String
+  accountUserId        String?
+  scopeKey             String       @default("workspace")
+  customerName         String
+  requestedLaunchMode  String
+  launchDecisionMode   String?
+  status               String
+  maxAllowedLaunchMode String
+  exportable           Boolean      @default(false)
+  nextRequiredAction   String
+  owners               Json
+  connectedSystems     Json
+  mappings             Json
+  policy               Json?
+  unresolvedRisks      Json
+  evidenceExports      Json
+  launchPacket         Json
+  lastEvaluatedAt      DateTime     @default(now())
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  workspace            Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser          AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, scopeKey])
+  @@index([workspaceId, status, updatedAt])
+  @@index([workspaceId, maxAllowedLaunchMode, updatedAt])
+  @@index([accountUserId, updatedAt])
+}
+
 model AgentProviderWriteDryRun {
-  id                 String   @id @default(cuid())
+  id                 String                                @id @default(cuid())
   workspaceId        String
   accountUserId      String?
   agentJobId         String
   app                String
   provider           String
   operationType      String
-  mode               String   @default("dry_run")
-  status             String   @default("ready")
+  mode               String                                @default("dry_run")
+  status             String                                @default("ready")
   idempotencyKey     String?
   externalAccountId  String?
   externalCampaignId String?
   permissionChecks   Json
   providerObjects    Json
-  spendExposureCents Int      @default(0)
-  rollbackSupported  Boolean  @default(false)
+  spendExposureCents Int                                   @default(0)
+  rollbackSupported  Boolean                               @default(false)
   rollbackPlan       String?
   blockers           String[]
   warnings           String[]
   rawResult          Json
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser        AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
-  agentJob           AgentJob @relation(fields: [agentJobId], references: [id], onDelete: Cascade)
+  createdAt          DateTime                              @default(now())
+  updatedAt          DateTime                              @updatedAt
+  workspace          Workspace                             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser        AccountUser?                          @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  agentJob           AgentJob                              @relation(fields: [agentJobId], references: [id], onDelete: Cascade)
   measurementHandoff AgentProviderWriteMeasurementHandoff?
   rollbackRecords    AgentProviderWriteRollbackRecord[]
 
@@ -978,7 +1011,7 @@ model AgentProviderWriteDryRun {
 }
 
 model AgentProviderWriteRollbackRecord {
-  id                          String   @id @default(cuid())
+  id                          String                   @id @default(cuid())
   workspaceId                 String
   accountUserId               String?
   providerWriteDryRunId       String
@@ -989,8 +1022,8 @@ model AgentProviderWriteRollbackRecord {
   mutationIdempotencyKey      String
   providerOperationId         String
   rollbackProviderOperationId String?
-  status                      String   @default("pending_review")
-  reversalStatus              String   @default("not_started")
+  status                      String                   @default("pending_review")
+  reversalStatus              String                   @default("not_started")
   beforeState                 Json
   afterState                  Json
   rollbackPlan                String?
@@ -1001,10 +1034,10 @@ model AgentProviderWriteRollbackRecord {
   reversalProviderOperationId String?
   reversedAt                  DateTime?
   rawMutationResult           Json
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
-  workspace                   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser                 AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  createdAt                   DateTime                 @default(now())
+  updatedAt                   DateTime                 @updatedAt
+  workspace                   Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser                 AccountUser?             @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
   providerWriteDryRun         AgentProviderWriteDryRun @relation(fields: [providerWriteDryRunId], references: [id], onDelete: Cascade)
 
   @@unique([mutationIdempotencyKey])
@@ -1017,7 +1050,7 @@ model AgentProviderWriteRollbackRecord {
 }
 
 model AgentProviderWriteMeasurementHandoff {
-  id                    String   @id @default(cuid())
+  id                    String                   @id @default(cuid())
   workspaceId           String
   accountUserId         String?
   providerWriteDryRunId String
@@ -1027,13 +1060,13 @@ model AgentProviderWriteMeasurementHandoff {
   app                   String
   provider              String
   operationType         String
-  status                String   @default("queued")
+  status                String                   @default("queued")
   measurementOutputs    String[]
   measurementPayload    Json
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser           AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  workspace             Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser           AccountUser?             @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
   providerWriteDryRun   AgentProviderWriteDryRun @relation(fields: [providerWriteDryRunId], references: [id], onDelete: Cascade)
 
   @@unique([providerWriteDryRunId])
@@ -1045,32 +1078,32 @@ model AgentProviderWriteMeasurementHandoff {
 }
 
 model AgentApprovalRequest {
-  id                       String   @id @default(cuid())
+  id                       String       @id @default(cuid())
   workspaceId              String
   requestedByAccountUserId String?
   decidedByAccountUserId   String?
   agentJobId               String?
   app                      String
   actionType               String
-  riskLevel                String   @default("medium")
-  status                   String   @default("pending")
+  riskLevel                String       @default("medium")
+  status                   String       @default("pending")
   title                    String
   summary                  String
   proposedAction           Json
   approvalPolicy           Json?
   decisionReason           String?
   requiredApproverRole     String?
-  escalationLevel          Int      @default(0)
+  escalationLevel          Int          @default(0)
   dueAt                    DateTime?
   escalatedAt              DateTime?
   decidedAt                DateTime?
   expiresAt                DateTime?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
-  workspace                Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+  workspace                Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   requestedBy              AccountUser? @relation("AgentApprovalRequester", fields: [requestedByAccountUserId], references: [id], onDelete: SetNull)
   decidedBy                AccountUser? @relation("AgentApprovalDecider", fields: [decidedByAccountUserId], references: [id], onDelete: SetNull)
-  agentJob                 AgentJob? @relation(fields: [agentJobId], references: [id], onDelete: SetNull)
+  agentJob                 AgentJob?    @relation(fields: [agentJobId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, status, dueAt])
   @@index([requestedByAccountUserId, createdAt])
@@ -1282,37 +1315,37 @@ model CampaignRun {
 }
 
 model AssumptionSet {
-  id                     String        @id @default(cuid())
-  name                   String
-  isActive               Boolean       @default(false)
-  defaultTopN            Int           @default(50)
-  recencyScore           Float         @default(0.9)
-  minPriorityScore       Float         @default(0)
-  highPriorityThreshold  Float         @default(0.65)
-  highPriorityLift       Float         @default(1.8)
-  openRate               Float         @default(0.5)
-  clickRate              Float         @default(0.24)
-  engageRate             Float         @default(0.45)
-  purchaseRate           Float         @default(0.25)
-  avgOrderValue          Float         @default(129)
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
-  campaignRuns           CampaignRun[]
+  id                    String        @id @default(cuid())
+  name                  String
+  isActive              Boolean       @default(false)
+  defaultTopN           Int           @default(50)
+  recencyScore          Float         @default(0.9)
+  minPriorityScore      Float         @default(0)
+  highPriorityThreshold Float         @default(0.65)
+  highPriorityLift      Float         @default(1.8)
+  openRate              Float         @default(0.5)
+  clickRate             Float         @default(0.24)
+  engageRate            Float         @default(0.45)
+  purchaseRate          Float         @default(0.25)
+  avgOrderValue         Float         @default(129)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  campaignRuns          CampaignRun[]
 }
 
 model LifecycleImportLog {
-  id                    String   @id @default(cuid())
+  id                    String       @id @default(cuid())
   accountUserId         String?
   sourceType            String
   sourceName            String
   status                String
-  usersImported         Int      @default(0)
-  entitiesImported      Int      @default(0)
-  interestEdgesImported Int      @default(0)
-  changeEventsImported  Int      @default(0)
-  validationErrors      Int      @default(0)
+  usersImported         Int          @default(0)
+  entitiesImported      Int          @default(0)
+  interestEdgesImported Int          @default(0)
+  changeEventsImported  Int          @default(0)
+  validationErrors      Int          @default(0)
   metadata              Json?
-  createdAt             DateTime @default(now())
+  createdAt             DateTime     @default(now())
   accountUser           AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
 
   @@index([sourceType, createdAt])
@@ -1321,36 +1354,36 @@ model LifecycleImportLog {
 }
 
 model LifecycleMappingPreset {
-  id          String    @id @default(cuid())
-  workspaceId String
+  id            String       @id @default(cuid())
+  workspaceId   String
   accountUserId String?
-  name        String
-  sourceType  String
-  app         String
-  mappings    Json
-  metadata    Json?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  name          String
+  sourceType    String
+  app           String
+  mappings      Json
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser   AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, app, sourceType, updatedAt])
   @@index([accountUserId, updatedAt])
 }
 
 model WorkspacePreset {
-  id          String    @id @default(cuid())
-  workspaceId String
+  id            String       @id @default(cuid())
+  workspaceId   String
   accountUserId String?
-  app         String
-  presetType  String
-  name        String
-  values      Json
-  metadata    Json?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  app           String
+  presetType    String
+  name          String
+  values        Json
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser   AccountUser? @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, app, presetType, updatedAt])
   @@index([accountUserId, updatedAt])

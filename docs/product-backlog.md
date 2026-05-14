@@ -119,7 +119,7 @@ S17 moves the enterprise rollout contracts from pure code into operator-visible 
 | L59 | Billable execution gate | DW | M | S16 | ✅ | Block performance-fee and agent-managed execution modes unless onboarding, data quality, baseline, policy, credential, rollback, audit, and emergency-stop gates pass. |
 | L60 | Customer launch packet export | DW | M | S16 | ✅ | Generate an exportable launch packet with owners, connected systems, approved mappings, policy constraints, baseline snapshot, evidence exports, unresolved risks, and launch decision. |
 | L61 | Workspace launch readiness operations panel | DW | M | S17 | ✅ | Compose onboarding, data quality, baseline, revenue proof, billable gate, and launch packet decisions into an operator-visible launch readiness panel on Agent Operations. |
-| L62 | Persist launch readiness workspace state | DW | L | S17 | ⏳ | Store customer owners, connected systems, mapping approvals, launch decisions, unresolved risks, and readiness evidence with workspace/account scope. |
+| L62 | Persist launch readiness workspace state | DW | L | S17 | ✅ | Store customer owners, connected systems, mapping approvals, launch decisions, unresolved risks, and readiness evidence with workspace/account scope. |
 | L63 | Launch packet export endpoint | DW | M | S17 | ⏳ | Provide a protected export route for launch packet JSON/Markdown that reflects persisted workspace readiness state. |
 | L64 | Billable gate UI enforcement | DW | M | S17 | ⏳ | Disable or downgrade billable/performance execution controls in the product UI until launch readiness gates pass. |
 | L65 | Customer readiness review workflow | DW | L | S17 | ⏳ | Add review/approval states for customer owners, finance, data, channel, and operator approver signoff before launch mode escalation. |
@@ -137,7 +137,7 @@ S17 moves the enterprise rollout contracts from pure code into operator-visible 
 | S14 | L39, L40, L41, L42, L43, L44, L45, L46, L46.1, L46.2, L46.3, L47 | — | — |
 | S15 | L48, L49, L50, L51, L52, L53, L54 | — | — |
 | S16 | L55, L56, L57, L58, L59, L60 | — | — |
-| S17 | L61 | L62, L63, L64, L65 | — |
+| S17 | L61, L62 | L63, L64, L65 | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
