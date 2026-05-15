@@ -7,6 +7,7 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
+import { workspaceLaunchAuditDetail, workspaceLaunchAuditTitle } from "@/lib/workspace-launch-audit-events";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,8 @@ async function loadActivity(accountUserId: string | null) {
       auction,
       adConnections,
       sourceConfigs,
-      providerDryRuns
+      providerDryRuns,
+      launchAuditEvents
     ] = await Promise.all([
       db.lifecycleImportLog.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
       db.campaignRun.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
@@ -66,7 +68,15 @@ async function loadActivity(accountUserId: string | null) {
       db.auctionAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
       db.adAccountConnection.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
       db.lifecycleMappingPreset.findMany({ where: { accountUserId }, orderBy: { updatedAt: "desc" }, take: 12, include: { workspace: true } }),
-      db.agentProviderWriteDryRun.findMany({ where: { OR: [{ accountUserId }, { accountUserId: null }] }, orderBy: { createdAt: "desc" }, take: 8 })
+      db.agentProviderWriteDryRun.findMany({ where: { OR: [{ accountUserId }, { accountUserId: null }] }, orderBy: { createdAt: "desc" }, take: 8 }),
+      db.lifecycleConnectorAuditEvent.findMany({
+        where: {
+          provider: "workspace_launch",
+          OR: [{ accountUserId }, { accountUserId: null }]
+        },
+        orderBy: { occurredAt: "desc" },
+        take: 12
+      })
     ]);
 
     const items: ActivityItem[] = [
@@ -179,6 +189,17 @@ async function loadActivity(accountUserId: string | null) {
         actor: "agent-worker",
         href: `/workspace/agents/dry-runs/${dryRun.id}`,
         createdAt: dryRun.createdAt
+      })),
+      ...launchAuditEvents.map((event) => ({
+        id: `launch-audit-${event.id}`,
+        app: "Workspace",
+        category: "Audit" as const,
+        kind: "Launch readiness",
+        title: workspaceLaunchAuditTitle(event.eventType),
+        detail: workspaceLaunchAuditDetail(event),
+        actor: event.accountUserId ? "workspace user" : "workspace",
+        href: "/workspace/settings",
+        createdAt: event.occurredAt
       }))
     ];
 
@@ -187,7 +208,7 @@ async function loadActivity(accountUserId: string | null) {
       counts: {
         imports: imports.length,
         lifecycleRuns: lifecycleRuns.length,
-        audits: acquisition.length + pricing.length + retention.length + expansion.length + auction.length + providerDryRuns.length,
+        audits: acquisition.length + pricing.length + retention.length + expansion.length + auction.length + providerDryRuns.length + launchAuditEvents.length,
         connections: adConnections.length + sourceConfigs.length
       },
       compatibilityMode: false

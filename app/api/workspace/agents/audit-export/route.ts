@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { createEventId, logApiEvent } from "@/lib/logging";
 import { getDefaultWorkspace } from "@/lib/workspace";
+import { workspaceLaunchAuditRecord } from "@/lib/workspace-launch-audit-events";
 
 const CSV_HEADERS: Array<keyof AgentAuditExportRow> = [
   "id",
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const workspace = await getDefaultWorkspace();
-    const [jobs, approvals, dryRuns, handoffs, rollbackRecords] = await Promise.all([
+    const [jobs, approvals, dryRuns, handoffs, rollbackRecords, launchAuditEvents] = await Promise.all([
       db.agentJob.findMany({
         where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
         orderBy: { createdAt: "desc" },
@@ -84,6 +85,15 @@ export async function GET(request: NextRequest) {
       db.agentProviderWriteRollbackRecord.findMany({
         where: { workspaceId: workspace.id, OR: [{ accountUserId }, { accountUserId: null }] },
         orderBy: { createdAt: "desc" },
+        take: 250
+      }),
+      db.lifecycleConnectorAuditEvent.findMany({
+        where: {
+          workspaceId: workspace.id,
+          provider: "workspace_launch",
+          OR: [{ accountUserId }, { accountUserId: null }]
+        },
+        orderBy: { occurredAt: "desc" },
         take: 250
       })
     ]);
@@ -170,7 +180,8 @@ export async function GET(request: NextRequest) {
         emergencyStopState: "clear_at_record_creation",
         mutationGateStatus: record.status === "blocked" ? "blocked" : "passed",
         relatedJobId: record.providerWriteDryRunId
-      }))
+      })),
+      ...launchAuditEvents.map(workspaceLaunchAuditRecord)
     ];
 
     const rows = buildAgentAuditExportRows(records);

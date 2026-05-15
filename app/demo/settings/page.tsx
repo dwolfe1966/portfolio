@@ -15,6 +15,7 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { buildWorkspaceLaunchEvidenceSettings } from "@/lib/workspace-launch-evidence-settings";
+import { recordWorkspaceLaunchAuditEvent } from "@/lib/workspace-launch-audit-events";
 import {
   buildDefaultWorkspaceLaunchBaselineEvidence,
   normalizeWorkspaceLaunchBaselineEvidence,
@@ -166,7 +167,7 @@ async function saveLaunchOwnerRoster(formData: FormData) {
     approved: formData.get(`${role}:approved`) === "on"
   })));
 
-  await upsertWorkspaceLaunchReadinessRecord({
+  const { readiness, record } = await upsertWorkspaceLaunchReadinessRecord({
     customerName: workspace.name,
     workspaceId: workspace.id,
     accountUserId: accountUser?.id ?? null,
@@ -175,11 +176,26 @@ async function saveLaunchOwnerRoster(formData: FormData) {
     providerWriteReady: loadAcquisitionProviderWriteReadiness().readyForApprovedMutation,
     auditExportHref: "/api/workspace/agents/audit-export"
   });
+  await recordWorkspaceLaunchAuditEvent({
+    workspaceId: workspace.id,
+    accountUserId: accountUser?.id ?? null,
+    action: "owner_roster_saved",
+    readinessRecordId: record.id,
+    status: readiness.status,
+    maxAllowedLaunchMode: readiness.maxAllowedLaunchMode,
+    summary: `${owners.filter((owner) => owner.approved).length} of ${owners.length} launch owners approved.`,
+    metadata: {
+      ownerCount: owners.length,
+      approvedOwnerCount: owners.filter((owner) => owner.approved).length
+    }
+  });
 
   revalidatePath("/workspace/settings");
   revalidatePath("/demo/settings");
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");
+  revalidatePath("/workspace/activity");
+  revalidatePath("/demo/activity");
   redirect("/workspace/settings?saved=launch-owners");
 }
 
@@ -208,18 +224,34 @@ async function saveLaunchConnectedSystems(formData: FormData) {
     };
   }));
 
-  await upsertWorkspaceLaunchReadinessRecord({
+  const { readiness, record } = await upsertWorkspaceLaunchReadinessRecord({
     customerName: workspace.name,
     workspaceId: workspace.id,
     accountUserId: accountUser?.id ?? null,
     connectedSystems,
     auditExportHref: "/api/workspace/agents/audit-export"
   });
+  await recordWorkspaceLaunchAuditEvent({
+    workspaceId: workspace.id,
+    accountUserId: accountUser?.id ?? null,
+    action: "connected_systems_saved",
+    readinessRecordId: record.id,
+    status: readiness.status,
+    maxAllowedLaunchMode: readiness.maxAllowedLaunchMode,
+    summary: `${connectedSystems.filter((system) => system.readReady).length} read grants and ${connectedSystems.filter((system) => system.writeReady).length} write grants marked ready.`,
+    metadata: {
+      systemCount: connectedSystems.length,
+      readReadyCount: connectedSystems.filter((system) => system.readReady).length,
+      writeReadyCount: connectedSystems.filter((system) => system.writeReady).length
+    }
+  });
 
   revalidatePath("/workspace/settings");
   revalidatePath("/demo/settings");
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");
+  revalidatePath("/workspace/activity");
+  revalidatePath("/demo/activity");
   redirect("/workspace/settings?saved=launch-systems");
 }
 
@@ -258,18 +290,35 @@ async function saveLaunchBaselineEvidence(formData: FormData) {
     fallback
   });
 
-  await upsertWorkspaceLaunchReadinessRecord({
+  const { readiness, record } = await upsertWorkspaceLaunchReadinessRecord({
     customerName: workspace.name,
     workspaceId: workspace.id,
     accountUserId: accountUser?.id ?? null,
     baselineEvidence,
     auditExportHref: "/api/workspace/agents/audit-export"
   });
+  await recordWorkspaceLaunchAuditEvent({
+    workspaceId: workspace.id,
+    accountUserId: accountUser?.id ?? null,
+    action: "baseline_evidence_saved",
+    readinessRecordId: record.id,
+    status: readiness.status,
+    maxAllowedLaunchMode: readiness.maxAllowedLaunchMode,
+    summary: `${baselineEvidence.revenueProof.baselineLabel ?? "Launch baseline"} saved with ${baselineEvidence.revenueProof.confidence ?? "unknown"} confidence.`,
+    metadata: {
+      baselineId: baselineEvidence.baseline.baselineId,
+      baselineLabel: baselineEvidence.revenueProof.baselineLabel,
+      baselinePopulation: baselineEvidence.revenueProof.baselinePopulation,
+      confidence: baselineEvidence.revenueProof.confidence
+    }
+  });
 
   revalidatePath("/workspace/settings");
   revalidatePath("/demo/settings");
   revalidatePath("/workspace/agents");
   revalidatePath("/demo/agents");
+  revalidatePath("/workspace/activity");
+  revalidatePath("/demo/activity");
   redirect("/workspace/settings?saved=launch-baseline");
 }
 
