@@ -5,10 +5,16 @@ import { cookies } from "next/headers";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, getAccountSessionUser } from "@/lib/account-session";
+import {
+  acquisitionProviderDryRunAdapterAvailable,
+  buildAcquisitionProviderWriteReadiness
+} from "@/lib/acquisition-agent-generalization";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
+import { buildWorkspaceLaunchEvidenceSettings } from "@/lib/workspace-launch-evidence-settings";
+import { buildWorkspaceLaunchReadiness } from "@/lib/workspace-launch-readiness";
 import {
   DEFAULT_WORKSPACE,
   getDefaultWorkspace,
@@ -24,6 +30,21 @@ export const metadata: Metadata = buildMetadata({
   path: "/workspace/settings"
 });
 
+function loadAcquisitionProviderWriteReadiness() {
+  return buildAcquisitionProviderWriteReadiness({
+    providerDryRunAdapterAvailable: acquisitionProviderDryRunAdapterAvailable(),
+    rollbackMetadataAvailable: Boolean(process.env.ACQUISITION_PROVIDER_ROLLBACK_METADATA_READY?.trim()),
+    approvalPolicyConfigured: true,
+    measurementConfigured: Boolean(process.env.ACQUISITION_PROVIDER_MEASUREMENT_READY?.trim()),
+    protectedCampaignChecksEnabled: true,
+    emergencyStopConfigured: true
+  });
+}
+
+function evidenceStatusClass(status: "ready" | "needs_evidence" | "incomplete") {
+  return status === "ready" ? "live" : "progress";
+}
+
 async function loadWorkspaceSettings(accountUserId: string | null) {
   try {
     await getDefaultWorkspace();
@@ -37,11 +58,20 @@ async function loadWorkspaceSettings(accountUserId: string | null) {
       }
     });
     const workspacePresets = await db.workspacePreset.count({ where: { accountUserId } });
+    const providerWriteReadiness = loadAcquisitionProviderWriteReadiness();
+    const launchReadiness = buildWorkspaceLaunchReadiness({
+      customerName: workspace?.name ?? DEFAULT_WORKSPACE.name,
+      workspaceId: workspace?.id ?? DEFAULT_WORKSPACE.slug,
+      providerReadReady: true,
+      providerWriteReady: providerWriteReadiness.readyForApprovedMutation,
+      auditExportHref: "/api/workspace/agents/audit-export"
+    });
+    const launchEvidence = buildWorkspaceLaunchEvidenceSettings(launchReadiness);
 
-    return { workspace, workspacePresets, compatibilityMode: false };
+    return { workspace, workspacePresets, compatibilityMode: false, launchEvidence };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return { workspace: null, workspacePresets: 0, compatibilityMode: true };
+      return { workspace: null, workspacePresets: 0, compatibilityMode: true, launchEvidence: null };
     }
     throw error;
   }
@@ -165,6 +195,52 @@ export default async function DemoSettingsPage({
           </div>
         </div>
       </Section>
+
+      {settings.launchEvidence ? (
+        <Section title="Launch evidence settings">
+          <div className="activitySummaryGrid">
+            <div className="activitySummaryCard">
+              <p className="small">Evidence status</p>
+              <strong>{settings.launchEvidence.status === "ready" ? "Ready" : "Incomplete"}</strong>
+              <span className={`statusPill ${evidenceStatusClass(settings.launchEvidence.status)}`}>
+                {settings.launchEvidence.status === "ready" ? "ready" : "needs evidence"}
+              </span>
+            </div>
+            <div className="activitySummaryCard">
+              <p className="small">Reviewers</p>
+              <strong>
+                {settings.launchEvidence.approvedReviewerCount.toLocaleString()} / {settings.launchEvidence.reviewerCount.toLocaleString()}
+              </strong>
+              <span>Approved launch owners.</span>
+            </div>
+            <div className="activitySummaryCard">
+              <p className="small">Systems</p>
+              <strong>
+                {settings.launchEvidence.readReadySystemsCount.toLocaleString()} read / {settings.launchEvidence.writeReadySystemsCount.toLocaleString()} write
+              </strong>
+              <span>{settings.launchEvidence.connectedSystemsCount.toLocaleString()} connected systems tracked.</span>
+            </div>
+            <div className="activitySummaryCard">
+              <p className="small">Exports</p>
+              <strong>{settings.launchEvidence.evidenceExportsCount.toLocaleString()}</strong>
+              <span>Launch packet and audit evidence links.</span>
+            </div>
+          </div>
+          <div className="workspaceInventoryStrip">
+            {settings.launchEvidence.editableSections.map((section) => (
+              <div className="workspaceInventoryItem" key={section.key}>
+                <p className="small">{section.label}</p>
+                <span className={`statusPill ${evidenceStatusClass(section.status)}`}>
+                  {section.status === "ready" ? "ready" : "needs evidence"}
+                </span>
+                <span>{section.detail}</span>
+                <Link className="btn smallBtn" href={section.href}>Open</Link>
+              </div>
+            ))}
+          </div>
+          <p className="small">Next action: {settings.launchEvidence.nextRequiredAction}</p>
+        </Section>
+      ) : null}
 
       <Section title="Account readiness">
         <div className="card sourceMetadataDisclosure">
