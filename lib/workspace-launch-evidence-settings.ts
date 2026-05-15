@@ -1,4 +1,5 @@
 import type { WorkspaceLaunchReadiness } from "@/lib/workspace-launch-readiness";
+import type { CustomerOnboardingOwner } from "@/lib/customer-onboarding-readiness";
 
 export type WorkspaceLaunchEvidenceSectionStatus = "ready" | "needs_evidence";
 
@@ -19,6 +20,7 @@ export type WorkspaceLaunchEvidenceSettings = {
   writeReadySystemsCount: number;
   approvedMappingsCount: number;
   evidenceExportsCount: number;
+  owners: CustomerOnboardingOwner[];
   editableSections: WorkspaceLaunchEvidenceSection[];
   nextRequiredAction: string;
 };
@@ -124,6 +126,7 @@ export function buildWorkspaceLaunchEvidenceSettings(
     writeReadySystemsCount,
     approvedMappingsCount,
     evidenceExportsCount,
+    owners: sections.owners,
     editableSections,
     nextRequiredAction: firstIncomplete?.detail ?? "Review launch evidence before the next customer readiness meeting."
   };

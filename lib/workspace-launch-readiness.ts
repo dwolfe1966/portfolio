@@ -10,6 +10,7 @@ export type WorkspaceLaunchReadinessInput = {
   workspaceId?: string | null;
   generatedAt?: Date | string | null;
   requestedLaunchMode?: CustomerLaunchMode | null;
+  owners?: CustomerOnboardingOwner[] | null;
   providerReadReady?: boolean | null;
   providerWriteReady?: boolean | null;
   auditExportHref?: string | null;
@@ -54,10 +55,11 @@ export function buildWorkspaceLaunchReadiness(input: WorkspaceLaunchReadinessInp
   const providerReadReady = input.providerReadReady !== false;
   const providerWriteReady = input.providerWriteReady === true;
   const requestedLaunchMode = input.requestedLaunchMode ?? "human_approved_execution";
+  const owners = input.owners?.length ? input.owners : OWNERS;
 
   const onboarding = buildCustomerOnboardingReadiness({
     requestedLaunchMode,
-    owners: OWNERS,
+    owners,
     commercialScopeApproved: true,
     launchModeApproved: true,
     sourceReadGrantsReady: true,
@@ -188,7 +190,7 @@ export function buildWorkspaceLaunchReadiness(input: WorkspaceLaunchReadinessInp
     customerName: clean(input.customerName) || "Default demo workspace",
     workspaceId,
     generatedAt: timestamp,
-    owners: OWNERS,
+    owners,
     connectedSystems: [
       { name: "Workspace source imports", systemType: "warehouse", provider: "workspace", readReady: true, writeReady: false, credentialGrantId: "workspace_imports" },
       { name: "Google Ads", systemType: "ad_platform", provider: "google_ads", accountId: "selected_account", readReady: providerReadReady, writeReady: providerWriteReady, credentialGrantId: "google_ads_grant" },

@@ -49,3 +49,25 @@ test("buildWorkspaceLaunchReadiness blocks stale provider inspection evidence", 
   assert.ok(readiness.blockers.includes("Record last sync time for ad provider read snapshot."));
   assert.ok(readiness.blockers.includes("Confirm credential grants and token health."));
 });
+
+test("buildWorkspaceLaunchReadiness uses custom launch owner approvals", () => {
+  const readiness = buildWorkspaceLaunchReadiness({
+    customerName: "Acme Inc.",
+    workspaceId: "workspace_1",
+    generatedAt: "2026-05-14T12:00:00.000Z",
+    providerWriteReady: true,
+    owners: [
+      { role: "executive_sponsor", name: "Executive", approved: true },
+      { role: "workspace_owner", name: "Workspace", approved: true },
+      { role: "data_owner", name: "Data", approved: false },
+      { role: "channel_owner", name: "Channel", approved: true },
+      { role: "consent_compliance_owner", name: "Compliance", approved: true },
+      { role: "finance_owner", name: "Finance", approved: true },
+      { role: "operator_approver", name: "Operator", approved: true }
+    ]
+  });
+
+  assert.equal(readiness.status, "blocked");
+  assert.equal(readiness.packet.sections.owners.find((owner) => owner.role === "data_owner")?.approved, false);
+  assert.ok(readiness.blockers.includes("Approve owner roles: data_owner."));
+});

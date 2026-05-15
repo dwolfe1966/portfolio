@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { normalizeWorkspaceLaunchOwners } from "@/lib/workspace-launch-owner-roster";
 import { buildWorkspaceLaunchReadiness, type WorkspaceLaunchReadinessInput } from "@/lib/workspace-launch-readiness";
 
 export type WorkspaceLaunchReadinessRecordInput = WorkspaceLaunchReadinessInput & {
@@ -21,16 +22,17 @@ function scopeKey(accountUserId: string | null | undefined) {
 }
 
 export async function upsertWorkspaceLaunchReadinessRecord(input: WorkspaceLaunchReadinessRecordInput) {
-  const readiness = buildWorkspaceLaunchReadiness(input);
-  const packet = readiness.packet;
   const recordScopeKey = scopeKey(input.accountUserId);
   const existing = await db.workspaceLaunchReadinessRecord.findFirst({
     where: {
       workspaceId: input.workspaceId,
       scopeKey: recordScopeKey
     },
-    select: { id: true }
+    select: { id: true, owners: true }
   });
+  const owners = input.owners ?? (existing?.owners ? normalizeWorkspaceLaunchOwners(existing.owners) : undefined);
+  const readiness = buildWorkspaceLaunchReadiness({ ...input, owners });
+  const packet = readiness.packet;
   const data = {
     workspaceId: input.workspaceId,
     accountUserId: input.accountUserId ?? null,

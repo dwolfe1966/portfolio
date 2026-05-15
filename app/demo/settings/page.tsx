@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { DemoWorkspaceTabs } from "@/components/demo-shell/DemoWorkspaceTabs";
 import { Section } from "@/components/site/Section";
 import { ACCOUNT_SESSION_COOKIE, getAccountSessionUser } from "@/lib/account-session";
@@ -14,7 +15,12 @@ import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { buildWorkspaceLaunchEvidenceSettings } from "@/lib/workspace-launch-evidence-settings";
+import {
+  normalizeWorkspaceLaunchOwners,
+  WORKSPACE_LAUNCH_OWNER_ROLES
+} from "@/lib/workspace-launch-owner-roster";
 import { buildWorkspaceLaunchReadiness } from "@/lib/workspace-launch-readiness";
+import { upsertWorkspaceLaunchReadinessRecord } from "@/lib/workspace-launch-readiness-records";
 import {
   DEFAULT_WORKSPACE,
   getDefaultWorkspace,
@@ -59,9 +65,20 @@ async function loadWorkspaceSettings(accountUserId: string | null) {
     });
     const workspacePresets = await db.workspacePreset.count({ where: { accountUserId } });
     const providerWriteReadiness = loadAcquisitionProviderWriteReadiness();
+    const launchRecord = workspace
+      ? await db.workspaceLaunchReadinessRecord.findFirst({
+          where: {
+            workspaceId: workspace.id,
+            scopeKey: accountUserId ? `account:${accountUserId}` : "workspace"
+          },
+          select: { owners: true }
+        })
+      : null;
+    const owners = launchRecord?.owners ? normalizeWorkspaceLaunchOwners(launchRecord.owners) : undefined;
     const launchReadiness = buildWorkspaceLaunchReadiness({
       customerName: workspace?.name ?? DEFAULT_WORKSPACE.name,
       workspaceId: workspace?.id ?? DEFAULT_WORKSPACE.slug,
+      owners,
       providerReadReady: true,
       providerWriteReady: providerWriteReadiness.readyForApprovedMutation,
       auditExportHref: "/api/workspace/agents/audit-export"
@@ -100,6 +117,44 @@ async function saveWorkspaceIdentity(formData: FormData) {
   redirect("/workspace/settings?saved=identity");
 }
 
+async function saveLaunchOwnerRoster(formData: FormData) {
+  "use server";
+
+  if (!isDemoMutationAllowed()) {
+    redirect("/workspace/settings?error=mutations");
+  }
+
+  const cookieStore = await cookies();
+  const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+  const workspace = await db.workspace.findUnique({ where: { slug: DEFAULT_WORKSPACE.slug } });
+  if (!workspace) {
+    redirect("/workspace/settings?error=workspace");
+  }
+
+  const owners = normalizeWorkspaceLaunchOwners(WORKSPACE_LAUNCH_OWNER_ROLES.map(({ role }) => ({
+    role,
+    name: formData.get(`${role}:name`),
+    email: formData.get(`${role}:email`),
+    approved: formData.get(`${role}:approved`) === "on"
+  })));
+
+  await upsertWorkspaceLaunchReadinessRecord({
+    customerName: workspace.name,
+    workspaceId: workspace.id,
+    accountUserId: accountUser?.id ?? null,
+    owners,
+    providerReadReady: true,
+    providerWriteReady: loadAcquisitionProviderWriteReadiness().readyForApprovedMutation,
+    auditExportHref: "/api/workspace/agents/audit-export"
+  });
+
+  revalidatePath("/workspace/settings");
+  revalidatePath("/demo/settings");
+  revalidatePath("/workspace/agents");
+  revalidatePath("/demo/agents");
+  redirect("/workspace/settings?saved=launch-owners");
+}
+
 type SettingsSearchParams = {
   saved?: string;
   error?: string;
@@ -130,8 +185,14 @@ export default async function DemoSettingsPage({
         {params?.saved === "identity" ? (
           <p className="small bandText--healthy">Workspace identity saved.</p>
         ) : null}
+        {params?.saved === "launch-owners" ? (
+          <p className="small bandText--healthy">Launch owner roster saved.</p>
+        ) : null}
         {params?.error === "mutations" ? (
           <p className="small bandText--unhealthy">Workspace editing is disabled in this environment.</p>
+        ) : null}
+        {params?.error === "workspace" ? (
+          <p className="small bandText--unhealthy">Workspace settings are not available yet.</p>
         ) : null}
         <div className="workspaceSettingsPanel">
           <div className="card workspaceSettingsFormCard">
@@ -237,6 +298,47 @@ export default async function DemoSettingsPage({
                 <Link className="btn smallBtn" href={section.href}>Open</Link>
               </div>
             ))}
+          </div>
+          <div className="card sourceMetadataDisclosure">
+            <p className="small">Reviewer roster</p>
+            <form action={saveLaunchOwnerRoster} className="demoLoginForm">
+              {WORKSPACE_LAUNCH_OWNER_ROLES.map(({ role, label }) => {
+                const owner = settings.launchEvidence?.owners.find((item) => item.role === role);
+                return (
+                  <div className="workspaceSettingsPanel" key={role}>
+                    <label>
+                      <span>{label}</span>
+                      <input
+                        name={`${role}:name`}
+                        type="text"
+                        defaultValue={owner?.name ?? label}
+                        maxLength={120}
+                        required
+                      />
+                    </label>
+                    <label>
+                      <span>Email</span>
+                      <input
+                        name={`${role}:email`}
+                        type="email"
+                        defaultValue={owner?.email ?? ""}
+                        maxLength={160}
+                        placeholder="owner@example.com"
+                      />
+                    </label>
+                    <label className="workspaceInlineControl">
+                      <input
+                        name={`${role}:approved`}
+                        type="checkbox"
+                        defaultChecked={owner?.approved === true}
+                      />
+                      <span>Approved</span>
+                    </label>
+                  </div>
+                );
+              })}
+              <button className="btn primary" type="submit">Save reviewer roster</button>
+            </form>
           </div>
           <p className="small">Next action: {settings.launchEvidence.nextRequiredAction}</p>
         </Section>
