@@ -16,6 +16,7 @@ import {
   buildAcquisitionProviderWriteReadiness
 } from "@/lib/acquisition-agent-generalization";
 import { AGENT_WORKER_QUEUE_ALLOWLIST, DEFAULT_AGENT_WORKER_QUEUES } from "@/lib/agent-worker";
+import { buildCustomerReadinessReviewWorkflow } from "@/lib/customer-readiness-review-workflow";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
 import { buildWorkspaceExecutionUiGate } from "@/lib/workspace-execution-ui-gates";
 import { buildWorkspaceLaunchReadiness } from "@/lib/workspace-launch-readiness";
@@ -353,6 +354,10 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
   const postureReasons = [...operations.posture.blockers, ...operations.posture.warnings];
   const acquisitionBlockers = operations.acquisitionProviderWriteReadiness.blockers.map(label);
   const executionGate = buildWorkspaceExecutionUiGate(operations.launchReadiness);
+  const reviewWorkflow = buildCustomerReadinessReviewWorkflow({
+    owners: operations.launchReadiness.packet.sections.owners,
+    launchMode: operations.launchReadiness.maxAllowedLaunchMode
+  });
   const launchStatusClass = operations.launchReadiness.status === "ready"
     ? "live"
     : operations.launchReadiness.status === "blocked"
@@ -495,6 +500,28 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
             <strong>{label(executionGate.billableGateStatus)}</strong>
             <span>{executionGate.controls.find((control) => control.key === "performance_billing")?.reason}</span>
           </div>
+        </div>
+      </Section>
+
+      <Section title="Customer readiness review">
+        <div className="activitySummaryGrid">
+          <div className="activitySummaryCard">
+            <p className="small">Review status</p>
+            <strong>{label(reviewWorkflow.status)}</strong>
+            <span>{reviewWorkflow.approvedCount} of {reviewWorkflow.totalCount} required reviewers approved.</span>
+          </div>
+          <div className="activitySummaryCard">
+            <p className="small">Launch escalation</p>
+            <strong>{reviewWorkflow.launchEscalationAllowed ? "Allowed" : "Blocked"}</strong>
+            <span>{reviewWorkflow.nextRequiredAction}</span>
+          </div>
+          {reviewWorkflow.reviews.slice(0, 6).map((review) => (
+            <div className="activitySummaryCard" key={review.role}>
+              <p className="small">{review.label}</p>
+              <strong>{review.reviewer}</strong>
+              <span className={`statusPill ${statusClass(review.status)}`}>{label(review.status)}</span>
+            </div>
+          ))}
         </div>
       </Section>
 
