@@ -25,9 +25,9 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 - ⏳ To do
 - 🚧 Blocked (waiting on dependency)
 
-## Active sprint: S18 (customer launch evidence configuration)
+## Active sprint: S19 (customer operating cockpit)
 
-S18 turns launch readiness evidence into customer-owned workspace configuration. The goal is to move from composed/default evidence toward editable reviewer rosters, connected-system proof, baseline/revenue proof inputs, and launch audit history.
+S19 turns configured launch evidence into a customer-facing operating cockpit. The goal is to make the workspace dashboard show launch state, next action, evidence history, and operating readiness without forcing users to piece together settings, activity, agents, and exports manually.
 
 | ID | Item | Owner | Size | Sprint | Status | Acceptance criteria |
 |---|---|---|---|---|---|---|
@@ -128,6 +128,10 @@ S18 turns launch readiness evidence into customer-owned workspace configuration.
 | L68 | Persist connected-system evidence inputs | DW | L | S18 | ✅ | Workspace admins can attach read/write grant evidence and token health proof for launch-connected systems. |
 | L69 | Persist baseline and revenue proof inputs | DW | L | S18 | ✅ | Workspace admins can attach baseline, holdout, finance approval, and revenue proof evidence used by launch packets. |
 | L70 | Launch readiness audit activity trail | DW | M | S18 | ✅ | Launch evidence changes are captured as workspace activity and exportable audit rows. |
+| L71 | Workspace launch cockpit | DW | M | S19 | ✅ | Workspace Dashboard summarizes launch readiness status, max launch mode, packet exportability, next action, and recent launch evidence events with links to the right operating surfaces. |
+| L72 | Launch packet preview panel | DW | M | S19 | ⏳ | Workspace Dashboard exposes a readable packet preview with owners, systems, baseline, risks, and export links before download. |
+| L73 | Launch next-action routing | DW | M | S19 | ⏳ | Readiness blockers map to specific workspace forms, provider connection pages, agent operations queues, or packet export actions. |
+| L74 | Customer-facing readiness report | DW | L | S19 | ⏳ | A customer-readable report page explains current launch posture, evidence status, unresolved risks, and billing/execution implications. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -144,6 +148,7 @@ S18 turns launch readiness evidence into customer-owned workspace configuration.
 | S16 | L55, L56, L57, L58, L59, L60 | — | — |
 | S17 | L61, L62, L63, L64, L65 | — | — |
 | S18 | L66, L67, L68, L69, L70 | — | — |
+| S19 | L71 | L72, L73, L74 | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -534,3 +539,13 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ L58
 - ✅ L59
 - ✅ L60
+
+### Sprint S17 (launch readiness operations)
+- ✅ L61, L62, L63, L64, L65
+
+### Sprint S18 (customer launch evidence configuration)
+- ✅ L66, L67, L68, L69, L70
+
+### Sprint S19 (customer operating cockpit)
+- ✅ L71
+- ⏳ L72, L73, L74

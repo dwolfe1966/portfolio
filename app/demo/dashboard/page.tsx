@@ -8,6 +8,7 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
+import { buildWorkspaceLaunchCockpitSummary } from "@/lib/workspace-launch-cockpit";
 import { loadWorkspaceDatasetReadiness, summarizeDatasetReadiness } from "@/lib/workspace-datasets";
 import { workspaceVisibilityLabel } from "@/lib/workspace-visibility";
 
@@ -105,7 +106,9 @@ async function loadToolsetSummary(accountUserId: string | null) {
       recentDatasets,
       datasetReadiness,
       providerConnections,
-      providerDatasets
+      providerDatasets,
+      launchRecord,
+      launchAuditEvents
     ] = await Promise.all([
       db.workspace.findUnique({ where: { slug: "default-demo-workspace" } }),
       db.lifecycleMappingPreset.count({ where: { accountUserId } }),
@@ -156,6 +159,35 @@ async function loadToolsetSummary(accountUserId: string | null) {
           metadata: true,
           createdAt: true
         }
+      }),
+      db.workspaceLaunchReadinessRecord.findFirst({
+        where: {
+          workspace: { slug: "default-demo-workspace" },
+          scopeKey: accountUserId ? `account:${accountUserId}` : "workspace"
+        },
+        orderBy: { updatedAt: "desc" },
+        select: {
+          status: true,
+          exportable: true,
+          maxAllowedLaunchMode: true,
+          launchDecisionMode: true,
+          nextRequiredAction: true,
+          updatedAt: true
+        }
+      }),
+      db.lifecycleConnectorAuditEvent.findMany({
+        where: {
+          provider: "workspace_launch",
+          OR: [{ accountUserId }, { accountUserId: null }]
+        },
+        orderBy: { occurredAt: "desc" },
+        take: 3,
+        select: {
+          id: true,
+          eventType: true,
+          metadata: true,
+          occurredAt: true
+        }
       })
     ]);
 
@@ -170,6 +202,8 @@ async function loadToolsetSummary(accountUserId: string | null) {
       datasetReadiness,
       providerConnections,
       providerDatasets,
+      launchRecord,
+      launchAuditEvents,
       compatibilityMode: false
     };
   } catch (error) {
@@ -185,6 +219,8 @@ async function loadToolsetSummary(accountUserId: string | null) {
         datasetReadiness: [],
         providerConnections: [],
         providerDatasets: [],
+        launchRecord: null,
+        launchAuditEvents: [],
         compatibilityMode: true
       };
     }
@@ -304,6 +340,10 @@ export default async function DemoDashboardPage() {
   const providerReadyCount = summary.providerConnections.filter((connection) => connection.isTestAccount && grantIsHealthy(connection.credentialGrant)).length;
   const providerAttention = providerAttentionCounts(summary.providerConnections);
   const providerSyncedCount = summary.providerConnections.filter((connection) => providerDatasetByConnectionId.has(connection.id)).length;
+  const launchCockpit = buildWorkspaceLaunchCockpitSummary({
+    record: summary.launchRecord,
+    events: summary.launchAuditEvents
+  });
   const workspaceFlow = ["Connect source", "Import snapshot", "Choose source in tool", "Run and review"];
   const activeSelectionsByApp = new Map<string, (typeof summary.activeSelections)[number]>();
   summary.activeSelections.forEach((selection) => {
@@ -366,6 +406,42 @@ export default async function DemoDashboardPage() {
         {summary.compatibilityMode ? (
           <p className="small">Run the latest Prisma migrations to enable workspace persistence.</p>
         ) : null}
+      </Section>
+
+      <Section title="Launch readiness cockpit">
+        <div className="launchCockpitPanel">
+          <div className="launchCockpitPrimary">
+            <p className="small">Current launch state</p>
+            <div>
+              <span className={`statusPill ${launchCockpit.statusTone}`}>{launchCockpit.statusLabel}</span>
+              <span className="statusPill progress">{launchCockpit.launchModeLabel}</span>
+              <span className={`statusPill ${launchCockpit.packetLabel === "exportable" ? "live" : "progress"}`}>{launchCockpit.packetLabel}</span>
+            </div>
+            <h3>{launchCockpit.nextAction}</h3>
+            <p className="small">
+              Last updated: {launchCockpit.updatedAt ? formatDate(launchCockpit.updatedAt) : "No launch readiness record yet"}
+            </p>
+            <div className="toolReadinessActions">
+              <Link className="btn smallBtn primary" href={launchCockpit.nextActionHref}>Take next action</Link>
+              <Link className="btn smallBtn" href="/workspace/agents">Agent operations</Link>
+              <Link className="btn smallBtn" href="/api/workspace/launch-packet?format=markdown">Export packet</Link>
+            </div>
+          </div>
+          <div className="launchCockpitEvents">
+            <p className="small">Recent launch evidence</p>
+            {launchCockpit.recentEvents.length === 0 ? (
+              <p>No launch evidence changes have been captured yet.</p>
+            ) : (
+              launchCockpit.recentEvents.map((event) => (
+                <div className="launchCockpitEvent" key={event.id}>
+                  <strong>{event.title}</strong>
+                  <span>{event.detail}</span>
+                  <span className="small">{formatDate(event.occurredAt)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </Section>
 
       <Section title="Provider data readiness">
