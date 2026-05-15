@@ -959,6 +959,8 @@ model WorkspaceLaunchReadinessRecord {
   connectedSystems     Json
   mappings             Json
   policy               Json?
+  baselineEvidence     Json?
+  revenueProofEvidence Json?
   unresolvedRisks      Json
   evidenceExports      Json
   launchPacket         Json

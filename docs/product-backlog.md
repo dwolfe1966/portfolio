@@ -126,7 +126,7 @@ S18 turns launch readiness evidence into customer-owned workspace configuration.
 | L66 | Workspace launch evidence settings panel | DW | M | S18 | ✅ | Workspace Settings exposes launch reviewer, connected-system, mapping, policy, baseline, and export evidence status with links into the operational surfaces. |
 | L67 | Persist editable launch owner roster | DW | M | S18 | ✅ | Workspace owners can edit launch reviewers, roles, and approval ownership before readiness review. |
 | L68 | Persist connected-system evidence inputs | DW | L | S18 | ✅ | Workspace admins can attach read/write grant evidence and token health proof for launch-connected systems. |
-| L69 | Persist baseline and revenue proof inputs | DW | L | S18 | ⏳ | Workspace admins can attach baseline, holdout, finance approval, and revenue proof evidence used by launch packets. |
+| L69 | Persist baseline and revenue proof inputs | DW | L | S18 | ✅ | Workspace admins can attach baseline, holdout, finance approval, and revenue proof evidence used by launch packets. |
 | L70 | Launch readiness audit activity trail | DW | M | S18 | ⏳ | Launch evidence changes are captured as workspace activity and exportable audit rows. |
 
 ### S8-S10 status snapshot (2026-05-07)
@@ -143,7 +143,7 @@ S18 turns launch readiness evidence into customer-owned workspace configuration.
 | S15 | L48, L49, L50, L51, L52, L53, L54 | — | — |
 | S16 | L55, L56, L57, L58, L59, L60 | — | — |
 | S17 | L61, L62, L63, L64, L65 | — | — |
-| S18 | L66, L67, L68 | L69, L70 | — |
+| S18 | L66, L67, L68, L69 | L70 | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.

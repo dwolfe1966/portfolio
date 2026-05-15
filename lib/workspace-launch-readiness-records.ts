@@ -1,5 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  buildDefaultWorkspaceLaunchBaselineEvidence,
+  normalizeWorkspaceLaunchBaselineEvidence
+} from "@/lib/workspace-launch-baseline-evidence";
 import { normalizeWorkspaceLaunchConnectedSystems } from "@/lib/workspace-launch-connected-systems";
 import { normalizeWorkspaceLaunchOwners } from "@/lib/workspace-launch-owner-roster";
 import { buildWorkspaceLaunchReadiness, type WorkspaceLaunchReadinessInput } from "@/lib/workspace-launch-readiness";
@@ -29,12 +33,31 @@ export async function upsertWorkspaceLaunchReadinessRecord(input: WorkspaceLaunc
       workspaceId: input.workspaceId,
       scopeKey: recordScopeKey
     },
-    select: { id: true, owners: true, connectedSystems: true }
+    select: {
+      id: true,
+      owners: true,
+      connectedSystems: true,
+      baselineEvidence: true,
+      revenueProofEvidence: true
+    }
   });
   const owners = input.owners ?? (existing?.owners ? normalizeWorkspaceLaunchOwners(existing.owners) : undefined);
   const connectedSystems = input.connectedSystems
     ?? (existing?.connectedSystems ? normalizeWorkspaceLaunchConnectedSystems(existing.connectedSystems) : undefined);
-  const readiness = buildWorkspaceLaunchReadiness({ ...input, owners, connectedSystems });
+  const defaultBaselineEvidence = buildDefaultWorkspaceLaunchBaselineEvidence({
+    workspaceId: input.workspaceId,
+    timestamp: new Date().toISOString(),
+    auditExportHref: input.auditExportHref ?? "/api/workspace/agents/audit-export"
+  });
+  const baselineEvidence = input.baselineEvidence ?? (
+    existing?.baselineEvidence || existing?.revenueProofEvidence
+      ? normalizeWorkspaceLaunchBaselineEvidence({
+          baseline: existing.baselineEvidence,
+          revenueProof: existing.revenueProofEvidence
+        }, defaultBaselineEvidence)
+      : undefined
+  );
+  const readiness = buildWorkspaceLaunchReadiness({ ...input, owners, connectedSystems, baselineEvidence });
   const packet = readiness.packet;
   const data = {
     workspaceId: input.workspaceId,
@@ -51,6 +74,8 @@ export async function upsertWorkspaceLaunchReadinessRecord(input: WorkspaceLaunc
     connectedSystems: jsonInput(packet.sections.connectedSystems),
     mappings: jsonInput(packet.sections.mappings),
     policy: jsonInput(packet.sections.policy),
+    baselineEvidence: jsonInput(baselineEvidence?.baseline ?? null),
+    revenueProofEvidence: jsonInput(baselineEvidence?.revenueProof ?? null),
     unresolvedRisks: jsonInput(packet.sections.unresolvedRisks),
     evidenceExports: jsonInput(packet.sections.evidenceExports),
     launchPacket: jsonInput(packet),

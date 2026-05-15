@@ -16,6 +16,11 @@ import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { buildWorkspaceLaunchEvidenceSettings } from "@/lib/workspace-launch-evidence-settings";
 import {
+  buildDefaultWorkspaceLaunchBaselineEvidence,
+  normalizeWorkspaceLaunchBaselineEvidence,
+  workspaceLaunchBaselineEvidenceFromForm
+} from "@/lib/workspace-launch-baseline-evidence";
+import {
   normalizeWorkspaceLaunchConnectedSystems,
   WORKSPACE_LAUNCH_CONNECTED_SYSTEMS
 } from "@/lib/workspace-launch-connected-systems";
@@ -75,28 +80,43 @@ async function loadWorkspaceSettings(accountUserId: string | null) {
             workspaceId: workspace.id,
             scopeKey: accountUserId ? `account:${accountUserId}` : "workspace"
           },
-          select: { owners: true, connectedSystems: true }
+          select: {
+            owners: true,
+            connectedSystems: true,
+            baselineEvidence: true,
+            revenueProofEvidence: true
+          }
         })
       : null;
+    const defaultBaselineEvidence = buildDefaultWorkspaceLaunchBaselineEvidence({
+      workspaceId: workspace?.id ?? DEFAULT_WORKSPACE.slug,
+      timestamp: new Date().toISOString(),
+      auditExportHref: "/api/workspace/agents/audit-export"
+    });
     const owners = launchRecord?.owners ? normalizeWorkspaceLaunchOwners(launchRecord.owners) : undefined;
     const connectedSystems = launchRecord?.connectedSystems
       ? normalizeWorkspaceLaunchConnectedSystems(launchRecord.connectedSystems)
       : undefined;
+    const baselineEvidence = normalizeWorkspaceLaunchBaselineEvidence({
+      baseline: launchRecord?.baselineEvidence,
+      revenueProof: launchRecord?.revenueProofEvidence
+    }, defaultBaselineEvidence);
     const launchReadiness = buildWorkspaceLaunchReadiness({
       customerName: workspace?.name ?? DEFAULT_WORKSPACE.name,
       workspaceId: workspace?.id ?? DEFAULT_WORKSPACE.slug,
       owners,
       connectedSystems,
+      baselineEvidence,
       providerReadReady: true,
       providerWriteReady: providerWriteReadiness.readyForApprovedMutation,
       auditExportHref: "/api/workspace/agents/audit-export"
     });
     const launchEvidence = buildWorkspaceLaunchEvidenceSettings(launchReadiness);
 
-    return { workspace, workspacePresets, compatibilityMode: false, launchEvidence };
+    return { workspace, workspacePresets, compatibilityMode: false, launchEvidence, baselineEvidence };
   } catch (error) {
     if (isMissingDemoTableError(error)) {
-      return { workspace: null, workspacePresets: 0, compatibilityMode: true, launchEvidence: null };
+      return { workspace: null, workspacePresets: 0, compatibilityMode: true, launchEvidence: null, baselineEvidence: null };
     }
     throw error;
   }
@@ -203,6 +223,56 @@ async function saveLaunchConnectedSystems(formData: FormData) {
   redirect("/workspace/settings?saved=launch-systems");
 }
 
+async function saveLaunchBaselineEvidence(formData: FormData) {
+  "use server";
+
+  if (!isDemoMutationAllowed()) {
+    redirect("/workspace/settings?error=mutations");
+  }
+
+  const cookieStore = await cookies();
+  const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+  const workspace = await db.workspace.findUnique({ where: { slug: DEFAULT_WORKSPACE.slug } });
+  if (!workspace) {
+    redirect("/workspace/settings?error=workspace");
+  }
+
+  const fallback = buildDefaultWorkspaceLaunchBaselineEvidence({
+    workspaceId: workspace.id,
+    timestamp: new Date().toISOString(),
+    auditExportHref: "/api/workspace/agents/audit-export"
+  });
+  const baselineEvidence = workspaceLaunchBaselineEvidenceFromForm({
+    baselineId: formData.get("baselineId"),
+    eligiblePopulationName: formData.get("eligiblePopulationName"),
+    eligiblePopulationCount: formData.get("eligiblePopulationCount"),
+    baselineLabel: formData.get("baselineLabel"),
+    baselineRevenueDollars: formData.get("baselineRevenueDollars"),
+    baselineConversionRate: formData.get("baselineConversionRate"),
+    treatmentPopulation: formData.get("treatmentPopulation"),
+    controlPopulation: formData.get("controlPopulation"),
+    observedConversions: formData.get("observedConversions"),
+    observedRevenueDollars: formData.get("observedRevenueDollars"),
+    spendDollars: formData.get("spendDollars"),
+    confidence: formData.get("confidence"),
+    fallback
+  });
+
+  await upsertWorkspaceLaunchReadinessRecord({
+    customerName: workspace.name,
+    workspaceId: workspace.id,
+    accountUserId: accountUser?.id ?? null,
+    baselineEvidence,
+    auditExportHref: "/api/workspace/agents/audit-export"
+  });
+
+  revalidatePath("/workspace/settings");
+  revalidatePath("/demo/settings");
+  revalidatePath("/workspace/agents");
+  revalidatePath("/demo/agents");
+  redirect("/workspace/settings?saved=launch-baseline");
+}
+
 type SettingsSearchParams = {
   saved?: string;
   error?: string;
@@ -238,6 +308,9 @@ export default async function DemoSettingsPage({
         ) : null}
         {params?.saved === "launch-systems" ? (
           <p className="small bandText--healthy">Connected-system evidence saved.</p>
+        ) : null}
+        {params?.saved === "launch-baseline" ? (
+          <p className="small bandText--healthy">Baseline and revenue proof evidence saved.</p>
         ) : null}
         {params?.error === "mutations" ? (
           <p className="small bandText--unhealthy">Workspace editing is disabled in this environment.</p>
@@ -442,6 +515,78 @@ export default async function DemoSettingsPage({
               <button className="btn primary" type="submit">Save connected systems</button>
             </form>
           </div>
+          {settings.baselineEvidence ? (
+            <div className="card sourceMetadataDisclosure">
+              <p className="small">Baseline and revenue proof</p>
+              <form action={saveLaunchBaselineEvidence} className="demoLoginForm">
+                <div className="workspaceSettingsPanel">
+                  <label>
+                    <span>Baseline ID</span>
+                    <input name="baselineId" type="text" defaultValue={settings.baselineEvidence.baseline.baselineId ?? ""} maxLength={120} />
+                  </label>
+                  <label>
+                    <span>Population name</span>
+                    <input name="eligiblePopulationName" type="text" defaultValue={settings.baselineEvidence.baseline.eligiblePopulationName ?? ""} maxLength={240} />
+                  </label>
+                </div>
+                <div className="workspaceSettingsPanel">
+                  <label>
+                    <span>Eligible population</span>
+                    <input name="eligiblePopulationCount" type="number" min="1" step="1" defaultValue={settings.baselineEvidence.baseline.eligiblePopulationCount ?? 0} />
+                  </label>
+                  <label>
+                    <span>Baseline label</span>
+                    <input name="baselineLabel" type="text" defaultValue={settings.baselineEvidence.revenueProof.baselineLabel ?? ""} maxLength={120} />
+                  </label>
+                </div>
+                <div className="workspaceSettingsPanel">
+                  <label>
+                    <span>Baseline revenue</span>
+                    <input name="baselineRevenueDollars" type="number" min="0" step="0.01" defaultValue={(settings.baselineEvidence.revenueProof.baselineRevenueCents ?? 0) / 100} />
+                  </label>
+                  <label>
+                    <span>Baseline conversion rate</span>
+                    <input name="baselineConversionRate" type="number" min="0" max="1" step="0.001" defaultValue={settings.baselineEvidence.revenueProof.baselineConversionRate ?? 0} />
+                  </label>
+                </div>
+                <div className="workspaceSettingsPanel">
+                  <label>
+                    <span>Treatment population</span>
+                    <input name="treatmentPopulation" type="number" min="0" step="1" defaultValue={settings.baselineEvidence.revenueProof.treatmentPopulation ?? 0} />
+                  </label>
+                  <label>
+                    <span>Control population</span>
+                    <input name="controlPopulation" type="number" min="0" step="1" defaultValue={settings.baselineEvidence.revenueProof.controlPopulation ?? 0} />
+                  </label>
+                </div>
+                <div className="workspaceSettingsPanel">
+                  <label>
+                    <span>Observed conversions</span>
+                    <input name="observedConversions" type="number" min="0" step="1" defaultValue={settings.baselineEvidence.revenueProof.observedConversions ?? 0} />
+                  </label>
+                  <label>
+                    <span>Observed revenue</span>
+                    <input name="observedRevenueDollars" type="number" min="0" step="0.01" defaultValue={(settings.baselineEvidence.revenueProof.observedRevenueCents ?? 0) / 100} />
+                  </label>
+                </div>
+                <div className="workspaceSettingsPanel">
+                  <label>
+                    <span>Spend</span>
+                    <input name="spendDollars" type="number" min="0" step="0.01" defaultValue={(settings.baselineEvidence.revenueProof.spendCents ?? 0) / 100} />
+                  </label>
+                  <label>
+                    <span>Confidence</span>
+                    <select name="confidence" defaultValue={settings.baselineEvidence.revenueProof.confidence ?? "medium"}>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </label>
+                </div>
+                <button className="btn primary" type="submit">Save baseline evidence</button>
+              </form>
+            </div>
+          ) : null}
           <p className="small">Next action: {settings.launchEvidence.nextRequiredAction}</p>
         </Section>
       ) : null}

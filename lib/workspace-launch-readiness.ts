@@ -1,9 +1,14 @@
 import { buildBillableExecutionGate } from "@/lib/billable-execution-gates";
-import { buildCustomerBaselineSnapshotDecision } from "@/lib/customer-baseline-snapshots";
+import { buildCustomerBaselineSnapshotDecision, type CustomerBaselineSnapshotInput } from "@/lib/customer-baseline-snapshots";
 import { buildCustomerDataQualityGateDecision } from "@/lib/customer-data-quality-gates";
 import { buildCustomerLaunchPacket, type CustomerLaunchPacket, type CustomerLaunchPacketConnectedSystem } from "@/lib/customer-launch-packet";
 import { buildCustomerOnboardingReadiness, type CustomerLaunchMode, type CustomerOnboardingOwner } from "@/lib/customer-onboarding-readiness";
-import { buildRevenueProofDashboard } from "@/lib/revenue-proof-dashboard";
+import { buildRevenueProofDashboard, type RevenueProofDashboardInput } from "@/lib/revenue-proof-dashboard";
+import {
+  buildDefaultWorkspaceLaunchBaselineEvidence,
+  normalizeWorkspaceLaunchBaselineEvidence,
+  type WorkspaceLaunchBaselineEvidence
+} from "@/lib/workspace-launch-baseline-evidence";
 import {
   buildDefaultWorkspaceLaunchConnectedSystems,
   providerReadReadyFromConnectedSystems,
@@ -17,6 +22,7 @@ export type WorkspaceLaunchReadinessInput = {
   requestedLaunchMode?: CustomerLaunchMode | null;
   owners?: CustomerOnboardingOwner[] | null;
   connectedSystems?: CustomerLaunchPacketConnectedSystem[] | null;
+  baselineEvidence?: WorkspaceLaunchBaselineEvidence | null;
   providerReadReady?: boolean | null;
   providerWriteReady?: boolean | null;
   auditExportHref?: string | null;
@@ -72,6 +78,10 @@ export function buildWorkspaceLaunchReadiness(input: WorkspaceLaunchReadinessInp
   const providerWriteReady = input.connectedSystems?.length
     ? providerWriteReadyFromConnectedSystems(connectedSystems)
     : input.providerWriteReady === true;
+  const baselineEvidence = normalizeWorkspaceLaunchBaselineEvidence(
+    input.baselineEvidence,
+    buildDefaultWorkspaceLaunchBaselineEvidence({ workspaceId, timestamp, auditExportHref })
+  );
 
   const onboarding = buildCustomerOnboardingReadiness({
     requestedLaunchMode,
@@ -135,57 +145,9 @@ export function buildWorkspaceLaunchReadiness(input: WorkspaceLaunchReadinessInp
     now: timestamp
   });
 
-  const baseline = buildCustomerBaselineSnapshotDecision({
-    baselineId: "baseline_workspace_launch_v1",
-    workspaceId,
-    app: "acquisition",
-    method: "randomized_holdout",
-    periodStartAt: "2026-02-01T00:00:00.000Z",
-    periodEndAt: "2026-04-30T00:00:00.000Z",
-    freezeAt: timestamp,
-    eligiblePopulationName: "Qualified paid acquisition traffic",
-    eligiblePopulationCount: 42000,
-    treatmentDefinition: "Provider-write recommendations applied after approval.",
-    eligibleRevenueDefinition: "Attributed gross revenue net of media spend.",
-    currencyCode: "USD",
-    metrics: [
-      { key: "revenue", label: "Baseline revenue", baselineValue: 11800000, unit: "currency", sourceName: "billing warehouse" },
-      { key: "conversion_rate", label: "Baseline conversion rate", baselineValue: 0.048, unit: "rate", sourceName: "analytics warehouse" }
-    ],
-    sourceSnapshots: [
-      { sourceName: "billing warehouse", snapshotId: "billing_snapshot_v1", mappingVersion: "workspace_mapping_v1", rowCount: 42000, rejectedRowCount: 0, frozen: true },
-      { sourceName: "ad provider read snapshot", snapshotId: "provider_snapshot_v1", mappingVersion: "workspace_mapping_v1", rowCount: 64, rejectedRowCount: 0, frozen: true }
-    ],
-    confidence: "high",
-    confidenceRationale: "Holdout coverage is stable and source snapshots are frozen.",
-    stablePrePeriod: true,
-    controlDefinition: "Randomized 10% campaign holdout.",
-    approvals: [
-      { role: "data_owner", approved: true, approvedBy: "data-owner@example.com", approvedAt: timestamp },
-      { role: "finance_owner", approved: true, approvedBy: "finance-owner@example.com", approvedAt: timestamp }
-    ]
-  });
+  const baseline = buildCustomerBaselineSnapshotDecision(baselineEvidence.baseline as CustomerBaselineSnapshotInput);
 
-  const revenueProof = buildRevenueProofDashboard({
-    app: "acquisition",
-    baselineLabel: "Launch baseline v1",
-    baselinePopulation: 42000,
-    baselineConversionRate: 0.048,
-    baselineRevenueCents: 11800000,
-    treatmentPopulation: 4600,
-    controlPopulation: 460,
-    observedConversions: 256,
-    observedRevenueCents: 1510000,
-    spendCents: 280000,
-    confidence: "high",
-    actions: [
-      { id: "approval_queue", label: "Approval queue configured", status: "approved", occurredAt: timestamp, auditUrl: "/workspace/agents" },
-      { id: "provider_dry_run", label: "Provider dry-run evidence retained", status: "applied", occurredAt: timestamp, auditUrl: "/workspace/agents" }
-    ],
-    exportLinks: [
-      { label: "Agent audit export", href: auditExportHref, evidenceType: "audit" }
-    ]
-  });
+  const revenueProof = buildRevenueProofDashboard(baselineEvidence.revenueProof as RevenueProofDashboardInput);
 
   const billableGate = buildBillableExecutionGate({
     requestedMode: "performance_billing",

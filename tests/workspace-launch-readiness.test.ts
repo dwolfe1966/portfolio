@@ -89,3 +89,56 @@ test("buildWorkspaceLaunchReadiness uses custom connected-system evidence", () =
   assert.equal(readiness.packet.sections.connectedSystems.find((system) => system.provider === "google_ads")?.readReady, true);
   assert.ok(readiness.blockers.includes("Approve channel write grants before execution."));
 });
+
+test("buildWorkspaceLaunchReadiness uses custom baseline and revenue proof evidence", () => {
+  const readiness = buildWorkspaceLaunchReadiness({
+    customerName: "Acme Inc.",
+    workspaceId: "workspace_1",
+    generatedAt: "2026-05-14T12:00:00.000Z",
+    providerWriteReady: true,
+    baselineEvidence: {
+      baseline: {
+        baselineId: "baseline_custom",
+        workspaceId: "workspace_1",
+        app: "acquisition",
+        method: "randomized_holdout",
+        periodStartAt: "2026-02-01T00:00:00.000Z",
+        periodEndAt: "2026-04-30T00:00:00.000Z",
+        freezeAt: "2026-05-14T12:00:00.000Z",
+        eligiblePopulationName: "Qualified paid traffic",
+        eligiblePopulationCount: 10000,
+        eligibleRevenueDefinition: "Gross revenue net of spend.",
+        currencyCode: "USD",
+        metrics: [{ key: "revenue", baselineValue: 5000000, sourceName: "billing warehouse" }],
+        sourceSnapshots: [{ sourceName: "billing warehouse", snapshotId: "snap_1", mappingVersion: "v1", rowCount: 10000, frozen: true }],
+        confidence: "medium",
+        confidenceRationale: "Stable enough for launch.",
+        stablePrePeriod: true,
+        controlDefinition: "Randomized holdout.",
+        approvals: [
+          { role: "data_owner", approved: true, approvedBy: "data@example.com", approvedAt: "2026-05-14T12:00:00.000Z" },
+          { role: "finance_owner", approved: true, approvedBy: "finance@example.com", approvedAt: "2026-05-14T12:00:00.000Z" }
+        ]
+      },
+      revenueProof: {
+        app: "acquisition",
+        baselineLabel: "Custom baseline",
+        baselinePopulation: 10000,
+        baselineConversionRate: 0.04,
+        baselineRevenueCents: 5000000,
+        treatmentPopulation: 1000,
+        controlPopulation: 100,
+        observedConversions: 60,
+        observedRevenueCents: 650000,
+        spendCents: 100000,
+        confidence: "medium",
+        actions: [{ id: "approval_queue", label: "Approval queue configured", status: "approved" }],
+        exportLinks: [{ label: "Audit export", href: "/api/workspace/agents/audit-export", evidenceType: "audit" }]
+      }
+    }
+  });
+
+  assert.equal(readiness.packet.sections.baseline?.confidence, "medium");
+  assert.equal(readiness.packet.sections.revenueProof?.baselineLabel, "Custom baseline");
+  assert.equal(readiness.packet.sections.revenueProof?.incrementalProfitCents, 50000);
+});
