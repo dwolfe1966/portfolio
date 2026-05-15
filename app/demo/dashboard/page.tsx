@@ -172,6 +172,7 @@ async function loadToolsetSummary(accountUserId: string | null) {
           maxAllowedLaunchMode: true,
           launchDecisionMode: true,
           nextRequiredAction: true,
+          launchPacket: true,
           updatedAt: true
         }
       }),
@@ -271,6 +272,11 @@ function datasetConnectionId(dataset: ProviderDataset) {
 
 function formatDateOptional(value: Date | null | undefined) {
   return value ? formatDate(value) : "Never";
+}
+
+function formatPacketDate(value: string) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? formatDate(date) : "Not generated";
 }
 
 function grantIsHealthy(grant: ProviderCredentialGrant | null) {
@@ -440,6 +446,29 @@ export default async function DemoDashboardPage() {
                 </div>
               ))
             )}
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Launch packet preview">
+        <div className="launchPacketPreview">
+          <div className="launchPacketPreviewHeader">
+            <div>
+              <p className="small">Customer packet</p>
+              <h3>{launchCockpit.packetPreview.customerName}</h3>
+              <p className="small">
+                Generated: {formatPacketDate(launchCockpit.packetPreview.generatedAt)}
+              </p>
+            </div>
+            <Link className="btn smallBtn" href="/api/workspace/launch-packet?format=json">Export JSON</Link>
+          </div>
+          <div className="launchPacketPreviewGrid">
+            <div><span>Owners</span><strong>{launchCockpit.packetPreview.ownerApprovalLabel}</strong></div>
+            <div><span>Systems</span><strong>{launchCockpit.packetPreview.connectedSystemsLabel}</strong></div>
+            <div><span>Baseline</span><strong>{launchCockpit.packetPreview.baselineLabel}</strong></div>
+            <div><span>Revenue proof</span><strong>{launchCockpit.packetPreview.revenueProofLabel}</strong></div>
+            <div><span>Risks</span><strong>{launchCockpit.packetPreview.unresolvedRiskLabel}</strong></div>
+            <div><span>Exports</span><strong>{launchCockpit.packetPreview.evidenceExportLabel}</strong></div>
           </div>
         </div>
       </Section>
