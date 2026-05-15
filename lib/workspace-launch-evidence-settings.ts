@@ -1,5 +1,6 @@
 import type { WorkspaceLaunchReadiness } from "@/lib/workspace-launch-readiness";
 import type { CustomerOnboardingOwner } from "@/lib/customer-onboarding-readiness";
+import type { CustomerLaunchPacketConnectedSystem } from "@/lib/customer-launch-packet";
 
 export type WorkspaceLaunchEvidenceSectionStatus = "ready" | "needs_evidence";
 
@@ -21,6 +22,7 @@ export type WorkspaceLaunchEvidenceSettings = {
   approvedMappingsCount: number;
   evidenceExportsCount: number;
   owners: CustomerOnboardingOwner[];
+  connectedSystems: CustomerLaunchPacketConnectedSystem[];
   editableSections: WorkspaceLaunchEvidenceSection[];
   nextRequiredAction: string;
 };
@@ -127,6 +129,7 @@ export function buildWorkspaceLaunchEvidenceSettings(
     approvedMappingsCount,
     evidenceExportsCount,
     owners: sections.owners,
+    connectedSystems: sections.connectedSystems,
     editableSections,
     nextRequiredAction: firstIncomplete?.detail ?? "Review launch evidence before the next customer readiness meeting."
   };

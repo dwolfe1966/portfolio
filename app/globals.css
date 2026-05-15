@@ -1550,6 +1550,11 @@ button {
 .demoLoginForm .workspaceInlineControl input {
   width: auto;
 }
+.workspaceInlineStack {
+  align-content: center;
+  display: grid;
+  gap: 10px;
+}
 .accessSessionCard {
   display: grid;
   gap: 10px;

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { normalizeWorkspaceLaunchConnectedSystems } from "@/lib/workspace-launch-connected-systems";
 import { normalizeWorkspaceLaunchOwners } from "@/lib/workspace-launch-owner-roster";
 import { buildWorkspaceLaunchReadiness, type WorkspaceLaunchReadinessInput } from "@/lib/workspace-launch-readiness";
 
@@ -28,10 +29,12 @@ export async function upsertWorkspaceLaunchReadinessRecord(input: WorkspaceLaunc
       workspaceId: input.workspaceId,
       scopeKey: recordScopeKey
     },
-    select: { id: true, owners: true }
+    select: { id: true, owners: true, connectedSystems: true }
   });
   const owners = input.owners ?? (existing?.owners ? normalizeWorkspaceLaunchOwners(existing.owners) : undefined);
-  const readiness = buildWorkspaceLaunchReadiness({ ...input, owners });
+  const connectedSystems = input.connectedSystems
+    ?? (existing?.connectedSystems ? normalizeWorkspaceLaunchConnectedSystems(existing.connectedSystems) : undefined);
+  const readiness = buildWorkspaceLaunchReadiness({ ...input, owners, connectedSystems });
   const packet = readiness.packet;
   const data = {
     workspaceId: input.workspaceId,

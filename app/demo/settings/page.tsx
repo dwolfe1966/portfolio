@@ -16,6 +16,10 @@ import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { buildWorkspaceLaunchEvidenceSettings } from "@/lib/workspace-launch-evidence-settings";
 import {
+  normalizeWorkspaceLaunchConnectedSystems,
+  WORKSPACE_LAUNCH_CONNECTED_SYSTEMS
+} from "@/lib/workspace-launch-connected-systems";
+import {
   normalizeWorkspaceLaunchOwners,
   WORKSPACE_LAUNCH_OWNER_ROLES
 } from "@/lib/workspace-launch-owner-roster";
@@ -71,14 +75,18 @@ async function loadWorkspaceSettings(accountUserId: string | null) {
             workspaceId: workspace.id,
             scopeKey: accountUserId ? `account:${accountUserId}` : "workspace"
           },
-          select: { owners: true }
+          select: { owners: true, connectedSystems: true }
         })
       : null;
     const owners = launchRecord?.owners ? normalizeWorkspaceLaunchOwners(launchRecord.owners) : undefined;
+    const connectedSystems = launchRecord?.connectedSystems
+      ? normalizeWorkspaceLaunchConnectedSystems(launchRecord.connectedSystems)
+      : undefined;
     const launchReadiness = buildWorkspaceLaunchReadiness({
       customerName: workspace?.name ?? DEFAULT_WORKSPACE.name,
       workspaceId: workspace?.id ?? DEFAULT_WORKSPACE.slug,
       owners,
+      connectedSystems,
       providerReadReady: true,
       providerWriteReady: providerWriteReadiness.readyForApprovedMutation,
       auditExportHref: "/api/workspace/agents/audit-export"
@@ -155,6 +163,46 @@ async function saveLaunchOwnerRoster(formData: FormData) {
   redirect("/workspace/settings?saved=launch-owners");
 }
 
+async function saveLaunchConnectedSystems(formData: FormData) {
+  "use server";
+
+  if (!isDemoMutationAllowed()) {
+    redirect("/workspace/settings?error=mutations");
+  }
+
+  const cookieStore = await cookies();
+  const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+  const workspace = await db.workspace.findUnique({ where: { slug: DEFAULT_WORKSPACE.slug } });
+  if (!workspace) {
+    redirect("/workspace/settings?error=workspace");
+  }
+
+  const connectedSystems = normalizeWorkspaceLaunchConnectedSystems(WORKSPACE_LAUNCH_CONNECTED_SYSTEMS.map((system) => {
+    const key = system.provider || system.name;
+    return {
+      ...system,
+      accountId: formData.get(`${key}:accountId`),
+      credentialGrantId: formData.get(`${key}:credentialGrantId`),
+      readReady: formData.get(`${key}:readReady`) === "on",
+      writeReady: formData.get(`${key}:writeReady`) === "on"
+    };
+  }));
+
+  await upsertWorkspaceLaunchReadinessRecord({
+    customerName: workspace.name,
+    workspaceId: workspace.id,
+    accountUserId: accountUser?.id ?? null,
+    connectedSystems,
+    auditExportHref: "/api/workspace/agents/audit-export"
+  });
+
+  revalidatePath("/workspace/settings");
+  revalidatePath("/demo/settings");
+  revalidatePath("/workspace/agents");
+  revalidatePath("/demo/agents");
+  redirect("/workspace/settings?saved=launch-systems");
+}
+
 type SettingsSearchParams = {
   saved?: string;
   error?: string;
@@ -187,6 +235,9 @@ export default async function DemoSettingsPage({
         ) : null}
         {params?.saved === "launch-owners" ? (
           <p className="small bandText--healthy">Launch owner roster saved.</p>
+        ) : null}
+        {params?.saved === "launch-systems" ? (
+          <p className="small bandText--healthy">Connected-system evidence saved.</p>
         ) : null}
         {params?.error === "mutations" ? (
           <p className="small bandText--unhealthy">Workspace editing is disabled in this environment.</p>
@@ -338,6 +389,57 @@ export default async function DemoSettingsPage({
                 );
               })}
               <button className="btn primary" type="submit">Save reviewer roster</button>
+            </form>
+          </div>
+          <div className="card sourceMetadataDisclosure">
+            <p className="small">Connected-system evidence</p>
+            <form action={saveLaunchConnectedSystems} className="demoLoginForm">
+              {settings.launchEvidence.connectedSystems.map((system) => {
+                const key = system.provider || system.name;
+                return (
+                  <div className="workspaceSettingsPanel" key={key}>
+                    <label>
+                      <span>{system.name}</span>
+                      <input
+                        name={`${key}:accountId`}
+                        type="text"
+                        defaultValue={system.accountId ?? ""}
+                        maxLength={120}
+                        placeholder="Account or source id"
+                      />
+                    </label>
+                    <label>
+                      <span>Credential evidence</span>
+                      <input
+                        name={`${key}:credentialGrantId`}
+                        type="text"
+                        defaultValue={system.credentialGrantId ?? ""}
+                        maxLength={160}
+                        placeholder="Credential grant id"
+                      />
+                    </label>
+                    <div className="workspaceInlineStack">
+                      <label className="workspaceInlineControl">
+                        <input
+                          name={`${key}:readReady`}
+                          type="checkbox"
+                          defaultChecked={system.readReady === true}
+                        />
+                        <span>Read ready</span>
+                      </label>
+                      <label className="workspaceInlineControl">
+                        <input
+                          name={`${key}:writeReady`}
+                          type="checkbox"
+                          defaultChecked={system.writeReady === true}
+                        />
+                        <span>Write ready</span>
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
+              <button className="btn primary" type="submit">Save connected systems</button>
             </form>
           </div>
           <p className="small">Next action: {settings.launchEvidence.nextRequiredAction}</p>

@@ -71,3 +71,21 @@ test("buildWorkspaceLaunchReadiness uses custom launch owner approvals", () => {
   assert.equal(readiness.packet.sections.owners.find((owner) => owner.role === "data_owner")?.approved, false);
   assert.ok(readiness.blockers.includes("Approve owner roles: data_owner."));
 });
+
+test("buildWorkspaceLaunchReadiness uses custom connected-system evidence", () => {
+  const readiness = buildWorkspaceLaunchReadiness({
+    customerName: "Acme Inc.",
+    workspaceId: "workspace_1",
+    generatedAt: "2026-05-14T12:00:00.000Z",
+    connectedSystems: [
+      { name: "Workspace source imports", systemType: "warehouse", provider: "workspace", readReady: true, writeReady: false },
+      { name: "Google Ads", systemType: "ad_platform", provider: "google_ads", readReady: true, writeReady: false },
+      { name: "Meta Ads", systemType: "ad_platform", provider: "meta_ads", readReady: false, writeReady: false }
+    ]
+  });
+
+  assert.equal(readiness.status, "blocked");
+  assert.equal(readiness.maxAllowedLaunchMode, "recommendation_only");
+  assert.equal(readiness.packet.sections.connectedSystems.find((system) => system.provider === "google_ads")?.readReady, true);
+  assert.ok(readiness.blockers.includes("Approve channel write grants before execution."));
+});

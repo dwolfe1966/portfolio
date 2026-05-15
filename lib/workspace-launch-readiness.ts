@@ -1,9 +1,14 @@
 import { buildBillableExecutionGate } from "@/lib/billable-execution-gates";
 import { buildCustomerBaselineSnapshotDecision } from "@/lib/customer-baseline-snapshots";
 import { buildCustomerDataQualityGateDecision } from "@/lib/customer-data-quality-gates";
-import { buildCustomerLaunchPacket, type CustomerLaunchPacket } from "@/lib/customer-launch-packet";
+import { buildCustomerLaunchPacket, type CustomerLaunchPacket, type CustomerLaunchPacketConnectedSystem } from "@/lib/customer-launch-packet";
 import { buildCustomerOnboardingReadiness, type CustomerLaunchMode, type CustomerOnboardingOwner } from "@/lib/customer-onboarding-readiness";
 import { buildRevenueProofDashboard } from "@/lib/revenue-proof-dashboard";
+import {
+  buildDefaultWorkspaceLaunchConnectedSystems,
+  providerReadReadyFromConnectedSystems,
+  providerWriteReadyFromConnectedSystems
+} from "@/lib/workspace-launch-connected-systems";
 
 export type WorkspaceLaunchReadinessInput = {
   customerName?: string | null;
@@ -11,6 +16,7 @@ export type WorkspaceLaunchReadinessInput = {
   generatedAt?: Date | string | null;
   requestedLaunchMode?: CustomerLaunchMode | null;
   owners?: CustomerOnboardingOwner[] | null;
+  connectedSystems?: CustomerLaunchPacketConnectedSystem[] | null;
   providerReadReady?: boolean | null;
   providerWriteReady?: boolean | null;
   auditExportHref?: string | null;
@@ -52,10 +58,20 @@ export function buildWorkspaceLaunchReadiness(input: WorkspaceLaunchReadinessInp
   const timestamp = generatedAt(input.generatedAt);
   const workspaceId = clean(input.workspaceId) || "default-demo-workspace";
   const auditExportHref = clean(input.auditExportHref) || "/api/workspace/agents/audit-export";
-  const providerReadReady = input.providerReadReady !== false;
-  const providerWriteReady = input.providerWriteReady === true;
   const requestedLaunchMode = input.requestedLaunchMode ?? "human_approved_execution";
   const owners = input.owners?.length ? input.owners : OWNERS;
+  const connectedSystems = input.connectedSystems?.length
+    ? input.connectedSystems
+    : buildDefaultWorkspaceLaunchConnectedSystems({
+        providerReadReady: input.providerReadReady,
+        providerWriteReady: input.providerWriteReady
+      });
+  const providerReadReady = input.connectedSystems?.length
+    ? providerReadReadyFromConnectedSystems(connectedSystems)
+    : input.providerReadReady !== false;
+  const providerWriteReady = input.connectedSystems?.length
+    ? providerWriteReadyFromConnectedSystems(connectedSystems)
+    : input.providerWriteReady === true;
 
   const onboarding = buildCustomerOnboardingReadiness({
     requestedLaunchMode,
@@ -191,11 +207,7 @@ export function buildWorkspaceLaunchReadiness(input: WorkspaceLaunchReadinessInp
     workspaceId,
     generatedAt: timestamp,
     owners,
-    connectedSystems: [
-      { name: "Workspace source imports", systemType: "warehouse", provider: "workspace", readReady: true, writeReady: false, credentialGrantId: "workspace_imports" },
-      { name: "Google Ads", systemType: "ad_platform", provider: "google_ads", accountId: "selected_account", readReady: providerReadReady, writeReady: providerWriteReady, credentialGrantId: "google_ads_grant" },
-      { name: "Meta Ads", systemType: "ad_platform", provider: "meta_ads", accountId: "pending", readReady: false, writeReady: false, credentialGrantId: "meta_ads_grant_pending" }
-    ],
+    connectedSystems,
     mappings: [
       { objectName: "users", mappingVersion: "workspace_mapping_v1", approved: true, sourceOfTruth: "warehouse" },
       { objectName: "campaigns", mappingVersion: "workspace_mapping_v1", approved: true, sourceOfTruth: "ad provider" },
