@@ -6,8 +6,14 @@ import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account
 import { canApplyApprovalDecision } from "@/lib/agent-approval-queue";
 import { buildAgentJobRetryDecision, evaluateAgentJobManualAction } from "@/lib/agent-job-queue";
 import { buildApprovedApprovalContinuationPlan, persistAgentExecutionPlan } from "@/lib/agent-execution-plan";
-import { runAgentWorkerBatch, runAgentWorkerOnce } from "@/lib/agent-worker";
+import { DEFAULT_AGENT_WORKER_QUEUES, runAgentWorkerBatch, runAgentWorkerOnce } from "@/lib/agent-worker";
+import {
+  acquisitionProviderDryRunAdapterAvailable,
+  buildAcquisitionProviderWriteReadiness
+} from "@/lib/acquisition-agent-generalization";
 import { db } from "@/lib/db";
+import { buildWorkspaceExecutionUiGate } from "@/lib/workspace-execution-ui-gates";
+import { upsertWorkspaceLaunchReadinessRecord } from "@/lib/workspace-launch-readiness-records";
 
 function measurementHandoffStatus(jobStatuses: string[]) {
   if (jobStatuses.some((status) => status === "failed" || status === "dead_lettered" || status === "cancelled")) return "failed";
@@ -44,6 +50,29 @@ async function syncMeasurementHandoffsForJob(jobId: string) {
   }
 }
 
+function providerWriteReady() {
+  return buildAcquisitionProviderWriteReadiness({
+    providerDryRunAdapterAvailable: acquisitionProviderDryRunAdapterAvailable(),
+    rollbackMetadataAvailable: Boolean(process.env.ACQUISITION_PROVIDER_ROLLBACK_METADATA_READY?.trim()),
+    approvalPolicyConfigured: true,
+    measurementConfigured: Boolean(process.env.ACQUISITION_PROVIDER_MEASUREMENT_READY?.trim()),
+    protectedCampaignChecksEnabled: true,
+    emergencyStopConfigured: true
+  }).readyForApprovedMutation;
+}
+
+async function loadExecutionGate(workspace: { id: string; name: string }, accountUserId: string) {
+  const { readiness } = await upsertWorkspaceLaunchReadinessRecord({
+    customerName: workspace.name,
+    workspaceId: workspace.id,
+    accountUserId,
+    providerReadReady: true,
+    providerWriteReady: providerWriteReady(),
+    auditExportHref: "/api/workspace/agents/audit-export"
+  });
+  return buildWorkspaceExecutionUiGate(readiness);
+}
+
 export async function decideAgentApprovalAction(formData: FormData) {
   const cookieStore = await cookies();
   const accountUserId = verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
@@ -77,6 +106,7 @@ export async function decideAgentApprovalAction(formData: FormData) {
   });
 
   if (status === "approved" && updated.app === "acquisition") {
+    const executionGate = await loadExecutionGate(workspace, accountUserId);
     const continuationPlan = buildApprovedApprovalContinuationPlan({
       workspaceId: workspace.id,
       accountUserId,
@@ -87,7 +117,7 @@ export async function decideAgentApprovalAction(formData: FormData) {
     });
     await persistAgentExecutionPlan(continuationPlan);
     const providerWriteJob = continuationPlan.jobs[0];
-    if (runAfterApproval && providerWriteJob) {
+    if (runAfterApproval && providerWriteJob && executionGate.humanApprovedProviderExecutionEnabled) {
       await runAgentWorkerOnce({
         workspaceId: workspace.id,
         queueName: providerWriteJob.queueName,
@@ -224,9 +254,13 @@ export async function runAgentJobOnceAction(formData: FormData) {
       status: "queued",
       OR: [{ accountUserId }, { accountUserId: null }]
     },
-    select: { queueName: true }
+    select: { app: true, jobType: true, queueName: true }
   });
   if (!job) return;
+  if (job.app === "acquisition" && job.jobType === "provider_write") {
+    const executionGate = await loadExecutionGate(workspace, accountUserId);
+    if (!executionGate.humanApprovedProviderExecutionEnabled) return;
+  }
 
   await runAgentWorkerOnce({
     workspaceId: workspace.id,
@@ -250,9 +284,15 @@ export async function runAgentWorkerBatchAction() {
   const workspace = await db.workspace.findUnique({ where: { slug: "default-demo-workspace" } });
   if (!workspace) return;
 
+  const executionGate = await loadExecutionGate(workspace, accountUserId);
+  const queueNames = executionGate.humanApprovedProviderExecutionEnabled
+    ? DEFAULT_AGENT_WORKER_QUEUES
+    : DEFAULT_AGENT_WORKER_QUEUES.filter((queueName) => queueName !== "acquisition:provider_write");
+
   await runAgentWorkerBatch({
     workspaceId: workspace.id,
     workerId: `workspace:${accountUserId}`,
+    queueNames,
     maxJobs: 10
   });
 

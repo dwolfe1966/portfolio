@@ -17,6 +17,7 @@ import {
 } from "@/lib/acquisition-agent-generalization";
 import { AGENT_WORKER_QUEUE_ALLOWLIST, DEFAULT_AGENT_WORKER_QUEUES } from "@/lib/agent-worker";
 import { isOAuthEncryptionAvailable } from "@/lib/oauth-tokens";
+import { buildWorkspaceExecutionUiGate } from "@/lib/workspace-execution-ui-gates";
 import { buildWorkspaceLaunchReadiness } from "@/lib/workspace-launch-readiness";
 import { upsertWorkspaceLaunchReadinessRecord } from "@/lib/workspace-launch-readiness-records";
 import { decideAgentApprovalAction, decideAgentJobAction, runAgentJobOnceAction, runAgentWorkerBatchAction } from "./actions";
@@ -351,6 +352,7 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
   const operations = await loadAgentOperations(accountUserId);
   const postureReasons = [...operations.posture.blockers, ...operations.posture.warnings];
   const acquisitionBlockers = operations.acquisitionProviderWriteReadiness.blockers.map(label);
+  const executionGate = buildWorkspaceExecutionUiGate(operations.launchReadiness);
   const launchStatusClass = operations.launchReadiness.status === "ready"
     ? "live"
     : operations.launchReadiness.status === "blocked"
@@ -484,14 +486,14 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
             <span>Customer execution cannot move beyond this mode until every launch gate passes.</span>
           </div>
           <div className="activitySummaryCard">
-            <p className="small">Billable gate</p>
-            <strong>{label(operations.launchReadiness.packet.sections.billableGate?.status ?? "missing")}</strong>
-            <span>{operations.launchReadiness.packet.sections.billableGate?.nextRequiredAction ?? "Attach billable execution evidence."}</span>
+            <p className="small">Execution controls</p>
+            <strong>{executionGate.humanApprovedProviderExecutionEnabled ? "Enabled" : "Downgraded"}</strong>
+            <span>{executionGate.controls.find((control) => control.key === "human_approved_provider_execution")?.reason}</span>
           </div>
           <div className="activitySummaryCard">
-            <p className="small">Next action</p>
-            <strong>{operations.launchReadiness.blockers.length > 0 ? "Blocked" : operations.launchReadiness.warnings.length > 0 ? "Review" : "Ready"}</strong>
-            <span>{operations.launchReadiness.nextRequiredAction}</span>
+            <p className="small">Billable gate</p>
+            <strong>{label(executionGate.billableGateStatus)}</strong>
+            <span>{executionGate.controls.find((control) => control.key === "performance_billing")?.reason}</span>
           </div>
         </div>
       </Section>
@@ -596,8 +598,17 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
                       {job.status === "queued" ? (
                         <form action={runAgentJobOnceAction}>
                           <input type="hidden" name="id" value={job.id} />
-                          <button className="btn smallBtn" type="submit">Execute</button>
+                          <button
+                            className="btn smallBtn"
+                            type="submit"
+                            disabled={job.app === "acquisition" && job.jobType === "provider_write" && !executionGate.humanApprovedProviderExecutionEnabled}
+                          >
+                            Execute
+                          </button>
                         </form>
+                      ) : null}
+                      {job.app === "acquisition" && job.jobType === "provider_write" && !executionGate.humanApprovedProviderExecutionEnabled ? (
+                        <span className="agentConfigWarning">{executionGate.nextRequiredAction}</span>
                       ) : null}
                       {jobActionsFor(job.status).map((action) => (
                         <form action={decideAgentJobAction} key={action}>
@@ -654,8 +665,13 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
                           <input type="hidden" name="id" value={approval.id} />
                           <input type="hidden" name="status" value="approved" />
                           <input type="hidden" name="runAfterApproval" value="true" />
-                          <button className="btn smallBtn" type="submit">Approve and run dry run</button>
+                          <button className="btn smallBtn" type="submit" disabled={!executionGate.humanApprovedProviderExecutionEnabled}>
+                            Approve and run dry run
+                          </button>
                         </form>
+                      ) : null}
+                      {approval.app === "acquisition" && !executionGate.humanApprovedProviderExecutionEnabled ? (
+                        <span className="agentConfigWarning">Approval remains available; immediate provider execution is downgraded until {executionGate.nextRequiredAction}</span>
                       ) : null}
                       <form action={decideAgentApprovalAction}>
                         <input type="hidden" name="id" value={approval.id} />
