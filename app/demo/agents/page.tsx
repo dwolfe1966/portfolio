@@ -473,6 +473,10 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
             <span className={`statusPill ${launchStatusClass}`}>
               {operations.launchReadiness.exportable ? "exportable" : "blocked"}
             </span>
+            <div className="ctaRow" style={{ marginTop: 8 }}>
+              <Link className="btn smallBtn" href="/api/workspace/launch-packet?format=markdown">Markdown</Link>
+              <Link className="btn smallBtn secondary" href="/api/workspace/launch-packet?format=json">JSON</Link>
+            </div>
           </div>
           <div className="activitySummaryCard">
             <p className="small">Max launch mode</p>
