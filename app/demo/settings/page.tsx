@@ -472,7 +472,7 @@ export default async function DemoSettingsPage({
               </div>
             ))}
           </div>
-          <div className="card sourceMetadataDisclosure">
+          <div className="card sourceMetadataDisclosure" id="launch-owners">
             <p className="small">Reviewer roster</p>
             <form action={saveLaunchOwnerRoster} className="demoLoginForm">
               {WORKSPACE_LAUNCH_OWNER_ROLES.map(({ role, label }) => {
@@ -513,7 +513,7 @@ export default async function DemoSettingsPage({
               <button className="btn primary" type="submit">Save reviewer roster</button>
             </form>
           </div>
-          <div className="card sourceMetadataDisclosure">
+          <div className="card sourceMetadataDisclosure" id="launch-systems">
             <p className="small">Connected-system evidence</p>
             <form action={saveLaunchConnectedSystems} className="demoLoginForm">
               {settings.launchEvidence.connectedSystems.map((system) => {
@@ -565,7 +565,7 @@ export default async function DemoSettingsPage({
             </form>
           </div>
           {settings.baselineEvidence ? (
-            <div className="card sourceMetadataDisclosure">
+            <div className="card sourceMetadataDisclosure" id="launch-baseline">
               <p className="small">Baseline and revenue proof</p>
               <form action={saveLaunchBaselineEvidence} className="demoLoginForm">
                 <div className="workspaceSettingsPanel">

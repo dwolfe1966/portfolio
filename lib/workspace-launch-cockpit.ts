@@ -24,6 +24,7 @@ export type WorkspaceLaunchCockpitSummary = {
   packetLabel: string;
   nextAction: string;
   nextActionHref: string;
+  nextActionLabel: string;
   updatedAt: Date | null;
   recentEvents: Array<{
     id: string;
@@ -57,12 +58,74 @@ function statusTone(status: string | null | undefined): WorkspaceLaunchCockpitSu
   return "progress";
 }
 
-function nextActionHref(action: string) {
+export type WorkspaceLaunchNextActionRoute = {
+  href: string;
+  label: string;
+  routeKey: string;
+};
+
+const NEXT_ACTION_ROUTES: Array<{
+  routeKey: string;
+  href: string;
+  label: string;
+  patterns: RegExp[];
+}> = [
+  {
+    routeKey: "owners",
+    href: "/workspace/settings#launch-owners",
+    label: "Edit launch owners",
+    patterns: [/owner roles?|approved owners?|owner roster|risk ownership/i]
+  },
+  {
+    routeKey: "systems",
+    href: "/workspace/settings#launch-systems",
+    label: "Edit connected systems",
+    patterns: [/connected systems?|channel write grants?|source read grants?|rollback evidence/i]
+  },
+  {
+    routeKey: "providers",
+    href: "/acquisition/connections",
+    label: "Review provider connections",
+    patterns: [/provider|credential|grant|token|ad platform|google ads|meta ads|last sync|read snapshot/i]
+  },
+  {
+    routeKey: "baseline",
+    href: "/workspace/settings#launch-baseline",
+    label: "Edit baseline evidence",
+    patterns: [/baseline|holdout|control population|eligible population|revenue proof|finance/i]
+  },
+  {
+    routeKey: "agents",
+    href: "/workspace/agents",
+    label: "Open agent operations",
+    patterns: [/approval queue|approval|billable execution gate|operation|agent|dead letter/i]
+  },
+  {
+    routeKey: "datasets",
+    href: "/workspace/datasets",
+    label: "Review datasets",
+    patterns: [/mapping|data quality|required field|row|currency|identity|source of truth/i]
+  },
+  {
+    routeKey: "activity",
+    href: "/workspace/activity",
+    label: "Review audit activity",
+    patterns: [/audit evidence|audit export|evidence export|activity/i]
+  },
+  {
+    routeKey: "packet",
+    href: "/api/workspace/launch-packet?format=markdown",
+    label: "Export launch packet",
+    patterns: [/launch packet|packet export/i]
+  }
+];
+
+export function routeWorkspaceLaunchNextAction(action: string): WorkspaceLaunchNextActionRoute {
   const normalized = action.toLowerCase();
-  if (normalized.includes("baseline") || normalized.includes("owner") || normalized.includes("evidence")) return "/workspace/settings";
-  if (normalized.includes("provider") || normalized.includes("grant") || normalized.includes("credential")) return "/acquisition/connections";
-  if (normalized.includes("approval") || normalized.includes("operation")) return "/workspace/agents";
-  return "/workspace/settings";
+  const route = NEXT_ACTION_ROUTES.find((candidate) => candidate.patterns.some((pattern) => pattern.test(normalized)));
+  return route
+    ? { href: route.href, label: route.label, routeKey: route.routeKey }
+    : { href: "/workspace/settings", label: "Review launch settings", routeKey: "settings" };
 }
 
 function record(value: unknown) {
@@ -131,6 +194,7 @@ export function buildWorkspaceLaunchCockpitSummary(input: {
 }): WorkspaceLaunchCockpitSummary {
   const record = input.record ?? null;
   const nextAction = record?.nextRequiredAction?.trim() || "Configure launch readiness evidence.";
+  const nextActionRoute = routeWorkspaceLaunchNextAction(nextAction);
 
   return {
     statusLabel: label(record?.status, "not configured"),
@@ -138,7 +202,8 @@ export function buildWorkspaceLaunchCockpitSummary(input: {
     launchModeLabel: label(record?.launchDecisionMode ?? record?.maxAllowedLaunchMode, "not set"),
     packetLabel: record?.exportable ? "exportable" : "not exportable",
     nextAction,
-    nextActionHref: nextActionHref(nextAction),
+    nextActionHref: nextActionRoute.href,
+    nextActionLabel: nextActionRoute.label,
     updatedAt: record?.updatedAt ?? null,
     recentEvents: (input.events ?? []).slice(0, 3).map((event) => ({
       id: event.id,

@@ -428,7 +428,7 @@ export default async function DemoDashboardPage() {
               Last updated: {launchCockpit.updatedAt ? formatDate(launchCockpit.updatedAt) : "No launch readiness record yet"}
             </p>
             <div className="toolReadinessActions">
-              <Link className="btn smallBtn primary" href={launchCockpit.nextActionHref}>Take next action</Link>
+              <Link className="btn smallBtn primary" href={launchCockpit.nextActionHref}>{launchCockpit.nextActionLabel}</Link>
               <Link className="btn smallBtn" href="/workspace/agents">Agent operations</Link>
               <Link className="btn smallBtn" href="/api/workspace/launch-packet?format=markdown">Export packet</Link>
             </div>
