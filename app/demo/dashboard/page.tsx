@@ -429,6 +429,7 @@ export default async function DemoDashboardPage() {
             </p>
             <div className="toolReadinessActions">
               <Link className="btn smallBtn primary" href={launchCockpit.nextActionHref}>{launchCockpit.nextActionLabel}</Link>
+              <Link className="btn smallBtn" href="/workspace/report">Read report</Link>
               <Link className="btn smallBtn" href="/workspace/agents">Agent operations</Link>
               <Link className="btn smallBtn" href="/api/workspace/launch-packet?format=markdown">Export packet</Link>
             </div>

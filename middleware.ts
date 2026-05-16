@@ -10,6 +10,7 @@ const PROTECTED_PREFIXES = [
   "/workspace/connections",
   "/workspace/dashboard",
   "/workspace/datasets",
+  "/workspace/report",
   "/workspace/settings"
 ];
 

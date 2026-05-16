@@ -8,6 +8,7 @@ const tabs = [
   { href: "/workspace/datasets", label: "Datasets" },
   { href: "/workspace/connections", label: "Connections" },
   { href: "/workspace/agents", label: "Agents" },
+  { href: "/workspace/report", label: "Report" },
   { href: "/workspace/account", label: "Account" },
   { href: "/workspace/settings", label: "Settings" },
   { href: "/workspace/activity", label: "Activity" }
