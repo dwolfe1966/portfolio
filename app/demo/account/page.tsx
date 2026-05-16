@@ -8,9 +8,11 @@ import {
   getAccountSessionUser,
   updateAccountUserProfile
 } from "@/lib/account-session";
+import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
+import { buildWorkspaceMembershipSummary } from "@/lib/workspace-membership-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -47,9 +49,17 @@ async function loadAccountPage() {
   try {
     const cookieStore = await cookies();
     const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
-    return { accountUser, compatibilityMode: false };
+    const workspaceId = accountUser?.memberships[0]?.workspaceId;
+    const workspaceMemberships = workspaceId
+      ? await db.workspaceMembership.findMany({
+          where: { workspaceId },
+          include: { accountUser: true, workspace: true },
+          orderBy: [{ role: "asc" }, { updatedAt: "desc" }]
+        })
+      : [];
+    return { accountUser, workspaceMemberships, compatibilityMode: false };
   } catch (error) {
-    if (isMissingDemoTableError(error)) return { accountUser: null, compatibilityMode: true };
+    if (isMissingDemoTableError(error)) return { accountUser: null, workspaceMemberships: [], compatibilityMode: true };
     throw error;
   }
 }
@@ -60,8 +70,12 @@ export default async function WorkspaceAccountPage({
   searchParams?: Promise<AccountSearchParams>;
 }) {
   const params = await searchParams;
-  const { accountUser, compatibilityMode } = await loadAccountPage();
+  const { accountUser, workspaceMemberships, compatibilityMode } = await loadAccountPage();
   if (!compatibilityMode && !accountUser) redirect("/workspace/login?next=/workspace/account");
+  const membershipSummary = buildWorkspaceMembershipSummary({
+    memberships: workspaceMemberships,
+    currentUserId: accountUser?.id
+  });
   return (
     <>
       <DemoWorkspaceTabs />
@@ -102,11 +116,19 @@ export default async function WorkspaceAccountPage({
                 </div>
                 <div>
                   <span className="small">Workspace</span>
-                  <strong>{accountUser.memberships[0]?.workspace.name ?? "Default Workspace"}</strong>
+                  <strong>{membershipSummary.workspaceName}</strong>
                 </div>
                 <div>
                   <span className="small">Role</span>
-                  <strong>{accountUser.memberships[0]?.role ?? "Owner"}</strong>
+                  <strong>{membershipSummary.currentUserRoleLabel}</strong>
+                </div>
+                <div>
+                  <span className="small">Members</span>
+                  <strong>{membershipSummary.memberCount}</strong>
+                </div>
+                <div>
+                  <span className="small">Governance</span>
+                  <strong>{membershipSummary.governanceLabel}</strong>
                 </div>
               </div>
               <div className="workspaceAccountActions">
@@ -138,6 +160,45 @@ export default async function WorkspaceAccountPage({
           </div>
         ) : null}
       </Section>
+      {!compatibilityMode && accountUser ? (
+        <Section title="Workspace members">
+          <div className="workspaceMembershipHeader">
+            <div>
+              <p className="small">Current workspace</p>
+              <strong>{membershipSummary.workspaceName}</strong>
+            </div>
+            <div className="workspaceMembershipStats" aria-label="Workspace membership summary">
+              <span>{membershipSummary.memberCount} members</span>
+              <span>{membershipSummary.ownerCount} owners</span>
+              <span>{membershipSummary.adminCount} admins</span>
+              <span>{membershipSummary.viewerCount} viewers</span>
+            </div>
+          </div>
+          {membershipSummary.members.length ? (
+            <div className="workspaceMembershipList">
+              {membershipSummary.members.map((member) => (
+                <article className="card workspaceMembershipCard" key={member.id}>
+                  <div>
+                    <p className="small">{member.statusLabel}</p>
+                    <strong>{member.name}</strong>
+                    <span>{member.email}</span>
+                  </div>
+                  <div className="workspaceMembershipFacts">
+                    <span>{member.roleLabel}</span>
+                    <span>{member.company}</span>
+                    <span>{member.title}</span>
+                    <span>Joined {member.joinedAtLabel}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="card">
+              <p>No workspace members are attached to this account yet.</p>
+            </div>
+          )}
+        </Section>
+      ) : null}
     </>
   );
 }

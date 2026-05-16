@@ -1,6 +1,6 @@
 # Product Backlog (Execution Plan)
 
-Last updated: 2026-05-15
+Last updated: 2026-05-16
 
 This backlog is the canonical source of truth for the portfolio, product-app, workspace, and performance-business workstreams.
 
@@ -25,9 +25,9 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 - ⏳ To do
 - 🚧 Blocked (waiting on dependency)
 
-## Active sprint: S19 (customer operating cockpit)
+## Active sprint: S20 (customer workspace administration)
 
-S19 turns configured launch evidence into a customer-facing operating cockpit. The goal is to make the workspace dashboard show launch state, next action, evidence history, and operating readiness without forcing users to piece together settings, activity, agents, and exports manually.
+S20 turns the protected workspace into a more credible enterprise administration surface. The goal is to make account ownership, member visibility, role posture, workspace governance, and later invite/edit controls visible before customer collaboration and credential delegation become live workflows.
 
 | ID | Item | Owner | Size | Sprint | Status | Acceptance criteria |
 |---|---|---|---|---|---|---|
@@ -132,6 +132,7 @@ S19 turns configured launch evidence into a customer-facing operating cockpit. T
 | L72 | Launch packet preview panel | DW | M | S19 | ✅ | Workspace Dashboard exposes a readable packet preview with owners, systems, baseline, risks, and export links before download. |
 | L73 | Launch next-action routing | DW | M | S19 | ✅ | Readiness blockers map to specific workspace forms, provider connection pages, agent operations queues, or packet export actions. |
 | L74 | Customer-facing readiness report | DW | L | S19 | ✅ | A customer-readable report page explains current launch posture, evidence status, unresolved risks, and billing/execution implications. |
+| K12 | Workspace member roster visibility | DW | M | S20 | ✅ | Workspace Account shows the current workspace roster, role labels, signed-in member status, and owner/admin/viewer governance counts before invite/edit flows. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -149,6 +150,7 @@ S19 turns configured launch evidence into a customer-facing operating cockpit. T
 | S17 | L61, L62, L63, L64, L65 | — | — |
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
+| S20 | K12 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.

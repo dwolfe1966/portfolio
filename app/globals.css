@@ -1890,6 +1890,72 @@ button {
 .workspaceAccountActions form {
   margin: 0;
 }
+.workspaceMembershipHeader {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.workspaceMembershipHeader p,
+.workspaceMembershipHeader strong {
+  margin-bottom: 0;
+}
+.workspaceMembershipHeader strong {
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.2;
+}
+.workspaceMembershipStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.workspaceMembershipStats span,
+.workspaceMembershipFacts span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 7px 9px;
+}
+.workspaceMembershipList {
+  display: grid;
+  gap: 10px;
+}
+.workspaceMembershipCard {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+}
+.workspaceMembershipCard p,
+.workspaceMembershipCard strong,
+.workspaceMembershipCard span {
+  margin-bottom: 0;
+}
+.workspaceMembershipCard strong {
+  color: var(--text);
+  display: block;
+  font-size: 18px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.workspaceMembershipCard > div > span {
+  color: var(--muted);
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.workspaceMembershipFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
 .connectionModeCard {
   display: grid;
   gap: 10px;
@@ -3605,7 +3671,14 @@ button {
   .workspaceSettingsFacts,
   .workspaceAccountProfileFacts,
   .workspaceInventoryStrip,
+  .workspaceMembershipCard,
   .workspaceAccountPanel { grid-template-columns: 1fr; }
+  .workspaceMembershipCard,
+  .workspaceMembershipHeader,
+  .workspaceMembershipFacts {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
   .workspaceInventoryItem {
     border-right: 0;
     border-bottom: 1px solid var(--line);
