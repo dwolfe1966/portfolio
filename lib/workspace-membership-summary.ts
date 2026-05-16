@@ -32,6 +32,20 @@ export type WorkspaceMemberSummary = {
   isCurrentUser: boolean;
 };
 
+export type WorkspaceRoleCapability = {
+  key: string;
+  label: string;
+  description: string;
+};
+
+export type WorkspaceRolePolicy = {
+  role: string;
+  roleLabel: string;
+  accessLevel: "full" | "elevated" | "operational" | "read_only" | "custom";
+  capabilityCount: number;
+  capabilities: WorkspaceRoleCapability[];
+};
+
 export type WorkspaceMembershipSummary = {
   available: boolean;
   workspaceId: string | null;
@@ -43,6 +57,7 @@ export type WorkspaceMembershipSummary = {
   viewerCount: number;
   currentUserRoleLabel: string;
   governanceLabel: string;
+  rolePolicies: WorkspaceRolePolicy[];
   members: WorkspaceMemberSummary[];
 };
 
@@ -63,6 +78,124 @@ export function labelWorkspaceRole(role: string | null | undefined) {
   if (normalized === "operator") return "Operator";
   if (normalized === "viewer") return "Viewer";
   return normalized.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+const ROLE_CAPABILITIES: Record<string, Omit<WorkspaceRolePolicy, "capabilityCount">> = {
+  owner: {
+    role: "owner",
+    roleLabel: "Owner",
+    accessLevel: "full",
+    capabilities: [
+      {
+        key: "workspace_governance",
+        label: "Workspace governance",
+        description: "Manage workspace profile, launch owners, readiness evidence, and operating posture."
+      },
+      {
+        key: "credential_grants",
+        label: "Credential grants",
+        description: "Approve connected systems, provider credentials, and future account delegation."
+      },
+      {
+        key: "execution_approval",
+        label: "Execution approval",
+        description: "Approve high-risk agent work, provider-write dry runs, launch escalation, and rollback reviews."
+      },
+      {
+        key: "billing_readiness",
+        label: "Billing readiness",
+        description: "Approve baseline, revenue proof, and billable execution gates."
+      }
+    ]
+  },
+  admin: {
+    role: "admin",
+    roleLabel: "Admin",
+    accessLevel: "elevated",
+    capabilities: [
+      {
+        key: "workspace_configuration",
+        label: "Workspace configuration",
+        description: "Configure datasets, source mappings, launch evidence, and operating settings."
+      },
+      {
+        key: "connector_operations",
+        label: "Connector operations",
+        description: "Inspect provider connections, run read-only syncs, and prepare credential evidence."
+      },
+      {
+        key: "agent_operations",
+        label: "Agent operations",
+        description: "Review queues, execute dry runs, and monitor operational evidence."
+      }
+    ]
+  },
+  operator: {
+    role: "operator",
+    roleLabel: "Operator",
+    accessLevel: "operational",
+    capabilities: [
+      {
+        key: "queue_operations",
+        label: "Queue operations",
+        description: "Run scheduled workers, review agent jobs, and inspect provider dry-run results."
+      },
+      {
+        key: "dataset_operations",
+        label: "Dataset operations",
+        description: "Import datasets, preview source rows, and manage active app data sources."
+      }
+    ]
+  },
+  viewer: {
+    role: "viewer",
+    roleLabel: "Viewer",
+    accessLevel: "read_only",
+    capabilities: [
+      {
+        key: "readiness_visibility",
+        label: "Readiness visibility",
+        description: "View dashboard, launch report, activity, datasets, connections, and operating evidence."
+      }
+    ]
+  }
+};
+
+export function workspaceRolePolicy(role: string | null | undefined): WorkspaceRolePolicy {
+  const normalized = normalizeRole(role);
+  const policy = ROLE_CAPABILITIES[normalized];
+  if (policy) return { ...policy, capabilityCount: policy.capabilities.length };
+  return {
+    role: normalized,
+    roleLabel: labelWorkspaceRole(normalized),
+    accessLevel: "custom",
+    capabilityCount: 1,
+    capabilities: [
+      {
+        key: "custom_role_review",
+        label: "Custom role review",
+        description: "Review this role before enabling invitations, credential grants, or execution approvals."
+      }
+    ]
+  };
+}
+
+export function workspaceRolePoliciesForRoster(roles: Array<string | null | undefined>): WorkspaceRolePolicy[] {
+  const seen = new Set<string>();
+  return roles
+    .map((role) => workspaceRolePolicy(role))
+    .filter((policy) => {
+      if (seen.has(policy.role)) return false;
+      seen.add(policy.role);
+      return true;
+    })
+    .sort((left, right) => {
+      const order = ["owner", "admin", "operator", "viewer"];
+      const leftIndex = order.indexOf(left.role);
+      const rightIndex = order.indexOf(right.role);
+      if (leftIndex !== -1 || rightIndex !== -1) return (leftIndex === -1 ? 99 : leftIndex) - (rightIndex === -1 ? 99 : rightIndex);
+      return left.roleLabel.localeCompare(right.roleLabel);
+    });
 }
 
 export function buildWorkspaceMembershipSummary(input: {
@@ -115,6 +248,7 @@ export function buildWorkspaceMembershipSummary(input: {
     viewerCount,
     currentUserRoleLabel: currentUser?.roleLabel ?? "No current membership",
     governanceLabel,
+    rolePolicies: workspaceRolePoliciesForRoster(members.length ? members.map((member) => member.role) : ["owner", "admin", "operator", "viewer"]),
     members
   };
 }

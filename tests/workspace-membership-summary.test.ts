@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildWorkspaceMembershipSummary, labelWorkspaceRole } from "@/lib/workspace-membership-summary";
+import {
+  buildWorkspaceMembershipSummary,
+  labelWorkspaceRole,
+  workspaceRolePoliciesForRoster,
+  workspaceRolePolicy
+} from "@/lib/workspace-membership-summary";
 
 test("buildWorkspaceMembershipSummary summarizes members and prioritizes the signed-in user", () => {
   const summary = buildWorkspaceMembershipSummary({
@@ -32,6 +37,7 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.equal(summary.viewerCount, 1);
   assert.equal(summary.currentUserRoleLabel, "Viewer");
   assert.equal(summary.governanceLabel, "1 owner assigned");
+  assert.deepEqual(summary.rolePolicies.map((policy) => policy.role), ["owner", "viewer"]);
   assert.equal(summary.members[0].email, "jordan@example.com");
   assert.equal(summary.members[0].statusLabel, "Signed in");
 });
@@ -49,4 +55,21 @@ test("buildWorkspaceMembershipSummary handles empty membership state", () => {
 test("labelWorkspaceRole formats custom role keys", () => {
   assert.equal(labelWorkspaceRole("channel_operator"), "Channel Operator");
   assert.equal(labelWorkspaceRole("finance-owner"), "Finance Owner");
+});
+
+test("workspaceRolePolicy defines enterprise capabilities by role", () => {
+  const ownerPolicy = workspaceRolePolicy("owner");
+  const viewerPolicy = workspaceRolePolicy("viewer");
+
+  assert.equal(ownerPolicy.accessLevel, "full");
+  assert.ok(ownerPolicy.capabilities.some((capability) => capability.key === "credential_grants"));
+  assert.equal(viewerPolicy.accessLevel, "read_only");
+  assert.equal(viewerPolicy.capabilityCount, 1);
+});
+
+test("workspaceRolePoliciesForRoster dedupes and orders role policies", () => {
+  const policies = workspaceRolePoliciesForRoster(["viewer", "owner", "admin", "viewer", "finance_owner"]);
+
+  assert.deepEqual(policies.map((policy) => policy.role), ["owner", "admin", "viewer", "finance_owner"]);
+  assert.equal(policies.find((policy) => policy.role === "finance_owner")?.accessLevel, "custom");
 });

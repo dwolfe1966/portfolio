@@ -1956,6 +1956,67 @@ button {
   gap: 8px;
   justify-content: flex-end;
 }
+.workspaceRolePolicyGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.workspaceRolePolicyCard {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+}
+.workspaceRolePolicyHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.workspaceRolePolicyHeader p,
+.workspaceRolePolicyHeader strong {
+  margin-bottom: 0;
+}
+.workspaceRolePolicyHeader strong {
+  color: var(--text);
+  display: block;
+  font-size: 20px;
+  line-height: 1.25;
+}
+.workspaceRolePolicyHeader > span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 7px 9px;
+}
+.workspaceRoleCapabilityList {
+  display: grid;
+  gap: 8px;
+}
+.workspaceRoleCapability {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+.workspaceRoleCapability strong,
+.workspaceRoleCapability span {
+  margin-bottom: 0;
+}
+.workspaceRoleCapability strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.25;
+}
+.workspaceRoleCapability span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
 .connectionModeCard {
   display: grid;
   gap: 10px;
@@ -3672,12 +3733,17 @@ button {
   .workspaceAccountProfileFacts,
   .workspaceInventoryStrip,
   .workspaceMembershipCard,
+  .workspaceRolePolicyGrid,
   .workspaceAccountPanel { grid-template-columns: 1fr; }
   .workspaceMembershipCard,
   .workspaceMembershipHeader,
-  .workspaceMembershipFacts {
+  .workspaceMembershipFacts,
+  .workspaceRolePolicyHeader {
     align-items: flex-start;
     justify-content: flex-start;
+  }
+  .workspaceRolePolicyHeader {
+    flex-direction: column;
   }
   .workspaceInventoryItem {
     border-right: 0;

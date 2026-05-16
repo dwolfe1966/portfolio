@@ -199,6 +199,31 @@ export default async function WorkspaceAccountPage({
           )}
         </Section>
       ) : null}
+      {!compatibilityMode && accountUser ? (
+        <Section title="Role capabilities">
+          <div className="workspaceRolePolicyGrid">
+            {membershipSummary.rolePolicies.map((policy) => (
+              <article className="card workspaceRolePolicyCard" key={policy.role}>
+                <div className="workspaceRolePolicyHeader">
+                  <div>
+                    <p className="small">{policy.accessLevel.replace(/_/g, " ")}</p>
+                    <strong>{policy.roleLabel}</strong>
+                  </div>
+                  <span>{policy.capabilityCount} capabilities</span>
+                </div>
+                <div className="workspaceRoleCapabilityList">
+                  {policy.capabilities.map((capability) => (
+                    <div className="workspaceRoleCapability" key={capability.key}>
+                      <strong>{capability.label}</strong>
+                      <span>{capability.description}</span>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </Section>
+      ) : null}
     </>
   );
 }
