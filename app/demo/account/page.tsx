@@ -12,7 +12,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
-import { buildWorkspaceMembershipSummary } from "@/lib/workspace-membership-summary";
+import { buildWorkspaceInviteDraft, buildWorkspaceMembershipSummary } from "@/lib/workspace-membership-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,8 @@ export const metadata: Metadata = buildMetadata({
 type AccountSearchParams = {
   saved?: string;
   error?: string;
+  inviteEmail?: string;
+  inviteRole?: string;
 };
 
 async function saveSignedInAccountProfile(formData: FormData) {
@@ -75,6 +77,15 @@ export default async function WorkspaceAccountPage({
   const membershipSummary = buildWorkspaceMembershipSummary({
     memberships: workspaceMemberships,
     currentUserId: accountUser?.id
+  });
+  const inviteRole = params?.inviteRole ?? "viewer";
+  const inviteEmail = params?.inviteEmail ?? "";
+  const inviteDraft = buildWorkspaceInviteDraft({
+    readiness: membershipSummary.inviteReadiness,
+    email: inviteEmail,
+    role: inviteRole,
+    workspaceName: membershipSummary.workspaceName,
+    existingMemberEmails: membershipSummary.members.map((member) => member.email)
   });
   return (
     <>
@@ -248,6 +259,64 @@ export default async function WorkspaceAccountPage({
               {membershipSummary.inviteReadiness.warnings.map((warning) => (
                 <div className="card workspaceInviteReadinessItem workspaceInviteReadinessItem--review" key={warning}>
                   <p className="small">Review</p>
+                  <strong>{warning}</strong>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <div className="card workspaceInviteDraftCard">
+            <div>
+              <p className="small">Draft invite preview</p>
+              <strong>{inviteDraft.statusLabel}</strong>
+              <span>{inviteDraft.auditSummary}</span>
+            </div>
+            <form action="/workspace/account" className="demoLoginForm workspaceInviteDraftForm" method="get">
+              <label>
+                <span>Email</span>
+                <input name="inviteEmail" type="email" defaultValue={inviteEmail} maxLength={254} placeholder="collaborator@example.com" />
+              </label>
+              <label>
+                <span>Role</span>
+                <select name="inviteRole" defaultValue={inviteRole}>
+                  <option value="viewer">Viewer</option>
+                  <option value="operator">Operator</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <button className="btn smallBtn" type="submit">Preview invite</button>
+            </form>
+          </div>
+          {inviteEmail ? (
+            <div className={`workspaceInviteDraftPreview workspaceInviteDraftPreview--${inviteDraft.status}`}>
+              <div>
+                <p className="small">Recipient</p>
+                <strong>{inviteDraft.email || "Not set"}</strong>
+              </div>
+              <div>
+                <p className="small">Role</p>
+                <strong>{inviteDraft.roleLabel}</strong>
+              </div>
+              <div>
+                <p className="small">Subject</p>
+                <strong>{inviteDraft.subject}</strong>
+              </div>
+              <div>
+                <p className="small">Next action</p>
+                <strong>{inviteDraft.nextAction}</strong>
+              </div>
+            </div>
+          ) : null}
+          {inviteDraft.blockers.length || inviteDraft.warnings.length ? (
+            <div className="workspaceInviteReadinessGrid">
+              {inviteDraft.blockers.map((blocker) => (
+                <div className="card workspaceInviteReadinessItem workspaceInviteReadinessItem--blocked" key={`draft-${blocker}`}>
+                  <p className="small">Draft blocked</p>
+                  <strong>{blocker}</strong>
+                </div>
+              ))}
+              {inviteDraft.warnings.map((warning) => (
+                <div className="card workspaceInviteReadinessItem workspaceInviteReadinessItem--review" key={`draft-${warning}`}>
+                  <p className="small">Draft review</p>
                   <strong>{warning}</strong>
                 </div>
               ))}

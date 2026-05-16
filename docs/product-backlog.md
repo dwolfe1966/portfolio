@@ -135,6 +135,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | K12 | Workspace member roster visibility | DW | M | S20 | ✅ | Workspace Account shows the current workspace roster, role labels, signed-in member status, and owner/admin/viewer governance counts before invite/edit flows. |
 | K13 | Workspace role capability model | DW | M | S20 | ✅ | Workspace Account explains owner, admin, operator, viewer, and custom role capabilities with tested shared role policy metadata before invite/edit enforcement. |
 | K14 | Workspace invite readiness gate | DW | M | S20 | ✅ | Workspace Account shows a read-only invite readiness decision that blocks invites without workspace membership, owner governance, owner/admin actor role, and custom-role review. |
+| K15 | Workspace invite draft preview | DW | M | S20 | ✅ | Workspace Account supports a non-mutating invite preview with email/role validation, duplicate-member checks, role labels, and audit-shaped output before invitation persistence or email send. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -152,7 +153,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | S17 | L61, L62, L63, L64, L65 | — | — |
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
-| S20 | K12, K13, K14 | — | — |
+| S20 | K12, K13, K14, K15 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.

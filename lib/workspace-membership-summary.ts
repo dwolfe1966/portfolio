@@ -56,6 +56,20 @@ export type WorkspaceInviteReadiness = {
   warnings: string[];
 };
 
+export type WorkspaceInviteDraft = {
+  status: "ready" | "blocked" | "invalid" | "review";
+  statusLabel: string;
+  canCreate: boolean;
+  email: string;
+  role: string;
+  roleLabel: string;
+  subject: string;
+  auditSummary: string;
+  nextAction: string;
+  blockers: string[];
+  warnings: string[];
+};
+
 export type WorkspaceMembershipSummary = {
   available: boolean;
   workspaceId: string | null;
@@ -80,6 +94,14 @@ function formatDateLabel(value: Date | string) {
 
 function normalizeRole(value: string | null | undefined) {
   return String(value ?? "viewer").trim().toLowerCase() || "viewer";
+}
+
+function normalizeInviteEmail(value: unknown) {
+  return String(value ?? "").trim().toLowerCase().slice(0, 254);
+}
+
+function isValidInviteEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 export function labelWorkspaceRole(role: string | null | undefined) {
@@ -254,6 +276,73 @@ export function buildWorkspaceInviteReadiness(input: {
     canInvite: true,
     actorRoleLabel: labelWorkspaceRole(actorRole),
     nextAction: "Invite controls can be enabled after the write path and email audit trail are added.",
+    blockers,
+    warnings
+  };
+}
+
+export function buildWorkspaceInviteDraft(input: {
+  readiness: WorkspaceInviteReadiness;
+  email?: string | null;
+  role?: string | null;
+  workspaceName?: string | null;
+  existingMemberEmails?: string[];
+}): WorkspaceInviteDraft {
+  const email = normalizeInviteEmail(input.email);
+  const role = normalizeRole(input.role);
+  const rolePolicy = workspaceRolePolicy(role);
+  const workspaceName = String(input.workspaceName ?? "workspace").trim() || "workspace";
+  const existingEmails = new Set((input.existingMemberEmails ?? []).map(normalizeInviteEmail));
+  const blockers = [...input.readiness.blockers];
+  const warnings = [...input.readiness.warnings];
+
+  if (!email) blockers.push("Enter an email address before previewing an invitation.");
+  if (email && !isValidInviteEmail(email)) blockers.push("Enter a valid collaborator email address.");
+  if (email && existingEmails.has(email)) blockers.push("This email already has workspace membership.");
+  if (rolePolicy.accessLevel === "custom") warnings.push("Custom role invitations require capability review before creation.");
+
+  if (blockers.length) {
+    return {
+      status: email && !isValidInviteEmail(email) ? "invalid" : "blocked",
+      statusLabel: email && !isValidInviteEmail(email) ? "Invalid" : "Blocked",
+      canCreate: false,
+      email,
+      role,
+      roleLabel: rolePolicy.roleLabel,
+      subject: `Invitation to ${workspaceName}`,
+      auditSummary: "No invite draft can be created until blockers are resolved.",
+      nextAction: blockers[0],
+      blockers,
+      warnings
+    };
+  }
+
+  if (warnings.length) {
+    return {
+      status: "review",
+      statusLabel: "Needs review",
+      canCreate: false,
+      email,
+      role,
+      roleLabel: rolePolicy.roleLabel,
+      subject: `Invitation to ${workspaceName}`,
+      auditSummary: `Draft invite for ${email} as ${rolePolicy.roleLabel}; held for review before send.`,
+      nextAction: warnings[0],
+      blockers,
+      warnings
+    };
+  }
+
+  return {
+    status: "ready",
+    statusLabel: "Ready",
+    canCreate: true,
+    email,
+    role,
+    roleLabel: rolePolicy.roleLabel,
+    subject: `Invitation to ${workspaceName}`,
+    auditSummary: `Draft invite for ${email} as ${rolePolicy.roleLabel}; no email sent and no membership created.`,
+    nextAction: "Add the invite persistence, email send, expiry, and audit trail before enabling creation.",
     blockers,
     warnings
   };

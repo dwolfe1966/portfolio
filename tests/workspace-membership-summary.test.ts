@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildWorkspaceMembershipSummary,
+  buildWorkspaceInviteDraft,
   buildWorkspaceInviteReadiness,
   labelWorkspaceRole,
   workspaceRolePoliciesForRoster,
@@ -102,4 +103,52 @@ test("buildWorkspaceInviteReadiness requires review for custom role rosters", ()
   assert.equal(readiness.status, "review");
   assert.equal(readiness.canInvite, false);
   assert.match(readiness.nextAction, /custom role/);
+});
+
+test("buildWorkspaceInviteDraft validates email, duplicate membership, and readiness", () => {
+  const readiness = buildWorkspaceInviteReadiness({
+    available: true,
+    ownerCount: 1,
+    currentUserRole: "owner"
+  });
+
+  const invalid = buildWorkspaceInviteDraft({
+    readiness,
+    email: "not-an-email",
+    role: "viewer",
+    workspaceName: "Acme"
+  });
+  const duplicate = buildWorkspaceInviteDraft({
+    readiness,
+    email: "alex@example.com",
+    role: "viewer",
+    existingMemberEmails: ["alex@example.com"]
+  });
+
+  assert.equal(invalid.status, "invalid");
+  assert.equal(invalid.canCreate, false);
+  assert.match(invalid.nextAction, /valid collaborator email/);
+  assert.equal(duplicate.status, "blocked");
+  assert.match(duplicate.nextAction, /already has workspace membership/);
+});
+
+test("buildWorkspaceInviteDraft creates a non-mutating ready preview", () => {
+  const readiness = buildWorkspaceInviteReadiness({
+    available: true,
+    ownerCount: 1,
+    currentUserRole: "admin"
+  });
+
+  const draft = buildWorkspaceInviteDraft({
+    readiness,
+    email: "Jordan@Example.com ",
+    role: "operator",
+    workspaceName: "Acme"
+  });
+
+  assert.equal(draft.status, "ready");
+  assert.equal(draft.canCreate, true);
+  assert.equal(draft.email, "jordan@example.com");
+  assert.equal(draft.roleLabel, "Operator");
+  assert.match(draft.auditSummary, /no email sent/);
 });

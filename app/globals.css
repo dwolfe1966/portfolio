@@ -2076,6 +2076,59 @@ button {
   font-size: 14px;
   line-height: 1.4;
 }
+.workspaceInviteDraftCard {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+.workspaceInviteDraftCard p,
+.workspaceInviteDraftCard strong,
+.workspaceInviteDraftCard span,
+.workspaceInviteDraftPreview p,
+.workspaceInviteDraftPreview strong {
+  margin-bottom: 0;
+}
+.workspaceInviteDraftCard > div > strong {
+  color: var(--text);
+  display: block;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.workspaceInviteDraftCard > div > span {
+  color: var(--muted);
+  display: block;
+  margin-top: 5px;
+}
+.workspaceInviteDraftForm {
+  align-items: end;
+  grid-template-columns: minmax(0, 1.2fr) minmax(160px, 0.5fr) auto;
+}
+.workspaceInviteDraftPreview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 12px;
+  padding: 14px;
+}
+.workspaceInviteDraftPreview--ready {
+  border-color: color-mix(in oklab, var(--green) 44%, var(--line));
+}
+.workspaceInviteDraftPreview--review {
+  border-color: color-mix(in oklab, var(--amber) 48%, var(--line));
+}
+.workspaceInviteDraftPreview--blocked,
+.workspaceInviteDraftPreview--invalid {
+  border-color: color-mix(in oklab, var(--red) 42%, var(--line));
+}
+.workspaceInviteDraftPreview strong {
+  color: var(--text);
+  display: block;
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 .connectionModeCard {
   display: grid;
   gap: 10px;
@@ -3795,6 +3848,8 @@ button {
   .workspaceRolePolicyGrid,
   .workspaceInviteReadiness,
   .workspaceInviteReadinessGrid,
+  .workspaceInviteDraftForm,
+  .workspaceInviteDraftPreview,
   .workspaceAccountPanel { grid-template-columns: 1fr; }
   .workspaceMembershipCard,
   .workspaceMembershipHeader,
