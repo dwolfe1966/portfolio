@@ -224,6 +224,37 @@ export default async function WorkspaceAccountPage({
           </div>
         </Section>
       ) : null}
+      {!compatibilityMode && accountUser ? (
+        <Section title="Invite readiness">
+          <div className={`workspaceInviteReadiness workspaceInviteReadiness--${membershipSummary.inviteReadiness.status}`}>
+            <div>
+              <p className="small">Invitation gate</p>
+              <strong>{membershipSummary.inviteReadiness.statusLabel}</strong>
+              <span>Current role: {membershipSummary.inviteReadiness.actorRoleLabel}</span>
+            </div>
+            <div>
+              <p className="small">Next action</p>
+              <strong>{membershipSummary.inviteReadiness.nextAction}</strong>
+            </div>
+          </div>
+          {membershipSummary.inviteReadiness.blockers.length || membershipSummary.inviteReadiness.warnings.length ? (
+            <div className="workspaceInviteReadinessGrid">
+              {membershipSummary.inviteReadiness.blockers.map((blocker) => (
+                <div className="card workspaceInviteReadinessItem workspaceInviteReadinessItem--blocked" key={blocker}>
+                  <p className="small">Blocked</p>
+                  <strong>{blocker}</strong>
+                </div>
+              ))}
+              {membershipSummary.inviteReadiness.warnings.map((warning) => (
+                <div className="card workspaceInviteReadinessItem workspaceInviteReadinessItem--review" key={warning}>
+                  <p className="small">Review</p>
+                  <strong>{warning}</strong>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </Section>
+      ) : null}
     </>
   );
 }

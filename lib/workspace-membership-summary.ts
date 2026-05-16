@@ -46,6 +46,16 @@ export type WorkspaceRolePolicy = {
   capabilities: WorkspaceRoleCapability[];
 };
 
+export type WorkspaceInviteReadiness = {
+  status: "ready" | "blocked" | "review";
+  statusLabel: string;
+  canInvite: boolean;
+  actorRoleLabel: string;
+  nextAction: string;
+  blockers: string[];
+  warnings: string[];
+};
+
 export type WorkspaceMembershipSummary = {
   available: boolean;
   workspaceId: string | null;
@@ -57,6 +67,7 @@ export type WorkspaceMembershipSummary = {
   viewerCount: number;
   currentUserRoleLabel: string;
   governanceLabel: string;
+  inviteReadiness: WorkspaceInviteReadiness;
   rolePolicies: WorkspaceRolePolicy[];
   members: WorkspaceMemberSummary[];
 };
@@ -198,6 +209,56 @@ export function workspaceRolePoliciesForRoster(roles: Array<string | null | unde
     });
 }
 
+export function buildWorkspaceInviteReadiness(input: {
+  available: boolean;
+  ownerCount: number;
+  currentUserRole?: string | null;
+  hasCustomRoles?: boolean;
+}): WorkspaceInviteReadiness {
+  const actorRole = normalizeRole(input.currentUserRole);
+  const blockers: string[] = [];
+  const warnings: string[] = [];
+
+  if (!input.available) blockers.push("Attach the signed-in account to a workspace before enabling invitations.");
+  if (input.ownerCount < 1) blockers.push("Assign at least one workspace owner before inviting collaborators.");
+  if (!["owner", "admin"].includes(actorRole)) blockers.push("Only owners and admins can invite workspace collaborators.");
+  if (input.hasCustomRoles) warnings.push("Review custom role capabilities before inviting additional users.");
+
+  if (blockers.length) {
+    return {
+      status: "blocked",
+      statusLabel: "Blocked",
+      canInvite: false,
+      actorRoleLabel: labelWorkspaceRole(actorRole),
+      nextAction: blockers[0],
+      blockers,
+      warnings
+    };
+  }
+
+  if (warnings.length) {
+    return {
+      status: "review",
+      statusLabel: "Needs review",
+      canInvite: false,
+      actorRoleLabel: labelWorkspaceRole(actorRole),
+      nextAction: warnings[0],
+      blockers,
+      warnings
+    };
+  }
+
+  return {
+    status: "ready",
+    statusLabel: "Ready",
+    canInvite: true,
+    actorRoleLabel: labelWorkspaceRole(actorRole),
+    nextAction: "Invite controls can be enabled after the write path and email audit trail are added.",
+    blockers,
+    warnings
+  };
+}
+
 export function buildWorkspaceMembershipSummary(input: {
   memberships: WorkspaceMembershipSummaryInput[];
   currentUserId?: string | null;
@@ -233,6 +294,7 @@ export function buildWorkspaceMembershipSummary(input: {
   const adminCount = members.filter((member) => member.role === "admin").length;
   const viewerCount = members.filter((member) => member.role === "viewer").length;
   const currentUser = members.find((member) => member.isCurrentUser);
+  const rolePolicies = workspaceRolePoliciesForRoster(members.length ? members.map((member) => member.role) : ["owner", "admin", "operator", "viewer"]);
   const governanceLabel = ownerCount > 0
     ? `${ownerCount} owner${ownerCount === 1 ? "" : "s"} assigned`
     : "Owner assignment needed";
@@ -248,7 +310,13 @@ export function buildWorkspaceMembershipSummary(input: {
     viewerCount,
     currentUserRoleLabel: currentUser?.roleLabel ?? "No current membership",
     governanceLabel,
-    rolePolicies: workspaceRolePoliciesForRoster(members.length ? members.map((member) => member.role) : ["owner", "admin", "operator", "viewer"]),
+    inviteReadiness: buildWorkspaceInviteReadiness({
+      available: Boolean(firstMembership),
+      ownerCount,
+      currentUserRole: currentUser?.role,
+      hasCustomRoles: rolePolicies.some((policy) => policy.accessLevel === "custom")
+    }),
+    rolePolicies,
     members
   };
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildWorkspaceMembershipSummary,
+  buildWorkspaceInviteReadiness,
   labelWorkspaceRole,
   workspaceRolePoliciesForRoster,
   workspaceRolePolicy
@@ -37,6 +38,8 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.equal(summary.viewerCount, 1);
   assert.equal(summary.currentUserRoleLabel, "Viewer");
   assert.equal(summary.governanceLabel, "1 owner assigned");
+  assert.equal(summary.inviteReadiness.status, "blocked");
+  assert.match(summary.inviteReadiness.nextAction, /Only owners and admins/);
   assert.deepEqual(summary.rolePolicies.map((policy) => policy.role), ["owner", "viewer"]);
   assert.equal(summary.members[0].email, "jordan@example.com");
   assert.equal(summary.members[0].statusLabel, "Signed in");
@@ -50,6 +53,7 @@ test("buildWorkspaceMembershipSummary handles empty membership state", () => {
   assert.equal(summary.memberCount, 0);
   assert.equal(summary.currentUserRoleLabel, "No current membership");
   assert.equal(summary.governanceLabel, "Owner assignment needed");
+  assert.equal(summary.inviteReadiness.status, "blocked");
 });
 
 test("labelWorkspaceRole formats custom role keys", () => {
@@ -72,4 +76,30 @@ test("workspaceRolePoliciesForRoster dedupes and orders role policies", () => {
 
   assert.deepEqual(policies.map((policy) => policy.role), ["owner", "admin", "viewer", "finance_owner"]);
   assert.equal(policies.find((policy) => policy.role === "finance_owner")?.accessLevel, "custom");
+});
+
+test("buildWorkspaceInviteReadiness allows owner/admin actors after governance is ready", () => {
+  const readiness = buildWorkspaceInviteReadiness({
+    available: true,
+    ownerCount: 1,
+    currentUserRole: "admin"
+  });
+
+  assert.equal(readiness.status, "ready");
+  assert.equal(readiness.canInvite, true);
+  assert.equal(readiness.actorRoleLabel, "Admin");
+  assert.deepEqual(readiness.blockers, []);
+});
+
+test("buildWorkspaceInviteReadiness requires review for custom role rosters", () => {
+  const readiness = buildWorkspaceInviteReadiness({
+    available: true,
+    ownerCount: 1,
+    currentUserRole: "owner",
+    hasCustomRoles: true
+  });
+
+  assert.equal(readiness.status, "review");
+  assert.equal(readiness.canInvite, false);
+  assert.match(readiness.nextAction, /custom role/);
 });
