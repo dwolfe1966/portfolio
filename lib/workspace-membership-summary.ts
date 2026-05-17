@@ -31,6 +31,7 @@ export type WorkspaceMemberSummary = {
   updatedAtLabel: string;
   isCurrentUser: boolean;
   roleChangeReadiness: WorkspaceMemberRoleChangeReadiness;
+  removalReadiness: WorkspaceMemberRemovalReadiness;
 };
 
 export type WorkspaceRoleCapability = {
@@ -167,6 +168,14 @@ export type WorkspaceMemberRoleChangeReadiness = {
   blockers: string[];
 };
 
+export type WorkspaceMemberRemovalReadiness = {
+  status: "ready" | "blocked";
+  statusLabel: string;
+  canRemove: boolean;
+  nextAction: string;
+  blockers: string[];
+};
+
 export type WorkspaceMembershipSummary = {
   available: boolean;
   workspaceId: string | null;
@@ -178,6 +187,7 @@ export type WorkspaceMembershipSummary = {
   viewerCount: number;
   currentUserRoleLabel: string;
   currentUserCanManageInvites: boolean;
+  currentUserCanManageMembers: boolean;
   governanceLabel: string;
   inviteMailDelivery: WorkspaceInviteMailDeliveryConfig;
   inviteReadiness: WorkspaceInviteReadiness;
@@ -725,6 +735,41 @@ export function buildWorkspaceMemberRoleChangeReadiness(input: {
   };
 }
 
+export function buildWorkspaceMemberRemovalReadiness(input: {
+  actorRole?: string | null;
+  memberRole?: string | null;
+  isSelf?: boolean;
+  ownerCount?: number;
+}): WorkspaceMemberRemovalReadiness {
+  const actorRole = normalizeRole(input.actorRole);
+  const memberRole = normalizeRole(input.memberRole);
+  const blockers: string[] = [];
+
+  if (!canManageWorkspaceMembers(actorRole)) blockers.push("Only owners and admins can remove workspace members.");
+  if (input.isSelf) blockers.push("Ask another owner or admin to remove your own workspace membership.");
+  if (memberRole === "owner" && (input.ownerCount ?? 0) <= 1) {
+    blockers.push("Assign another owner before removing the last workspace owner.");
+  }
+
+  if (blockers.length) {
+    return {
+      status: "blocked",
+      statusLabel: "Blocked",
+      canRemove: false,
+      nextAction: blockers[0],
+      blockers
+    };
+  }
+
+  return {
+    status: "ready",
+    statusLabel: "Ready",
+    canRemove: true,
+    nextAction: "This member can be removed from the workspace.",
+    blockers
+  };
+}
+
 export function buildWorkspaceMembershipSummary(input: {
   memberships: WorkspaceMembershipSummaryInput[];
   pendingInvites?: WorkspacePendingInviteInput[];
@@ -763,6 +808,7 @@ export function buildWorkspaceMembershipSummary(input: {
   const viewerCount = members.filter((member) => member.role === "viewer").length;
   const currentUser = members.find((member) => member.isCurrentUser);
   const currentUserCanManageInvites = canManageWorkspaceInvites(currentUser?.role);
+  const currentUserCanManageMembers = canManageWorkspaceMembers(currentUser?.role);
   const inviteMailDelivery = input.inviteMailDelivery ?? buildWorkspaceInviteMailDeliveryConfig({});
   const rolePolicies = workspaceRolePoliciesForRoster(members.length ? members.map((member) => member.role) : ["owner", "admin", "operator", "viewer"]);
   const governanceLabel = ownerCount > 0
@@ -780,6 +826,7 @@ export function buildWorkspaceMembershipSummary(input: {
     viewerCount,
     currentUserRoleLabel: currentUser?.roleLabel ?? "No current membership",
     currentUserCanManageInvites,
+    currentUserCanManageMembers,
     governanceLabel,
     inviteMailDelivery,
     inviteReadiness: buildWorkspaceInviteReadiness({
@@ -797,6 +844,12 @@ export function buildWorkspaceMembershipSummary(input: {
     members: members.map((member) => ({
       ...member,
       roleChangeReadiness: buildWorkspaceMemberRoleChangeReadiness({
+        actorRole: currentUser?.role,
+        memberRole: member.role,
+        isSelf: member.isCurrentUser,
+        ownerCount
+      }),
+      removalReadiness: buildWorkspaceMemberRemovalReadiness({
         actorRole: currentUser?.role,
         memberRole: member.role,
         isSelf: member.isCurrentUser,

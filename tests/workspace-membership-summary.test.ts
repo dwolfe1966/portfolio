@@ -8,6 +8,7 @@ import {
   buildWorkspaceInviteMailDeliveryConfig,
   buildWorkspaceInviteReadiness,
   buildWorkspaceInviteSendReadiness,
+  buildWorkspaceMemberRemovalReadiness,
   buildWorkspaceMemberRoleChangeReadiness,
   buildWorkspacePendingInviteSummaries,
   canManageWorkspaceInvites,
@@ -60,6 +61,7 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.equal(summary.viewerCount, 1);
   assert.equal(summary.currentUserRoleLabel, "Viewer");
   assert.equal(summary.currentUserCanManageInvites, false);
+  assert.equal(summary.currentUserCanManageMembers, false);
   assert.equal(summary.governanceLabel, "1 owner assigned");
   assert.equal(summary.inviteMailDelivery.status, "blocked");
   assert.equal(summary.inviteReadiness.status, "blocked");
@@ -72,6 +74,7 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.equal(summary.members[0].email, "jordan@example.com");
   assert.equal(summary.members[0].statusLabel, "Signed in");
   assert.equal(summary.members[0].roleChangeReadiness.status, "blocked");
+  assert.equal(summary.members[0].removalReadiness.status, "blocked");
 });
 
 test("buildWorkspaceMembershipSummary handles empty membership state", () => {
@@ -403,4 +406,37 @@ test("buildWorkspaceMemberRoleChangeReadiness blocks unsafe role changes", () =>
   assert.match(lastOwner.nextAction, /last workspace owner/);
   assert.equal(sameRole.status, "blocked");
   assert.match(sameRole.nextAction, /different role/);
+});
+
+test("buildWorkspaceMemberRemovalReadiness blocks unsafe member removal", () => {
+  const ready = buildWorkspaceMemberRemovalReadiness({
+    actorRole: "admin",
+    memberRole: "viewer",
+    ownerCount: 1
+  });
+  const viewerActor = buildWorkspaceMemberRemovalReadiness({
+    actorRole: "viewer",
+    memberRole: "operator",
+    ownerCount: 1
+  });
+  const selfRemoval = buildWorkspaceMemberRemovalReadiness({
+    actorRole: "owner",
+    memberRole: "owner",
+    isSelf: true,
+    ownerCount: 2
+  });
+  const lastOwner = buildWorkspaceMemberRemovalReadiness({
+    actorRole: "admin",
+    memberRole: "owner",
+    ownerCount: 1
+  });
+
+  assert.equal(ready.status, "ready");
+  assert.equal(ready.canRemove, true);
+  assert.equal(viewerActor.status, "blocked");
+  assert.match(viewerActor.nextAction, /Only owners and admins/);
+  assert.equal(selfRemoval.status, "blocked");
+  assert.match(selfRemoval.nextAction, /your own workspace membership/);
+  assert.equal(lastOwner.status, "blocked");
+  assert.match(lastOwner.nextAction, /last workspace owner/);
 });

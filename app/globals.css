@@ -1972,6 +1972,10 @@ button {
 .workspaceMemberRoleForm select {
   min-height: 38px;
 }
+.workspaceMemberRemoveForm {
+  grid-column: 1 / -1;
+  justify-self: end;
+}
 .workspaceRolePolicyGrid {
   display: grid;
   gap: 12px;
