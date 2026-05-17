@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildWorkspaceMembershipSummary,
   buildWorkspaceInviteDraft,
+  buildWorkspaceInviteAcceptanceActionReadiness,
   buildWorkspaceInviteAcceptancePreview,
   buildWorkspaceInviteMailDeliveryConfig,
   buildWorkspaceInviteReadiness,
@@ -329,4 +330,30 @@ test("buildWorkspaceInviteAcceptancePreview handles missing invites", () => {
   assert.equal(preview.available, false);
   assert.equal(preview.status, "missing");
   assert.equal(preview.canAccept, false);
+});
+
+test("buildWorkspaceInviteAcceptanceActionReadiness requires matching signed-in recipient", () => {
+  const preview = buildWorkspaceInviteAcceptancePreview({
+    id: "invite_1",
+    email: "Jordan@Example.com",
+    role: "operator",
+    status: "pending",
+    expiresAt: "2026-06-01T12:00:00.000Z",
+    createdAt: "2026-05-16T12:00:00.000Z",
+    workspace: { name: "Acme", slug: "default" },
+    invitedByAccountUser: null
+  }, new Date("2026-05-17T12:00:00.000Z"));
+  const missingSession = buildWorkspaceInviteAcceptanceActionReadiness({ preview });
+  const wrongSession = buildWorkspaceInviteAcceptanceActionReadiness({ preview, sessionEmail: "sam@example.com" });
+  const ready = buildWorkspaceInviteAcceptanceActionReadiness({ preview, sessionEmail: "jordan@example.com" });
+  const existingMember = buildWorkspaceInviteAcceptanceActionReadiness({ preview, sessionEmail: "jordan@example.com", existingMembership: true });
+
+  assert.equal(missingSession.status, "blocked");
+  assert.match(missingSession.nextAction, /Sign in/);
+  assert.equal(wrongSession.canAccept, false);
+  assert.match(wrongSession.nextAction, /invited email/);
+  assert.equal(ready.status, "ready");
+  assert.equal(ready.canAccept, true);
+  assert.equal(existingMember.status, "blocked");
+  assert.match(existingMember.nextAction, /already has workspace membership/);
 });

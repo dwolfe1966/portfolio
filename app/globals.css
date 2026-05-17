@@ -2221,7 +2221,7 @@ button {
 .workspaceInviteAcceptFacts {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
 .workspaceInviteAcceptFacts div {
   border: 1px solid var(--line);
@@ -2235,6 +2235,20 @@ button {
   font-size: 14px;
   line-height: 1.35;
   overflow-wrap: anywhere;
+}
+.workspaceInviteAcceptBlockers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.workspaceInviteAcceptBlockers span {
+  border: 1px solid color-mix(in oklab, var(--red) 42%, var(--line));
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 7px 9px;
 }
 .connectionModeCard {
   display: grid;

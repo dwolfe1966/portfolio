@@ -150,6 +150,14 @@ export type WorkspaceInviteAcceptancePreview = {
   nextAction: string;
 };
 
+export type WorkspaceInviteAcceptanceActionReadiness = {
+  status: "ready" | "blocked";
+  statusLabel: string;
+  canAccept: boolean;
+  nextAction: string;
+  blockers: string[];
+};
+
 export type WorkspaceMembershipSummary = {
   available: boolean;
   workspaceId: string | null;
@@ -628,6 +636,38 @@ export function buildWorkspaceInviteAcceptancePreview(
     createdAtLabel: formatDateLabel(invite.createdAt),
     expiresAtLabel: formatDateLabel(expiresAt),
     nextAction
+  };
+}
+
+export function buildWorkspaceInviteAcceptanceActionReadiness(input: {
+  preview: WorkspaceInviteAcceptancePreview;
+  sessionEmail?: string | null;
+  existingMembership?: boolean;
+}): WorkspaceInviteAcceptanceActionReadiness {
+  const sessionEmail = normalizeInviteEmail(input.sessionEmail);
+  const blockers: string[] = [];
+
+  if (!input.preview.canAccept) blockers.push(input.preview.nextAction);
+  if (!sessionEmail) blockers.push("Sign in or register with the invited email before accepting this invitation.");
+  if (sessionEmail && sessionEmail !== input.preview.email) blockers.push("Sign in with the invited email address before accepting this invitation.");
+  if (input.existingMembership) blockers.push("This account already has workspace membership.");
+
+  if (blockers.length) {
+    return {
+      status: "blocked",
+      statusLabel: "Blocked",
+      canAccept: false,
+      nextAction: blockers[0],
+      blockers
+    };
+  }
+
+  return {
+    status: "ready",
+    statusLabel: "Ready",
+    canAccept: true,
+    nextAction: "Accepting will add this account to the workspace with the invited role.",
+    blockers
   };
 }
 
