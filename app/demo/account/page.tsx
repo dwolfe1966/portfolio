@@ -476,6 +476,7 @@ export default async function WorkspaceAccountPage({
                       <span>{invite.roleLabel}</span>
                       <span>Created {invite.createdAtLabel}</span>
                       <span>Expires {invite.expiresAtLabel}</span>
+                      <a className="btn smallBtn" href={`/workspace/invite/${invite.id}`}>Preview</a>
                       {membershipSummary.currentUserCanManageInvites && !invite.isExpired ? (
                         <form action={cancelPendingWorkspaceInvite} className="workspaceInviteInlineForm">
                           <input name="inviteId" type="hidden" value={invite.id} />

@@ -2168,6 +2168,59 @@ button {
   margin-top: 5px;
   overflow-wrap: anywhere;
 }
+.workspaceInviteAcceptPreview {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+.workspaceInviteAcceptPreview--ready {
+  border-color: color-mix(in oklab, var(--green) 44%, var(--line));
+}
+.workspaceInviteAcceptPreview--expired,
+.workspaceInviteAcceptPreview--canceled,
+.workspaceInviteAcceptPreview--missing {
+  border-color: color-mix(in oklab, var(--red) 42%, var(--line));
+}
+.workspaceInviteAcceptPreview--accepted {
+  border-color: color-mix(in oklab, var(--blue) 42%, var(--line));
+}
+.workspaceInviteAcceptPreview p,
+.workspaceInviteAcceptPreview strong,
+.workspaceInviteAcceptPreview span {
+  margin-bottom: 0;
+}
+.workspaceInviteAcceptPreview > div > strong {
+  color: var(--text);
+  display: block;
+  font-size: 24px;
+  line-height: 1.2;
+}
+.workspaceInviteAcceptPreview > div > span {
+  color: var(--muted);
+  display: block;
+  margin-top: 6px;
+}
+.workspaceInviteAcceptFacts {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.workspaceInviteAcceptFacts div {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+.workspaceInviteAcceptFacts strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 .connectionModeCard {
   display: grid;
   gap: 10px;
@@ -3890,6 +3943,7 @@ button {
   .workspaceInviteDraftForm,
   .workspaceInviteDraftPreview,
   .workspacePendingInviteCard,
+  .workspaceInviteAcceptFacts,
   .workspaceAccountPanel { grid-template-columns: 1fr; }
   .workspaceMembershipCard,
   .workspaceMembershipHeader,

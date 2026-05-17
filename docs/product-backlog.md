@@ -138,6 +138,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | K15 | Workspace invite draft preview | DW | M | S20 | ✅ | Workspace Account supports a non-mutating invite preview with email/role validation, duplicate-member checks, role labels, and audit-shaped output before invitation persistence or email send. |
 | K16 | Persist pending workspace invites | DW | L | S20 | ✅ | Workspace Account can create guarded pending invite records with role, inviter, expiry, draft audit payload, duplicate-pending protection, and pending invite visibility without sending email. |
 | K17 | Pending invite cancellation | DW | M | S20 | ✅ | Workspace Account lets owners/admins cancel pending invites with guarded status updates while preserving no-send/no-membership behavior. |
+| K18 | Invite acceptance preview route | DW | M | S20 | ✅ | Workspace invite links have a non-mutating preview route that explains pending, expired, canceled, accepted, and missing invite states before account acceptance is enabled. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -155,7 +156,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | S17 | L61, L62, L63, L64, L65 | — | — |
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
-| S20 | K12, K13, K14, K15, K16, K17 | — | — |
+| S20 | K12, K13, K14, K15, K16, K17, K18 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.

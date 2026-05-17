@@ -96,6 +96,37 @@ export type WorkspacePendingInviteSummary = {
   isExpired: boolean;
 };
 
+export type WorkspaceInviteAcceptancePreviewInput = {
+  id: string;
+  email: string;
+  role: string | null;
+  status: string;
+  expiresAt: Date | string;
+  createdAt: Date | string;
+  workspace?: {
+    name: string;
+    slug: string;
+  } | null;
+  invitedByAccountUser?: {
+    name: string | null;
+    email: string;
+  } | null;
+} | null;
+
+export type WorkspaceInviteAcceptancePreview = {
+  available: boolean;
+  status: "ready" | "expired" | "canceled" | "accepted" | "missing";
+  statusLabel: string;
+  canAccept: boolean;
+  email: string;
+  roleLabel: string;
+  workspaceName: string;
+  invitedByLabel: string;
+  createdAtLabel: string;
+  expiresAtLabel: string;
+  nextAction: string;
+};
+
 export type WorkspaceMembershipSummary = {
   available: boolean;
   workspaceId: string | null;
@@ -412,6 +443,63 @@ export function buildWorkspacePendingInviteSummaries(input: {
       if (left.isExpired !== right.isExpired) return left.isExpired ? 1 : -1;
       return left.email.localeCompare(right.email);
     });
+}
+
+export function buildWorkspaceInviteAcceptancePreview(
+  invite: WorkspaceInviteAcceptancePreviewInput,
+  now = new Date()
+): WorkspaceInviteAcceptancePreview {
+  if (!invite) {
+    return {
+      available: false,
+      status: "missing",
+      statusLabel: "Not found",
+      canAccept: false,
+      email: "",
+      roleLabel: "Unknown",
+      workspaceName: "Unknown workspace",
+      invitedByLabel: "Unknown",
+      createdAtLabel: "Unknown",
+      expiresAtLabel: "Unknown",
+      nextAction: "Ask a workspace owner or admin to create a new invitation."
+    };
+  }
+
+  const expiresAt = invite.expiresAt instanceof Date ? invite.expiresAt : new Date(invite.expiresAt);
+  const rawStatus = String(invite.status || "pending").toLowerCase();
+  const isExpired = !Number.isNaN(expiresAt.getTime()) && expiresAt <= now;
+  const status = rawStatus === "accepted"
+    ? "accepted"
+    : rawStatus === "canceled"
+      ? "canceled"
+      : isExpired
+        ? "expired"
+        : "ready";
+  const inviterName = invite.invitedByAccountUser?.name?.trim();
+  const inviterEmail = invite.invitedByAccountUser?.email;
+  const nextAction = status === "ready"
+    ? "Acceptance is not enabled yet. Sign in or register with this email after the membership acceptance flow is added."
+    : status === "expired"
+      ? "Ask a workspace owner or admin to issue a fresh invitation."
+      : status === "canceled"
+        ? "Ask a workspace owner or admin to restore access by creating a new invitation."
+        : status === "accepted"
+          ? "Sign in with the accepted account to access the workspace."
+          : "Ask a workspace owner or admin to create a new invitation.";
+
+  return {
+    available: true,
+    status,
+    statusLabel: labelWorkspaceRole(status),
+    canAccept: status === "ready",
+    email: normalizeInviteEmail(invite.email),
+    roleLabel: labelWorkspaceRole(invite.role),
+    workspaceName: invite.workspace?.name ?? "Workspace",
+    invitedByLabel: inviterName || inviterEmail || "Unknown",
+    createdAtLabel: formatDateLabel(invite.createdAt),
+    expiresAtLabel: formatDateLabel(expiresAt),
+    nextAction
+  };
 }
 
 export function buildWorkspaceMembershipSummary(input: {

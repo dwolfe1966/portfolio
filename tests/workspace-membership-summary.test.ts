@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildWorkspaceMembershipSummary,
   buildWorkspaceInviteDraft,
+  buildWorkspaceInviteAcceptancePreview,
   buildWorkspaceInviteReadiness,
   buildWorkspacePendingInviteSummaries,
   canManageWorkspaceInvites,
@@ -213,4 +214,56 @@ test("buildWorkspacePendingInviteSummaries labels and sorts pending invites", ()
   assert.equal(invites[0].roleLabel, "Admin");
   assert.equal(invites[0].invitedByLabel, "owner@example.com");
   assert.equal(invites[1].isExpired, true);
+});
+
+test("buildWorkspaceInviteAcceptancePreview explains ready and terminal invite states", () => {
+  const ready = buildWorkspaceInviteAcceptancePreview({
+    id: "invite_1",
+    email: "Jordan@Example.com",
+    role: "operator",
+    status: "pending",
+    expiresAt: "2026-06-01T12:00:00.000Z",
+    createdAt: "2026-05-16T12:00:00.000Z",
+    workspace: { name: "Acme", slug: "default" },
+    invitedByAccountUser: { name: "Alex Owner", email: "alex@example.com" }
+  }, new Date("2026-05-17T12:00:00.000Z"));
+  const expired = buildWorkspaceInviteAcceptancePreview({
+    id: "invite_2",
+    email: "sam@example.com",
+    role: "viewer",
+    status: "pending",
+    expiresAt: "2026-05-01T12:00:00.000Z",
+    createdAt: "2026-04-17T12:00:00.000Z",
+    workspace: { name: "Acme", slug: "default" },
+    invitedByAccountUser: null
+  }, new Date("2026-05-17T12:00:00.000Z"));
+  const canceled = buildWorkspaceInviteAcceptancePreview({
+    id: "invite_3",
+    email: "lee@example.com",
+    role: "admin",
+    status: "canceled",
+    expiresAt: "2026-06-01T12:00:00.000Z",
+    createdAt: "2026-05-16T12:00:00.000Z",
+    workspace: { name: "Acme", slug: "default" },
+    invitedByAccountUser: null
+  }, new Date("2026-05-17T12:00:00.000Z"));
+
+  assert.equal(ready.status, "ready");
+  assert.equal(ready.canAccept, true);
+  assert.equal(ready.email, "jordan@example.com");
+  assert.equal(ready.roleLabel, "Operator");
+  assert.equal(ready.invitedByLabel, "Alex Owner");
+  assert.equal(expired.status, "expired");
+  assert.equal(expired.canAccept, false);
+  assert.match(expired.nextAction, /fresh invitation/);
+  assert.equal(canceled.status, "canceled");
+  assert.match(canceled.nextAction, /new invitation/);
+});
+
+test("buildWorkspaceInviteAcceptancePreview handles missing invites", () => {
+  const preview = buildWorkspaceInviteAcceptancePreview(null);
+
+  assert.equal(preview.available, false);
+  assert.equal(preview.status, "missing");
+  assert.equal(preview.canAccept, false);
 });
