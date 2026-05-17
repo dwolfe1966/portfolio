@@ -70,6 +70,32 @@ export type WorkspaceInviteDraft = {
   warnings: string[];
 };
 
+export type WorkspacePendingInviteInput = {
+  id: string;
+  email: string;
+  role: string | null;
+  status: string;
+  expiresAt: Date | string;
+  createdAt: Date | string;
+  invitedByAccountUser?: {
+    name: string | null;
+    email: string;
+  } | null;
+};
+
+export type WorkspacePendingInviteSummary = {
+  id: string;
+  email: string;
+  role: string;
+  roleLabel: string;
+  status: string;
+  statusLabel: string;
+  invitedByLabel: string;
+  expiresAtLabel: string;
+  createdAtLabel: string;
+  isExpired: boolean;
+};
+
 export type WorkspaceMembershipSummary = {
   available: boolean;
   workspaceId: string | null;
@@ -83,6 +109,7 @@ export type WorkspaceMembershipSummary = {
   governanceLabel: string;
   inviteReadiness: WorkspaceInviteReadiness;
   rolePolicies: WorkspaceRolePolicy[];
+  pendingInvites: WorkspacePendingInviteSummary[];
   members: WorkspaceMemberSummary[];
 };
 
@@ -287,18 +314,21 @@ export function buildWorkspaceInviteDraft(input: {
   role?: string | null;
   workspaceName?: string | null;
   existingMemberEmails?: string[];
+  existingPendingInviteEmails?: string[];
 }): WorkspaceInviteDraft {
   const email = normalizeInviteEmail(input.email);
   const role = normalizeRole(input.role);
   const rolePolicy = workspaceRolePolicy(role);
   const workspaceName = String(input.workspaceName ?? "workspace").trim() || "workspace";
   const existingEmails = new Set((input.existingMemberEmails ?? []).map(normalizeInviteEmail));
+  const pendingInviteEmails = new Set((input.existingPendingInviteEmails ?? []).map(normalizeInviteEmail));
   const blockers = [...input.readiness.blockers];
   const warnings = [...input.readiness.warnings];
 
   if (!email) blockers.push("Enter an email address before previewing an invitation.");
   if (email && !isValidInviteEmail(email)) blockers.push("Enter a valid collaborator email address.");
   if (email && existingEmails.has(email)) blockers.push("This email already has workspace membership.");
+  if (email && pendingInviteEmails.has(email)) blockers.push("This email already has a pending workspace invitation.");
   if (rolePolicy.accessLevel === "custom") warnings.push("Custom role invitations require capability review before creation.");
 
   if (blockers.length) {
@@ -348,8 +378,40 @@ export function buildWorkspaceInviteDraft(input: {
   };
 }
 
+export function buildWorkspacePendingInviteSummaries(input: {
+  invites: WorkspacePendingInviteInput[];
+  now?: Date;
+}): WorkspacePendingInviteSummary[] {
+  const now = input.now ?? new Date();
+  return input.invites
+    .map((invite) => {
+      const expiresAt = invite.expiresAt instanceof Date ? invite.expiresAt : new Date(invite.expiresAt);
+      const role = normalizeRole(invite.role);
+      const status = String(invite.status || "pending").toLowerCase();
+      const inviterName = invite.invitedByAccountUser?.name?.trim();
+      const inviterEmail = invite.invitedByAccountUser?.email;
+      return {
+        id: invite.id,
+        email: normalizeInviteEmail(invite.email),
+        role,
+        roleLabel: labelWorkspaceRole(role),
+        status,
+        statusLabel: labelWorkspaceRole(status),
+        invitedByLabel: inviterName || inviterEmail || "Unknown",
+        expiresAtLabel: formatDateLabel(expiresAt),
+        createdAtLabel: formatDateLabel(invite.createdAt),
+        isExpired: !Number.isNaN(expiresAt.getTime()) && expiresAt <= now
+      };
+    })
+    .sort((left, right) => {
+      if (left.isExpired !== right.isExpired) return left.isExpired ? 1 : -1;
+      return left.email.localeCompare(right.email);
+    });
+}
+
 export function buildWorkspaceMembershipSummary(input: {
   memberships: WorkspaceMembershipSummaryInput[];
+  pendingInvites?: WorkspacePendingInviteInput[];
   currentUserId?: string | null;
 }): WorkspaceMembershipSummary {
   const firstMembership = input.memberships[0];
@@ -406,6 +468,7 @@ export function buildWorkspaceMembershipSummary(input: {
       hasCustomRoles: rolePolicies.some((policy) => policy.accessLevel === "custom")
     }),
     rolePolicies,
+    pendingInvites: buildWorkspacePendingInviteSummaries({ invites: input.pendingInvites ?? [] }),
     members
   };
 }

@@ -47,6 +47,71 @@ async function saveSignedInAccountProfile(formData: FormData) {
   redirect("/workspace/account?saved=profile");
 }
 
+async function createPendingWorkspaceInvite(formData: FormData) {
+  "use server";
+
+  const inviteEmail = String(formData.get("inviteEmail") ?? "");
+  const inviteRole = String(formData.get("inviteRole") ?? "viewer");
+  const redirectQuery = `inviteEmail=${encodeURIComponent(inviteEmail)}&inviteRole=${encodeURIComponent(inviteRole)}`;
+  if (!isDemoMutationAllowed()) redirect(`/workspace/account?${redirectQuery}&error=mutations`);
+
+  try {
+    const cookieStore = await cookies();
+    const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    if (!accountUser) redirect(`/workspace/account?${redirectQuery}&error=session`);
+    const workspaceId = accountUser.memberships[0]?.workspaceId;
+    if (!workspaceId) redirect(`/workspace/account?${redirectQuery}&error=invite`);
+
+    const workspaceMemberships = await db.workspaceMembership.findMany({
+      where: { workspaceId },
+      include: { accountUser: true, workspace: true },
+      orderBy: [{ role: "asc" }, { updatedAt: "desc" }]
+    });
+    const pendingInvites = await db.workspaceInvite.findMany({
+      where: { workspaceId, status: "pending" },
+      include: { invitedByAccountUser: true },
+      orderBy: { createdAt: "desc" }
+    });
+    const membershipSummary = buildWorkspaceMembershipSummary({
+      memberships: workspaceMemberships,
+      pendingInvites,
+      currentUserId: accountUser.id
+    });
+    const inviteDraft = buildWorkspaceInviteDraft({
+      readiness: membershipSummary.inviteReadiness,
+      email: inviteEmail,
+      role: inviteRole,
+      workspaceName: membershipSummary.workspaceName,
+      existingMemberEmails: membershipSummary.members.map((member) => member.email),
+      existingPendingInviteEmails: membershipSummary.pendingInvites.map((invite) => invite.email)
+    });
+
+    if (!inviteDraft.canCreate || !membershipSummary.workspaceId) redirect(`/workspace/account?${redirectQuery}&error=invite`);
+
+    await db.workspaceInvite.create({
+      data: {
+        workspaceId: membershipSummary.workspaceId,
+        invitedByAccountUserId: accountUser.id,
+        email: inviteDraft.email,
+        role: inviteDraft.role,
+        status: "pending",
+        expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        draftPayload: {
+          subject: inviteDraft.subject,
+          roleLabel: inviteDraft.roleLabel,
+          auditSummary: inviteDraft.auditSummary,
+          source: "workspace_account_pending_invite"
+        }
+      }
+    });
+  } catch (error) {
+    if (!isMissingDemoTableError(error)) throw error;
+    redirect(`/workspace/account?${redirectQuery}&error=invite`);
+  }
+
+  redirect("/workspace/account?saved=invite");
+}
+
 async function loadAccountPage() {
   try {
     const cookieStore = await cookies();
@@ -59,9 +124,21 @@ async function loadAccountPage() {
           orderBy: [{ role: "asc" }, { updatedAt: "desc" }]
         })
       : [];
-    return { accountUser, workspaceMemberships, compatibilityMode: false };
+    let pendingInvites: Awaited<ReturnType<typeof db.workspaceInvite.findMany>> = [];
+    if (workspaceId) {
+      try {
+        pendingInvites = await db.workspaceInvite.findMany({
+          where: { workspaceId, status: "pending" },
+          include: { invitedByAccountUser: true },
+          orderBy: { createdAt: "desc" }
+        });
+      } catch (error) {
+        if (!isMissingDemoTableError(error)) throw error;
+      }
+    }
+    return { accountUser, workspaceMemberships, pendingInvites, compatibilityMode: false };
   } catch (error) {
-    if (isMissingDemoTableError(error)) return { accountUser: null, workspaceMemberships: [], compatibilityMode: true };
+    if (isMissingDemoTableError(error)) return { accountUser: null, workspaceMemberships: [], pendingInvites: [], compatibilityMode: true };
     throw error;
   }
 }
@@ -72,10 +149,11 @@ export default async function WorkspaceAccountPage({
   searchParams?: Promise<AccountSearchParams>;
 }) {
   const params = await searchParams;
-  const { accountUser, workspaceMemberships, compatibilityMode } = await loadAccountPage();
+  const { accountUser, workspaceMemberships, pendingInvites, compatibilityMode } = await loadAccountPage();
   if (!compatibilityMode && !accountUser) redirect("/workspace/login?next=/workspace/account");
   const membershipSummary = buildWorkspaceMembershipSummary({
     memberships: workspaceMemberships,
+    pendingInvites,
     currentUserId: accountUser?.id
   });
   const inviteRole = params?.inviteRole ?? "viewer";
@@ -85,7 +163,8 @@ export default async function WorkspaceAccountPage({
     email: inviteEmail,
     role: inviteRole,
     workspaceName: membershipSummary.workspaceName,
-    existingMemberEmails: membershipSummary.members.map((member) => member.email)
+    existingMemberEmails: membershipSummary.members.map((member) => member.email),
+    existingPendingInviteEmails: membershipSummary.pendingInvites.map((invite) => invite.email)
   });
   return (
     <>
@@ -98,8 +177,10 @@ export default async function WorkspaceAccountPage({
 
       <Section title="Profile">
         {params?.saved === "profile" ? <p className="small bandText--healthy">Account profile saved.</p> : null}
+        {params?.saved === "invite" ? <p className="small bandText--healthy">Pending workspace invite created.</p> : null}
         {params?.error === "session" ? <p className="small bandText--unhealthy">Sign in before editing your account.</p> : null}
         {params?.error === "mutations" ? <p className="small bandText--unhealthy">Account editing is disabled in this environment.</p> : null}
+        {params?.error === "invite" ? <p className="small bandText--unhealthy">Resolve invite blockers before creating a pending invitation.</p> : null}
         {compatibilityMode ? (
           <div className="card">
             <p>Account tables are not available yet. Run the latest Prisma migration to enable account ownership.</p>
@@ -285,6 +366,13 @@ export default async function WorkspaceAccountPage({
               </label>
               <button className="btn smallBtn" type="submit">Preview invite</button>
             </form>
+            {inviteDraft.canCreate ? (
+              <form action={createPendingWorkspaceInvite} className="workspaceInviteCreateForm">
+                <input name="inviteEmail" type="hidden" value={inviteDraft.email} />
+                <input name="inviteRole" type="hidden" value={inviteDraft.role} />
+                <button className="btn primary smallBtn" type="submit">Create pending invite</button>
+              </form>
+            ) : null}
           </div>
           {inviteEmail ? (
             <div className={`workspaceInviteDraftPreview workspaceInviteDraftPreview--${inviteDraft.status}`}>
@@ -322,6 +410,37 @@ export default async function WorkspaceAccountPage({
               ))}
             </div>
           ) : null}
+          <div className="workspacePendingInviteList">
+            <div className="workspaceMembershipHeader">
+              <div>
+                <p className="small">Pending invitations</p>
+                <strong>{membershipSummary.pendingInvites.length}</strong>
+              </div>
+            </div>
+            {membershipSummary.pendingInvites.length ? (
+              <div className="workspaceMembershipList">
+                {membershipSummary.pendingInvites.map((invite) => (
+                  <article className="card workspacePendingInviteCard" key={invite.id}>
+                    <div>
+                      <p className="small">{invite.isExpired ? "Expired" : invite.statusLabel}</p>
+                      <strong>{invite.email}</strong>
+                      <span>Invited by {invite.invitedByLabel}</span>
+                    </div>
+                    <div className="workspaceMembershipFacts">
+                      <span>{invite.roleLabel}</span>
+                      <span>Created {invite.createdAtLabel}</span>
+                      <span>Expires {invite.expiresAtLabel}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="card workspaceInviteReadinessItem">
+                <p className="small">No pending invitations</p>
+                <strong>Preview and create a pending invite when the invitation gate is ready.</strong>
+              </div>
+            )}
+          </div>
         </Section>
       ) : null}
     </>

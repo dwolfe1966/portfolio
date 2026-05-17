@@ -29,6 +29,7 @@ model Workspace {
   agentProviderWriteRollbackRecords     AgentProviderWriteRollbackRecord[]
   providerCredentialGrants              ProviderCredentialGrant[]
   launchReadinessRecords                WorkspaceLaunchReadinessRecord[]
+  workspaceInvites                      WorkspaceInvite[]
 }
 
 model AccountUser {
@@ -61,6 +62,7 @@ model AccountUser {
   agentProviderWriteRollbackRecords     AgentProviderWriteRollbackRecord[]
   providerCredentialGrants              ProviderCredentialGrant[]
   launchReadinessRecords                WorkspaceLaunchReadinessRecord[]
+  sentWorkspaceInvites                  WorkspaceInvite[]                      @relation("WorkspaceInviteInviter")
 
   @@index([updatedAt])
 }
@@ -78,6 +80,25 @@ model WorkspaceMembership {
   @@unique([workspaceId, accountUserId])
   @@index([accountUserId, updatedAt])
   @@index([workspaceId, role])
+}
+
+model WorkspaceInvite {
+  id                     String       @id @default(cuid())
+  workspaceId            String
+  invitedByAccountUserId String?
+  email                  String
+  role                   String       @default("viewer")
+  status                 String       @default("pending")
+  draftPayload           Json?
+  expiresAt              DateTime
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  workspace              Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedByAccountUser   AccountUser? @relation("WorkspaceInviteInviter", fields: [invitedByAccountUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status, createdAt])
+  @@index([email, status])
+  @@index([invitedByAccountUserId, createdAt])
 }
 
 model AppDataSourceSelection {

@@ -2103,6 +2103,9 @@ button {
   align-items: end;
   grid-template-columns: minmax(0, 1.2fr) minmax(160px, 0.5fr) auto;
 }
+.workspaceInviteCreateForm {
+  margin: 0;
+}
 .workspaceInviteDraftPreview {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2127,6 +2130,35 @@ button {
   display: block;
   font-size: 14px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.workspacePendingInviteList {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.workspacePendingInviteCard {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+}
+.workspacePendingInviteCard p,
+.workspacePendingInviteCard strong,
+.workspacePendingInviteCard span {
+  margin-bottom: 0;
+}
+.workspacePendingInviteCard strong {
+  color: var(--text);
+  display: block;
+  font-size: 18px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.workspacePendingInviteCard > div > span {
+  color: var(--muted);
+  display: block;
+  margin-top: 5px;
   overflow-wrap: anywhere;
 }
 .connectionModeCard {
@@ -3850,6 +3882,7 @@ button {
   .workspaceInviteReadinessGrid,
   .workspaceInviteDraftForm,
   .workspaceInviteDraftPreview,
+  .workspacePendingInviteCard,
   .workspaceAccountPanel { grid-template-columns: 1fr; }
   .workspaceMembershipCard,
   .workspaceMembershipHeader,

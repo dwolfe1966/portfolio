@@ -4,6 +4,7 @@ import {
   buildWorkspaceMembershipSummary,
   buildWorkspaceInviteDraft,
   buildWorkspaceInviteReadiness,
+  buildWorkspacePendingInviteSummaries,
   labelWorkspaceRole,
   workspaceRolePoliciesForRoster,
   workspaceRolePolicy
@@ -29,6 +30,17 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
         accountUser: { id: "user_2", name: "Jordan Viewer", email: "jordan@example.com", company: null, title: null },
         workspace: { id: "workspace_1", name: "Acme", slug: "default" }
       }
+    ],
+    pendingInvites: [
+      {
+        id: "invite_1",
+        email: "Sam@Example.com",
+        role: "operator",
+        status: "pending",
+        expiresAt: "2026-06-01T12:00:00.000Z",
+        createdAt: "2026-05-16T12:00:00.000Z",
+        invitedByAccountUser: { name: "Alex Owner", email: "alex@example.com" }
+      }
     ]
   });
 
@@ -42,6 +54,8 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.equal(summary.inviteReadiness.status, "blocked");
   assert.match(summary.inviteReadiness.nextAction, /Only owners and admins/);
   assert.deepEqual(summary.rolePolicies.map((policy) => policy.role), ["owner", "viewer"]);
+  assert.equal(summary.pendingInvites[0].email, "sam@example.com");
+  assert.equal(summary.pendingInvites[0].roleLabel, "Operator");
   assert.equal(summary.members[0].email, "jordan@example.com");
   assert.equal(summary.members[0].statusLabel, "Signed in");
 });
@@ -124,12 +138,20 @@ test("buildWorkspaceInviteDraft validates email, duplicate membership, and readi
     role: "viewer",
     existingMemberEmails: ["alex@example.com"]
   });
+  const pendingDuplicate = buildWorkspaceInviteDraft({
+    readiness,
+    email: "sam@example.com",
+    role: "viewer",
+    existingPendingInviteEmails: ["sam@example.com"]
+  });
 
   assert.equal(invalid.status, "invalid");
   assert.equal(invalid.canCreate, false);
   assert.match(invalid.nextAction, /valid collaborator email/);
   assert.equal(duplicate.status, "blocked");
   assert.match(duplicate.nextAction, /already has workspace membership/);
+  assert.equal(pendingDuplicate.status, "blocked");
+  assert.match(pendingDuplicate.nextAction, /pending workspace invitation/);
 });
 
 test("buildWorkspaceInviteDraft creates a non-mutating ready preview", () => {
@@ -151,4 +173,35 @@ test("buildWorkspaceInviteDraft creates a non-mutating ready preview", () => {
   assert.equal(draft.email, "jordan@example.com");
   assert.equal(draft.roleLabel, "Operator");
   assert.match(draft.auditSummary, /no email sent/);
+});
+
+test("buildWorkspacePendingInviteSummaries labels and sorts pending invites", () => {
+  const invites = buildWorkspacePendingInviteSummaries({
+    now: new Date("2026-05-16T12:00:00.000Z"),
+    invites: [
+      {
+        id: "expired",
+        email: "zara@example.com",
+        role: "viewer",
+        status: "pending",
+        expiresAt: "2026-05-15T12:00:00.000Z",
+        createdAt: "2026-05-01T12:00:00.000Z",
+        invitedByAccountUser: null
+      },
+      {
+        id: "active",
+        email: "amy@example.com",
+        role: "admin",
+        status: "pending",
+        expiresAt: "2026-05-30T12:00:00.000Z",
+        createdAt: "2026-05-10T12:00:00.000Z",
+        invitedByAccountUser: { name: "", email: "owner@example.com" }
+      }
+    ]
+  });
+
+  assert.equal(invites[0].id, "active");
+  assert.equal(invites[0].roleLabel, "Admin");
+  assert.equal(invites[0].invitedByLabel, "owner@example.com");
+  assert.equal(invites[1].isExpired, true);
 });
