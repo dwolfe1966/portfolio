@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
+import { recordWorkspaceMembershipAuditEvent } from "@/lib/workspace-membership-audit-events";
 import { isPlausibleWorkspaceInviteToken, workspaceInviteTokenHash } from "@/lib/workspace-invite-tokens";
 import {
   buildWorkspaceInviteAcceptanceActionReadiness,
@@ -133,6 +134,18 @@ async function acceptWorkspaceInvite(formData: FormData) {
           role: invite.role
         }
       });
+    });
+    await recordWorkspaceMembershipAuditEvent({
+      workspaceId: invite.workspaceId,
+      accountUserId: accountUser.id,
+      action: "invite_accepted",
+      objectKey: accountUser.email,
+      metadata: {
+        inviteId: invite.id,
+        acceptedByEmail: accountUser.email,
+        role: invite.role,
+        acceptedAt
+      }
     });
   } catch (error) {
     if (!isMissingDemoTableError(error)) {

@@ -12,6 +12,12 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
+import {
+  recordWorkspaceMembershipAuditEvent,
+  workspaceMembershipAuditDetail,
+  workspaceMembershipAuditProvider,
+  workspaceMembershipAuditTitle
+} from "@/lib/workspace-membership-audit-events";
 import { deliverWorkspaceInviteEmail } from "@/lib/workspace-invite-mailer";
 import { createWorkspaceInviteToken, workspaceInviteTokenHash } from "@/lib/workspace-invite-tokens";
 import {
@@ -38,6 +44,23 @@ type AccountSearchParams = {
   inviteEmail?: string;
   inviteRole?: string;
 };
+
+type MembershipAuditItem = {
+  id: string;
+  title: string;
+  detail: string;
+  actor: string;
+  occurredAtLabel: string;
+};
+
+function formatAuditDate(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(value);
+}
 
 async function saveSignedInAccountProfile(formData: FormData) {
   "use server";
@@ -116,6 +139,18 @@ async function createPendingWorkspaceInvite(formData: FormData) {
           tokenPreviewPath,
           source: "workspace_account_pending_invite"
         }
+      }
+    });
+    await recordWorkspaceMembershipAuditEvent({
+      workspaceId: membershipSummary.workspaceId,
+      accountUserId: accountUser.id,
+      action: "invite_created",
+      objectKey: inviteDraft.email,
+      metadata: {
+        recipientEmail: inviteDraft.email,
+        role: inviteDraft.role,
+        roleLabel: inviteDraft.roleLabel,
+        actorEmail: accountUser.email
       }
     });
   } catch (error) {
@@ -197,6 +232,21 @@ async function sendPendingWorkspaceInvite(formData: FormData) {
         }
       }
     });
+    await recordWorkspaceMembershipAuditEvent({
+      workspaceId,
+      accountUserId: accountUser.id,
+      action: "invite_sent",
+      objectKey: inviteSummary.email,
+      metadata: {
+        inviteId,
+        recipientEmail: inviteSummary.email,
+        role: inviteSummary.role,
+        roleLabel: inviteSummary.roleLabel,
+        actorEmail: accountUser.email,
+        provider: mailDelivery.providerLabel,
+        providerStatus: delivery.status
+      }
+    });
   } catch (error) {
     if (!isMissingDemoTableError(error)) throw error;
     redirect("/workspace/account?error=inviteSend");
@@ -237,6 +287,16 @@ async function cancelPendingWorkspaceInvite(formData: FormData) {
       }
     });
     if (result.count < 1) redirect("/workspace/account?error=inviteCancel");
+    await recordWorkspaceMembershipAuditEvent({
+      workspaceId,
+      accountUserId: accountUser.id,
+      action: "invite_canceled",
+      objectKey: inviteId,
+      metadata: {
+        inviteId,
+        actorEmail: accountUser.email
+      }
+    });
   } catch (error) {
     if (!isMissingDemoTableError(error)) throw error;
     redirect("/workspace/account?error=inviteCancel");
@@ -280,6 +340,20 @@ async function updateWorkspaceMemberRole(formData: FormData) {
       where: { id: targetMembership.id },
       data: { role: targetRole }
     });
+    await recordWorkspaceMembershipAuditEvent({
+      workspaceId,
+      accountUserId: accountUser.id,
+      action: "member_role_changed",
+      objectKey: targetMembership.accountUser.email,
+      metadata: {
+        membershipId: targetMembership.id,
+        memberEmail: targetMembership.accountUser.email,
+        memberName: targetMembership.accountUser.name,
+        fromRole: targetMembership.role,
+        toRole: targetRole,
+        actorEmail: accountUser.email
+      }
+    });
   } catch (error) {
     if (!isMissingDemoTableError(error)) throw error;
     redirect("/workspace/account?error=memberRole");
@@ -320,6 +394,19 @@ async function removeWorkspaceMember(formData: FormData) {
     await db.workspaceMembership.delete({
       where: { id: targetMembership.id }
     });
+    await recordWorkspaceMembershipAuditEvent({
+      workspaceId,
+      accountUserId: accountUser.id,
+      action: "member_removed",
+      objectKey: targetMembership.accountUser.email,
+      metadata: {
+        membershipId: targetMembership.id,
+        memberEmail: targetMembership.accountUser.email,
+        memberName: targetMembership.accountUser.name,
+        role: targetMembership.role,
+        actorEmail: accountUser.email
+      }
+    });
   } catch (error) {
     if (!isMissingDemoTableError(error)) throw error;
     redirect("/workspace/account?error=memberRemove");
@@ -341,6 +428,7 @@ async function loadAccountPage() {
         })
       : [];
     let pendingInvites: Awaited<ReturnType<typeof db.workspaceInvite.findMany>> = [];
+    let membershipAuditEvents: Awaited<ReturnType<typeof db.lifecycleConnectorAuditEvent.findMany>> = [];
     if (workspaceId) {
       try {
         pendingInvites = await db.workspaceInvite.findMany({
@@ -348,13 +436,21 @@ async function loadAccountPage() {
           include: { invitedByAccountUser: true },
           orderBy: { createdAt: "desc" }
         });
+        membershipAuditEvents = await db.lifecycleConnectorAuditEvent.findMany({
+          where: {
+            workspaceId,
+            provider: workspaceMembershipAuditProvider()
+          },
+          orderBy: { occurredAt: "desc" },
+          take: 8
+        });
       } catch (error) {
         if (!isMissingDemoTableError(error)) throw error;
       }
     }
-    return { accountUser, workspaceMemberships, pendingInvites, compatibilityMode: false };
+    return { accountUser, workspaceMemberships, pendingInvites, membershipAuditEvents, compatibilityMode: false };
   } catch (error) {
-    if (isMissingDemoTableError(error)) return { accountUser: null, workspaceMemberships: [], pendingInvites: [], compatibilityMode: true };
+    if (isMissingDemoTableError(error)) return { accountUser: null, workspaceMemberships: [], pendingInvites: [], membershipAuditEvents: [], compatibilityMode: true };
     throw error;
   }
 }
@@ -365,7 +461,7 @@ export default async function WorkspaceAccountPage({
   searchParams?: Promise<AccountSearchParams>;
 }) {
   const params = await searchParams;
-  const { accountUser, workspaceMemberships, pendingInvites, compatibilityMode } = await loadAccountPage();
+  const { accountUser, workspaceMemberships, pendingInvites, membershipAuditEvents, compatibilityMode } = await loadAccountPage();
   if (!compatibilityMode && !accountUser) redirect("/workspace/login?next=/workspace/account");
   const membershipSummary = buildWorkspaceMembershipSummary({
     memberships: workspaceMemberships,
@@ -383,6 +479,13 @@ export default async function WorkspaceAccountPage({
     existingMemberEmails: membershipSummary.members.map((member) => member.email),
     existingPendingInviteEmails: membershipSummary.pendingInvites.map((invite) => invite.email)
   });
+  const membershipAuditItems: MembershipAuditItem[] = membershipAuditEvents.map((event) => ({
+    id: event.id,
+    title: workspaceMembershipAuditTitle(event.eventType),
+    detail: workspaceMembershipAuditDetail(event),
+    actor: event.accountUserId ? "workspace user" : "workspace",
+    occurredAtLabel: formatAuditDate(event.occurredAt)
+  }));
   return (
     <>
       <DemoWorkspaceTabs />
@@ -567,6 +670,27 @@ export default async function WorkspaceAccountPage({
               </article>
             ))}
           </div>
+        </Section>
+      ) : null}
+      {!compatibilityMode && accountUser ? (
+        <Section title="Membership audit">
+          {membershipAuditItems.length ? (
+            <div className="workspaceMembershipAuditList">
+              {membershipAuditItems.map((event) => (
+                <article className="card workspaceMembershipAuditCard" key={event.id}>
+                  <div>
+                    <p className="small">{event.occurredAtLabel} · {event.actor}</p>
+                    <strong>{event.title}</strong>
+                    <span>{event.detail}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="card">
+              <p>No membership administration events have been recorded yet.</p>
+            </div>
+          )}
         </Section>
       ) : null}
       {!compatibilityMode && accountUser ? (

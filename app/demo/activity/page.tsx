@@ -8,6 +8,11 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
 import { workspaceLaunchAuditDetail, workspaceLaunchAuditTitle } from "@/lib/workspace-launch-audit-events";
+import {
+  workspaceMembershipAuditDetail,
+  workspaceMembershipAuditProvider,
+  workspaceMembershipAuditTitle
+} from "@/lib/workspace-membership-audit-events";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +62,8 @@ async function loadActivity(accountUserId: string | null) {
       adConnections,
       sourceConfigs,
       providerDryRuns,
-      launchAuditEvents
+      launchAuditEvents,
+      membershipAuditEvents
     ] = await Promise.all([
       db.lifecycleImportLog.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
       db.campaignRun.findMany({ where: { accountUserId }, orderBy: { createdAt: "desc" }, take: 8 }),
@@ -72,6 +78,14 @@ async function loadActivity(accountUserId: string | null) {
       db.lifecycleConnectorAuditEvent.findMany({
         where: {
           provider: "workspace_launch",
+          OR: [{ accountUserId }, { accountUserId: null }]
+        },
+        orderBy: { occurredAt: "desc" },
+        take: 12
+      }),
+      db.lifecycleConnectorAuditEvent.findMany({
+        where: {
+          provider: workspaceMembershipAuditProvider(),
           OR: [{ accountUserId }, { accountUserId: null }]
         },
         orderBy: { occurredAt: "desc" },
@@ -200,6 +214,17 @@ async function loadActivity(accountUserId: string | null) {
         actor: event.accountUserId ? "workspace user" : "workspace",
         href: "/workspace/settings",
         createdAt: event.occurredAt
+      })),
+      ...membershipAuditEvents.map((event) => ({
+        id: `membership-audit-${event.id}`,
+        app: "Workspace",
+        category: "Audit" as const,
+        kind: "Membership admin",
+        title: workspaceMembershipAuditTitle(event.eventType),
+        detail: workspaceMembershipAuditDetail(event),
+        actor: event.accountUserId ? "workspace user" : "workspace",
+        href: "/workspace/account",
+        createdAt: event.occurredAt
       }))
     ];
 
@@ -208,7 +233,7 @@ async function loadActivity(accountUserId: string | null) {
       counts: {
         imports: imports.length,
         lifecycleRuns: lifecycleRuns.length,
-        audits: acquisition.length + pricing.length + retention.length + expansion.length + auction.length + providerDryRuns.length + launchAuditEvents.length,
+        audits: acquisition.length + pricing.length + retention.length + expansion.length + auction.length + providerDryRuns.length + launchAuditEvents.length + membershipAuditEvents.length,
         connections: adConnections.length + sourceConfigs.length
       },
       compatibilityMode: false
