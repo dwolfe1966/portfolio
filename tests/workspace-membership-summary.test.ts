@@ -5,6 +5,7 @@ import {
   buildWorkspaceInviteDraft,
   buildWorkspaceInviteReadiness,
   buildWorkspacePendingInviteSummaries,
+  canManageWorkspaceInvites,
   labelWorkspaceRole,
   workspaceRolePoliciesForRoster,
   workspaceRolePolicy
@@ -50,6 +51,7 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.equal(summary.ownerCount, 1);
   assert.equal(summary.viewerCount, 1);
   assert.equal(summary.currentUserRoleLabel, "Viewer");
+  assert.equal(summary.currentUserCanManageInvites, false);
   assert.equal(summary.governanceLabel, "1 owner assigned");
   assert.equal(summary.inviteReadiness.status, "blocked");
   assert.match(summary.inviteReadiness.nextAction, /Only owners and admins/);
@@ -74,6 +76,13 @@ test("buildWorkspaceMembershipSummary handles empty membership state", () => {
 test("labelWorkspaceRole formats custom role keys", () => {
   assert.equal(labelWorkspaceRole("channel_operator"), "Channel Operator");
   assert.equal(labelWorkspaceRole("finance-owner"), "Finance Owner");
+});
+
+test("canManageWorkspaceInvites allows only owner and admin roles", () => {
+  assert.equal(canManageWorkspaceInvites("owner"), true);
+  assert.equal(canManageWorkspaceInvites("admin"), true);
+  assert.equal(canManageWorkspaceInvites("operator"), false);
+  assert.equal(canManageWorkspaceInvites("viewer"), false);
 });
 
 test("workspaceRolePolicy defines enterprise capabilities by role", () => {

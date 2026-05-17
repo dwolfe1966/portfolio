@@ -12,7 +12,11 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
-import { buildWorkspaceInviteDraft, buildWorkspaceMembershipSummary } from "@/lib/workspace-membership-summary";
+import {
+  buildWorkspaceInviteDraft,
+  buildWorkspaceMembershipSummary,
+  canManageWorkspaceInvites
+} from "@/lib/workspace-membership-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +116,46 @@ async function createPendingWorkspaceInvite(formData: FormData) {
   redirect("/workspace/account?saved=invite");
 }
 
+async function cancelPendingWorkspaceInvite(formData: FormData) {
+  "use server";
+
+  const inviteId = String(formData.get("inviteId") ?? "");
+  if (!isDemoMutationAllowed()) redirect("/workspace/account?error=mutations");
+  if (!inviteId) redirect("/workspace/account?error=inviteCancel");
+
+  try {
+    const cookieStore = await cookies();
+    const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    if (!accountUser) redirect("/workspace/account?error=session");
+    const workspaceId = accountUser.memberships[0]?.workspaceId;
+    const role = accountUser.memberships.find((membership) => membership.workspaceId === workspaceId)?.role;
+    if (!workspaceId || !canManageWorkspaceInvites(role)) redirect("/workspace/account?error=inviteCancel");
+
+    const result = await db.workspaceInvite.updateMany({
+      where: {
+        id: inviteId,
+        workspaceId,
+        status: "pending"
+      },
+      data: {
+        status: "canceled",
+        draftPayload: {
+          source: "workspace_account_invite_cancel",
+          canceledByAccountUserId: accountUser.id,
+          canceledByEmail: accountUser.email,
+          canceledAt: new Date().toISOString()
+        }
+      }
+    });
+    if (result.count < 1) redirect("/workspace/account?error=inviteCancel");
+  } catch (error) {
+    if (!isMissingDemoTableError(error)) throw error;
+    redirect("/workspace/account?error=inviteCancel");
+  }
+
+  redirect("/workspace/account?saved=inviteCanceled");
+}
+
 async function loadAccountPage() {
   try {
     const cookieStore = await cookies();
@@ -178,9 +222,11 @@ export default async function WorkspaceAccountPage({
       <Section title="Profile">
         {params?.saved === "profile" ? <p className="small bandText--healthy">Account profile saved.</p> : null}
         {params?.saved === "invite" ? <p className="small bandText--healthy">Pending workspace invite created.</p> : null}
+        {params?.saved === "inviteCanceled" ? <p className="small bandText--healthy">Pending workspace invite canceled.</p> : null}
         {params?.error === "session" ? <p className="small bandText--unhealthy">Sign in before editing your account.</p> : null}
         {params?.error === "mutations" ? <p className="small bandText--unhealthy">Account editing is disabled in this environment.</p> : null}
         {params?.error === "invite" ? <p className="small bandText--unhealthy">Resolve invite blockers before creating a pending invitation.</p> : null}
+        {params?.error === "inviteCancel" ? <p className="small bandText--unhealthy">Only owners and admins can cancel pending invitations.</p> : null}
         {compatibilityMode ? (
           <div className="card">
             <p>Account tables are not available yet. Run the latest Prisma migration to enable account ownership.</p>
@@ -430,6 +476,12 @@ export default async function WorkspaceAccountPage({
                       <span>{invite.roleLabel}</span>
                       <span>Created {invite.createdAtLabel}</span>
                       <span>Expires {invite.expiresAtLabel}</span>
+                      {membershipSummary.currentUserCanManageInvites && !invite.isExpired ? (
+                        <form action={cancelPendingWorkspaceInvite} className="workspaceInviteInlineForm">
+                          <input name="inviteId" type="hidden" value={invite.id} />
+                          <button className="btn smallBtn" type="submit">Cancel</button>
+                        </form>
+                      ) : null}
                     </div>
                   </article>
                 ))}

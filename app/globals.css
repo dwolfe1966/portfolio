@@ -2106,6 +2106,13 @@ button {
 .workspaceInviteCreateForm {
   margin: 0;
 }
+.workspaceInviteInlineForm {
+  margin: 0;
+}
+.workspaceInviteInlineForm .btn {
+  min-height: 32px;
+  padding: 6px 10px;
+}
 .workspaceInviteDraftPreview {
   border: 1px solid var(--line);
   border-radius: 8px;

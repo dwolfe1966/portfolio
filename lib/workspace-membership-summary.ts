@@ -106,6 +106,7 @@ export type WorkspaceMembershipSummary = {
   adminCount: number;
   viewerCount: number;
   currentUserRoleLabel: string;
+  currentUserCanManageInvites: boolean;
   governanceLabel: string;
   inviteReadiness: WorkspaceInviteReadiness;
   rolePolicies: WorkspaceRolePolicy[];
@@ -138,6 +139,10 @@ export function labelWorkspaceRole(role: string | null | undefined) {
   if (normalized === "operator") return "Operator";
   if (normalized === "viewer") return "Viewer";
   return normalized.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function canManageWorkspaceInvites(role: string | null | undefined) {
+  return ["owner", "admin"].includes(normalizeRole(role));
 }
 
 const ROLE_CAPABILITIES: Record<string, Omit<WorkspaceRolePolicy, "capabilityCount">> = {
@@ -270,7 +275,7 @@ export function buildWorkspaceInviteReadiness(input: {
 
   if (!input.available) blockers.push("Attach the signed-in account to a workspace before enabling invitations.");
   if (input.ownerCount < 1) blockers.push("Assign at least one workspace owner before inviting collaborators.");
-  if (!["owner", "admin"].includes(actorRole)) blockers.push("Only owners and admins can invite workspace collaborators.");
+  if (!canManageWorkspaceInvites(actorRole)) blockers.push("Only owners and admins can invite workspace collaborators.");
   if (input.hasCustomRoles) warnings.push("Review custom role capabilities before inviting additional users.");
 
   if (blockers.length) {
@@ -460,6 +465,7 @@ export function buildWorkspaceMembershipSummary(input: {
     adminCount,
     viewerCount,
     currentUserRoleLabel: currentUser?.roleLabel ?? "No current membership",
+    currentUserCanManageInvites: canManageWorkspaceInvites(currentUser?.role),
     governanceLabel,
     inviteReadiness: buildWorkspaceInviteReadiness({
       available: Boolean(firstMembership),
