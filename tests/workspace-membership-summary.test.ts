@@ -5,6 +5,7 @@ import {
   buildWorkspaceInviteDraft,
   buildWorkspaceInviteAcceptancePreview,
   buildWorkspaceInviteReadiness,
+  buildWorkspaceInviteSendReadiness,
   buildWorkspacePendingInviteSummaries,
   canManageWorkspaceInvites,
   labelWorkspaceRole,
@@ -62,6 +63,7 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.equal(summary.pendingInvites[0].email, "sam@example.com");
   assert.equal(summary.pendingInvites[0].roleLabel, "Operator");
   assert.equal(summary.pendingInvites[0].previewHref, "/workspace/invite/token_abc");
+  assert.equal(summary.pendingInvites[0].sendReadiness.status, "blocked");
   assert.equal(summary.members[0].email, "jordan@example.com");
   assert.equal(summary.members[0].statusLabel, "Signed in");
 });
@@ -191,6 +193,8 @@ test("buildWorkspaceInviteDraft creates a non-mutating ready preview", () => {
 test("buildWorkspacePendingInviteSummaries labels and sorts pending invites", () => {
   const invites = buildWorkspacePendingInviteSummaries({
     now: new Date("2026-05-16T12:00:00.000Z"),
+    canManageInvites: true,
+    mailerReady: true,
     invites: [
       {
         id: "expired",
@@ -217,9 +221,34 @@ test("buildWorkspacePendingInviteSummaries labels and sorts pending invites", ()
   assert.equal(invites[0].id, "active");
   assert.equal(invites[0].roleLabel, "Admin");
   assert.equal(invites[0].previewHref, "/workspace/invite/opaque-token");
+  assert.equal(invites[0].sendReadiness.status, "ready");
   assert.equal(invites[0].invitedByLabel, "owner@example.com");
   assert.equal(invites[1].isExpired, true);
   assert.equal(invites[1].previewHref, "/workspace/invite/expired");
+  assert.match(invites[1].sendReadiness.nextAction, /Expired/);
+});
+
+test("buildWorkspaceInviteSendReadiness blocks unsafe send states", () => {
+  const blocked = buildWorkspaceInviteSendReadiness({
+    inviteStatus: "pending",
+    isExpired: false,
+    previewHref: "/workspace/invite/token",
+    canManageInvites: true,
+    mailerReady: false
+  });
+  const ready = buildWorkspaceInviteSendReadiness({
+    inviteStatus: "pending",
+    isExpired: false,
+    previewHref: "/workspace/invite/token",
+    canManageInvites: true,
+    mailerReady: true
+  });
+
+  assert.equal(blocked.status, "blocked");
+  assert.equal(blocked.canSend, false);
+  assert.match(blocked.nextAction, /email delivery/);
+  assert.equal(ready.status, "ready");
+  assert.equal(ready.canSend, true);
 });
 
 test("buildWorkspaceInviteAcceptancePreview explains ready and terminal invite states", () => {

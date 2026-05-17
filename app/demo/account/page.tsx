@@ -481,6 +481,7 @@ export default async function WorkspaceAccountPage({
                       <span>{invite.roleLabel}</span>
                       <span>Created {invite.createdAtLabel}</span>
                       <span>Expires {invite.expiresAtLabel}</span>
+                      <span>Send {invite.sendReadiness.statusLabel}</span>
                       <a className="btn smallBtn" href={invite.previewHref}>Preview</a>
                       {membershipSummary.currentUserCanManageInvites && !invite.isExpired ? (
                         <form action={cancelPendingWorkspaceInvite} className="workspaceInviteInlineForm">
@@ -489,6 +490,13 @@ export default async function WorkspaceAccountPage({
                         </form>
                       ) : null}
                     </div>
+                    {invite.sendReadiness.blockers.length ? (
+                      <div className="workspaceInviteSendBlockers">
+                        {invite.sendReadiness.blockers.map((blocker) => (
+                          <span key={blocker}>{blocker}</span>
+                        ))}
+                      </div>
+                    ) : null}
                   </article>
                 ))}
               </div>

@@ -140,6 +140,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | K17 | Pending invite cancellation | DW | M | S20 | ✅ | Workspace Account lets owners/admins cancel pending invites with guarded status updates while preserving no-send/no-membership behavior. |
 | K18 | Invite acceptance preview route | DW | M | S20 | ✅ | Workspace invite links have a non-mutating preview route that explains pending, expired, canceled, accepted, and missing invite states before account acceptance is enabled. |
 | K19 | Opaque invite preview tokens | DW | M | S20 | ✅ | New pending invites use opaque tokenized preview links with stored token hashes while legacy invite-id preview links continue to resolve during transition. |
+| K20 | Invite send readiness gate | DW | M | S20 | ✅ | Pending invites expose a send-readiness decision that requires pending status, non-expiry, preview link, owner/admin actor, and configured mail delivery before any email send is enabled. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -157,7 +158,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | S17 | L61, L62, L63, L64, L65 | — | — |
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
-| S20 | K12, K13, K14, K15, K16, K17, K18, K19 | — | — |
+| S20 | K12, K13, K14, K15, K16, K17, K18, K19, K20 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.

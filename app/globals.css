@@ -2168,6 +2168,21 @@ button {
   margin-top: 5px;
   overflow-wrap: anywhere;
 }
+.workspaceInviteSendBlockers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+.workspaceInviteSendBlockers span {
+  border: 1px solid color-mix(in oklab, var(--amber) 42%, var(--line));
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 7px 9px;
+}
 .workspaceInviteAcceptPreview {
   background: var(--card);
   border: 1px solid var(--line);

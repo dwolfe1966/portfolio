@@ -97,6 +97,15 @@ export type WorkspacePendingInviteSummary = {
   expiresAtLabel: string;
   createdAtLabel: string;
   isExpired: boolean;
+  sendReadiness: WorkspaceInviteSendReadiness;
+};
+
+export type WorkspaceInviteSendReadiness = {
+  status: "ready" | "blocked";
+  statusLabel: string;
+  canSend: boolean;
+  nextAction: string;
+  blockers: string[];
 };
 
 export type WorkspaceInviteAcceptancePreviewInput = {
@@ -425,6 +434,8 @@ export function buildWorkspaceInviteDraft(input: {
 
 export function buildWorkspacePendingInviteSummaries(input: {
   invites: WorkspacePendingInviteInput[];
+  canManageInvites?: boolean;
+  mailerReady?: boolean;
   now?: Date;
 }): WorkspacePendingInviteSummary[] {
   const now = input.now ?? new Date();
@@ -435,6 +446,8 @@ export function buildWorkspacePendingInviteSummaries(input: {
       const status = String(invite.status || "pending").toLowerCase();
       const inviterName = invite.invitedByAccountUser?.name?.trim();
       const inviterEmail = invite.invitedByAccountUser?.email;
+      const isExpired = !Number.isNaN(expiresAt.getTime()) && expiresAt <= now;
+      const previewHref = readPreviewHrefFromPayload(invite.draftPayload) ?? `/workspace/invite/${invite.id}`;
       return {
         id: invite.id,
         email: normalizeInviteEmail(invite.email),
@@ -442,17 +455,59 @@ export function buildWorkspacePendingInviteSummaries(input: {
         roleLabel: labelWorkspaceRole(role),
         status,
         statusLabel: labelWorkspaceRole(status),
-        previewHref: readPreviewHrefFromPayload(invite.draftPayload) ?? `/workspace/invite/${invite.id}`,
+        previewHref,
         invitedByLabel: inviterName || inviterEmail || "Unknown",
         expiresAtLabel: formatDateLabel(expiresAt),
         createdAtLabel: formatDateLabel(invite.createdAt),
-        isExpired: !Number.isNaN(expiresAt.getTime()) && expiresAt <= now
+        isExpired,
+        sendReadiness: buildWorkspaceInviteSendReadiness({
+          inviteStatus: status,
+          isExpired,
+          previewHref,
+          canManageInvites: Boolean(input.canManageInvites),
+          mailerReady: Boolean(input.mailerReady)
+        })
       };
     })
     .sort((left, right) => {
       if (left.isExpired !== right.isExpired) return left.isExpired ? 1 : -1;
       return left.email.localeCompare(right.email);
     });
+}
+
+export function buildWorkspaceInviteSendReadiness(input: {
+  inviteStatus: string;
+  isExpired?: boolean;
+  previewHref?: string | null;
+  canManageInvites?: boolean;
+  mailerReady?: boolean;
+}): WorkspaceInviteSendReadiness {
+  const blockers: string[] = [];
+  const inviteStatus = String(input.inviteStatus || "pending").toLowerCase();
+
+  if (inviteStatus !== "pending") blockers.push("Only pending invitations can be sent.");
+  if (input.isExpired) blockers.push("Expired invitations must be recreated before sending.");
+  if (!input.previewHref?.startsWith("/workspace/invite/")) blockers.push("Create an opaque invite preview link before sending.");
+  if (!input.canManageInvites) blockers.push("Only owners and admins can send workspace invitations.");
+  if (!input.mailerReady) blockers.push("Configure workspace invitation email delivery before sending.");
+
+  if (blockers.length) {
+    return {
+      status: "blocked",
+      statusLabel: "Blocked",
+      canSend: false,
+      nextAction: blockers[0],
+      blockers
+    };
+  }
+
+  return {
+    status: "ready",
+    statusLabel: "Ready",
+    canSend: true,
+    nextAction: "Send can be enabled after delivery persistence and email provider wiring are added.",
+    blockers
+  };
 }
 
 export function buildWorkspaceInviteAcceptancePreview(
@@ -548,6 +603,7 @@ export function buildWorkspaceMembershipSummary(input: {
   const adminCount = members.filter((member) => member.role === "admin").length;
   const viewerCount = members.filter((member) => member.role === "viewer").length;
   const currentUser = members.find((member) => member.isCurrentUser);
+  const currentUserCanManageInvites = canManageWorkspaceInvites(currentUser?.role);
   const rolePolicies = workspaceRolePoliciesForRoster(members.length ? members.map((member) => member.role) : ["owner", "admin", "operator", "viewer"]);
   const governanceLabel = ownerCount > 0
     ? `${ownerCount} owner${ownerCount === 1 ? "" : "s"} assigned`
@@ -563,7 +619,7 @@ export function buildWorkspaceMembershipSummary(input: {
     adminCount,
     viewerCount,
     currentUserRoleLabel: currentUser?.roleLabel ?? "No current membership",
-    currentUserCanManageInvites: canManageWorkspaceInvites(currentUser?.role),
+    currentUserCanManageInvites,
     governanceLabel,
     inviteReadiness: buildWorkspaceInviteReadiness({
       available: Boolean(firstMembership),
@@ -572,7 +628,11 @@ export function buildWorkspaceMembershipSummary(input: {
       hasCustomRoles: rolePolicies.some((policy) => policy.accessLevel === "custom")
     }),
     rolePolicies,
-    pendingInvites: buildWorkspacePendingInviteSummaries({ invites: input.pendingInvites ?? [] }),
+    pendingInvites: buildWorkspacePendingInviteSummaries({
+      invites: input.pendingInvites ?? [],
+      canManageInvites: currentUserCanManageInvites,
+      mailerReady: false
+    }),
     members
   };
 }
