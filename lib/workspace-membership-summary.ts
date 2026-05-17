@@ -108,6 +108,16 @@ export type WorkspaceInviteSendReadiness = {
   blockers: string[];
 };
 
+export type WorkspaceInviteMailDeliveryConfig = {
+  status: "ready" | "blocked";
+  statusLabel: string;
+  providerLabel: string;
+  fromEmail: string;
+  publicAppUrl: string;
+  nextAction: string;
+  blockers: string[];
+};
+
 export type WorkspaceInviteAcceptancePreviewInput = {
   id: string;
   email: string;
@@ -151,6 +161,7 @@ export type WorkspaceMembershipSummary = {
   currentUserRoleLabel: string;
   currentUserCanManageInvites: boolean;
   governanceLabel: string;
+  inviteMailDelivery: WorkspaceInviteMailDeliveryConfig;
   inviteReadiness: WorkspaceInviteReadiness;
   rolePolicies: WorkspaceRolePolicy[];
   pendingInvites: WorkspacePendingInviteSummary[];
@@ -179,6 +190,17 @@ function readPreviewHrefFromPayload(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const href = (value as { tokenPreviewPath?: unknown }).tokenPreviewPath;
   return typeof href === "string" && href.startsWith("/workspace/invite/") ? href : null;
+}
+
+function normalizeEnvValue(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function normalizePublicAppUrl(value: unknown) {
+  const raw = normalizeEnvValue(value).replace(/\/+$/, "");
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
 }
 
 export function labelWorkspaceRole(role: string | null | undefined) {
@@ -510,6 +532,39 @@ export function buildWorkspaceInviteSendReadiness(input: {
   };
 }
 
+export function buildWorkspaceInviteMailDeliveryConfig(env: Record<string, string | undefined> = process.env): WorkspaceInviteMailDeliveryConfig {
+  const resendApiKey = normalizeEnvValue(env.RESEND_API_KEY);
+  const fromEmail = normalizeEnvValue(env.WORKSPACE_INVITE_FROM_EMAIL) || normalizeEnvValue(env.CONTACT_FROM_EMAIL);
+  const publicAppUrl = normalizePublicAppUrl(env.NEXT_PUBLIC_SITE_URL || env.APP_BASE_URL || env.VERCEL_URL);
+  const blockers: string[] = [];
+
+  if (!resendApiKey) blockers.push("Add RESEND_API_KEY before sending workspace invitations.");
+  if (!fromEmail) blockers.push("Add WORKSPACE_INVITE_FROM_EMAIL or CONTACT_FROM_EMAIL before sending workspace invitations.");
+  if (!publicAppUrl) blockers.push("Add NEXT_PUBLIC_SITE_URL before sending workspace invitation links.");
+
+  if (blockers.length) {
+    return {
+      status: "blocked",
+      statusLabel: "Blocked",
+      providerLabel: "Resend",
+      fromEmail: fromEmail || "Not configured",
+      publicAppUrl: publicAppUrl || "Not configured",
+      nextAction: blockers[0],
+      blockers
+    };
+  }
+
+  return {
+    status: "ready",
+    statusLabel: "Ready",
+    providerLabel: "Resend",
+    fromEmail,
+    publicAppUrl,
+    nextAction: "Delivery configuration is ready; add send persistence and provider dispatch before enabling invitation email sends.",
+    blockers
+  };
+}
+
 export function buildWorkspaceInviteAcceptancePreview(
   invite: WorkspaceInviteAcceptancePreviewInput,
   now = new Date()
@@ -571,6 +626,7 @@ export function buildWorkspaceMembershipSummary(input: {
   memberships: WorkspaceMembershipSummaryInput[];
   pendingInvites?: WorkspacePendingInviteInput[];
   currentUserId?: string | null;
+  inviteMailDelivery?: WorkspaceInviteMailDeliveryConfig;
 }): WorkspaceMembershipSummary {
   const firstMembership = input.memberships[0];
   const members = input.memberships
@@ -604,6 +660,7 @@ export function buildWorkspaceMembershipSummary(input: {
   const viewerCount = members.filter((member) => member.role === "viewer").length;
   const currentUser = members.find((member) => member.isCurrentUser);
   const currentUserCanManageInvites = canManageWorkspaceInvites(currentUser?.role);
+  const inviteMailDelivery = input.inviteMailDelivery ?? buildWorkspaceInviteMailDeliveryConfig({});
   const rolePolicies = workspaceRolePoliciesForRoster(members.length ? members.map((member) => member.role) : ["owner", "admin", "operator", "viewer"]);
   const governanceLabel = ownerCount > 0
     ? `${ownerCount} owner${ownerCount === 1 ? "" : "s"} assigned`
@@ -621,6 +678,7 @@ export function buildWorkspaceMembershipSummary(input: {
     currentUserRoleLabel: currentUser?.roleLabel ?? "No current membership",
     currentUserCanManageInvites,
     governanceLabel,
+    inviteMailDelivery,
     inviteReadiness: buildWorkspaceInviteReadiness({
       available: Boolean(firstMembership),
       ownerCount,
@@ -631,7 +689,7 @@ export function buildWorkspaceMembershipSummary(input: {
     pendingInvites: buildWorkspacePendingInviteSummaries({
       invites: input.pendingInvites ?? [],
       canManageInvites: currentUserCanManageInvites,
-      mailerReady: false
+      mailerReady: inviteMailDelivery.status === "ready"
     }),
     members
   };

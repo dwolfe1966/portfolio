@@ -4,6 +4,7 @@ import {
   buildWorkspaceMembershipSummary,
   buildWorkspaceInviteDraft,
   buildWorkspaceInviteAcceptancePreview,
+  buildWorkspaceInviteMailDeliveryConfig,
   buildWorkspaceInviteReadiness,
   buildWorkspaceInviteSendReadiness,
   buildWorkspacePendingInviteSummaries,
@@ -57,6 +58,7 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.equal(summary.currentUserRoleLabel, "Viewer");
   assert.equal(summary.currentUserCanManageInvites, false);
   assert.equal(summary.governanceLabel, "1 owner assigned");
+  assert.equal(summary.inviteMailDelivery.status, "blocked");
   assert.equal(summary.inviteReadiness.status, "blocked");
   assert.match(summary.inviteReadiness.nextAction, /Only owners and admins/);
   assert.deepEqual(summary.rolePolicies.map((policy) => policy.role), ["owner", "viewer"]);
@@ -249,6 +251,28 @@ test("buildWorkspaceInviteSendReadiness blocks unsafe send states", () => {
   assert.match(blocked.nextAction, /email delivery/);
   assert.equal(ready.status, "ready");
   assert.equal(ready.canSend, true);
+});
+
+test("buildWorkspaceInviteMailDeliveryConfig requires provider, sender, and public app URL", () => {
+  const blocked = buildWorkspaceInviteMailDeliveryConfig({});
+  const ready = buildWorkspaceInviteMailDeliveryConfig({
+    RESEND_API_KEY: "re_test",
+    WORKSPACE_INVITE_FROM_EMAIL: "Workspace <invites@example.com>",
+    NEXT_PUBLIC_SITE_URL: "https://example.com/"
+  });
+  const fallback = buildWorkspaceInviteMailDeliveryConfig({
+    RESEND_API_KEY: "re_test",
+    CONTACT_FROM_EMAIL: "Portfolio <hello@example.com>",
+    VERCEL_URL: "davidwolfe.app"
+  });
+
+  assert.equal(blocked.status, "blocked");
+  assert.match(blocked.nextAction, /RESEND_API_KEY/);
+  assert.equal(ready.status, "ready");
+  assert.equal(ready.fromEmail, "Workspace <invites@example.com>");
+  assert.equal(ready.publicAppUrl, "https://example.com");
+  assert.equal(fallback.status, "ready");
+  assert.equal(fallback.publicAppUrl, "https://davidwolfe.app");
 });
 
 test("buildWorkspaceInviteAcceptancePreview explains ready and terminal invite states", () => {

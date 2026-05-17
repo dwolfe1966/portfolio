@@ -14,6 +14,7 @@ import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
 import { createWorkspaceInviteToken, workspaceInviteTokenHash } from "@/lib/workspace-invite-tokens";
 import {
+  buildWorkspaceInviteMailDeliveryConfig,
   buildWorkspaceInviteDraft,
   buildWorkspaceMembershipSummary,
   canManageWorkspaceInvites
@@ -203,7 +204,8 @@ export default async function WorkspaceAccountPage({
   const membershipSummary = buildWorkspaceMembershipSummary({
     memberships: workspaceMemberships,
     pendingInvites,
-    currentUserId: accountUser?.id
+    currentUserId: accountUser?.id,
+    inviteMailDelivery: buildWorkspaceInviteMailDeliveryConfig()
   });
   const inviteRole = params?.inviteRole ?? "viewer";
   const inviteEmail = params?.inviteEmail ?? "";
@@ -392,6 +394,32 @@ export default async function WorkspaceAccountPage({
                 <div className="card workspaceInviteReadinessItem workspaceInviteReadinessItem--review" key={warning}>
                   <p className="small">Review</p>
                   <strong>{warning}</strong>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <div className={`workspaceInviteReadiness workspaceInviteReadiness--${membershipSummary.inviteMailDelivery.status}`}>
+            <div>
+              <p className="small">Mail delivery</p>
+              <strong>{membershipSummary.inviteMailDelivery.statusLabel}</strong>
+              <span>{membershipSummary.inviteMailDelivery.providerLabel}</span>
+            </div>
+            <div>
+              <p className="small">Sender</p>
+              <strong>{membershipSummary.inviteMailDelivery.fromEmail}</strong>
+              <span>{membershipSummary.inviteMailDelivery.publicAppUrl}</span>
+            </div>
+            <div>
+              <p className="small">Next action</p>
+              <strong>{membershipSummary.inviteMailDelivery.nextAction}</strong>
+            </div>
+          </div>
+          {membershipSummary.inviteMailDelivery.blockers.length ? (
+            <div className="workspaceInviteReadinessGrid">
+              {membershipSummary.inviteMailDelivery.blockers.map((blocker) => (
+                <div className="card workspaceInviteReadinessItem workspaceInviteReadinessItem--blocked" key={`mail-${blocker}`}>
+                  <p className="small">Mail blocked</p>
+                  <strong>{blocker}</strong>
                 </div>
               ))}
             </div>
