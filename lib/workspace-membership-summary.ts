@@ -75,6 +75,8 @@ export type WorkspacePendingInviteInput = {
   email: string;
   role: string | null;
   status: string;
+  tokenHash?: string | null;
+  draftPayload?: unknown;
   expiresAt: Date | string;
   createdAt: Date | string;
   invitedByAccountUser?: {
@@ -90,6 +92,7 @@ export type WorkspacePendingInviteSummary = {
   roleLabel: string;
   status: string;
   statusLabel: string;
+  previewHref: string;
   invitedByLabel: string;
   expiresAtLabel: string;
   createdAtLabel: string;
@@ -161,6 +164,12 @@ function normalizeInviteEmail(value: unknown) {
 
 function isValidInviteEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function readPreviewHrefFromPayload(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const href = (value as { tokenPreviewPath?: unknown }).tokenPreviewPath;
+  return typeof href === "string" && href.startsWith("/workspace/invite/") ? href : null;
 }
 
 export function labelWorkspaceRole(role: string | null | undefined) {
@@ -433,6 +442,7 @@ export function buildWorkspacePendingInviteSummaries(input: {
         roleLabel: labelWorkspaceRole(role),
         status,
         statusLabel: labelWorkspaceRole(status),
+        previewHref: readPreviewHrefFromPayload(invite.draftPayload) ?? `/workspace/invite/${invite.id}`,
         invitedByLabel: inviterName || inviterEmail || "Unknown",
         expiresAtLabel: formatDateLabel(expiresAt),
         createdAtLabel: formatDateLabel(invite.createdAt),

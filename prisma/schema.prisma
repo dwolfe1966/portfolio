@@ -89,6 +89,7 @@ model WorkspaceInvite {
   email                  String
   role                   String       @default("viewer")
   status                 String       @default("pending")
+  tokenHash              String?      @unique
   draftPayload           Json?
   expiresAt              DateTime
   createdAt              DateTime     @default(now())

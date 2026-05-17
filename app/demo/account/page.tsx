@@ -12,6 +12,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
+import { createWorkspaceInviteToken, workspaceInviteTokenHash } from "@/lib/workspace-invite-tokens";
 import {
   buildWorkspaceInviteDraft,
   buildWorkspaceMembershipSummary,
@@ -92,6 +93,8 @@ async function createPendingWorkspaceInvite(formData: FormData) {
 
     if (!inviteDraft.canCreate || !membershipSummary.workspaceId) redirect(`/workspace/account?${redirectQuery}&error=invite`);
 
+    const inviteToken = createWorkspaceInviteToken();
+    const tokenPreviewPath = `/workspace/invite/${inviteToken}`;
     await db.workspaceInvite.create({
       data: {
         workspaceId: membershipSummary.workspaceId,
@@ -99,11 +102,13 @@ async function createPendingWorkspaceInvite(formData: FormData) {
         email: inviteDraft.email,
         role: inviteDraft.role,
         status: "pending",
+        tokenHash: workspaceInviteTokenHash(inviteToken),
         expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         draftPayload: {
           subject: inviteDraft.subject,
           roleLabel: inviteDraft.roleLabel,
           auditSummary: inviteDraft.auditSummary,
+          tokenPreviewPath,
           source: "workspace_account_pending_invite"
         }
       }
@@ -476,7 +481,7 @@ export default async function WorkspaceAccountPage({
                       <span>{invite.roleLabel}</span>
                       <span>Created {invite.createdAtLabel}</span>
                       <span>Expires {invite.expiresAtLabel}</span>
-                      <a className="btn smallBtn" href={`/workspace/invite/${invite.id}`}>Preview</a>
+                      <a className="btn smallBtn" href={invite.previewHref}>Preview</a>
                       {membershipSummary.currentUserCanManageInvites && !invite.isExpired ? (
                         <form action={cancelPendingWorkspaceInvite} className="workspaceInviteInlineForm">
                           <input name="inviteId" type="hidden" value={invite.id} />

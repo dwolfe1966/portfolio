@@ -39,6 +39,8 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
         email: "Sam@Example.com",
         role: "operator",
         status: "pending",
+        tokenHash: "hash",
+        draftPayload: { tokenPreviewPath: "/workspace/invite/token_abc" },
         expiresAt: "2026-06-01T12:00:00.000Z",
         createdAt: "2026-05-16T12:00:00.000Z",
         invitedByAccountUser: { name: "Alex Owner", email: "alex@example.com" }
@@ -59,6 +61,7 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.deepEqual(summary.rolePolicies.map((policy) => policy.role), ["owner", "viewer"]);
   assert.equal(summary.pendingInvites[0].email, "sam@example.com");
   assert.equal(summary.pendingInvites[0].roleLabel, "Operator");
+  assert.equal(summary.pendingInvites[0].previewHref, "/workspace/invite/token_abc");
   assert.equal(summary.members[0].email, "jordan@example.com");
   assert.equal(summary.members[0].statusLabel, "Signed in");
 });
@@ -203,6 +206,7 @@ test("buildWorkspacePendingInviteSummaries labels and sorts pending invites", ()
         email: "amy@example.com",
         role: "admin",
         status: "pending",
+        draftPayload: { tokenPreviewPath: "/workspace/invite/opaque-token" },
         expiresAt: "2026-05-30T12:00:00.000Z",
         createdAt: "2026-05-10T12:00:00.000Z",
         invitedByAccountUser: { name: "", email: "owner@example.com" }
@@ -212,8 +216,10 @@ test("buildWorkspacePendingInviteSummaries labels and sorts pending invites", ()
 
   assert.equal(invites[0].id, "active");
   assert.equal(invites[0].roleLabel, "Admin");
+  assert.equal(invites[0].previewHref, "/workspace/invite/opaque-token");
   assert.equal(invites[0].invitedByLabel, "owner@example.com");
   assert.equal(invites[1].isExpired, true);
+  assert.equal(invites[1].previewHref, "/workspace/invite/expired");
 });
 
 test("buildWorkspaceInviteAcceptancePreview explains ready and terminal invite states", () => {

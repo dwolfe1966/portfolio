@@ -4,6 +4,7 @@ import { Section } from "@/components/site/Section";
 import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { buildMetadata } from "@/lib/seo";
+import { isPlausibleWorkspaceInviteToken, workspaceInviteTokenHash } from "@/lib/workspace-invite-tokens";
 import { buildWorkspaceInviteAcceptancePreview } from "@/lib/workspace-membership-summary";
 
 export const dynamic = "force-dynamic";
@@ -14,12 +15,17 @@ export const metadata: Metadata = buildMetadata({
   path: "/workspace/invite"
 });
 
-async function loadInvitePreview(inviteId: string) {
+async function loadInvitePreview(inviteRef: string) {
   try {
-    const invite = await db.workspaceInvite.findUnique({
-      where: { id: inviteId },
-      include: { workspace: true, invitedByAccountUser: true }
-    });
+    const invite = isPlausibleWorkspaceInviteToken(inviteRef)
+      ? await db.workspaceInvite.findUnique({
+          where: { tokenHash: workspaceInviteTokenHash(inviteRef) },
+          include: { workspace: true, invitedByAccountUser: true }
+        })
+      : await db.workspaceInvite.findUnique({
+          where: { id: inviteRef },
+          include: { workspace: true, invitedByAccountUser: true }
+        });
     return {
       compatibilityMode: false,
       preview: buildWorkspaceInviteAcceptancePreview(invite)
