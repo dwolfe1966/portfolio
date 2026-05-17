@@ -96,6 +96,7 @@ export type WorkspacePendingInviteSummary = {
   invitedByLabel: string;
   expiresAtLabel: string;
   createdAtLabel: string;
+  lastSentAtLabel: string | null;
   isExpired: boolean;
   sendReadiness: WorkspaceInviteSendReadiness;
 };
@@ -190,6 +191,12 @@ function readPreviewHrefFromPayload(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const href = (value as { tokenPreviewPath?: unknown }).tokenPreviewPath;
   return typeof href === "string" && href.startsWith("/workspace/invite/") ? href : null;
+}
+
+function readLastSentAtFromPayload(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const sentAt = (value as { mailDelivery?: { sentAt?: unknown } }).mailDelivery?.sentAt;
+  return typeof sentAt === "string" ? sentAt : null;
 }
 
 function normalizeEnvValue(value: unknown) {
@@ -470,6 +477,7 @@ export function buildWorkspacePendingInviteSummaries(input: {
       const inviterEmail = invite.invitedByAccountUser?.email;
       const isExpired = !Number.isNaN(expiresAt.getTime()) && expiresAt <= now;
       const previewHref = readPreviewHrefFromPayload(invite.draftPayload) ?? `/workspace/invite/${invite.id}`;
+      const lastSentAt = readLastSentAtFromPayload(invite.draftPayload);
       return {
         id: invite.id,
         email: normalizeInviteEmail(invite.email),
@@ -481,6 +489,7 @@ export function buildWorkspacePendingInviteSummaries(input: {
         invitedByLabel: inviterName || inviterEmail || "Unknown",
         expiresAtLabel: formatDateLabel(expiresAt),
         createdAtLabel: formatDateLabel(invite.createdAt),
+        lastSentAtLabel: lastSentAt ? formatDateLabel(lastSentAt) : null,
         isExpired,
         sendReadiness: buildWorkspaceInviteSendReadiness({
           inviteStatus: status,

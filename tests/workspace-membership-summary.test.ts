@@ -212,7 +212,10 @@ test("buildWorkspacePendingInviteSummaries labels and sorts pending invites", ()
         email: "amy@example.com",
         role: "admin",
         status: "pending",
-        draftPayload: { tokenPreviewPath: "/workspace/invite/opaque-token" },
+        draftPayload: {
+          tokenPreviewPath: "/workspace/invite/opaque-token",
+          mailDelivery: { status: "sent", sentAt: "2026-05-12T12:00:00.000Z" }
+        },
         expiresAt: "2026-05-30T12:00:00.000Z",
         createdAt: "2026-05-10T12:00:00.000Z",
         invitedByAccountUser: { name: "", email: "owner@example.com" }
@@ -224,6 +227,7 @@ test("buildWorkspacePendingInviteSummaries labels and sorts pending invites", ()
   assert.equal(invites[0].roleLabel, "Admin");
   assert.equal(invites[0].previewHref, "/workspace/invite/opaque-token");
   assert.equal(invites[0].sendReadiness.status, "ready");
+  assert.equal(invites[0].lastSentAtLabel, "May 12, 2026");
   assert.equal(invites[0].invitedByLabel, "owner@example.com");
   assert.equal(invites[1].isExpired, true);
   assert.equal(invites[1].previewHref, "/workspace/invite/expired");

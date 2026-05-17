@@ -12,6 +12,7 @@ import { db } from "@/lib/db";
 import { isMissingDemoTableError } from "@/lib/demo-db-errors";
 import { isDemoMutationAllowed } from "@/lib/env-guard";
 import { buildMetadata } from "@/lib/seo";
+import { deliverWorkspaceInviteEmail } from "@/lib/workspace-invite-mailer";
 import { createWorkspaceInviteToken, workspaceInviteTokenHash } from "@/lib/workspace-invite-tokens";
 import {
   buildWorkspaceInviteMailDeliveryConfig,
@@ -122,6 +123,85 @@ async function createPendingWorkspaceInvite(formData: FormData) {
   redirect("/workspace/account?saved=invite");
 }
 
+function asDraftPayloadRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+async function sendPendingWorkspaceInvite(formData: FormData) {
+  "use server";
+
+  const inviteId = String(formData.get("inviteId") ?? "");
+  if (!isDemoMutationAllowed()) redirect("/workspace/account?error=mutations");
+  if (!inviteId) redirect("/workspace/account?error=inviteSend");
+
+  try {
+    const cookieStore = await cookies();
+    const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    if (!accountUser) redirect("/workspace/account?error=session");
+    const workspaceId = accountUser.memberships[0]?.workspaceId;
+    const role = accountUser.memberships.find((membership) => membership.workspaceId === workspaceId)?.role;
+    if (!workspaceId || !canManageWorkspaceInvites(role)) redirect("/workspace/account?error=inviteSend");
+
+    const workspaceMemberships = await db.workspaceMembership.findMany({
+      where: { workspaceId },
+      include: { accountUser: true, workspace: true },
+      orderBy: [{ role: "asc" }, { updatedAt: "desc" }]
+    });
+    const pendingInvites = await db.workspaceInvite.findMany({
+      where: { workspaceId, status: "pending" },
+      include: { invitedByAccountUser: true },
+      orderBy: { createdAt: "desc" }
+    });
+    const mailDelivery = buildWorkspaceInviteMailDeliveryConfig();
+    const membershipSummary = buildWorkspaceMembershipSummary({
+      memberships: workspaceMemberships,
+      pendingInvites,
+      currentUserId: accountUser.id,
+      inviteMailDelivery: mailDelivery
+    });
+    const inviteSummary = membershipSummary.pendingInvites.find((invite) => invite.id === inviteId);
+    const inviteRecord = pendingInvites.find((invite) => invite.id === inviteId);
+    if (!inviteSummary?.sendReadiness.canSend || !inviteRecord) redirect("/workspace/account?error=inviteSend");
+
+    const sentAt = new Date().toISOString();
+    const delivery = await deliverWorkspaceInviteEmail({
+      config: mailDelivery,
+      apiKey: process.env.RESEND_API_KEY,
+      payload: {
+        to: inviteSummary.email,
+        workspaceName: membershipSummary.workspaceName,
+        roleLabel: inviteSummary.roleLabel,
+        invitedByLabel: inviteSummary.invitedByLabel,
+        inviteUrl: `${mailDelivery.publicAppUrl}${inviteSummary.previewHref}`,
+        expiresAtLabel: inviteSummary.expiresAtLabel
+      }
+    });
+    if (!delivery.ok) redirect("/workspace/account?error=inviteSend");
+
+    await db.workspaceInvite.update({
+      where: { id: inviteId },
+      data: {
+        draftPayload: {
+          ...asDraftPayloadRecord(inviteRecord.draftPayload),
+          mailDelivery: {
+            provider: mailDelivery.providerLabel,
+            status: "sent",
+            sentAt,
+            sentByAccountUserId: accountUser.id,
+            sentByEmail: accountUser.email,
+            providerStatus: delivery.status
+          }
+        }
+      }
+    });
+  } catch (error) {
+    if (!isMissingDemoTableError(error)) throw error;
+    redirect("/workspace/account?error=inviteSend");
+  }
+
+  redirect("/workspace/account?saved=inviteSent");
+}
+
 async function cancelPendingWorkspaceInvite(formData: FormData) {
   "use server";
 
@@ -229,10 +309,12 @@ export default async function WorkspaceAccountPage({
       <Section title="Profile">
         {params?.saved === "profile" ? <p className="small bandText--healthy">Account profile saved.</p> : null}
         {params?.saved === "invite" ? <p className="small bandText--healthy">Pending workspace invite created.</p> : null}
+        {params?.saved === "inviteSent" ? <p className="small bandText--healthy">Workspace invitation email sent.</p> : null}
         {params?.saved === "inviteCanceled" ? <p className="small bandText--healthy">Pending workspace invite canceled.</p> : null}
         {params?.error === "session" ? <p className="small bandText--unhealthy">Sign in before editing your account.</p> : null}
         {params?.error === "mutations" ? <p className="small bandText--unhealthy">Account editing is disabled in this environment.</p> : null}
         {params?.error === "invite" ? <p className="small bandText--unhealthy">Resolve invite blockers before creating a pending invitation.</p> : null}
+        {params?.error === "inviteSend" ? <p className="small bandText--unhealthy">Resolve send blockers before emailing this invitation.</p> : null}
         {params?.error === "inviteCancel" ? <p className="small bandText--unhealthy">Only owners and admins can cancel pending invitations.</p> : null}
         {compatibilityMode ? (
           <div className="card">
@@ -510,7 +592,14 @@ export default async function WorkspaceAccountPage({
                       <span>Created {invite.createdAtLabel}</span>
                       <span>Expires {invite.expiresAtLabel}</span>
                       <span>Send {invite.sendReadiness.statusLabel}</span>
+                      {invite.lastSentAtLabel ? <span>Sent {invite.lastSentAtLabel}</span> : null}
                       <a className="btn smallBtn" href={invite.previewHref}>Preview</a>
+                      {invite.sendReadiness.canSend ? (
+                        <form action={sendPendingWorkspaceInvite} className="workspaceInviteInlineForm">
+                          <input name="inviteId" type="hidden" value={invite.id} />
+                          <button className="btn smallBtn" type="submit">Send</button>
+                        </form>
+                      ) : null}
                       {membershipSummary.currentUserCanManageInvites && !invite.isExpired ? (
                         <form action={cancelPendingWorkspaceInvite} className="workspaceInviteInlineForm">
                           <input name="inviteId" type="hidden" value={invite.id} />
