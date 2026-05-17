@@ -17,8 +17,10 @@ import { createWorkspaceInviteToken, workspaceInviteTokenHash } from "@/lib/work
 import {
   buildWorkspaceInviteMailDeliveryConfig,
   buildWorkspaceInviteDraft,
+  buildWorkspaceMemberRoleChangeReadiness,
   buildWorkspaceMembershipSummary,
-  canManageWorkspaceInvites
+  canManageWorkspaceInvites,
+  canManageWorkspaceMembers
 } from "@/lib/workspace-membership-summary";
 
 export const dynamic = "force-dynamic";
@@ -242,6 +244,49 @@ async function cancelPendingWorkspaceInvite(formData: FormData) {
   redirect("/workspace/account?saved=inviteCanceled");
 }
 
+async function updateWorkspaceMemberRole(formData: FormData) {
+  "use server";
+
+  const membershipId = String(formData.get("membershipId") ?? "");
+  const targetRole = String(formData.get("role") ?? "viewer").trim().toLowerCase();
+  if (!isDemoMutationAllowed()) redirect("/workspace/account?error=mutations");
+  if (!membershipId) redirect("/workspace/account?error=memberRole");
+
+  try {
+    const cookieStore = await cookies();
+    const accountUser = await getAccountSessionUser(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value);
+    if (!accountUser) redirect("/workspace/account?error=session");
+    const workspaceId = accountUser.memberships[0]?.workspaceId;
+    const actorRole = accountUser.memberships.find((membership) => membership.workspaceId === workspaceId)?.role;
+    if (!workspaceId || !canManageWorkspaceMembers(actorRole)) redirect("/workspace/account?error=memberRole");
+
+    const targetMembership = await db.workspaceMembership.findFirst({
+      where: { id: membershipId, workspaceId },
+      include: { accountUser: true }
+    });
+    if (!targetMembership) redirect("/workspace/account?error=memberRole");
+    const ownerCount = await db.workspaceMembership.count({ where: { workspaceId, role: "owner" } });
+    const roleChangeReadiness = buildWorkspaceMemberRoleChangeReadiness({
+      actorRole,
+      memberRole: targetMembership.role,
+      targetRole,
+      isSelf: targetMembership.accountUserId === accountUser.id,
+      ownerCount
+    });
+    if (!roleChangeReadiness.canChange) redirect("/workspace/account?error=memberRole");
+
+    await db.workspaceMembership.update({
+      where: { id: targetMembership.id },
+      data: { role: targetRole }
+    });
+  } catch (error) {
+    if (!isMissingDemoTableError(error)) throw error;
+    redirect("/workspace/account?error=memberRole");
+  }
+
+  redirect("/workspace/account?saved=memberRole");
+}
+
 async function loadAccountPage() {
   try {
     const cookieStore = await cookies();
@@ -311,11 +356,13 @@ export default async function WorkspaceAccountPage({
         {params?.saved === "invite" ? <p className="small bandText--healthy">Pending workspace invite created.</p> : null}
         {params?.saved === "inviteSent" ? <p className="small bandText--healthy">Workspace invitation email sent.</p> : null}
         {params?.saved === "inviteCanceled" ? <p className="small bandText--healthy">Pending workspace invite canceled.</p> : null}
+        {params?.saved === "memberRole" ? <p className="small bandText--healthy">Workspace member role saved.</p> : null}
         {params?.error === "session" ? <p className="small bandText--unhealthy">Sign in before editing your account.</p> : null}
         {params?.error === "mutations" ? <p className="small bandText--unhealthy">Account editing is disabled in this environment.</p> : null}
         {params?.error === "invite" ? <p className="small bandText--unhealthy">Resolve invite blockers before creating a pending invitation.</p> : null}
         {params?.error === "inviteSend" ? <p className="small bandText--unhealthy">Resolve send blockers before emailing this invitation.</p> : null}
         {params?.error === "inviteCancel" ? <p className="small bandText--unhealthy">Only owners and admins can cancel pending invitations.</p> : null}
+        {params?.error === "memberRole" ? <p className="small bandText--unhealthy">Resolve role-change blockers before saving this member role.</p> : null}
         {compatibilityMode ? (
           <div className="card">
             <p>Account tables are not available yet. Run the latest Prisma migration to enable account ownership.</p>
@@ -416,6 +463,28 @@ export default async function WorkspaceAccountPage({
                     <span>{member.title}</span>
                     <span>Joined {member.joinedAtLabel}</span>
                   </div>
+                  {membershipSummary.currentUserCanManageInvites ? (
+                    <form action={updateWorkspaceMemberRole} className="workspaceMemberRoleForm">
+                      <input name="membershipId" type="hidden" value={member.id} />
+                      <label>
+                        <span className="small">Role</span>
+                        <select name="role" defaultValue={member.role} disabled={member.isCurrentUser}>
+                          <option value="owner">Owner</option>
+                          <option value="admin">Admin</option>
+                          <option value="operator">Operator</option>
+                          <option value="viewer">Viewer</option>
+                        </select>
+                      </label>
+                      <button className="btn smallBtn" type="submit" disabled={member.isCurrentUser}>Save role</button>
+                    </form>
+                  ) : null}
+                  {member.roleChangeReadiness.blockers.length ? (
+                    <div className="workspaceInviteSendBlockers">
+                      {member.roleChangeReadiness.blockers.map((blocker) => (
+                        <span key={blocker}>{blocker}</span>
+                      ))}
+                    </div>
+                  ) : null}
                 </article>
               ))}
             </div>

@@ -30,6 +30,7 @@ export type WorkspaceMemberSummary = {
   joinedAtLabel: string;
   updatedAtLabel: string;
   isCurrentUser: boolean;
+  roleChangeReadiness: WorkspaceMemberRoleChangeReadiness;
 };
 
 export type WorkspaceRoleCapability = {
@@ -158,6 +159,14 @@ export type WorkspaceInviteAcceptanceActionReadiness = {
   blockers: string[];
 };
 
+export type WorkspaceMemberRoleChangeReadiness = {
+  status: "ready" | "blocked";
+  statusLabel: string;
+  canChange: boolean;
+  nextAction: string;
+  blockers: string[];
+};
+
 export type WorkspaceMembershipSummary = {
   available: boolean;
   workspaceId: string | null;
@@ -228,6 +237,10 @@ export function labelWorkspaceRole(role: string | null | undefined) {
 }
 
 export function canManageWorkspaceInvites(role: string | null | undefined) {
+  return ["owner", "admin"].includes(normalizeRole(role));
+}
+
+export function canManageWorkspaceMembers(role: string | null | undefined) {
   return ["owner", "admin"].includes(normalizeRole(role));
 }
 
@@ -671,6 +684,47 @@ export function buildWorkspaceInviteAcceptanceActionReadiness(input: {
   };
 }
 
+export function buildWorkspaceMemberRoleChangeReadiness(input: {
+  actorRole?: string | null;
+  memberRole?: string | null;
+  targetRole?: string | null;
+  isSelf?: boolean;
+  ownerCount?: number;
+}): WorkspaceMemberRoleChangeReadiness {
+  const actorRole = normalizeRole(input.actorRole);
+  const memberRole = normalizeRole(input.memberRole);
+  const hasExplicitTargetRole = input.targetRole !== null && input.targetRole !== undefined && String(input.targetRole).trim() !== "";
+  const targetRole = normalizeRole(input.targetRole ?? memberRole);
+  const blockers: string[] = [];
+  const supportedRoles = new Set(["owner", "admin", "operator", "viewer"]);
+
+  if (!canManageWorkspaceMembers(actorRole)) blockers.push("Only owners and admins can change workspace member roles.");
+  if (input.isSelf) blockers.push("Change another owner's role before changing your own role.");
+  if (!supportedRoles.has(targetRole)) blockers.push("Choose owner, admin, operator, or viewer for member role changes.");
+  if (hasExplicitTargetRole && targetRole === memberRole) blockers.push("Choose a different role before saving.");
+  if (memberRole === "owner" && targetRole !== "owner" && (input.ownerCount ?? 0) <= 1) {
+    blockers.push("Assign another owner before demoting the last workspace owner.");
+  }
+
+  if (blockers.length) {
+    return {
+      status: "blocked",
+      statusLabel: "Blocked",
+      canChange: false,
+      nextAction: blockers[0],
+      blockers
+    };
+  }
+
+  return {
+    status: "ready",
+    statusLabel: "Ready",
+    canChange: true,
+    nextAction: `Role can be changed to ${labelWorkspaceRole(targetRole)}.`,
+    blockers
+  };
+}
+
 export function buildWorkspaceMembershipSummary(input: {
   memberships: WorkspaceMembershipSummaryInput[];
   pendingInvites?: WorkspacePendingInviteInput[];
@@ -740,6 +794,14 @@ export function buildWorkspaceMembershipSummary(input: {
       canManageInvites: currentUserCanManageInvites,
       mailerReady: inviteMailDelivery.status === "ready"
     }),
-    members
+    members: members.map((member) => ({
+      ...member,
+      roleChangeReadiness: buildWorkspaceMemberRoleChangeReadiness({
+        actorRole: currentUser?.role,
+        memberRole: member.role,
+        isSelf: member.isCurrentUser,
+        ownerCount
+      })
+    }))
   };
 }

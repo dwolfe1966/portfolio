@@ -8,8 +8,10 @@ import {
   buildWorkspaceInviteMailDeliveryConfig,
   buildWorkspaceInviteReadiness,
   buildWorkspaceInviteSendReadiness,
+  buildWorkspaceMemberRoleChangeReadiness,
   buildWorkspacePendingInviteSummaries,
   canManageWorkspaceInvites,
+  canManageWorkspaceMembers,
   labelWorkspaceRole,
   workspaceRolePoliciesForRoster,
   workspaceRolePolicy
@@ -69,6 +71,7 @@ test("buildWorkspaceMembershipSummary summarizes members and prioritizes the sig
   assert.equal(summary.pendingInvites[0].sendReadiness.status, "blocked");
   assert.equal(summary.members[0].email, "jordan@example.com");
   assert.equal(summary.members[0].statusLabel, "Signed in");
+  assert.equal(summary.members[0].roleChangeReadiness.status, "blocked");
 });
 
 test("buildWorkspaceMembershipSummary handles empty membership state", () => {
@@ -92,6 +95,13 @@ test("canManageWorkspaceInvites allows only owner and admin roles", () => {
   assert.equal(canManageWorkspaceInvites("admin"), true);
   assert.equal(canManageWorkspaceInvites("operator"), false);
   assert.equal(canManageWorkspaceInvites("viewer"), false);
+});
+
+test("canManageWorkspaceMembers allows only owner and admin roles", () => {
+  assert.equal(canManageWorkspaceMembers("owner"), true);
+  assert.equal(canManageWorkspaceMembers("admin"), true);
+  assert.equal(canManageWorkspaceMembers("operator"), false);
+  assert.equal(canManageWorkspaceMembers("viewer"), false);
 });
 
 test("workspaceRolePolicy defines enterprise capabilities by role", () => {
@@ -356,4 +366,41 @@ test("buildWorkspaceInviteAcceptanceActionReadiness requires matching signed-in 
   assert.equal(ready.canAccept, true);
   assert.equal(existingMember.status, "blocked");
   assert.match(existingMember.nextAction, /already has workspace membership/);
+});
+
+test("buildWorkspaceMemberRoleChangeReadiness blocks unsafe role changes", () => {
+  const ready = buildWorkspaceMemberRoleChangeReadiness({
+    actorRole: "owner",
+    memberRole: "viewer",
+    targetRole: "operator",
+    ownerCount: 1
+  });
+  const selfChange = buildWorkspaceMemberRoleChangeReadiness({
+    actorRole: "owner",
+    memberRole: "owner",
+    targetRole: "admin",
+    isSelf: true,
+    ownerCount: 2
+  });
+  const lastOwner = buildWorkspaceMemberRoleChangeReadiness({
+    actorRole: "admin",
+    memberRole: "owner",
+    targetRole: "viewer",
+    ownerCount: 1
+  });
+  const sameRole = buildWorkspaceMemberRoleChangeReadiness({
+    actorRole: "admin",
+    memberRole: "viewer",
+    targetRole: "viewer",
+    ownerCount: 1
+  });
+
+  assert.equal(ready.status, "ready");
+  assert.equal(ready.canChange, true);
+  assert.equal(selfChange.status, "blocked");
+  assert.match(selfChange.nextAction, /another owner's role/);
+  assert.equal(lastOwner.status, "blocked");
+  assert.match(lastOwner.nextAction, /last workspace owner/);
+  assert.equal(sameRole.status, "blocked");
+  assert.match(sameRole.nextAction, /different role/);
 });

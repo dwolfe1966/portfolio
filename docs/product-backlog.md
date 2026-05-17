@@ -144,6 +144,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | K21 | Invite mail delivery configuration | DW | M | S20 | ✅ | Workspace Account now checks Resend API key, invitation sender, and public app URL configuration before send readiness can become available, without sending email yet. |
 | K22 | Workspace invite email send | DW | L | S20 | ✅ | Owners/admins can send ready pending workspace invitations through Resend, preserve token preview links, and store provider send audit metadata while keeping membership acceptance separate. |
 | K23 | Workspace invite acceptance | DW | L | S20 | ✅ | Invited users can accept pending unexpired workspace invites when signed in as the invited email, creating membership and marking the invite accepted in one guarded transaction. |
+| K24 | Workspace member role management | DW | M | S20 | ✅ | Workspace Account lets owners/admins change collaborator roles with guards for supported roles, self-role changes, and last-owner demotion. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -161,7 +162,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | S17 | L61, L62, L63, L64, L65 | — | — |
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
-| S20 | K12, K13, K14, K15, K16, K17, K18, K19, K20, K21, K22, K23 | — | — |
+| S20 | K12, K13, K14, K15, K16, K17, K18, K19, K20, K21, K22, K23, K24 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
