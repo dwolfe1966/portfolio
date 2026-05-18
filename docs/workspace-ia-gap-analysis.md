@@ -42,12 +42,12 @@ Roadmap notes, implementation reminders, and future-state architecture should ei
 - Agents is powerful but dense. The next structural step is to group it into status, approvals, jobs, provider writes, and evidence sections.
 - Account now includes profile, members, invites, role policy, and audit. The next structural step is tabs or subpages for `Profile`, `Members & Invites`, and `Audit`.
 - Settings contained account-layer roadmap copy that is now stale because membership and invite administration have shipped.
-- Report should remain the most customer-safe workspace page.
+- Report should remain the most stakeholder-readable workspace page, with no migration/debug or internal implementation language in the primary flow.
 
 ## Recommended Follow-On Work
 
 1. Add visual grouping or subnavigation to Account and Agents before adding more controls.
 2. Keep Connections focused on source setup and move connector architecture notes into docs.
 3. Keep Dashboard as the command center, with one primary next action and secondary health signals.
-4. Review Report copy for customer-safe language after every launch-readiness feature.
+4. Review Report copy for stakeholder-safe language after every launch-readiness feature.
 5. Add a lightweight content review checklist to future workspace backlog items.

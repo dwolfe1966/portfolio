@@ -85,8 +85,8 @@ export function buildWorkspaceLaunchReport(recordValue: WorkspaceLaunchReportRec
       statusLabel: "not configured",
       launchModeLabel: "not set",
       exportableLabel: "not exportable",
-      executionImplication: "Configure launch readiness evidence before recommending or executing customer actions.",
-      billingImplication: "Performance billing is unavailable until baseline, revenue proof, and billable gate evidence are attached.",
+      executionImplication: "No customer action should be recommended or executed until launch evidence is complete.",
+      billingImplication: "Performance-fee review is unavailable until baseline, revenue proof, and approval evidence are attached.",
       nextAction: "Configure launch readiness evidence.",
       updatedAt: null,
       evidenceSections: [],
@@ -110,13 +110,13 @@ export function buildWorkspaceLaunchReport(recordValue: WorkspaceLaunchReportRec
     launchModeLabel: label(launchMode, "not set"),
     exportableLabel: recordValue.exportable ? "exportable" : "not exportable",
     executionImplication: launchMode === "agent_managed_execution"
-      ? "Agent-managed execution can be considered when provider write gates and approval controls remain ready."
+      ? "Agent-managed execution can be considered if approval controls and channel access remain ready."
       : launchMode === "human_approved_execution"
-        ? "Execution should remain human-approved; autonomous writes are not cleared by current evidence."
-        : "Use recommendation-only or audit-only operation until launch gates improve.",
+        ? "Execution should remain human-approved; autonomous channel changes are not cleared by current evidence."
+        : "Use recommendation-only or audit-only operation until launch evidence improves.",
     billingImplication: status(billableGate.status) === "ready"
-      ? "Performance billing evidence is ready for customer review."
-      : "Performance billing should remain blocked until billable gate evidence is ready.",
+      ? "Performance-fee evidence is ready for customer review."
+      : "Performance-fee review should remain blocked until approval evidence is ready.",
     nextAction: clean(recordValue.nextRequiredAction, "Review launch readiness evidence."),
     updatedAt: recordValue.updatedAt ?? null,
     evidenceSections: [
@@ -130,7 +130,7 @@ export function buildWorkspaceLaunchReport(recordValue: WorkspaceLaunchReportRec
         key: "systems",
         label: "Connected systems",
         status: sectionStatus(connectedSystems.length > 0 && readReadySystems > 0, writeReadySystems === 0),
-        detail: `${readReadySystems} read-ready and ${writeReadySystems} write-ready systems.`
+        detail: `${readReadySystems} system${readReadySystems === 1 ? "" : "s"} ready for reads; ${writeReadySystems} approved for writes.`
       },
       {
         key: "mappings",
@@ -158,9 +158,9 @@ export function buildWorkspaceLaunchReport(recordValue: WorkspaceLaunchReportRec
       },
       {
         key: "billable_gate",
-        label: "Billable gate",
+        label: "Performance fee gate",
         status: status(billableGate.status),
-        detail: clean(billableGate.nextRequiredAction, "Billable gate decision is not attached.")
+        detail: clean(billableGate.nextRequiredAction, "Performance-fee approval is not attached.")
       },
       {
         key: "risks",
@@ -170,9 +170,9 @@ export function buildWorkspaceLaunchReport(recordValue: WorkspaceLaunchReportRec
       },
       {
         key: "exports",
-        label: "Evidence exports",
+        label: "Evidence package",
         status: evidenceExports.length > 0 ? "ready" : "blocked",
-        detail: `${evidenceExports.length} export link${evidenceExports.length === 1 ? "" : "s"} attached.`
+        detail: `${evidenceExports.length} evidence export${evidenceExports.length === 1 ? "" : "s"} attached.`
       }
     ],
     blockers,

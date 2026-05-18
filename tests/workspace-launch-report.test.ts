@@ -33,9 +33,11 @@ test("buildWorkspaceLaunchReport summarizes launch posture and implications", ()
   assert.equal(report.statusLabel, "warning");
   assert.equal(report.launchModeLabel, "human approved execution");
   assert.match(report.executionImplication, /human-approved/);
-  assert.match(report.billingImplication, /blocked/);
+  assert.match(report.billingImplication, /Performance-fee/);
   assert.equal(report.evidenceSections.find((section) => section.key === "systems")?.status, "warning");
+  assert.equal(report.evidenceSections.find((section) => section.key === "systems")?.detail, "1 system ready for reads; 0 approved for writes.");
   assert.equal(report.evidenceSections.find((section) => section.key === "revenue_proof")?.detail, "$5,000 incremental profit; 1 confidence flags.");
+  assert.equal(report.evidenceSections.find((section) => section.key === "billable_gate")?.label, "Performance fee gate");
   assert.deepEqual(report.blockers, ["Approve channel write grants before execution."]);
 });
 

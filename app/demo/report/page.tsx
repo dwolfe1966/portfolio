@@ -81,12 +81,12 @@ export default async function WorkspaceLaunchReportPage() {
       <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Launch readiness report">
         <p>
-          Customer-facing view of current launch posture, execution implications, billing readiness, evidence coverage,
-          unresolved risks, and the next operating action.
+          Share the current launch decision, execution limits, performance-fee readiness, evidence coverage, open issues,
+          and next action in a stakeholder-readable format.
         </p>
       </Section>
 
-      <Section title="Launch posture">
+      <Section title="Decision summary">
         <div className="launchReportHero">
           <div>
             <p className="small">Customer</p>
@@ -102,13 +102,13 @@ export default async function WorkspaceLaunchReportPage() {
             <p className="small">Next action</p>
             <strong>{report.nextAction}</strong>
             <div className="toolReadinessActions">
-              <Link className="btn smallBtn primary" href="/workspace/dashboard">Open cockpit</Link>
-              <Link className="btn smallBtn" href="/workspace/settings">Edit evidence</Link>
+              <Link className="btn smallBtn primary" href="/workspace/dashboard">Review dashboard</Link>
+              <Link className="btn smallBtn" href="/workspace/settings">Update evidence</Link>
             </div>
           </div>
         </div>
         {compatibilityMode ? (
-          <p className="small">Run the latest Prisma migrations to enable launch readiness reporting.</p>
+          <p className="small">Launch readiness data is not available in this environment.</p>
         ) : null}
       </Section>
 
@@ -119,16 +119,16 @@ export default async function WorkspaceLaunchReportPage() {
             <strong>{report.executionImplication}</strong>
           </div>
           <div className="card">
-            <p className="small">Performance billing</p>
+            <p className="small">Performance fee review</p>
             <strong>{report.billingImplication}</strong>
           </div>
         </div>
       </Section>
 
-      <Section title="Evidence status">
+      <Section title="Readiness evidence">
         {report.evidenceSections.length === 0 ? (
           <div className="card">
-            <p>No launch packet evidence is available yet.</p>
+            <p>No readiness evidence has been attached yet.</p>
             <Link className="btn smallBtn primary" href="/workspace/settings">Configure launch evidence</Link>
           </div>
         ) : (
@@ -144,12 +144,12 @@ export default async function WorkspaceLaunchReportPage() {
         )}
       </Section>
 
-      <Section title="Blockers and warnings">
+      <Section title="Open issues">
         <div className="launchReportLists">
           <div className="card">
             <p className="small">Blockers</p>
             {report.blockers.length === 0 ? (
-              <p>No blocking launch issues.</p>
+              <p>No blocking issues.</p>
             ) : (
               <ul>
                 {report.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}
@@ -159,7 +159,7 @@ export default async function WorkspaceLaunchReportPage() {
           <div className="card">
             <p className="small">Warnings</p>
             {report.warnings.length === 0 ? (
-              <p>No warning-level launch issues.</p>
+              <p>No warning-level issues.</p>
             ) : (
               <ul>
                 {report.warnings.map((warning) => <li key={warning}>{warning}</li>)}
@@ -169,12 +169,12 @@ export default async function WorkspaceLaunchReportPage() {
         </div>
       </Section>
 
-      <Section title="Exports and audit">
+      <Section title="Evidence package">
         <div className="toolReadinessActions">
-          <Link className="btn smallBtn primary" href="/api/workspace/launch-packet?format=markdown">Export launch packet</Link>
+          <Link className="btn smallBtn primary" href="/api/workspace/launch-packet?format=markdown">Export report packet</Link>
           <Link className="btn smallBtn" href="/api/workspace/agents/audit-export">Export audit evidence</Link>
           <Link className="btn smallBtn" href="/workspace/activity">Review activity</Link>
-          <Link className="btn smallBtn" href="/workspace/agents">Agent operations</Link>
+          <Link className="btn smallBtn" href="/workspace/agents">Review operations</Link>
         </div>
       </Section>
     </>
