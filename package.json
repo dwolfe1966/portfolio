@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
-    "next": "^15.0.0",
+    "next": "^15.5.18",
     "openai": "^4.70.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -25,7 +25,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^15.5.15",
+    "eslint-config-next": "^15.5.18",
     "prisma": "6.19.3",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.2",
