@@ -1310,8 +1310,8 @@ button {
   top: 69px;
   z-index: 15;
   display: flex;
-  gap: 8px;
-  align-items: center;
+  gap: 12px;
+  align-items: stretch;
   justify-content: flex-start;
   overflow-x: auto;
   min-height: 54px;
@@ -1319,6 +1319,29 @@ button {
   margin: -10px 0 8px;
   background: color-mix(in oklab, var(--bg) 94%, white 6%);
   border-bottom: 1px solid var(--line);
+}
+.demoWorkspaceTabGroup {
+  align-items: center;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding-right: 12px;
+}
+.demoWorkspaceTabGroup:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+.demoWorkspaceTabGroupLabel {
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.demoWorkspaceTabGroupLinks {
+  display: flex;
+  gap: 8px;
 }
 .demoWorkspaceTab {
   flex: 0 0 auto;

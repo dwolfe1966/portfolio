@@ -23,6 +23,14 @@ Roadmap notes, implementation reminders, and future-state architecture should ei
 | Settings | How is this workspace configured? | Workspace identity, launch evidence settings, owner/system/baseline evidence, admin configuration. | Historical account-layer roadmap notes that no longer match shipped behavior. |
 | Activity | What happened? | Chronological audit/event log, filters, exports. | Configuration actions and explanatory roadmap content. |
 
+## Navigation Groups
+
+| Group | Pages | Job |
+|---|---|---|
+| Operate | Dashboard, Agents, Report | Decide what to do next, review execution work, and share launch posture. |
+| Data | Datasets, Connections | Connect sources, inspect usable snapshots, and resolve readiness gaps. |
+| Admin | Account, Settings, Activity | Manage access, configure evidence/settings, and audit what happened. |
+
 ## Content Taxonomy
 
 | Content type | Workspace treatment |
