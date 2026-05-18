@@ -372,9 +372,17 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
           Inspect the durable work queue, customer approvals, dead-letter review state, and governance posture that sit
           behind lifecycle and acquisition agent execution.
         </p>
+        <div className="workspacePageGuide" aria-label="Agent operations sections">
+          <a href="#agent-status">Status</a>
+          <a href="#agent-approvals">Approvals</a>
+          <a href="#agent-jobs">Jobs</a>
+          <a href="#provider-writes">Provider writes</a>
+          <a href="#launch-readiness">Launch readiness</a>
+          <a href="#agent-evidence">Evidence</a>
+        </div>
       </Section>
 
-      <Section title="Operations status">
+      <Section title="Status" id="agent-status">
         <div className="grid grid-4 workspaceCompactMetricGrid">
           <div className="card workspaceCompactMetric"><p className="small">Queued jobs</p><div className="kpi">{operations.counts.queued}</div></div>
           <div className="card workspaceCompactMetric"><p className="small">Running jobs</p><div className="kpi">{operations.counts.running}</div></div>
@@ -412,7 +420,7 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
         </div>
       </Section>
 
-      <Section title="Scheduled worker">
+      <Section title="Scheduled worker" id="agent-worker">
         <div className="activitySummaryGrid">
           <div className="activitySummaryCard">
             <p className="small">Cron cadence</p>
@@ -443,7 +451,7 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
         </div>
       </Section>
 
-      <Section title="Acquisition provider writes">
+      <Section title="Provider writes" id="provider-writes">
         <div className="activitySummaryGrid">
           <div className="activitySummaryCard">
             <p className="small">Execution mode</p>
@@ -472,7 +480,7 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
         </div>
       </Section>
 
-      <Section title="Customer launch readiness">
+      <Section title="Launch readiness" id="launch-readiness">
         <div className="activitySummaryGrid">
           <div className="activitySummaryCard">
             <p className="small">Launch packet</p>
@@ -525,7 +533,7 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
         </div>
       </Section>
 
-      <Section title="Provider dry runs">
+      <Section title="Provider dry runs" id="agent-evidence">
         {operations.dryRuns.length === 0 ? (
           <div className="card">
             <p>No provider dry-run records yet. Approved acquisition provider-write jobs will persist their diffs here before any real mutation is possible.</p>
@@ -593,7 +601,7 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
         )}
       </Section>
 
-      <Section title="Queued and recent jobs">
+      <Section title="Queued and recent jobs" id="agent-jobs">
         {operations.jobs.length === 0 ? (
           <div className="card">
             <p>No agent jobs are queued yet. Generate lifecycle campaigns or run acquisition iterations to populate the queue.</p>
@@ -655,7 +663,7 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
         )}
       </Section>
 
-      <Section title="Approvals">
+      <Section title="Approvals" id="agent-approvals">
         {operations.approvals.length === 0 ? (
           <div className="card">
             <p>No approval requests are pending. Over-cap acquisition shifts and high-risk execution plans will appear here.</p>

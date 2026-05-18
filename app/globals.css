@@ -1577,6 +1577,27 @@ button {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+.workspaceSectionLead {
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding: 14px;
+}
+
+.workspaceSectionLead p,
+.workspaceSectionLead strong {
+  margin-bottom: 0;
+}
+
+.workspaceSectionLead strong {
+  display: block;
+}
 .workspaceActiveSourceList {
   display: grid;
   gap: 10px;
@@ -4059,10 +4080,14 @@ button {
   .workspaceAccountPanel { grid-template-columns: 1fr; }
   .workspaceMembershipCard,
   .workspaceMembershipHeader,
+  .workspaceSectionLead,
   .workspaceMembershipFacts,
   .workspaceRolePolicyHeader {
     align-items: flex-start;
     justify-content: flex-start;
+  }
+  .workspaceSectionLead {
+    flex-direction: column;
   }
   .workspaceRolePolicyHeader {
     flex-direction: column;

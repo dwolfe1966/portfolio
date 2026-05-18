@@ -497,6 +497,7 @@ export default async function WorkspaceAccountPage({
           <a href="#profile">Profile</a>
           <a href="#members">Members</a>
           <a href="#invites">Invites</a>
+          <a href="#role-policy">Roles</a>
           <a href="#membership-audit">Audit</a>
         </div>
       </Section>
@@ -654,7 +655,7 @@ export default async function WorkspaceAccountPage({
         </Section>
       ) : null}
       {!compatibilityMode && accountUser ? (
-        <Section title="Role capabilities">
+        <Section title="Role capabilities" id="role-policy">
           <details className="workspaceImplementationNotes">
             <summary>View role policy details</summary>
             <div className="workspaceRolePolicyGrid">
@@ -703,7 +704,18 @@ export default async function WorkspaceAccountPage({
         </Section>
       ) : null}
       {!compatibilityMode && accountUser ? (
-        <Section title="Invites" id="invites">
+        <Section title="Members and invitations" id="invites">
+          <div className="workspaceSectionLead">
+            <div>
+              <p className="small">Primary admin workflow</p>
+              <strong>Invite collaborators after membership and mail-delivery checks pass.</strong>
+            </div>
+            <div className="workspaceMembershipStats" aria-label="Workspace invitation summary">
+              <span>{membershipSummary.pendingInvites.length} pending</span>
+              <span>{membershipSummary.inviteReadiness.statusLabel}</span>
+              <span>{membershipSummary.inviteMailDelivery.statusLabel}</span>
+            </div>
+          </div>
           <div className={`workspaceInviteReadiness workspaceInviteReadiness--${membershipSummary.inviteReadiness.status}`}>
             <div>
               <p className="small">Invitation gate</p>

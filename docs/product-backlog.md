@@ -148,6 +148,7 @@ S21 keeps the workspace from becoming confusing as enterprise capabilities accum
 | K25 | Workspace member removal | DW | M | S20 | ✅ | Workspace Account lets owners/admins remove collaborators with guards for self-removal and last-owner removal. |
 | K26 | Membership administration audit trail | DW | M | S20 | ✅ | Invite creation/send/cancel/acceptance plus member role changes and removals are recorded as workspace audit events and surfaced on Account and Activity. |
 | K27 | Workspace IA and content gap cleanup | DW | M | S21 | ✅ | Add a workspace page contract and gap analysis, tighten dashboard next-action hierarchy, collapse implementation roadmap content out of the primary Connections flow, and clarify Account/Settings page boundaries. |
+| K28 | Workspace Account and Agent Operations grouping | DW | S | S21 | ✅ | Add in-page grouping and wayfinding to Account and Agent Operations so profile, members, invites, roles, audit, status, approvals, jobs, provider writes, launch readiness, and evidence are easier to scan. |
 | K29 | Customer-safe readiness report copy | DW | S | S21 | ✅ | Tighten Workspace Report language for stakeholder review, remove migration/internal phrasing from the primary flow, and clarify evidence, issue, and performance-fee labels. |
 
 ### S8-S10 status snapshot (2026-05-07)
@@ -167,7 +168,7 @@ S21 keeps the workspace from becoming confusing as enterprise capabilities accum
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
 | S20 | K12, K13, K14, K15, K16, K17, K18, K19, K20, K21, K22, K23, K24, K25, K26 | — | — |
-| S21 | K27, K29 | — | Workspace Account/Agents visual grouping |
+| S21 | K27, K28, K29 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
