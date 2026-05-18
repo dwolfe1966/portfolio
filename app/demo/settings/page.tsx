@@ -643,25 +643,15 @@ export default async function DemoSettingsPage({
       <Section title="Account readiness">
         <div className="card sourceMetadataDisclosure">
           <p>
-            Account management is intentionally lightweight for now. The next layer is user identity, workspace membership,
-            and per-workspace credentials.
+            Account administration now lives on Workspace Account. Keep this page focused on workspace identity and
+            launch evidence settings.
           </p>
           <details>
-            <summary>Implemented</summary>
+            <summary>Page boundary</summary>
             <ul>
-              <li>Account profile and signed account session.</li>
-              <li>Workspace membership linking account users to workspace ownership.</li>
-              <li>Default workspace record for shared tool configuration.</li>
-              <li>Workspace source configs for CSV and Google Sheets mappings.</li>
-              <li>Recent import and model-run activity counts.</li>
-            </ul>
-          </details>
-          <details>
-            <summary>Next account layer</summary>
-            <ul>
-              <li>Attach imported dataset snapshots to account users and workspaces.</li>
-              <li>Per-tool selected datasets and connector credentials scoped to each workspace.</li>
-              <li>Workspace-level activity and billing boundaries.</li>
+              <li>Use Account for profile, members, invitations, roles, and membership audit.</li>
+              <li>Use Connections for source credentials, uploads, and provider setup.</li>
+              <li>Use Datasets for imported snapshots and readiness gaps.</li>
             </ul>
           </details>
         </div>

@@ -1,6 +1,6 @@
 # Product Backlog (Execution Plan)
 
-Last updated: 2026-05-16
+Last updated: 2026-05-18
 
 This backlog is the canonical source of truth for the portfolio, product-app, workspace, and performance-business workstreams.
 
@@ -25,9 +25,9 @@ This backlog is the canonical source of truth for the portfolio, product-app, wo
 - ⏳ To do
 - 🚧 Blocked (waiting on dependency)
 
-## Active sprint: S20 (customer workspace administration)
+## Active sprint: S21 (workspace clarity and operator experience)
 
-S20 turns the protected workspace into a more credible enterprise administration surface. The goal is to make account ownership, member visibility, role posture, workspace governance, and later invite/edit controls visible before customer collaboration and credential delegation become live workflows.
+S21 keeps the workspace from becoming confusing as enterprise capabilities accumulate. The goal is to clarify each workspace page's job, separate current operator workflows from roadmap/internal notes, and reduce visible complexity before adding more controls.
 
 | ID | Item | Owner | Size | Sprint | Status | Acceptance criteria |
 |---|---|---|---|---|---|---|
@@ -147,6 +147,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | K24 | Workspace member role management | DW | M | S20 | ✅ | Workspace Account lets owners/admins change collaborator roles with guards for supported roles, self-role changes, and last-owner demotion. |
 | K25 | Workspace member removal | DW | M | S20 | ✅ | Workspace Account lets owners/admins remove collaborators with guards for self-removal and last-owner removal. |
 | K26 | Membership administration audit trail | DW | M | S20 | ✅ | Invite creation/send/cancel/acceptance plus member role changes and removals are recorded as workspace audit events and surfaced on Account and Activity. |
+| K27 | Workspace IA and content gap cleanup | DW | M | S21 | ✅ | Add a workspace page contract and gap analysis, tighten dashboard next-action hierarchy, collapse implementation roadmap content out of the primary Connections flow, and clarify Account/Settings page boundaries. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -165,6 +166,7 @@ S20 turns the protected workspace into a more credible enterprise administration
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
 | S20 | K12, K13, K14, K15, K16, K17, K18, K19, K20, K21, K22, K23, K24, K25, K26 | — | — |
+| S21 | K27 | — | Workspace Account/Agents visual grouping; Report customer-safe copy review |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.

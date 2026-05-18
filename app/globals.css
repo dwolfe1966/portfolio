@@ -1554,6 +1554,29 @@ button {
 .workspaceActionCard p {
   margin-bottom: 0;
 }
+
+.workspacePageGuide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.workspacePageGuide a {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.workspacePageGuide a:hover,
+.workspacePageGuide a:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .workspaceActiveSourceList {
   display: grid;
   gap: 10px;
@@ -2371,6 +2394,22 @@ button {
 .lifecycleOpsCard h3 {
   font-size: 16px;
   line-height: 1.25;
+}
+
+.workspaceImplementationNotes {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 14px;
+}
+
+.workspaceImplementationNotes summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.workspaceImplementationNotes[open] summary {
+  margin-bottom: 14px;
 }
 .lifecycleConnectorLab {
   display: grid;

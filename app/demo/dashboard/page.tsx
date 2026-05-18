@@ -365,7 +365,7 @@ export default async function DemoDashboardPage() {
     },
     {
       label: "Connect or refresh data",
-      detail: "Open CSV, Google Sheets, OAuth, or future live datasource connection flows.",
+      detail: "Open CSV, Google Sheets, or ad provider connection flows.",
       href: "/workspace/connections",
       primary: false
     },
@@ -388,15 +388,26 @@ export default async function DemoDashboardPage() {
       <DemoWorkspaceTabs />
       <Section eyebrow="Workspace" title="Workspace command center">
         <p>
-          The workspace is the account control plane for sources, imported dataset snapshots, selected tool data, and
-          operating activity. Tools still run with sample data by default; the workspace lets you bring your own data
-          into the same product flows.
+          Use the workspace to connect data, choose tool-ready datasets, monitor launch readiness, and review operating
+          activity from one protected account surface.
         </p>
         <div className="workspaceFlowDiagram" aria-label="Workspace operating flow">
           {workspaceFlow.map((step, index) => (
             <div className="workspaceFlowStep" key={step}>
               <span>{index + 1}</span>
               <strong>{step}</strong>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Recommended next actions">
+        <div className="workspaceActionGrid">
+          {nextActions.map((action) => (
+            <div className="card workspaceActionCard" key={action.label}>
+              <h3>{action.label}</h3>
+              <p>{action.detail}</p>
+              <Link className={`btn smallBtn ${action.primary ? "primary" : ""}`} href={action.href}>Open</Link>
             </div>
           ))}
         </div>
@@ -528,18 +539,6 @@ export default async function DemoDashboardPage() {
         {providerSyncedCount > 0 ? (
           <p className="small">{providerSyncedCount.toLocaleString()} connected account{providerSyncedCount === 1 ? "" : "s"} currently has a materialized acquisition dataset.</p>
         ) : null}
-      </Section>
-
-      <Section title="Recommended next actions">
-        <div className="workspaceActionGrid">
-          {nextActions.map((action) => (
-            <div className="card workspaceActionCard" key={action.label}>
-              <h3>{action.label}</h3>
-              <p>{action.detail}</p>
-              <Link className={`btn smallBtn ${action.primary ? "primary" : ""}`} href={action.href}>Open</Link>
-            </div>
-          ))}
-        </div>
       </Section>
 
       <Section title="Active tool data">

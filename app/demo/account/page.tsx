@@ -491,11 +491,17 @@ export default async function WorkspaceAccountPage({
       <DemoWorkspaceTabs />
       <Section eyebrow="Account" title="Workspace account">
         <p>
-          Manage the profile attached to your workspace data, source configs, selected datasets, and future connector credentials.
+          Manage your profile, workspace members, invitations, role policy, and membership audit trail.
         </p>
+        <div className="workspacePageGuide" aria-label="Workspace account sections">
+          <a href="#profile">Profile</a>
+          <a href="#members">Members</a>
+          <a href="#invites">Invites</a>
+          <a href="#membership-audit">Audit</a>
+        </div>
       </Section>
 
-      <Section title="Profile">
+      <Section title="Profile" id="profile">
         {params?.saved === "profile" ? <p className="small bandText--healthy">Account profile saved.</p> : null}
         {params?.saved === "invite" ? <p className="small bandText--healthy">Pending workspace invite created.</p> : null}
         {params?.saved === "inviteSent" ? <p className="small bandText--healthy">Workspace invitation email sent.</p> : null}
@@ -581,7 +587,7 @@ export default async function WorkspaceAccountPage({
         ) : null}
       </Section>
       {!compatibilityMode && accountUser ? (
-        <Section title="Workspace members">
+        <Section title="Workspace members" id="members">
           <div className="workspaceMembershipHeader">
             <div>
               <p className="small">Current workspace</p>
@@ -649,31 +655,34 @@ export default async function WorkspaceAccountPage({
       ) : null}
       {!compatibilityMode && accountUser ? (
         <Section title="Role capabilities">
-          <div className="workspaceRolePolicyGrid">
-            {membershipSummary.rolePolicies.map((policy) => (
-              <article className="card workspaceRolePolicyCard" key={policy.role}>
-                <div className="workspaceRolePolicyHeader">
-                  <div>
-                    <p className="small">{policy.accessLevel.replace(/_/g, " ")}</p>
-                    <strong>{policy.roleLabel}</strong>
-                  </div>
-                  <span>{policy.capabilityCount} capabilities</span>
-                </div>
-                <div className="workspaceRoleCapabilityList">
-                  {policy.capabilities.map((capability) => (
-                    <div className="workspaceRoleCapability" key={capability.key}>
-                      <strong>{capability.label}</strong>
-                      <span>{capability.description}</span>
+          <details className="workspaceImplementationNotes">
+            <summary>View role policy details</summary>
+            <div className="workspaceRolePolicyGrid">
+              {membershipSummary.rolePolicies.map((policy) => (
+                <article className="card workspaceRolePolicyCard" key={policy.role}>
+                  <div className="workspaceRolePolicyHeader">
+                    <div>
+                      <p className="small">{policy.accessLevel.replace(/_/g, " ")}</p>
+                      <strong>{policy.roleLabel}</strong>
                     </div>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
+                    <span>{policy.capabilityCount} capabilities</span>
+                  </div>
+                  <div className="workspaceRoleCapabilityList">
+                    {policy.capabilities.map((capability) => (
+                      <div className="workspaceRoleCapability" key={capability.key}>
+                        <strong>{capability.label}</strong>
+                        <span>{capability.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </details>
         </Section>
       ) : null}
       {!compatibilityMode && accountUser ? (
-        <Section title="Membership audit">
+        <Section title="Membership audit" id="membership-audit">
           {membershipAuditItems.length ? (
             <div className="workspaceMembershipAuditList">
               {membershipAuditItems.map((event) => (
@@ -694,7 +703,7 @@ export default async function WorkspaceAccountPage({
         </Section>
       ) : null}
       {!compatibilityMode && accountUser ? (
-        <Section title="Invite readiness">
+        <Section title="Invites" id="invites">
           <div className={`workspaceInviteReadiness workspaceInviteReadiness--${membershipSummary.inviteReadiness.status}`}>
             <div>
               <p className="small">Invitation gate</p>

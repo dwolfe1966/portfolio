@@ -198,7 +198,7 @@ export default async function DemoConnectionsPage() {
       <Section eyebrow="Workspace" title="Connect data">
         <p>
           Connections are the setup layer: choose where data comes from, configure credentials or uploads, map external
-          fields into a tool schema, and save a reusable source config to your account. A connection does not become usable tool data
+          fields into a tool schema, and save a reusable source config. A connection does not become usable tool data
           until it is validated and imported as a dataset snapshot.
         </p>
       </Section>
@@ -217,39 +217,6 @@ export default async function DemoConnectionsPage() {
                 <span>{mode.tools}</span>
                 <Link className={`btn smallBtn ${mode.status === "Available now" ? "primary" : ""}`} href={mode.href}>{mode.action}</Link>
               </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Lifecycle operations blueprint">
-        <div className="lifecycleOpsIntro">
-          <div>
-            <p className="editorKicker">Production integration target</p>
-            <h3>Persistent object connectors plus delivery and outcome observation</h3>
-            <p>
-              Lifecycle cannot depend on an ESP as the only source of truth. Users, entities, interest edges, and
-              triggering events may live in different customer systems, while delivery, engagement, and conversion
-              evidence may come from another set of providers.
-            </p>
-          </div>
-          <Link className="btn smallBtn" href="/lifecycle/connections">Open lifecycle import history</Link>
-        </div>
-        <div className="lifecycleOpsGrid">
-          {lifecycleObjectConnectors.map((item) => (
-            <div className="card lifecycleOpsCard" key={item.object}>
-              <p className="editorKicker">{item.object}</p>
-              <h3>{item.systems}</h3>
-              <p>{item.requirement}</p>
-            </div>
-          ))}
-        </div>
-        <div className="lifecycleOpsExecutionGrid">
-          {lifecycleExecutionConnectors.map((item) => (
-            <div className="card lifecycleOpsCard" key={item.layer}>
-              <p className="editorKicker">{item.layer}</p>
-              <h3>{item.connectors}</h3>
-              <p>{item.requirement}</p>
             </div>
           ))}
         </div>
@@ -358,32 +325,46 @@ export default async function DemoConnectionsPage() {
         </div>
       </Section>
 
-      <Section title="Lifecycle hardening path">
-        <div className="connectionDefinitionGrid">
-          <div className="card connectionDefinitionCard">
-            <p className="editorKicker">Near-term build</p>
-            <h3>Connector contracts before provider sprawl</h3>
-            <p>
-              The next production step is to make the connector model explicit enough that fake connectors,
-              tests, health states, mapping previews, and audit events can stabilize before we add real providers.
-            </p>
-          </div>
-          <div className="card connectionDefinitionCard">
-            <p className="editorKicker">Operating goal</p>
-            <h3>Agents can run lifecycle programs inside partner infrastructure</h3>
-            <p>
-              The customer connects source systems and messaging providers; David Wolfe agents capture events,
-              trigger approved messages, observe outcomes, and prove revenue lift.
-            </p>
-          </div>
-        </div>
-        <div className="signalStrip">
-          {lifecycleHardeningSteps.map((step, index) => (
-            <div className="signalStep" key={step}>
-              <strong>{index + 1}. {step}</strong>
+      <Section title="Implementation notes">
+        <details className="workspaceImplementationNotes">
+          <summary>Lifecycle connector architecture and hardening path</summary>
+          <div className="lifecycleOpsIntro">
+            <div>
+              <p className="editorKicker">Internal product context</p>
+              <h3>Persistent object connectors plus delivery and outcome observation</h3>
+              <p>
+                This section is retained as implementation context and should move out of the customer workspace as
+                the connector setup flow stabilizes.
+              </p>
             </div>
-          ))}
-        </div>
+            <Link className="btn smallBtn" href="/lifecycle/connections">Open lifecycle import history</Link>
+          </div>
+          <div className="lifecycleOpsGrid">
+            {lifecycleObjectConnectors.map((item) => (
+              <div className="card lifecycleOpsCard" key={item.object}>
+                <p className="editorKicker">{item.object}</p>
+                <h3>{item.systems}</h3>
+                <p>{item.requirement}</p>
+              </div>
+            ))}
+          </div>
+          <div className="lifecycleOpsExecutionGrid">
+            {lifecycleExecutionConnectors.map((item) => (
+              <div className="card lifecycleOpsCard" key={item.layer}>
+                <p className="editorKicker">{item.layer}</p>
+                <h3>{item.connectors}</h3>
+                <p>{item.requirement}</p>
+              </div>
+            ))}
+          </div>
+          <div className="signalStrip">
+            {lifecycleHardeningSteps.map((step, index) => (
+              <div className="signalStep" key={step}>
+                <strong>{index + 1}. {step}</strong>
+              </div>
+            ))}
+          </div>
+        </details>
       </Section>
     </>
   );
