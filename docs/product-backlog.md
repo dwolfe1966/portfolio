@@ -153,6 +153,7 @@ S21 keeps the workspace from becoming confusing as enterprise capabilities accum
 | K30 | Workspace navigation grouping | DW | S | S21 | ✅ | Group workspace top navigation into Operate, Data, and Admin buckets without removing existing pages or changing routes. |
 | E9 | Security dependency patch pass | DW | S | S21 | ✅ | Update Next.js and related tooling to patched versions, refresh vulnerable transitive dependencies, and verify `npm audit`, tests, and production build are clean. |
 | K31 | Workspace content review checklist | DW | S | S21 | ✅ | Add a reusable checklist for future workspace sections so page fit, user clarity, complexity control, and customer-safe copy are reviewed before shipping. |
+| A10 | Backlog status hygiene pass | DW | S | S21 | ✅ | Normalize stale completed `To do` headings and sprint snapshot statuses so the backlog no longer shows completed work as in-progress. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -171,7 +172,7 @@ S21 keeps the workspace from becoming confusing as enterprise capabilities accum
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
 | S20 | K12, K13, K14, K15, K16, K17, K18, K19, K20, K21, K22, K23, K24, K25, K26 | — | — |
-| S21 | K27, K28, K29, K30, K31, E9 | — | — |
+| S21 | K27, K28, K29, K30, K31, E9, A10 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
@@ -214,7 +215,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ A3/A4/A5. Added canonical backlog structure with owner/status/size/sprint criteria.
 - ✅ A6. Add release checklists (pre-release, release, post-release) linked to this backlog.
 
-### To do
+### Completed
 - ✅ A7. Normalize top-level app route contexts (`/lifecycle/*` + `/acquisition/*`) and finalize lifecycle-first route structure.
 - ✅ A8. Normalize API namespaces (`/api/lifecycle/*` + `/api/acquisition/*`) and update lifecycle UI surfaces to use namespaced endpoints.
 - ✅ A9. Migrate lifecycle web routes from `/demo/*` to `/lifecycle/*` and minimize legacy `/demo` surface via redirects.
@@ -233,7 +234,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 - ✅ B5. Add tests for assumptions lifecycle logic.
 - ✅ B6. Add tests for scoring reproducibility logic.
 
-### To do
+### Completed
 - ✅ B7. Add regression tests for schema fallback paths (`P2021`/`P2022`) and structured compatibility response payloads.
 - ✅ B8. Add richer outputs analytics (run-over-run trend, segment breakdown, filter presets).
 - ✅ B9. Add operator audit panel linking run → top candidates → generated message chain.
@@ -260,14 +261,14 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ### Completed
 - ✅ C5. Add higher-fidelity insights metrics in outputs panel (CTR, conversion rate, LTV/CAC, budget utilization, target comparison).
 
-### To do (core maturity)
+### Completed (core maturity)
 - ✅ C6. Add creative-level and audience-level trend comparisons over iterations.
 - ✅ C7. Add budget activity timeline chart (with reason + source/destination cells).
 - ✅ C8. Add configurable guardrails UI (approval threshold, max shift policy, cooldown window).
 - ✅ C9. Add manual override controls and persist override actions to audit log.
 - ✅ C10. Add scenario save/load presets for repeatable acquisition experiments.
 
-### To do (spec-driven expansions)
+### Completed (spec-driven expansions)
 - ✅ C21. Audience test-cell management area shipped (commit f5b44d4): new AudienceTemplate model + library UX at `/acquisition/audiences` with CRUD, JSON targeting editor, usage rollup, and side-nav entry.
 - ✅ C21.1. Campaign Create flow wired to audience templates (commit 84e7416): operators can pick from the library or fall back to built-in defaults; selected templates are cloned into AudienceSegment rows with templateId provenance.
 - ✅ C11. Ad-connector abstraction shipped end-to-end: provider interface, Google OAuth, Meta OAuth, guarded Google/Meta read connectors, connection detail object inspection, provider-shaped fallback snapshots, and workspace dataset handoff. Live provider reads are gated; writes remain dry-run/governed.
@@ -294,7 +295,7 @@ Detailed analysis: `docs/acq-app-specs/spec-impact-summary.md`.
 ### Completed
 - ✅ D5. Expand writing inventory with additional essays/previews.
 
-### To do
+### Completed
 - ✅ D6. Add 2–3 new project case studies beyond lifecycle/acquisition.
 - ✅ D7. Add richer visual artifacts in case studies (artifact panels with outcome strips, decision frames, evidence links, and guardrails).
 - ✅ D8. Add contact form delivery path with spam mitigation and success/error UX.
@@ -509,7 +510,7 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ E4. Migrations-first strategy codified in docs + migrations folder.
 - ✅ E5. CI workflow added for lint/test/build gates.
 
-### To do
+### Completed
 - ✅ E6. Add environment-specific endpoint guardrails for seed/simulation mutators.
 - ✅ E7. Add structured error contract for API routes (consistent JSON shape, including remaining legacy endpoints).
 - ✅ E8. Add production-ready logging + basic event IDs for cross-route tracing across lifecycle/acquisition API routes.
@@ -528,7 +529,7 @@ Business-model workstream for using the tools and agents to operate customer rev
 - ✅ C18, C19, C20
 - ✅ C8, C9, C10
 - ✅ E6
-- 🟡 E7
+- ✅ E7
 
 ### Sprint S9 (content, conversion, and polish)
 - ✅ D6, D8, D9, D12
