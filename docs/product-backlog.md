@@ -152,6 +152,7 @@ S21 keeps the workspace from becoming confusing as enterprise capabilities accum
 | K29 | Customer-safe readiness report copy | DW | S | S21 | ✅ | Tighten Workspace Report language for stakeholder review, remove migration/internal phrasing from the primary flow, and clarify evidence, issue, and performance-fee labels. |
 | K30 | Workspace navigation grouping | DW | S | S21 | ✅ | Group workspace top navigation into Operate, Data, and Admin buckets without removing existing pages or changing routes. |
 | E9 | Security dependency patch pass | DW | S | S21 | ✅ | Update Next.js and related tooling to patched versions, refresh vulnerable transitive dependencies, and verify `npm audit`, tests, and production build are clean. |
+| K31 | Workspace content review checklist | DW | S | S21 | ✅ | Add a reusable checklist for future workspace sections so page fit, user clarity, complexity control, and customer-safe copy are reviewed before shipping. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -170,7 +171,7 @@ S21 keeps the workspace from becoming confusing as enterprise capabilities accum
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
 | S20 | K12, K13, K14, K15, K16, K17, K18, K19, K20, K21, K22, K23, K24, K25, K26 | — | — |
-| S21 | K27, K28, K29, K30, E9 | — | — |
+| S21 | K27, K28, K29, K30, K31, E9 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.

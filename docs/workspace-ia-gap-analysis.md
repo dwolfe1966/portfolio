@@ -10,6 +10,8 @@ Each workspace page should answer one primary user question.
 
 Roadmap notes, implementation reminders, and future-state architecture should either live in `docs/` or be clearly marked as temporary implementation context. Customer/operator pages should prioritize current status, next action, and safe controls.
 
+New workspace work should use `docs/workspace-content-review-checklist.md` before shipping user-facing copy or controls.
+
 ## Page Contracts
 
 | Page | Primary question | Keep here | Move out or reduce |
@@ -58,4 +60,4 @@ Roadmap notes, implementation reminders, and future-state architecture should ei
 2. Keep Connections focused on source setup and move connector architecture notes into docs.
 3. Keep Dashboard as the command center, with one primary next action and secondary health signals.
 4. Review Report copy for stakeholder-safe language after every launch-readiness feature.
-5. Add a lightweight content review checklist to future workspace backlog items.
+5. Keep the content review checklist current as new workspace page contracts emerge.
