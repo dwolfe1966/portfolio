@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
+  discoverAccessibleGoogleAdsCustomers,
   exchangeGoogleAuthCode,
-  isGoogleOAuthConfigured,
-  listAccessibleCustomers
+  isGoogleOAuthConfigured
 } from "@/lib/ad-connectors/google-oauth";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
 import { verifyOAuthState } from "@/lib/oauth-state";
@@ -89,9 +89,9 @@ export async function GET(req: NextRequest) {
     return redirectWithError("token_exchange_failed", eventId);
   }
 
-  let customerIds: string[];
+  let customers;
   try {
-    customerIds = await listAccessibleCustomers(tokens.accessToken);
+    customers = await discoverAccessibleGoogleAdsCustomers(tokens.accessToken);
   } catch (err) {
     const reason = googleListCustomersErrorReason(err);
     logApiEvent("error", eventId, "connections.google.callback.list_customers_failed", {
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
     return redirectWithError(reason, eventId);
   }
 
-  if (customerIds.length === 0) {
+  if (customers.length === 0) {
     logApiEvent("warn", eventId, "connections.google.callback.no_customers");
     return redirectWithError("no_accessible_customers", eventId);
   }
@@ -111,27 +111,32 @@ export async function GET(req: NextRequest) {
   const scopes = tokens.scope ? tokens.scope.split(/\s+/).filter(Boolean) : [];
   const workspace = await getDefaultWorkspace();
 
-  // Store one connection row per accessible customer. The isTestAccount
-  // flag stays true at this stage because our scope is test-tier; a Phase 3
-  // verification step before any data fetch confirms test_account=true.
-  const upserts = customerIds.map(async (customerId) => {
+  // Store one connection row per accessible customer and discovered child customer.
+  // Live/test truth is refreshed again when the account is read.
+  const upserts = customers.map(async (customer) => {
+    const isTestAccount = customer.testAccount ?? true;
+    const accountName = customer.descriptiveName
+      ? `${customer.descriptiveName} (${customer.customerId})`
+      : `Google Ads ${customer.customerId}`;
     const credentialGrant = await upsertProviderCredentialGrant({
       workspaceId: workspace.id,
       accountUserId,
       provider: "google_ads",
-      externalAccountId: customerId,
-      displayName: `Google Ads ${customerId}`,
-      isTestAccount: true,
+      externalAccountId: customer.customerId,
+      displayName: accountName,
+      isTestAccount,
       scopes,
       tokenExpiresAt: tokens.expiresAt,
       metadata: {
         source: "oauth_callback",
         connectionMode: "read_only",
-        providerAccountKind: "customer"
+        providerAccountKind: customer.manager ? "manager" : "customer",
+        parentCustomerId: customer.parentCustomerId,
+        hierarchyLevel: customer.level
       }
     });
     const existing = await db.adAccountConnection.findFirst({
-      where: { accountUserId, provider: "google_ads", externalAccountId: customerId },
+      where: { accountUserId, provider: "google_ads", externalAccountId: customer.customerId },
       select: { id: true }
     });
 
@@ -141,6 +146,8 @@ export async function GET(req: NextRequest) {
           data: {
             scopes,
             credentialGrantId: credentialGrant.id,
+            accountName,
+            isTestAccount,
             encryptedAccessToken,
             encryptedRefreshToken: encryptedRefreshToken ?? undefined,
             expiresAt: tokens.expiresAt
@@ -150,9 +157,9 @@ export async function GET(req: NextRequest) {
           data: {
             accountUserId,
             provider: "google_ads",
-            externalAccountId: customerId,
-            accountName: `Google Ads ${customerId}`,
-            isTestAccount: true,
+            externalAccountId: customer.customerId,
+            accountName,
+            isTestAccount,
             scopes,
             credentialGrantId: credentialGrant.id,
             encryptedAccessToken,
@@ -164,8 +171,10 @@ export async function GET(req: NextRequest) {
 
   await Promise.all(upserts);
   logApiEvent("info", eventId, "connections.google.callback.completed", {
-    customers: customerIds.length
+    customers: customers.length,
+    managerRoots: customers.filter((customer) => !customer.parentCustomerId).length,
+    discoveredChildren: customers.filter((customer) => customer.parentCustomerId).length
   });
 
-  return redirectWithSuccess(customerIds.length);
+  return redirectWithSuccess(customers.length);
 }

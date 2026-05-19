@@ -91,6 +91,15 @@ export type GoogleTokenResponse = {
   scope: string;
 };
 
+export type GoogleAdsCustomerDiscovery = {
+  customerId: string;
+  descriptiveName: string | null;
+  manager: boolean;
+  testAccount: boolean | null;
+  parentCustomerId: string | null;
+  level: number | null;
+};
+
 export async function exchangeGoogleAuthCode(
   code: string,
   config?: GoogleOAuthConfig
@@ -191,4 +200,108 @@ export async function listAccessibleCustomers(
 
   const json = (await response.json()) as { resourceNames?: string[] };
   return (json.resourceNames ?? []).map((rn) => rn.replace(/^customers\//, ""));
+}
+
+function uniqueCustomers(customers: GoogleAdsCustomerDiscovery[]) {
+  const byCustomerId = new Map<string, GoogleAdsCustomerDiscovery>();
+  for (const customer of customers) {
+    const existing = byCustomerId.get(customer.customerId);
+    if (!existing || (existing.parentCustomerId === null && customer.parentCustomerId !== null)) {
+      byCustomerId.set(customer.customerId, customer);
+    }
+  }
+  return [...byCustomerId.values()].sort((a, b) => {
+    if (a.parentCustomerId && !b.parentCustomerId) return 1;
+    if (!a.parentCustomerId && b.parentCustomerId) return -1;
+    return a.customerId.localeCompare(b.customerId);
+  });
+}
+
+function customerIdFromResource(resourceName: string | null | undefined) {
+  return String(resourceName ?? "").replace(/^customers\//, "").trim() || null;
+}
+
+async function listCustomerClients(
+  managerCustomerId: string,
+  accessToken: string,
+  config: GoogleOAuthConfig
+): Promise<GoogleAdsCustomerDiscovery[]> {
+  const query = [
+    "SELECT customer_client.client_customer, customer_client.id,",
+    "customer_client.descriptive_name, customer_client.manager,",
+    "customer_client.test_account, customer_client.level",
+    "FROM customer_client",
+    "WHERE customer_client.level <= 1"
+  ].join(" ");
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    "developer-token": config.developerToken,
+    "Content-Type": "application/json",
+    "login-customer-id": config.loginCustomerId ?? managerCustomerId
+  };
+
+  const response = await fetch(`${config.apiBase}/customers/${managerCustomerId}/googleAds:search`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ query })
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Google Ads customer-client discovery failed: ${response.status} ${text}`);
+  }
+
+  const json = (await response.json()) as {
+    results?: Array<{
+      customerClient?: {
+        clientCustomer?: string;
+        id?: string;
+        descriptiveName?: string;
+        manager?: boolean;
+        testAccount?: boolean;
+        level?: number;
+      };
+    }>;
+  };
+
+  return (json.results ?? []).flatMap((row) => {
+    const client = row.customerClient;
+    const customerId = customerIdFromResource(client?.clientCustomer) ?? client?.id ?? null;
+    if (!customerId || customerId === managerCustomerId) return [];
+    return [{
+      customerId,
+      descriptiveName: client?.descriptiveName ?? null,
+      manager: client?.manager === true,
+      testAccount: typeof client?.testAccount === "boolean" ? client.testAccount : null,
+      parentCustomerId: managerCustomerId,
+      level: typeof client?.level === "number" ? client.level : null
+    }];
+  });
+}
+
+export async function discoverAccessibleGoogleAdsCustomers(
+  accessToken: string,
+  config?: GoogleOAuthConfig
+): Promise<GoogleAdsCustomerDiscovery[]> {
+  const cfg = config ?? loadGoogleOAuthConfig();
+  const roots = await listAccessibleCustomers(accessToken, cfg);
+  const discovered: GoogleAdsCustomerDiscovery[] = roots.map((customerId) => ({
+    customerId,
+    descriptiveName: null,
+    manager: false,
+    testAccount: null,
+    parentCustomerId: null,
+    level: null
+  }));
+
+  for (const rootCustomerId of roots) {
+    try {
+      discovered.push(...await listCustomerClients(rootCustomerId, accessToken, cfg));
+    } catch {
+      // Some accessible customers are not managers or cannot expose hierarchy.
+      // Keep the root customer and continue discovering from other roots.
+    }
+  }
+
+  return uniqueCustomers(discovered);
 }
