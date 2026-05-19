@@ -14,6 +14,7 @@ import {
   acquisitionProviderSnapshotScopeLabel,
   acquisitionProviderSnapshotSourceLabel
 } from "@/lib/acquisition-provider-snapshots";
+import { ProviderOperationSubmit } from "@/components/acquisition/ProviderOperationSubmit";
 import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import {
   applyProviderConnectionDatasetAction,
@@ -688,12 +689,25 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                 <div className="ctaRow">
                   <form action={syncProviderConnectionDatasetAction}>
                     <input type="hidden" name="connectionId" value={connection.id} />
-                    <button className="btn" type="submit" disabled={!syncReady}>{syncReady ? "Save live dataset only" : "Live sync blocked"}</button>
+                    <ProviderOperationSubmit
+                      disabled={!syncReady}
+                      pendingLabel="Syncing Google Ads data"
+                      pendingDetail="Fetching campaigns, child groups, ads, and recent performance. This can take a moment."
+                    >
+                      {syncReady ? "Save live dataset only" : "Live sync blocked"}
+                    </ProviderOperationSubmit>
                   </form>
                   <form action={syncProviderConnectionDatasetAction}>
                     <input type="hidden" name="connectionId" value={connection.id} />
                     <input type="hidden" name="applyAfterSync" value="1" />
-                    <button className="btn primary" type="submit" disabled={!syncReady}>{syncReady ? "Save live dataset and apply" : "Live apply blocked"}</button>
+                    <ProviderOperationSubmit
+                      className="btn primary"
+                      disabled={!syncReady}
+                      pendingLabel="Syncing and applying provider data"
+                      pendingDetail="Fetching live provider rows, saving a workspace dataset, and switching Acquisition inputs to the new snapshot."
+                    >
+                      {syncReady ? "Save live dataset and apply" : "Live apply blocked"}
+                    </ProviderOperationSubmit>
                   </form>
                 </div>
                 {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}
@@ -707,12 +721,24 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                     <div className="ctaRow">
                       <form action={createProviderFallbackDatasetAction}>
                         <input type="hidden" name="connectionId" value={connection.id} />
-                        <button className="btn smallBtn" type="submit">Save fallback dataset only</button>
+                        <ProviderOperationSubmit
+                          className="btn smallBtn"
+                          pendingLabel="Creating fallback dataset"
+                          pendingDetail="Saving provider-shaped acquisition data for this account while live reads are unavailable."
+                        >
+                          Save fallback dataset only
+                        </ProviderOperationSubmit>
                       </form>
                       <form action={createProviderFallbackDatasetAction}>
                         <input type="hidden" name="connectionId" value={connection.id} />
                         <input type="hidden" name="applyAfterSync" value="1" />
-                        <button className="btn smallBtn primary" type="submit">Save fallback and apply</button>
+                        <ProviderOperationSubmit
+                          className="btn smallBtn primary"
+                          pendingLabel="Creating and applying fallback"
+                          pendingDetail="Saving provider-shaped data and switching Acquisition inputs to the fallback snapshot."
+                        >
+                          Save fallback and apply
+                        </ProviderOperationSubmit>
                       </form>
                     </div>
                   </div>
@@ -803,9 +829,14 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       <form action={applyProviderConnectionDatasetAction}>
                         <input type="hidden" name="connectionId" value={connection.id} />
                         <input type="hidden" name="datasetId" value={dataset.id} />
-                        <button className="btn smallBtn primary" type="submit" disabled={dataset.id === activeDatasetId}>
+                        <ProviderOperationSubmit
+                          className="btn smallBtn primary"
+                          disabled={dataset.id === activeDatasetId}
+                          pendingLabel="Applying dataset"
+                          pendingDetail="Switching Acquisition inputs, simulations, campaigns, and outputs to this provider snapshot."
+                        >
                           {dataset.id === activeDatasetId ? "Active inputs" : "Apply to inputs"}
-                        </button>
+                        </ProviderOperationSubmit>
                       </form>
                     </div>
                   </td>
@@ -949,7 +980,13 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       ) : (
                         <input type="hidden" name="externalAdGroupId" value={selectedAdGroupId ?? ""} />
                       )}
-                      <button className="btn" type="submit" disabled={!syncReady}>Save selected dataset only</button>
+                      <ProviderOperationSubmit
+                        disabled={!syncReady}
+                        pendingLabel="Syncing selected provider scope"
+                        pendingDetail={`Fetching the selected campaign${selectedAdGroupId ? ` and ${childGroupSingular}` : ""}, then saving it as a workspace dataset.`}
+                      >
+                        Save selected dataset only
+                      </ProviderOperationSubmit>
                     </form>
                     <form action={syncProviderConnectionDatasetAction}>
                       <input type="hidden" name="connectionId" value={connection.id} />
@@ -960,7 +997,14 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       ) : (
                         <input type="hidden" name="externalAdGroupId" value={selectedAdGroupId ?? ""} />
                       )}
-                      <button className="btn primary" type="submit" disabled={!syncReady}>Save selected and apply</button>
+                      <ProviderOperationSubmit
+                        className="btn primary"
+                        disabled={!syncReady}
+                        pendingLabel="Syncing selected scope and applying"
+                        pendingDetail={`Fetching the selected campaign${selectedAdGroupId ? ` and ${childGroupSingular}` : ""}, saving it, and switching Acquisition inputs to that snapshot.`}
+                      >
+                        Save selected and apply
+                      </ProviderOperationSubmit>
                     </form>
                   </div>
                   {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}
@@ -977,7 +1021,14 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                     ) : (
                       <input type="hidden" name="externalAdGroupId" value={selectedAdGroupId ?? ""} />
                     )}
-                    <button className="btn primary" type="submit" disabled={!preflight.readyForApproval}>Request dry-run approval</button>
+                    <ProviderOperationSubmit
+                      className="btn primary"
+                      disabled={!preflight.readyForApproval}
+                      pendingLabel="Creating approval request"
+                      pendingDetail="Packaging the selected provider account, campaign, and operation context for Agent Operations review."
+                    >
+                      Request dry-run approval
+                    </ProviderOperationSubmit>
                     {!preflight.readyForApproval ? (
                       <p className="small bandText--unhealthy">Resolve provider preflight blockers before requesting approval.</p>
                     ) : null}

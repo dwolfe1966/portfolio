@@ -868,6 +868,46 @@ button {
   padding: 6px 10px;
   font-size: 12px;
 }
+.providerOperationBar {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 90;
+  display: flex;
+  width: min(560px, calc(100vw - 28px));
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid color-mix(in oklab, var(--demo-accent, #2563eb) 32%, var(--demo-divider, #d1d5db));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--demo-surface, #ffffff) 96%, var(--demo-accent, #2563eb) 4%);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.24);
+  color: var(--demo-text, #111827);
+  padding: 12px 14px;
+}
+.providerOperationBar strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.providerOperationBar p {
+  margin: 3px 0 0;
+  color: var(--demo-text-muted, #64748b);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.providerOperationSpinner {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border: 2px solid color-mix(in oklab, var(--demo-accent, #2563eb) 18%, transparent);
+  border-top-color: var(--demo-accent, #2563eb);
+  border-radius: 999px;
+  animation: providerOperationSpin 0.8s linear infinite;
+}
+@keyframes providerOperationSpin {
+  to { transform: rotate(360deg); }
+}
 .demoAppShellContent .modalBackdrop {
   position: fixed;
   inset: 0;
