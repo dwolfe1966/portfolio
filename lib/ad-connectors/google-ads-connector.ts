@@ -54,6 +54,9 @@ type StoredConnection = {
   encryptedAccessToken: string;
   encryptedRefreshToken: string | null;
   expiresAt: Date | null;
+  credentialGrant?: {
+    metadata: unknown;
+  } | null;
 };
 
 type GoogleAdsErrorResponse = {
@@ -109,6 +112,12 @@ function isDeveloperTokenTestAccountOnlyError(status: number, text: string): boo
   }
 }
 
+function metadataString(metadata: unknown, key: string) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.replaceAll("-", "") : null;
+}
+
 /**
  * Real Google Ads connector. Read-only against test customers.
  *
@@ -138,6 +147,7 @@ export class GoogleAdsConnector implements AdConnector {
     const config = loadGoogleOAuthConfig();
     const connections = await db.adAccountConnection.findMany({
       where: { provider: "google_ads", ...this.ownedOrLegacyWhere() },
+      include: { credentialGrant: { select: { metadata: true } } },
       orderBy: { createdAt: "asc" }
     });
 
@@ -145,7 +155,7 @@ export class GoogleAdsConnector implements AdConnector {
     for (const conn of connections) {
       try {
         const accessToken = await this.ensureAccessToken(conn, config);
-        const customer = await this.fetchCustomerResource(conn.externalAccountId, accessToken, config);
+        const customer = await this.fetchCustomerResource(conn.externalAccountId, accessToken, config, conn);
         const isTest = customer.testAccount === true;
         if (!isTest && conn.isTestAccount) {
           // Drift detection: connection was assumed test but the customer
@@ -202,7 +212,7 @@ export class GoogleAdsConnector implements AdConnector {
         startDate?: string;
         endDate?: string;
       };
-    }>(externalAccountId, query, accessToken, config);
+    }>(externalAccountId, query, accessToken, config, connection);
 
     await db.adAccountConnection.update({
       where: { id: connection.id },
@@ -236,7 +246,7 @@ export class GoogleAdsConnector implements AdConnector {
         name: string;
         status: string;
       };
-    }>(externalAccountId, query, accessToken, config);
+    }>(externalAccountId, query, accessToken, config, connection);
 
     await db.adAccountConnection.update({
       where: { id: connection.id },
@@ -276,7 +286,7 @@ export class GoogleAdsConnector implements AdConnector {
           name?: string;
         };
       };
-    }>(externalAccountId, query, accessToken, config);
+    }>(externalAccountId, query, accessToken, config, connection);
 
     await db.adAccountConnection.update({
       where: { id: connection.id },
@@ -317,7 +327,7 @@ export class GoogleAdsConnector implements AdConnector {
         conversions?: number;
         costMicros?: string;
       };
-    }>(externalAccountId, query, accessToken, config);
+    }>(externalAccountId, query, accessToken, config, connection);
 
     const daily: RemotePerformancePoint[] = results.map((row) => {
       const impressions = Number(row.metrics.impressions ?? 0);
@@ -365,6 +375,7 @@ export class GoogleAdsConnector implements AdConnector {
     const config = loadGoogleOAuthConfig();
     const connection = await db.adAccountConnection.findFirst({
       where: { provider: "google_ads", externalAccountId, ...this.ownedOrLegacyWhere() },
+      include: { credentialGrant: { select: { metadata: true } } },
       orderBy: { createdAt: "desc" }
     });
     if (!connection) {
@@ -404,7 +415,7 @@ export class GoogleAdsConnector implements AdConnector {
   ): Promise<void> {
     let customer: Awaited<ReturnType<GoogleAdsConnector["fetchCustomerResource"]>>;
     try {
-      customer = await this.fetchCustomerResource(connection.externalAccountId, accessToken, config);
+      customer = await this.fetchCustomerResource(connection.externalAccountId, accessToken, config, connection);
     } catch (error) {
       if (error instanceof GoogleAdsNotTestAccountError && connection.isTestAccount) {
         await db.adAccountConnection.update({
@@ -429,7 +440,8 @@ export class GoogleAdsConnector implements AdConnector {
   private async fetchCustomerResource(
     customerId: string,
     accessToken: string,
-    config: GoogleOAuthConfig
+    config: GoogleOAuthConfig,
+    connection: StoredConnection
   ): Promise<{ id: string; descriptiveName?: string; currencyCode?: string; testAccount?: boolean }> {
     const query =
       "SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.test_account FROM customer LIMIT 1";
@@ -440,7 +452,7 @@ export class GoogleAdsConnector implements AdConnector {
         currencyCode?: string;
         testAccount?: boolean;
       };
-    }>(customerId, query, accessToken, config);
+    }>(customerId, query, accessToken, config, connection);
     if (rows.length === 0) {
       throw new GoogleAdsConnectorError(`Customer ${customerId} returned no resource row`);
     }
@@ -451,15 +463,19 @@ export class GoogleAdsConnector implements AdConnector {
     customerId: string,
     query: string,
     accessToken: string,
-    config: GoogleOAuthConfig
+    config: GoogleOAuthConfig,
+    connection?: StoredConnection
   ): Promise<T[]> {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${accessToken}`,
       "developer-token": config.developerToken,
       "Content-Type": "application/json"
     };
-    if (config.loginCustomerId) {
-      headers["login-customer-id"] = config.loginCustomerId;
+    const loginCustomerId = connection
+      ? this.loginCustomerIdForConnection(connection, config)
+      : config.loginCustomerId;
+    if (loginCustomerId) {
+      headers["login-customer-id"] = loginCustomerId;
     }
 
     const response = await fetch(`${config.apiBase}/customers/${customerId}/googleAds:search`, {
@@ -487,5 +503,9 @@ export class GoogleAdsConnector implements AdConnector {
     if (status === "PAUSED") return "PAUSED";
     if (status === "REMOVED") return "REMOVED";
     return "UNKNOWN";
+  }
+
+  private loginCustomerIdForConnection(connection: StoredConnection, config: GoogleOAuthConfig) {
+    return metadataString(connection.credentialGrant?.metadata, "parentCustomerId") ?? config.loginCustomerId;
   }
 }
