@@ -52,6 +52,10 @@ const CONNECTION_ERROR_COPY: Record<string, { message: string; href?: string; li
   list_customers_failed: {
     message:
       "Google OAuth completed, but the app could not list accessible Google Ads customers. Check the server event id for the provider response."
+  },
+  no_accessible_customers: {
+    message:
+      "Google OAuth completed, but the signed-in Google user does not have access to any Google Ads customers. Sign in with the Google account that can open the Ads manager/customer account in Google Ads, or add this Google user to the Ads account, then reconnect."
   }
 };
 
