@@ -14,7 +14,7 @@ import {
   acquisitionProviderSnapshotScopeLabel,
   acquisitionProviderSnapshotSourceLabel
 } from "@/lib/acquisition-provider-snapshots";
-import { ProviderOperationSubmit } from "@/components/acquisition/ProviderOperationSubmit";
+import { ProviderOperationLink, ProviderOperationSubmit } from "@/components/acquisition/ProviderOperationSubmit";
 import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import {
   applyProviderConnectionDatasetAction,
@@ -925,9 +925,14 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       <td>{row.campaign.startDate ?? "—"}</td>
                       <td>{row.campaign.endDate ?? "—"}</td>
                       <td>
-                        <Link className="btn smallBtn" href={campaignHref(connection.id, row.campaign.externalCampaignId)}>
+                        <ProviderOperationLink
+                          className="btn smallBtn"
+                          href={campaignHref(connection.id, row.campaign.externalCampaignId)}
+                          pendingLabel="Inspecting campaign"
+                          pendingDetail="Fetching selected campaign performance, child groups, and ads from the provider."
+                        >
                           Inspect
-                        </Link>
+                        </ProviderOperationLink>
                       </td>
                     </tr>
                   ))}
@@ -1062,12 +1067,14 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                         </td>
                         <td>{group.status}</td>
                         <td>
-                          <Link
+                          <ProviderOperationLink
                             className="btn smallBtn"
                             href={campaignHref(connection.id, live.selectedCampaign!.externalCampaignId, group.externalAdGroupId)}
+                            pendingLabel={`Selecting ${childGroupSingular}`}
+                            pendingDetail="Refreshing provider ads and selected-scope performance for this account."
                           >
                             Select
-                          </Link>
+                          </ProviderOperationLink>
                         </td>
                       </tr>
                     ))}

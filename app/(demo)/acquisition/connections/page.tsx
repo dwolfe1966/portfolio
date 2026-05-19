@@ -15,6 +15,7 @@ import {
   acquisitionProviderSnapshotSourceLabel
 } from "@/lib/acquisition-provider-snapshots";
 import { ConnectionDisconnectButton } from "@/components/acquisition/ConnectionDisconnectButton";
+import { ProviderOperationLink } from "@/components/acquisition/ProviderOperationSubmit";
 
 export const dynamic = "force-dynamic";
 
@@ -528,23 +529,36 @@ export default async function ConnectionsPage({
                 </div>
                 <div className="ctaRow">
                   {latestConnection ? (
-                    <Link className="btn primary" href={`/acquisition/connections/${latestConnection.id}`}>
+                    <ProviderOperationLink
+                      className="btn primary"
+                      href={`/acquisition/connections/${latestConnection.id}`}
+                      pendingLabel="Loading provider account"
+                      pendingDetail="Fetching provider campaigns, child objects, ads, and recent performance."
+                    >
                       Review latest account
-                    </Link>
+                    </ProviderOperationLink>
                   ) : provider.ready ? (
-                    // OAuth start is a regular HTTP redirect; keep prefetch out of the flow.
-                    // eslint-disable-next-line @next/next/no-html-link-for-pages
-                    <a className="btn primary" href={providerConnectHref(provider.key)} rel="external">
+                    <ProviderOperationLink
+                      className="btn primary"
+                      href={providerConnectHref(provider.key)}
+                      rel="external"
+                      pendingLabel={`Connecting ${provider.label}`}
+                      pendingDetail="Redirecting to the provider OAuth flow. This can take a moment."
+                    >
                       Connect {provider.label}
-                    </a>
+                    </ProviderOperationLink>
                   ) : (
                     <span className="small bandText--watch">Resolve configuration before connecting.</span>
                   )}
                   {provider.ready ? (
-                    // eslint-disable-next-line @next/next/no-html-link-for-pages
-                    <a className="btn" href={providerConnectHref(provider.key)} rel="external">
+                    <ProviderOperationLink
+                      href={providerConnectHref(provider.key)}
+                      rel="external"
+                      pendingLabel={`${latestConnection ? "Refreshing" : "Starting"} ${provider.label} OAuth`}
+                      pendingDetail="Opening the provider authorization flow and waiting for account discovery."
+                    >
                       {latestConnection ? "Refresh OAuth" : "Start OAuth"}
-                    </a>
+                    </ProviderOperationLink>
                   ) : null}
                 </div>
               </div>
@@ -651,7 +665,14 @@ export default async function ConnectionsPage({
                       )}
                     </td>
                     <td>
-                      <Link className="btn smallBtn" href={`/acquisition/connections/${conn.id}`}>Open</Link>
+                      <ProviderOperationLink
+                        className="btn smallBtn"
+                        href={`/acquisition/connections/${conn.id}`}
+                        pendingLabel="Opening provider account"
+                        pendingDetail="Loading provider campaigns, ad groups or ad sets, ads, and recent performance."
+                      >
+                        Open
+                      </ProviderOperationLink>
                       <ConnectionDisconnectButton
                         id={conn.id}
                         label={`${PROVIDER_LABEL[conn.provider] ?? conn.provider} ${conn.externalAccountId}`}

@@ -4451,11 +4451,15 @@ button {
     gap: 7px;
   }
   .demoDataSourceChip {
-    max-width: 34vw;
+    max-width: none;
     padding: 5px 7px;
   }
-  .demoDataSourceChip small:last-child {
+  .demoDataSourceChip small {
     display: none;
+  }
+  .demoDataSourceChip strong {
+    max-width: 78px;
+    font-size: 10px;
   }
   .demoSideNavBody {
     display: none;
