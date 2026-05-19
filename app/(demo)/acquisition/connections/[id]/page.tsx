@@ -419,6 +419,33 @@ function materializeActionCopy(syncReady: boolean, providerLabel: string) {
     : `Live ${providerLabel} reads are blocked for this account. Use the provider-shaped fallback while provider access is pending.`;
 }
 
+function providerModeCopy({
+  isTestAccount,
+  syncReady,
+  latestDataset
+}: {
+  isTestAccount: boolean;
+  syncReady: boolean;
+  latestDataset: LatestDataset | null;
+}) {
+  if (syncReady) {
+    return {
+      label: isTestAccount ? "Test account read path" : "Live read path",
+      tone: "live",
+      detail: latestDataset
+        ? "Live provider reads are available. You can refresh the synced dataset or apply the latest snapshot to Acquisition inputs."
+        : "Live provider reads are available. Sync a dataset, then apply it to Acquisition inputs."
+    };
+  }
+  return {
+    label: "Fallback path",
+    tone: "warning",
+    detail: latestDataset
+      ? "Live provider reads are blocked, but this account already has a saved provider-shaped snapshot that can be reviewed or applied."
+      : "Live provider reads are blocked. Create a provider-shaped fallback snapshot to test the Acquisition workflow while provider approval is pending."
+  };
+}
+
 export default async function ConnectionDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const selected = await searchParams;
@@ -517,6 +544,9 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
   const diagnostics = isLiveProvider
     ? buildProviderDiagnostics({ connection, live, latestDataset, syncReady })
     : [];
+  const providerMode = isLiveProvider
+    ? providerModeCopy({ isTestAccount: connection.isTestAccount, syncReady, latestDataset })
+    : null;
   const selectedAdGroupId = live?.adGroups.some((group) => group.externalAdGroupId === selected.adGroupId)
     ? selected.adGroupId
     : null;
@@ -562,6 +592,34 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
           <Link className="btn" href="/acquisition/connections">Back to connections</Link>
         </div>
       </Section>
+
+      {isLiveProvider && providerMode ? (
+        <Section title="Account workflow">
+          <div className="grid grid-3">
+            <div className="card compact">
+              <p className={`statusPill ${providerMode.tone}`}>{providerMode.label}</p>
+              <h3 style={{ marginTop: 10 }}>Current path</h3>
+              <p className="small">{providerMode.detail}</p>
+            </div>
+            <div className="card compact">
+              <p className="statusPill progress">Dataset action</p>
+              <h3 style={{ marginTop: 10 }}>{syncReady ? "Sync live rows" : "Create fallback"}</h3>
+              <p className="small">
+                {syncReady
+                  ? "Save provider campaigns, child groups, ads, and recent performance as a workspace dataset."
+                  : "Save deterministic provider-shaped data tied to this account so downstream pages can be tested."}
+              </p>
+            </div>
+            <div className="card compact">
+              <p className="statusPill progress">Input action</p>
+              <h3 style={{ marginTop: 10 }}>Apply snapshot</h3>
+              <p className="small">
+                Applying a snapshot changes Acquisition inputs. Saving a dataset alone only stores it in workspace datasets.
+              </p>
+            </div>
+          </div>
+        </Section>
+      ) : null}
 
       <Section title="Token state">
         <div className="grid grid-3">
@@ -630,12 +688,12 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                 <div className="ctaRow">
                   <form action={syncProviderConnectionDatasetAction}>
                     <input type="hidden" name="connectionId" value={connection.id} />
-                    <button className="btn" type="submit" disabled={!syncReady}>{syncReady ? "Sync live dataset" : "Live sync blocked"}</button>
+                    <button className="btn" type="submit" disabled={!syncReady}>{syncReady ? "Save live dataset only" : "Live sync blocked"}</button>
                   </form>
                   <form action={syncProviderConnectionDatasetAction}>
                     <input type="hidden" name="connectionId" value={connection.id} />
                     <input type="hidden" name="applyAfterSync" value="1" />
-                    <button className="btn primary" type="submit" disabled={!syncReady}>{syncReady ? "Sync live and apply" : "Live apply blocked"}</button>
+                    <button className="btn primary" type="submit" disabled={!syncReady}>{syncReady ? "Save live dataset and apply" : "Live apply blocked"}</button>
                   </form>
                 </div>
                 {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}
@@ -649,12 +707,12 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                     <div className="ctaRow">
                       <form action={createProviderFallbackDatasetAction}>
                         <input type="hidden" name="connectionId" value={connection.id} />
-                        <button className="btn smallBtn" type="submit">Create fallback dataset</button>
+                        <button className="btn smallBtn" type="submit">Save fallback dataset only</button>
                       </form>
                       <form action={createProviderFallbackDatasetAction}>
                         <input type="hidden" name="connectionId" value={connection.id} />
                         <input type="hidden" name="applyAfterSync" value="1" />
-                        <button className="btn smallBtn primary" type="submit">Create and apply fallback</button>
+                        <button className="btn smallBtn primary" type="submit">Save fallback and apply</button>
                       </form>
                     </div>
                   </div>
@@ -746,7 +804,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                         <input type="hidden" name="connectionId" value={connection.id} />
                         <input type="hidden" name="datasetId" value={dataset.id} />
                         <button className="btn smallBtn primary" type="submit" disabled={dataset.id === activeDatasetId}>
-                          {dataset.id === activeDatasetId ? "Active" : "Apply"}
+                          {dataset.id === activeDatasetId ? "Active inputs" : "Apply to inputs"}
                         </button>
                       </form>
                     </div>
@@ -891,7 +949,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       ) : (
                         <input type="hidden" name="externalAdGroupId" value={selectedAdGroupId ?? ""} />
                       )}
-                      <button className="btn" type="submit" disabled={!syncReady}>Sync selected scope</button>
+                      <button className="btn" type="submit" disabled={!syncReady}>Save selected dataset only</button>
                     </form>
                     <form action={syncProviderConnectionDatasetAction}>
                       <input type="hidden" name="connectionId" value={connection.id} />
@@ -902,7 +960,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       ) : (
                         <input type="hidden" name="externalAdGroupId" value={selectedAdGroupId ?? ""} />
                       )}
-                      <button className="btn primary" type="submit" disabled={!syncReady}>Sync selected and apply</button>
+                      <button className="btn primary" type="submit" disabled={!syncReady}>Save selected and apply</button>
                     </form>
                   </div>
                   {!syncReady ? <p className="small bandText--unhealthy">{syncState.detail}</p> : null}

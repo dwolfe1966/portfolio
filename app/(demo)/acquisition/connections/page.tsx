@@ -190,6 +190,38 @@ function connectionAttentionCounts(connections: ConnectionWithGrant[]) {
   return { reconnect, liveReadGated };
 }
 
+function inputSourceDetail({
+  activeConnection,
+  activeDataset,
+  activeSelectionLabel
+}: {
+  activeConnection: ConnectionWithGrant | null;
+  activeDataset: LatestDataset | null;
+  activeSelectionLabel: string | null;
+}) {
+  if (activeConnection && activeDataset) {
+    return {
+      label: "Provider dataset active",
+      tone: "live",
+      detail: `${PROVIDER_LABEL[activeConnection.provider] ?? activeConnection.provider} ${activeConnection.externalAccountId} is powering Acquisition inputs from ${activeDataset.name}.`
+    };
+  }
+  if (activeDataset) {
+    return {
+      label: "Imported dataset active",
+      tone: "progress",
+      detail: `${activeDataset.name} is powering Acquisition inputs.`
+    };
+  }
+  return {
+    label: "Sample data active",
+    tone: "warning",
+    detail: activeSelectionLabel
+      ? `${activeSelectionLabel} is selected. Connect or apply a provider snapshot to move off sample data.`
+      : "Acquisition inputs are still using default sample data."
+  };
+}
+
 export default async function ConnectionsPage({
   searchParams
 }: {
@@ -292,6 +324,7 @@ export default async function ConnectionsPage({
   const activeConnection = activeConnectionId ? connections.find((conn) => conn.id === activeConnectionId) ?? null : null;
   const syncedConnectionCount = connections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
   const attentionCounts = connectionAttentionCounts(connections);
+  const inputSource = inputSourceDetail({ activeConnection, activeDataset, activeSelectionLabel });
   const providers: Array<{ key: ProviderKey; label: string; ready: boolean; connections: ConnectionWithGrant[] }> = [
     { key: "google_ads", label: "Google Ads", ready: providerReady("google_ads", encryptionReady, googleReady, metaReady), connections: googleConnections },
     { key: "meta_ads", label: "Meta Ads", ready: providerReady("meta_ads", encryptionReady, googleReady, metaReady), connections: metaConnections }
@@ -301,8 +334,8 @@ export default async function ConnectionsPage({
     <>
       <Section eyebrow="Operations" title="Connections">
         <p>
-          Manage ad-platform accounts, credential health, dataset sync readiness,
-          and the handoff from provider data into acquisition inputs.
+          Manage the handoff from ad-platform OAuth to account review, dataset sync,
+          and Acquisition inputs. Provider writes stay dry-run/governed separately.
         </p>
 
         {params.connected ? (
@@ -335,6 +368,31 @@ export default async function ConnectionsPage({
         ) : null}
       </Section>
 
+      <Section title="Connection workflow">
+        <div className="grid grid-4">
+          <div className="card compact">
+            <p className="statusPill progress">1</p>
+            <h3>Connect provider</h3>
+            <p className="small">Start or refresh OAuth for Google Ads or Meta Ads.</p>
+          </div>
+          <div className="card compact">
+            <p className="statusPill progress">2</p>
+            <h3>Choose account</h3>
+            <p className="small">Open a discovered account and review test/live-read status.</p>
+          </div>
+          <div className="card compact">
+            <p className="statusPill progress">3</p>
+            <h3>Create snapshot</h3>
+            <p className="small">Sync live provider rows when allowed, or create provider-shaped fallback data.</p>
+          </div>
+          <div className="card compact">
+            <p className="statusPill progress">4</p>
+            <h3>Apply inputs</h3>
+            <p className="small">Apply the snapshot so Acquisition campaigns, simulations, and outputs use it.</p>
+          </div>
+        </div>
+      </Section>
+
       <Section title="Provider control center">
         <div className="grid grid-4">
           <div className="card compact">
@@ -362,6 +420,19 @@ export default async function ConnectionsPage({
                 ? activeConnection.accountName
                 : activeSelectionLabel ?? "Default acquisition sample data"}
             </p>
+          </div>
+        </div>
+        <div className="card compact" style={{ marginTop: 12 }}>
+          <p className={`statusPill ${inputSource.tone}`}>{inputSource.label}</p>
+          <p className="small" style={{ marginTop: 8 }}>{inputSource.detail}</p>
+          <div className="ctaRow">
+            {activeConnection ? (
+              <Link className="btn smallBtn" href={`/acquisition/connections/${activeConnection.id}`}>Open active provider</Link>
+            ) : null}
+            {activeDataset ? (
+              <Link className="btn smallBtn" href={`/workspace/datasets/${activeDataset.id}`}>Review active dataset</Link>
+            ) : null}
+            <Link className="btn smallBtn primary" href="/acquisition/inputs">Open inputs</Link>
           </div>
         </div>
       </Section>
@@ -410,7 +481,7 @@ export default async function ConnectionsPage({
         </div>
       </Section>
 
-      <Section title="Connect a provider">
+      <Section title="Providers">
         <div className="grid grid-2">
           {providers.map((provider) => {
             const latestConnection = provider.connections[0];
@@ -454,7 +525,7 @@ export default async function ConnectionsPage({
                 <div className="ctaRow">
                   {latestConnection ? (
                     <Link className="btn primary" href={`/acquisition/connections/${latestConnection.id}`}>
-                      Review accounts
+                      Review latest account
                     </Link>
                   ) : provider.ready ? (
                     // OAuth start is a regular HTTP redirect; keep prefetch out of the flow.
@@ -468,7 +539,7 @@ export default async function ConnectionsPage({
                   {provider.ready ? (
                     // eslint-disable-next-line @next/next/no-html-link-for-pages
                     <a className="btn" href={providerConnectHref(provider.key)} rel="external">
-                      {latestConnection ? "Reconnect" : "Start OAuth"}
+                      {latestConnection ? "Refresh OAuth" : "Start OAuth"}
                     </a>
                   ) : null}
                 </div>
