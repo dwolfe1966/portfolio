@@ -154,6 +154,7 @@ S21 keeps the workspace from becoming confusing as enterprise capabilities accum
 | E9 | Security dependency patch pass | DW | S | S21 | ✅ | Update Next.js and related tooling to patched versions, refresh vulnerable transitive dependencies, and verify `npm audit`, tests, and production build are clean. |
 | K31 | Workspace content review checklist | DW | S | S21 | ✅ | Add a reusable checklist for future workspace sections so page fit, user clarity, complexity control, and customer-safe copy are reviewed before shipping. |
 | A10 | Backlog status hygiene pass | DW | S | S21 | ✅ | Normalize stale completed `To do` headings and sprint snapshot statuses so the backlog no longer shows completed work as in-progress. |
+| K32 | Persistent active data source indicator | DW | S | S21 | ✅ | Add a compact header indicator for Acquisition and Lifecycle showing whether sample or imported data is active, including dataset/source detail and a direct review link. |
 
 ### S8-S10 status snapshot (2026-05-07)
 
@@ -172,7 +173,7 @@ S21 keeps the workspace from becoming confusing as enterprise capabilities accum
 | S18 | L66, L67, L68, L69, L70 | — | — |
 | S19 | L71, L72, L73, L74 | — | — |
 | S20 | K12, K13, K14, K15, K16, K17, K18, K19, K20, K21, K22, K23, K24, K25, K26 | — | — |
-| S21 | K27, K28, K29, K30, K31, E9, A10 | — | — |
+| S21 | K27, K28, K29, K30, K31, E9, A10, K32 | — | — |
 
 Notes:
 - New remote spec folders referenced on 2026-04-28 (`docs/assets - 4-27`, `docs/specs--updated-4-27`) returned GitHub "Page not found" from this environment; statuses above were validated against the current repository implementation.
