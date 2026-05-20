@@ -76,34 +76,36 @@ export default async function AcquisitionCampaignsPage({ searchParams }: PagePro
           {campaigns.length === 0 ? (
             <div className="card"><p>No campaigns yet. Create your first campaign to begin simulation loops.</p></div>
           ) : (
-            <table className="table">
-              <thead><tr><th>Name</th><th>Source</th><th>State</th><th>Budget</th><th>Cells</th><th>Budget actions</th><th>Open</th></tr></thead>
-              <tbody>
-                {campaigns.map((campaign) => {
-                  const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
-                  return (
-                    <tr key={campaign.id}>
-                      <td><Link href={`/acquisition/campaigns/${campaign.id}`}>{campaign.name}</Link></td>
-                      <td>
-                        {source.label}
-                        <p className="small">{source.sourceName}</p>
-                        {source.datasetId || source.connectionId ? (
-                          <div className="ctaRow">
-                            {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
-                            {source.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Provider</Link> : null}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>{campaign.state}</td>
-                      <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
-                      <td>{campaign._count.testCells}</td>
-                      <td>{campaign._count.budgetActivities}</td>
-                      <td><Link href={`/acquisition/campaigns/${campaign.id}`} className="btn">View details</Link></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="tableScroll">
+              <table className="table">
+                <thead><tr><th>Name</th><th>Source</th><th>State</th><th>Budget</th><th>Cells</th><th>Budget actions</th><th>Open</th></tr></thead>
+                <tbody>
+                  {campaigns.map((campaign) => {
+                    const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
+                    return (
+                      <tr key={campaign.id}>
+                        <td><Link href={`/acquisition/campaigns/${campaign.id}`}>{campaign.name}</Link></td>
+                        <td>
+                          {source.label}
+                          <p className="small">{source.sourceName}</p>
+                          {source.datasetId || source.connectionId ? (
+                            <div className="ctaRow">
+                              {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
+                              {source.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Provider</Link> : null}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td>{campaign.state}</td>
+                        <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
+                        <td>{campaign._count.testCells}</td>
+                        <td>{campaign._count.budgetActivities}</td>
+                        <td><Link href={`/acquisition/campaigns/${campaign.id}`} className="btn">View details</Link></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
       </>

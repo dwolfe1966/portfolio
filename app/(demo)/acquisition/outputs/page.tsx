@@ -147,34 +147,36 @@ export default async function AcquisitionOutputsPage() {
           {campaigns.length === 0 ? (
             <div className="card"><p>No acquisition campaigns yet. Create one from Inputs and run iterations from Simulations.</p></div>
           ) : (
-            <table className="table">
-              <thead><tr><th>Name</th><th>Source</th><th>State</th><th>Budget</th><th>Test cells</th><th>Budget activities</th></tr></thead>
-              <tbody>
-                {campaigns.map((campaign) => {
-                  const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
-                  return (
-                    <tr key={campaign.id}>
-                      <td><Link href={`/acquisition/campaigns/${campaign.id}`}>{campaign.name}</Link></td>
-                      <td>
-                        {source.label}
-                        <p className="small">{source.sourceName}</p>
-                        {source.fallbackSnapshot ? <p className="small bandText--watch">Fallback provider-shaped data</p> : null}
-                        {source.datasetId || source.connectionId ? (
-                          <div className="ctaRow">
-                            {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
-                            {source.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Provider</Link> : null}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>{campaign.state}</td>
-                      <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
-                      <td>{campaign.testCells.length}</td>
-                      <td>{campaign.budgetActivities.length}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="tableScroll">
+              <table className="table">
+                <thead><tr><th>Name</th><th>Source</th><th>State</th><th>Budget</th><th>Test cells</th><th>Budget activities</th></tr></thead>
+                <tbody>
+                  {campaigns.map((campaign) => {
+                    const source = acquisitionSourceLineageFromAuditLogs(campaign.auditLogs);
+                    return (
+                      <tr key={campaign.id}>
+                        <td><Link href={`/acquisition/campaigns/${campaign.id}`}>{campaign.name}</Link></td>
+                        <td>
+                          {source.label}
+                          <p className="small">{source.sourceName}</p>
+                          {source.fallbackSnapshot ? <p className="small bandText--watch">Fallback provider-shaped data</p> : null}
+                          {source.datasetId || source.connectionId ? (
+                            <div className="ctaRow">
+                              {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
+                              {source.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Provider</Link> : null}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td>{campaign.state}</td>
+                        <td>${(campaign.budgetCents / 100).toLocaleString()}</td>
+                        <td>{campaign.testCells.length}</td>
+                        <td>{campaign.budgetActivities.length}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
       </>

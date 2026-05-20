@@ -1013,52 +1013,54 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
 
       {isLiveProvider && displayedSyncedDatasets.length > 0 ? (
         <Section title="Synced dataset history">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Dataset</th>
-                <th>Scope</th>
-                <th>Objects</th>
-                <th>Created</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedSyncedDatasets.map((dataset) => (
-                <tr key={dataset.id}>
-                  <td>
-                    <Link href={`/workspace/datasets/${dataset.id}`}>{dataset.name}</Link>
-                    <p className="small">{acquisitionProviderSnapshotSourceLabel(dataset.metadata)}</p>
-                    {dataset.id === latestDataset?.id ? <p className="small">Latest sync</p> : null}
-                    {dataset.id === activeDatasetId ? <p className="small">Active inputs source</p> : null}
-                  </td>
-                  <td>{acquisitionProviderSnapshotScopeLabel(dataset.metadata, { sentenceCase: true })}</td>
-                  <td>
-                    <strong>{rowCountTotal(dataset.rowCounts).toLocaleString()} total</strong>
-                    <p className="small">{datasetRowSummary(dataset)}</p>
-                  </td>
-                  <td>{formatDateTime(dataset.createdAt)}</td>
-                  <td>
-                    <div className="ctaRow">
-                      <Link className="btn smallBtn" href={`/workspace/datasets/${dataset.id}`}>Review</Link>
-                      <form action={applyProviderConnectionDatasetAction}>
-                        <input type="hidden" name="connectionId" value={connection.id} />
-                        <input type="hidden" name="datasetId" value={dataset.id} />
-                        <ProviderOperationSubmit
-                          className="btn smallBtn primary"
-                          disabled={dataset.id === activeDatasetId}
-                          pendingLabel="Applying dataset"
-                          pendingDetail="Switching Acquisition inputs, simulations, campaigns, and outputs to this provider snapshot."
-                        >
-                          {dataset.id === activeDatasetId ? "Active inputs" : "Apply to inputs"}
-                        </ProviderOperationSubmit>
-                      </form>
-                    </div>
-                  </td>
+          <div className="tableScroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Scope</th>
+                  <th>Objects</th>
+                  <th>Created</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {displayedSyncedDatasets.map((dataset) => (
+                  <tr key={dataset.id}>
+                    <td>
+                      <Link href={`/workspace/datasets/${dataset.id}`}>{dataset.name}</Link>
+                      <p className="small">{acquisitionProviderSnapshotSourceLabel(dataset.metadata)}</p>
+                      {dataset.id === latestDataset?.id ? <p className="small">Latest sync</p> : null}
+                      {dataset.id === activeDatasetId ? <p className="small">Active inputs source</p> : null}
+                    </td>
+                    <td>{acquisitionProviderSnapshotScopeLabel(dataset.metadata, { sentenceCase: true })}</td>
+                    <td>
+                      <strong>{rowCountTotal(dataset.rowCounts).toLocaleString()} total</strong>
+                      <p className="small">{datasetRowSummary(dataset)}</p>
+                    </td>
+                    <td>{formatDateTime(dataset.createdAt)}</td>
+                    <td>
+                      <div className="ctaRow">
+                        <Link className="btn smallBtn" href={`/workspace/datasets/${dataset.id}`}>Review</Link>
+                        <form action={applyProviderConnectionDatasetAction}>
+                          <input type="hidden" name="connectionId" value={connection.id} />
+                          <input type="hidden" name="datasetId" value={dataset.id} />
+                          <ProviderOperationSubmit
+                            className="btn smallBtn primary"
+                            disabled={dataset.id === activeDatasetId}
+                            pendingLabel="Applying dataset"
+                            pendingDetail="Switching Acquisition inputs, simulations, campaigns, and outputs to this provider snapshot."
+                          >
+                            {dataset.id === activeDatasetId ? "Active inputs" : "Apply to inputs"}
+                          </ProviderOperationSubmit>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Section>
       ) : null}
 
@@ -1155,57 +1157,59 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   </div>
                 ) : null}
               </div>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Campaign</th>
-                    <th>Status</th>
-                    <th>Recent spend</th>
-                    <th>Conversions</th>
-                    <th>Start</th>
-                    <th>End</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {live?.campaigns.map((row) => (
-                    <tr key={row.campaign.externalCampaignId}>
-                      <td>
-                        <code className="small">{row.campaign.externalCampaignId}</code>
-                        <div>{row.campaign.name}</div>
-                        {row.campaign.externalCampaignId === live.selectedCampaign?.externalCampaignId ? (
-                          <div className="small bandText--healthy">Selected campaign</div>
-                        ) : null}
-                      </td>
-                      <td>
-                        <span className={`small bandText--${
-                          row.campaign.status === "ENABLED" ? "healthy"
-                          : row.campaign.status === "PAUSED" ? "watch"
-                          : "neutral"
-                        }`}>
-                          {row.campaign.status}
-                        </span>
-                      </td>
-                      <td>
-                        {row.performance ? `$${(row.performance.totals.spendCents / 100).toFixed(2)}` : "—"}
-                      </td>
-                      <td>{row.performance ? row.performance.totals.conversions.toLocaleString() : "—"}</td>
-                      <td>{row.campaign.startDate ?? "—"}</td>
-                      <td>{row.campaign.endDate ?? "—"}</td>
-                      <td>
-                        <ProviderOperationLink
-                          className="btn smallBtn"
-                          href={campaignHref(connection.id, row.campaign.externalCampaignId, null, selected.campaignQ)}
-                          pendingLabel="Inspecting campaign"
-                          pendingDetail="Fetching selected campaign performance, child groups, and ads from the provider."
-                        >
-                          Inspect
-                        </ProviderOperationLink>
-                      </td>
+              <div className="tableScroll">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Campaign</th>
+                      <th>Status</th>
+                      <th>Recent spend</th>
+                      <th>Conversions</th>
+                      <th>Start</th>
+                      <th>End</th>
+                      <th></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {live?.campaigns.map((row) => (
+                      <tr key={row.campaign.externalCampaignId}>
+                        <td>
+                          <code className="small">{row.campaign.externalCampaignId}</code>
+                          <div>{row.campaign.name}</div>
+                          {row.campaign.externalCampaignId === live.selectedCampaign?.externalCampaignId ? (
+                            <div className="small bandText--healthy">Selected campaign</div>
+                          ) : null}
+                        </td>
+                        <td>
+                          <span className={`small bandText--${
+                            row.campaign.status === "ENABLED" ? "healthy"
+                            : row.campaign.status === "PAUSED" ? "watch"
+                            : "neutral"
+                          }`}>
+                            {row.campaign.status}
+                          </span>
+                        </td>
+                        <td>
+                          {row.performance ? `$${(row.performance.totals.spendCents / 100).toFixed(2)}` : "—"}
+                        </td>
+                        <td>{row.performance ? row.performance.totals.conversions.toLocaleString() : "—"}</td>
+                        <td>{row.campaign.startDate ?? "—"}</td>
+                        <td>{row.campaign.endDate ?? "—"}</td>
+                        <td>
+                          <ProviderOperationLink
+                            className="btn smallBtn"
+                            href={campaignHref(connection.id, row.campaign.externalCampaignId, null, selected.campaignQ)}
+                            pendingLabel="Inspecting campaign"
+                            pendingDetail="Fetching selected campaign performance, child groups, and ads from the provider."
+                          >
+                            Inspect
+                          </ProviderOperationLink>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               </>
             )}
           </Section>
@@ -1319,36 +1323,38 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   <p>No {childGroupLabel.toLowerCase()} found for this campaign.</p>
                 </div>
               ) : (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>{childGroupSingular === "ad set" ? "Ad set" : "Ad group"}</th>
-                      <th>Status</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {live.adGroups.map((group) => (
-                      <tr key={group.externalAdGroupId}>
-                        <td>
-                          <code className="small">{group.externalAdGroupId}</code>
-                          <div>{group.name}</div>
-                        </td>
-                        <td>{group.status}</td>
-                        <td>
-                          <ProviderOperationLink
-                            className="btn smallBtn"
-                            href={campaignHref(connection.id, live.selectedCampaign!.externalCampaignId, group.externalAdGroupId, selected.campaignQ)}
-                            pendingLabel={`Selecting ${childGroupSingular}`}
-                            pendingDetail="Refreshing provider ads and selected-scope performance for this account."
-                          >
-                            Select
-                          </ProviderOperationLink>
-                        </td>
+                <div className="tableScroll">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>{childGroupSingular === "ad set" ? "Ad set" : "Ad group"}</th>
+                        <th>Status</th>
+                        <th></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {live.adGroups.map((group) => (
+                        <tr key={group.externalAdGroupId}>
+                          <td>
+                            <code className="small">{group.externalAdGroupId}</code>
+                            <div>{group.name}</div>
+                          </td>
+                          <td>{group.status}</td>
+                          <td>
+                            <ProviderOperationLink
+                              className="btn smallBtn"
+                              href={campaignHref(connection.id, live.selectedCampaign!.externalCampaignId, group.externalAdGroupId, selected.campaignQ)}
+                              pendingLabel={`Selecting ${childGroupSingular}`}
+                              pendingDetail="Refreshing provider ads and selected-scope performance for this account."
+                            >
+                              Select
+                            </ProviderOperationLink>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </Section>
           ) : null}
@@ -1360,27 +1366,29 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   <p>No ads found for this scope.</p>
                 </div>
               ) : (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Ad</th>
-                      <th>{childGroupSingular === "ad set" ? "Ad set" : "Ad group"}</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {live.ads.map((ad) => (
-                      <tr key={ad.externalAdId}>
-                        <td>
-                          <code className="small">{ad.externalAdId}</code>
-                          <div>{ad.name}</div>
-                        </td>
-                        <td><code className="small">{ad.externalAdGroupId ?? "—"}</code></td>
-                        <td>{ad.status}</td>
+                <div className="tableScroll">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Ad</th>
+                        <th>{childGroupSingular === "ad set" ? "Ad set" : "Ad group"}</th>
+                        <th>Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {live.ads.map((ad) => (
+                        <tr key={ad.externalAdId}>
+                          <td>
+                            <code className="small">{ad.externalAdId}</code>
+                            <div>{ad.name}</div>
+                          </td>
+                          <td><code className="small">{ad.externalAdGroupId ?? "—"}</code></td>
+                          <td>{ad.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </Section>
           ) : null}

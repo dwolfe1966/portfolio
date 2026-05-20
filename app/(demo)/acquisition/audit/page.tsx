@@ -265,63 +265,65 @@ export default async function AcquisitionAuditPage({
               <p>No audit events match the current filters.</p>
             </div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>When</th>
-                  <th>Campaign</th>
-                  <th>Source</th>
-                  <th>Actor</th>
-                  <th>Action</th>
-                  <th>Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => {
-                  const source = acquisitionSourceLineageFromMetadata(log.metadata);
-                  const eventSummary = auditEventSummary(log.action, log.metadata);
-                  return (
-                    <tr key={log.id}>
-                      <td>{new Date(log.createdAt).toLocaleString()}</td>
-                      <td>
-                        <Link href={`/acquisition/campaigns/${log.campaign.id}`}>
-                          {log.campaign.name}
-                        </Link>
-                      </td>
-                      <td>
-                        <span>{source.label}</span>
-                        {source.sourceName !== ACQUISITION_DEFAULT_SOURCE_NAME ? <p className="small">{source.sourceName}</p> : null}
-                        {source.fallbackSnapshot ? <p className="small bandText--watch">Fallback provider-shaped data</p> : null}
-                        {source.externalAccountId ? <p className="small">Account {source.externalAccountId}</p> : null}
-                        <div className="importHistoryActions">
-                          {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
-                          {source.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Provider</Link> : null}
-                        </div>
-                      </td>
-                      <td>{log.actor}</td>
-                      <td><code className="small">{log.action}</code></td>
-                      <td>
-                        {eventSummary ? (
-                          <div style={{ marginBottom: 8 }}>
-                            <strong>{eventSummary.title}</strong>
-                            {eventSummary.lines.map((line) => (
-                              <p className="small" key={line}>{line}</p>
-                            ))}
-                            {"href" in eventSummary && eventSummary.href ? (
-                              <Link className="btn smallBtn" href={eventSummary.href}>Open approval</Link>
-                            ) : null}
+            <div className="tableScroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>When</th>
+                    <th>Campaign</th>
+                    <th>Source</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log) => {
+                    const source = acquisitionSourceLineageFromMetadata(log.metadata);
+                    const eventSummary = auditEventSummary(log.action, log.metadata);
+                    return (
+                      <tr key={log.id}>
+                        <td>{new Date(log.createdAt).toLocaleString()}</td>
+                        <td>
+                          <Link href={`/acquisition/campaigns/${log.campaign.id}`}>
+                            {log.campaign.name}
+                          </Link>
+                        </td>
+                        <td>
+                          <span>{source.label}</span>
+                          {source.sourceName !== ACQUISITION_DEFAULT_SOURCE_NAME ? <p className="small">{source.sourceName}</p> : null}
+                          {source.fallbackSnapshot ? <p className="small bandText--watch">Fallback provider-shaped data</p> : null}
+                          {source.externalAccountId ? <p className="small">Account {source.externalAccountId}</p> : null}
+                          <div className="importHistoryActions">
+                            {source.datasetId ? <Link className="btn smallBtn" href={`/workspace/datasets/${source.datasetId}`}>Dataset</Link> : null}
+                            {source.connectionId ? <Link className="btn smallBtn" href={`/acquisition/connections/${source.connectionId}`}>Provider</Link> : null}
                           </div>
-                        ) : null}
-                        <details className="importMetadataDetails">
-                          <summary>Metadata</summary>
-                          <pre>{JSON.stringify(log.metadata ?? {}, null, 2)}</pre>
-                        </details>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td>{log.actor}</td>
+                        <td><code className="small">{log.action}</code></td>
+                        <td>
+                          {eventSummary ? (
+                            <div style={{ marginBottom: 8 }}>
+                              <strong>{eventSummary.title}</strong>
+                              {eventSummary.lines.map((line) => (
+                                <p className="small" key={line}>{line}</p>
+                              ))}
+                              {"href" in eventSummary && eventSummary.href ? (
+                                <Link className="btn smallBtn" href={eventSummary.href}>Open approval</Link>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <details className="importMetadataDetails">
+                            <summary>Metadata</summary>
+                            <pre>{JSON.stringify(log.metadata ?? {}, null, 2)}</pre>
+                          </details>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
           {totalCount > logs.length ? (
             <p className="small" style={{ marginTop: 8 }}>
