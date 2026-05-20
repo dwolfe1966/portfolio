@@ -78,30 +78,32 @@ export default async function AuctionRunDetailPage({ params }: PageProps) {
           {run.spendSnapshots.length === 0 ? (
             <div className="card"><p>No advertisers won during this run.</p></div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Advertiser</th>
-                  <th>Mode</th>
-                  <th>Wins</th>
-                  <th>Spend</th>
-                  <th>Avg clearing</th>
-                  <th>Share</th>
-                </tr>
-              </thead>
-              <tbody>
-                {run.spendSnapshots.map((snap) => (
-                  <tr key={snap.id}>
-                    <td>{snap.advertiser.name}</td>
-                    <td><code className="small">{snap.advertiser.behaviorMode}</code></td>
-                    <td>{snap.totalWins}</td>
-                    <td>${(snap.totalSpendCents / 100).toFixed(2)}</td>
-                    <td>${(snap.averageClearingCents / 100).toFixed(2)}</td>
-                    <td>{(snap.fillShare * 100).toFixed(1)}%</td>
+            <div className="tableScroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Advertiser</th>
+                    <th>Mode</th>
+                    <th>Wins</th>
+                    <th>Spend</th>
+                    <th>Avg clearing</th>
+                    <th>Share</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {run.spendSnapshots.map((snap) => (
+                    <tr key={snap.id}>
+                      <td>{snap.advertiser.name}</td>
+                      <td><code className="small">{snap.advertiser.behaviorMode}</code></td>
+                      <td>{snap.totalWins}</td>
+                      <td>${(snap.totalSpendCents / 100).toFixed(2)}</td>
+                      <td>${(snap.averageClearingCents / 100).toFixed(2)}</td>
+                      <td>{(snap.fillShare * 100).toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
 
@@ -109,37 +111,39 @@ export default async function AuctionRunDetailPage({ params }: PageProps) {
           {run.results.length === 0 ? (
             <div className="card"><p>No persisted results.</p></div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Slot</th>
-                  <th>Outcome</th>
-                  <th>Clearing</th>
-                  <th>Winner</th>
-                  <th>Bidders</th>
-                </tr>
-              </thead>
-              <tbody>
-                {run.results.map((r) => {
-                  const winner = r.rankedBids.find((b) => b.advertiserId === r.winnerAdvertiserId);
-                  return (
-                    <tr key={r.id}>
-                      <td><code className="small">{r.iterationIndex}</code></td>
-                      <td>{r.slot.name}</td>
-                      <td>
-                        <span className={`small bandText--${r.filled ? "healthy" : "unhealthy"}`}>
-                          {r.filled ? "filled" : "unfilled"}
-                        </span>
-                      </td>
-                      <td>{r.clearingPriceCents != null ? `$${(r.clearingPriceCents / 100).toFixed(2)}` : "—"}</td>
-                      <td>{winner ? winner.advertiser.name : "—"}</td>
-                      <td>{r.rankedBids.length}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="tableScroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Slot</th>
+                    <th>Outcome</th>
+                    <th>Clearing</th>
+                    <th>Winner</th>
+                    <th>Bidders</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {run.results.map((r) => {
+                    const winner = r.rankedBids.find((b) => b.advertiserId === r.winnerAdvertiserId);
+                    return (
+                      <tr key={r.id}>
+                        <td><code className="small">{r.iterationIndex}</code></td>
+                        <td>{r.slot.name}</td>
+                        <td>
+                          <span className={`small bandText--${r.filled ? "healthy" : "unhealthy"}`}>
+                            {r.filled ? "filled" : "unfilled"}
+                          </span>
+                        </td>
+                        <td>{r.clearingPriceCents != null ? `$${(r.clearingPriceCents / 100).toFixed(2)}` : "—"}</td>
+                        <td>{winner ? winner.advertiser.name : "—"}</td>
+                        <td>{r.rankedBids.length}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
       </>

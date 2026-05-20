@@ -165,46 +165,48 @@ export default async function AuctionHealthPage() {
               <p>No slots configured. Define inventory in <Link href="/auction/inputs">Inputs</Link>.</p>
             </div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Slot</th>
-                  <th>Current reserve</th>
-                  <th>Suggested</th>
-                  <th>Sample size</th>
-                  <th>Lift estimate</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {reserveSuggestions.map(({ slot, suggestion }) => (
-                  <tr key={slot.id}>
-                    <td>{slot.name}</td>
-                    <td>${(suggestion.currentReserveCents / 100).toFixed(2)}</td>
-                    <td>${(suggestion.suggestedReserveCents / 100).toFixed(2)}</td>
-                    <td>{suggestion.sampleSize}</td>
-                    <td>
-                      {suggestion.sampleSize < 4 ? (
-                        <span className="small">need ≥4 fills</span>
-                      ) : suggestion.expectedRevenueLift === 0 ? (
-                        "0%"
-                      ) : (
-                        `${(suggestion.expectedRevenueLift * 100).toFixed(1)}%`
-                      )}
-                    </td>
-                    <td>
-                      <ApplyReserveButton
-                        slotId={slot.id}
-                        slotName={slot.name}
-                        suggestedReserveCents={suggestion.suggestedReserveCents}
-                        currentReserveCents={suggestion.currentReserveCents}
-                        expectedDailyVolume={slot.expectedDailyVolume}
-                      />
-                    </td>
+            <div className="tableScroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Slot</th>
+                    <th>Current reserve</th>
+                    <th>Suggested</th>
+                    <th>Sample size</th>
+                    <th>Lift estimate</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {reserveSuggestions.map(({ slot, suggestion }) => (
+                    <tr key={slot.id}>
+                      <td>{slot.name}</td>
+                      <td>${(suggestion.currentReserveCents / 100).toFixed(2)}</td>
+                      <td>${(suggestion.suggestedReserveCents / 100).toFixed(2)}</td>
+                      <td>{suggestion.sampleSize}</td>
+                      <td>
+                        {suggestion.sampleSize < 4 ? (
+                          <span className="small">need &gt;=4 fills</span>
+                        ) : suggestion.expectedRevenueLift === 0 ? (
+                          "0%"
+                        ) : (
+                          `${(suggestion.expectedRevenueLift * 100).toFixed(1)}%`
+                        )}
+                      </td>
+                      <td>
+                        <ApplyReserveButton
+                          slotId={slot.id}
+                          slotName={slot.name}
+                          suggestedReserveCents={suggestion.suggestedReserveCents}
+                          currentReserveCents={suggestion.currentReserveCents}
+                          expectedDailyVolume={slot.expectedDailyVolume}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           <p className="small" style={{ marginTop: 12 }}>
             Suggestions use the 25th percentile of recent clearing prices for the slot. The
@@ -217,33 +219,35 @@ export default async function AuctionHealthPage() {
           {!latestRun || latestRun.spendSnapshots.length === 0 ? (
             <div className="card"><p>No advertiser-level revenue captured for the latest run.</p></div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Advertiser</th>
-                  <th>Mode</th>
-                  <th>Wins</th>
-                  <th>Spend</th>
-                  <th>Share</th>
-                  <th>Squared share</th>
-                </tr>
-              </thead>
-              <tbody>
-                {latestRun.spendSnapshots
-                  .slice()
-                  .sort((a, b) => b.fillShare - a.fillShare)
-                  .map((snap) => (
-                    <tr key={snap.id}>
-                      <td>{snap.advertiser.name}</td>
-                      <td><code className="small">{snap.advertiser.behaviorMode}</code></td>
-                      <td>{snap.totalWins}</td>
-                      <td>${(snap.totalSpendCents / 100).toFixed(2)}</td>
-                      <td>{(snap.fillShare * 100).toFixed(1)}%</td>
-                      <td><code className="small">{(snap.fillShare ** 2).toFixed(4)}</code></td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+            <div className="tableScroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Advertiser</th>
+                    <th>Mode</th>
+                    <th>Wins</th>
+                    <th>Spend</th>
+                    <th>Share</th>
+                    <th>Squared share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {latestRun.spendSnapshots
+                    .slice()
+                    .sort((a, b) => b.fillShare - a.fillShare)
+                    .map((snap) => (
+                      <tr key={snap.id}>
+                        <td>{snap.advertiser.name}</td>
+                        <td><code className="small">{snap.advertiser.behaviorMode}</code></td>
+                        <td>{snap.totalWins}</td>
+                        <td>${(snap.totalSpendCents / 100).toFixed(2)}</td>
+                        <td>{(snap.fillShare * 100).toFixed(1)}%</td>
+                        <td><code className="small">{(snap.fillShare ** 2).toFixed(4)}</code></td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
       </>

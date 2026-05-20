@@ -27,36 +27,38 @@ export default async function AuctionAuditPage() {
               <p>No audit entries yet — trigger a run to generate the first.</p>
             </div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>When</th>
-                  <th>Run</th>
-                  <th>Actor</th>
-                  <th>Action</th>
-                  <th>Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td>{new Date(log.createdAt).toLocaleString()}</td>
-                    <td>
-                      {log.run ? (
-                        <Link href={`/auction/runs/${log.run.id}`}>
-                          <code className="small">{log.run.id.slice(0, 8)}…</code>
-                        </Link>
-                      ) : (
-                        <span className="small">—</span>
-                      )}
-                    </td>
-                    <td>{log.actor}</td>
-                    <td><code className="small">{log.action}</code></td>
-                    <td><code className="small">{JSON.stringify(log.metadata ?? {})}</code></td>
+            <div className="tableScroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>When</th>
+                    <th>Run</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Details</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {logs.map((log) => (
+                    <tr key={log.id}>
+                      <td>{new Date(log.createdAt).toLocaleString()}</td>
+                      <td>
+                        {log.run ? (
+                          <Link href={`/auction/runs/${log.run.id}`}>
+                            <code className="small">{log.run.id.slice(0, 8)}…</code>
+                          </Link>
+                        ) : (
+                          <span className="small">—</span>
+                        )}
+                      </td>
+                      <td>{log.actor}</td>
+                      <td><code className="small">{log.action}</code></td>
+                      <td><code className="small">{JSON.stringify(log.metadata ?? {})}</code></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
       </>

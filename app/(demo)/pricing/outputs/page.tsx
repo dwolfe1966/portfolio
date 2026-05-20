@@ -49,22 +49,24 @@ export default async function PricingOutputsPage() {
             </div>
           </Section>
           <Section title="Segment results">
-            <table className="table">
-              <thead><tr><th>Segment</th><th>Variant</th><th>Sample</th><th>Conversion</th><th>Churn</th><th>Lift</th><th>Band</th></tr></thead>
-              <tbody>
-                {latest.segmentResults.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.segment.name}</td>
-                    <td>{row.variant.name}</td>
-                    <td>{row.sampleSize}</td>
-                    <td>{(row.conversionRate * 100).toFixed(1)}%</td>
-                    <td>{(row.churnRate * 100).toFixed(1)}%</td>
-                    <td>${(row.netRevenueLiftCents / 100).toLocaleString()}</td>
-                    <td>{row.guardrailBand}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="tableScroll">
+              <table className="table">
+                <thead><tr><th>Segment</th><th>Variant</th><th>Sample</th><th>Conversion</th><th>Churn</th><th>Lift</th><th>Band</th></tr></thead>
+                <tbody>
+                  {latest.segmentResults.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.segment.name}</td>
+                      <td>{row.variant.name}</td>
+                      <td>{row.sampleSize}</td>
+                      <td>{(row.conversionRate * 100).toFixed(1)}%</td>
+                      <td>{(row.churnRate * 100).toFixed(1)}%</td>
+                      <td>${(row.netRevenueLiftCents / 100).toLocaleString()}</td>
+                      <td>{row.guardrailBand}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Section>
         </>
       ) : (

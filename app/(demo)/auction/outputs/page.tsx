@@ -64,66 +64,70 @@ export default async function AuctionOutputsPage() {
         </Section>
 
         <Section title="Run history">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Run</th>
-                <th>When</th>
-                <th>Auctions</th>
-                <th>Revenue</th>
-                <th>Fill</th>
-                <th>Stability</th>
-                <th>Trust</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((run) => (
-                <tr key={run.id}>
-                  <td>
-                    <Link href={`/auction/runs/${run.id}`}>
-                      <code className="small">{run.id.slice(0, 8)}…</code>
-                    </Link>
-                  </td>
-                  <td>{new Date(run.createdAt).toLocaleString()}</td>
-                  <td>{run.totalAuctions}</td>
-                  <td>${(run.totalRevenueCents / 100).toFixed(0)}</td>
-                  <td>{(run.fillRate * 100).toFixed(1)}%</td>
-                  <td>{run.revenueStability.toFixed(2)}</td>
-                  <td>{run.bidderTrustProxy.toFixed(2)}</td>
+          <div className="tableScroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Run</th>
+                  <th>When</th>
+                  <th>Auctions</th>
+                  <th>Revenue</th>
+                  <th>Fill</th>
+                  <th>Stability</th>
+                  <th>Trust</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {runs.map((run) => (
+                  <tr key={run.id}>
+                    <td>
+                      <Link href={`/auction/runs/${run.id}`}>
+                        <code className="small">{run.id.slice(0, 8)}…</code>
+                      </Link>
+                    </td>
+                    <td>{new Date(run.createdAt).toLocaleString()}</td>
+                    <td>{run.totalAuctions}</td>
+                    <td>${(run.totalRevenueCents / 100).toFixed(0)}</td>
+                    <td>{(run.fillRate * 100).toFixed(1)}%</td>
+                    <td>{run.revenueStability.toFixed(2)}</td>
+                    <td>{run.bidderTrustProxy.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Section>
 
         <Section title={`Advertiser economics (latest run · ${latest.id.slice(0, 8)}…)`}>
           {latest.spendSnapshots.length === 0 ? (
             <div className="card"><p>No advertiser activity in the latest run.</p></div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Advertiser</th>
-                  <th>Mode</th>
-                  <th>Wins</th>
-                  <th>Spend</th>
-                  <th>Avg clearing</th>
-                  <th>Share</th>
-                </tr>
-              </thead>
-              <tbody>
-                {latest.spendSnapshots.map((snap) => (
-                  <tr key={snap.id}>
-                    <td>{snap.advertiser.name}</td>
-                    <td><code className="small">{snap.advertiser.behaviorMode}</code></td>
-                    <td>{snap.totalWins}</td>
-                    <td>${(snap.totalSpendCents / 100).toFixed(2)}</td>
-                    <td>${(snap.averageClearingCents / 100).toFixed(2)}</td>
-                    <td>{(snap.fillShare * 100).toFixed(1)}%</td>
+            <div className="tableScroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Advertiser</th>
+                    <th>Mode</th>
+                    <th>Wins</th>
+                    <th>Spend</th>
+                    <th>Avg clearing</th>
+                    <th>Share</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {latest.spendSnapshots.map((snap) => (
+                    <tr key={snap.id}>
+                      <td>{snap.advertiser.name}</td>
+                      <td><code className="small">{snap.advertiser.behaviorMode}</code></td>
+                      <td>{snap.totalWins}</td>
+                      <td>${(snap.totalSpendCents / 100).toFixed(2)}</td>
+                      <td>${(snap.averageClearingCents / 100).toFixed(2)}</td>
+                      <td>{(snap.fillShare * 100).toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
       </>
