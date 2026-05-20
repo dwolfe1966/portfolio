@@ -14,6 +14,7 @@ import {
   acquisitionProviderSnapshotScopeLabel,
   acquisitionProviderSnapshotSourceLabel
 } from "@/lib/acquisition-provider-snapshots";
+import { ConnectionBulkVisibilityButton } from "@/components/acquisition/ConnectionBulkVisibilityButton";
 import { ConnectionDisconnectButton } from "@/components/acquisition/ConnectionDisconnectButton";
 import { ConnectionVisibilityButton } from "@/components/acquisition/ConnectionVisibilityButton";
 import { ProviderOperationLink } from "@/components/acquisition/ProviderOperationSubmit";
@@ -26,7 +27,7 @@ const PROVIDER_LABEL: Record<string, string> = {
   simulated: "Simulated"
 };
 
-type SearchParams = { error?: string; event?: string; connected?: string; view?: string };
+type SearchParams = { error?: string; event?: string; connected?: string; view?: string; q?: string; provider?: string; data?: string };
 type ConnectionWithGrant = Awaited<ReturnType<typeof db.adAccountConnection.findMany>>[number] & {
   credentialGrant: ProviderCredentialGrant | null;
 };
@@ -86,6 +87,46 @@ function connectionHidden(conn: ConnectionWithGrant) {
 function parentCustomerId(conn: ConnectionWithGrant) {
   const value = grantMetadata(conn).parentCustomerId;
   return typeof value === "string" && value ? value : null;
+}
+
+function connectionMatchesSearch(conn: ConnectionWithGrant, query: string) {
+  if (!query) return true;
+  const haystack = [
+    conn.provider,
+    conn.accountName,
+    conn.externalAccountId,
+    parentCustomerId(conn) ?? ""
+  ].join(" ").toLowerCase();
+  return haystack.includes(query.toLowerCase());
+}
+
+function filterConnections(
+  connections: ConnectionWithGrant[],
+  params: SearchParams,
+  datasetByConnectionId: Map<string, LatestDataset>
+) {
+  const provider = params.provider === "google_ads" || params.provider === "meta_ads" ? params.provider : "all";
+  const data = params.data === "synced" || params.data === "unsynced" || params.data === "live" || params.data === "test" ? params.data : "all";
+  const query = typeof params.q === "string" ? params.q.trim() : "";
+
+  return connections.filter((conn) => {
+    if (provider !== "all" && conn.provider !== provider) return false;
+    if (data === "synced" && !datasetByConnectionId.has(conn.id)) return false;
+    if (data === "unsynced" && datasetByConnectionId.has(conn.id)) return false;
+    if (data === "live" && conn.isTestAccount) return false;
+    if (data === "test" && !conn.isTestAccount) return false;
+    return connectionMatchesSearch(conn, query);
+  });
+}
+
+function connectionListHref(view: "visible" | "hidden", params: SearchParams) {
+  const search = new URLSearchParams();
+  if (view === "hidden") search.set("view", "hidden");
+  if (params.q?.trim()) search.set("q", params.q.trim());
+  if (params.provider && params.provider !== "all") search.set("provider", params.provider);
+  if (params.data && params.data !== "all") search.set("data", params.data);
+  const query = search.toString();
+  return query ? `/acquisition/connections?${query}` : "/acquisition/connections";
 }
 
 function providerReady(provider: ProviderKey, encryptionReady: boolean, googleReady: boolean, metaReady: boolean) {
@@ -333,7 +374,6 @@ export default async function ConnectionsPage({
   const visibleConnections = connections.filter((conn) => !connectionHidden(conn));
   const hiddenConnections = connections.filter(connectionHidden);
   const showingHidden = params.view === "hidden";
-  const displayedConnections = showingHidden ? hiddenConnections : visibleConnections;
   const googleConnections = providerConnections("google_ads", visibleConnections);
   const metaConnections = providerConnections("meta_ads", visibleConnections);
   const datasetByConnectionId = new Map<string, LatestDataset>();
@@ -347,6 +387,9 @@ export default async function ConnectionsPage({
   if (activeConnectionId && activeDataset && !datasetByConnectionId.has(activeConnectionId)) {
     datasetByConnectionId.set(activeConnectionId, activeDataset);
   }
+  const baseDisplayedConnections = showingHidden ? hiddenConnections : visibleConnections;
+  const displayedConnections = filterConnections(baseDisplayedConnections, params, datasetByConnectionId);
+  const filteredOutCount = baseDisplayedConnections.length - displayedConnections.length;
   const activeConnection = activeConnectionId ? connections.find((conn) => conn.id === activeConnectionId) ?? null : null;
   const syncedConnectionCount = visibleConnections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
   const attentionCounts = connectionAttentionCounts(visibleConnections);
@@ -602,11 +645,42 @@ export default async function ConnectionsPage({
           <>
             <div className="card compact" style={{ marginBottom: 12 }}>
               <p className="small">
-                Showing {displayedConnections.length.toLocaleString()} {showingHidden ? "hidden" : "visible"} of {connections.length.toLocaleString()} discovered accounts.
+                Showing {displayedConnections.length.toLocaleString()} {showingHidden ? "hidden" : "visible"} accounts
+                {filteredOutCount > 0 ? ` (${filteredOutCount.toLocaleString()} filtered out)` : ""} from {connections.length.toLocaleString()} discovered accounts.
               </p>
-              <div className="ctaRow">
-                <Link className={`btn smallBtn ${!showingHidden ? "primary" : ""}`} href="/acquisition/connections">Visible accounts</Link>
-                <Link className={`btn smallBtn ${showingHidden ? "primary" : ""}`} href="/acquisition/connections?view=hidden">Hidden accounts</Link>
+              <form className="grid grid-4" style={{ marginTop: 12 }}>
+                {showingHidden ? <input type="hidden" name="view" value="hidden" /> : null}
+                <label>
+                  Search
+                  <input name="q" defaultValue={params.q ?? ""} placeholder="Account name, id, manager" />
+                </label>
+                <label>
+                  Provider
+                  <select name="provider" defaultValue={params.provider ?? "all"}>
+                    <option value="all">All providers</option>
+                    <option value="google_ads">Google Ads</option>
+                    <option value="meta_ads">Meta Ads</option>
+                  </select>
+                </label>
+                <label>
+                  Account state
+                  <select name="data" defaultValue={params.data ?? "all"}>
+                    <option value="all">All accounts</option>
+                    <option value="synced">Synced dataset</option>
+                    <option value="unsynced">No dataset</option>
+                    <option value="live">Live accounts</option>
+                    <option value="test">Test accounts</option>
+                  </select>
+                </label>
+                <div className="ctaRow" style={{ alignSelf: "end" }}>
+                  <button className="btn smallBtn primary" type="submit">Apply filters</button>
+                  <Link className="btn smallBtn" href={showingHidden ? "/acquisition/connections?view=hidden" : "/acquisition/connections"}>Clear</Link>
+                </div>
+              </form>
+              <div className="ctaRow" style={{ marginTop: 12 }}>
+                <Link className={`btn smallBtn ${!showingHidden ? "primary" : ""}`} href={connectionListHref("visible", params)}>Visible accounts</Link>
+                <Link className={`btn smallBtn ${showingHidden ? "primary" : ""}`} href={connectionListHref("hidden", params)}>Hidden accounts</Link>
+                <ConnectionBulkVisibilityButton ids={displayedConnections.map((conn) => conn.id)} hidden={!showingHidden} />
               </div>
             </div>
             {displayedConnections.length === 0 ? (
