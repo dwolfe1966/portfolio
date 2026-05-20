@@ -27,7 +27,16 @@ const PROVIDER_LABEL: Record<string, string> = {
   simulated: "Simulated"
 };
 
-type SearchParams = { error?: string; event?: string; connected?: string; view?: string; q?: string; provider?: string; data?: string };
+type SearchParams = {
+  error?: string;
+  event?: string;
+  connected?: string;
+  view?: string;
+  q?: string;
+  provider?: string;
+  data?: string;
+  sort?: string;
+};
 type ConnectionWithGrant = Awaited<ReturnType<typeof db.adAccountConnection.findMany>>[number] & {
   credentialGrant: ProviderCredentialGrant | null;
 };
@@ -125,6 +134,7 @@ function connectionListHref(view: "visible" | "hidden", params: SearchParams) {
   if (params.q?.trim()) search.set("q", params.q.trim());
   if (params.provider && params.provider !== "all") search.set("provider", params.provider);
   if (params.data && params.data !== "all") search.set("data", params.data);
+  if (params.sort && params.sort !== "priority") search.set("sort", params.sort);
   const query = search.toString();
   return query ? `/acquisition/connections?${query}` : "/acquisition/connections";
 }
@@ -158,6 +168,40 @@ function datasetConnectionId(dataset: LatestDataset) {
 function rowCountTotal(rowCounts: unknown) {
   if (!rowCounts || typeof rowCounts !== "object" || Array.isArray(rowCounts)) return 0;
   return Object.values(rowCounts).reduce((sum, value) => sum + (typeof value === "number" && Number.isFinite(value) ? value : 0), 0);
+}
+
+function rowCount(rowCounts: unknown, key: string) {
+  if (!rowCounts || typeof rowCounts !== "object" || Array.isArray(rowCounts)) return 0;
+  const value = (rowCounts as Record<string, unknown>)[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function connectionPriority(conn: ConnectionWithGrant, dataset: LatestDataset | undefined, activeConnectionId: string | null) {
+  if (!dataset) return conn.id === activeConnectionId ? 100_000 : 0;
+  return (conn.id === activeConnectionId ? 100_000 : 0)
+    + (rowCount(dataset.rowCounts, "performance") > 0 ? 10_000 : 0)
+    + (rowCount(dataset.rowCounts, "campaigns") > 0 ? 5_000 : 0)
+    + rowCountTotal(dataset.rowCounts);
+}
+
+function sortConnections(
+  connections: ConnectionWithGrant[],
+  params: SearchParams,
+  datasetByConnectionId: Map<string, LatestDataset>,
+  activeConnectionId: string | null
+) {
+  const sort = params.sort === "name" || params.sort === "newest" ? params.sort : "priority";
+  return [...connections].sort((a, b) => {
+    if (sort === "name") {
+      return `${a.accountName} ${a.externalAccountId}`.localeCompare(`${b.accountName} ${b.externalAccountId}`);
+    }
+    if (sort === "newest") {
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    const priorityDelta = connectionPriority(b, datasetByConnectionId.get(b.id), activeConnectionId)
+      - connectionPriority(a, datasetByConnectionId.get(a.id), activeConnectionId);
+    return priorityDelta || b.createdAt.getTime() - a.createdAt.getTime();
+  });
 }
 
 function formatDateTime(date: Date | null | undefined) {
@@ -388,7 +432,12 @@ export default async function ConnectionsPage({
     datasetByConnectionId.set(activeConnectionId, activeDataset);
   }
   const baseDisplayedConnections = showingHidden ? hiddenConnections : visibleConnections;
-  const displayedConnections = filterConnections(baseDisplayedConnections, params, datasetByConnectionId);
+  const displayedConnections = sortConnections(
+    filterConnections(baseDisplayedConnections, params, datasetByConnectionId),
+    params,
+    datasetByConnectionId,
+    activeConnectionId
+  );
   const filteredOutCount = baseDisplayedConnections.length - displayedConnections.length;
   const activeConnection = activeConnectionId ? connections.find((conn) => conn.id === activeConnectionId) ?? null : null;
   const syncedConnectionCount = visibleConnections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
@@ -672,6 +721,14 @@ export default async function ConnectionsPage({
                     <option value="test">Test accounts</option>
                   </select>
                 </label>
+                <label>
+                  Sort
+                  <select name="sort" defaultValue={params.sort ?? "priority"}>
+                    <option value="priority">Campaign data first</option>
+                    <option value="newest">Newest discovered</option>
+                    <option value="name">Account name</option>
+                  </select>
+                </label>
                 <div className="ctaRow" style={{ alignSelf: "end" }}>
                   <button className="btn smallBtn primary" type="submit">Apply filters</button>
                   <Link className="btn smallBtn" href={showingHidden ? "/acquisition/connections?view=hidden" : "/acquisition/connections"}>Clear</Link>
@@ -694,6 +751,7 @@ export default async function ConnectionsPage({
                     <th>Provider</th>
                     <th>Account</th>
                     <th>Test</th>
+                    <th>Provider signal</th>
                     <th>Sync readiness</th>
                     <th>Latest dataset</th>
                     <th>Scopes</th>
@@ -709,6 +767,9 @@ export default async function ConnectionsPage({
                     const isActiveConnection = conn.id === activeConnectionId;
                     const hidden = connectionHidden(conn);
                     const parentId = parentCustomerId(conn);
+                    const campaignRows = latestDataset ? rowCount(latestDataset.rowCounts, "campaigns") : 0;
+                    const performanceRows = latestDataset ? rowCount(latestDataset.rowCounts, "performance") : 0;
+                    const totalRows = latestDataset ? rowCountTotal(latestDataset.rowCounts) : 0;
                     return (
                       <tr key={conn.id}>
                         <td>{PROVIDER_LABEL[conn.provider] ?? conn.provider}</td>
@@ -724,6 +785,23 @@ export default async function ConnectionsPage({
                           <span className={`small bandText--${conn.isTestAccount ? "healthy" : "unhealthy"}`}>
                             {conn.isTestAccount ? "Test" : "Live"}
                           </span>
+                        </td>
+                        <td>
+                          {latestDataset ? (
+                            <>
+                              <span className={`statusPill ${campaignRows > 0 ? "live" : "progress"}`}>
+                                {campaignRows > 0 ? "campaign data" : "dataset only"}
+                              </span>
+                              <div className="small">
+                                {campaignRows.toLocaleString()} campaigns · {performanceRows.toLocaleString()} performance · {totalRows.toLocaleString()} total rows
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span className="statusPill progress">not synced</span>
+                              <div className="small">Open account to inspect campaigns and create a dataset.</div>
+                            </>
+                          )}
                         </td>
                         <td>
                           <span className={`statusPill ${readiness.tone}`}>{readiness.label}</span>
