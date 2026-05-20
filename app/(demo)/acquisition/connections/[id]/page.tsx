@@ -40,6 +40,7 @@ type CampaignWithPerformance = {
 type ProviderLiveData = {
   campaigns: CampaignWithPerformance[];
   totalCampaignCount: number;
+  filteredCampaignCount: number;
   selectedCampaign: RemoteCampaign | null;
   selectedPerformance: RemotePerformance | null;
   adGroups: RemoteAdGroup[];
@@ -77,11 +78,12 @@ async function loadProviderLiveData(
   externalAccountId: string,
   accountUserId: string | null,
   selectedCampaignId?: string | null,
-  selectedAdGroupId?: string | null
+  selectedAdGroupId?: string | null,
+  campaignQuery?: string | null
 ): Promise<ProviderLiveData> {
   const connector = connectorForProvider(provider, accountUserId);
   if (!connector) {
-    return { campaigns: [], totalCampaignCount: 0, selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: "Live-data view not yet implemented for this provider." };
+    return { campaigns: [], totalCampaignCount: 0, filteredCampaignCount: 0, selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: "Live-data view not yet implemented for this provider." };
   }
 
   try {
@@ -90,8 +92,13 @@ async function loadProviderLiveData(
     const start = new Date(end.getTime() - 13 * 86400000);
     const range = { start: isoDate(start), end: isoDate(end) };
 
-    // Fetch perf for up to the first 8 campaigns to keep page load bounded.
-    const limited = campaigns.slice(0, 8);
+    const query = campaignQuery?.trim().toLowerCase() ?? "";
+    const filteredCampaigns = query
+      ? campaigns.filter((campaign) => `${campaign.name} ${campaign.externalCampaignId} ${campaign.status}`.toLowerCase().includes(query))
+      : campaigns;
+
+    // Fetch perf for up to the first 8 displayed campaigns to keep page load bounded.
+    const limited = filteredCampaigns.slice(0, 8);
     const enriched = await Promise.all(limited.map(async (campaign): Promise<CampaignWithPerformance> => {
       try {
         const performance = await connector.fetchPerformance(externalAccountId, campaign.externalCampaignId, range);
@@ -109,8 +116,15 @@ async function loadProviderLiveData(
       const spendDelta = (b.performance?.totals.spendCents ?? 0) - (a.performance?.totals.spendCents ?? 0);
       return spendDelta || (b.performance?.totals.conversions ?? 0) - (a.performance?.totals.conversions ?? 0);
     });
+    const enrichedIds = new Set(rankedCampaigns.map((row) => row.campaign.externalCampaignId));
+    const displayedCampaigns = [
+      ...rankedCampaigns,
+      ...filteredCampaigns
+        .filter((campaign) => !enrichedIds.has(campaign.externalCampaignId))
+        .map((campaign) => ({ campaign, performance: null, perfError: null }))
+    ];
     const selectedCampaign = campaigns.find((campaign) => campaign.externalCampaignId === selectedCampaignId)
-      ?? rankedCampaigns[0]?.campaign
+      ?? displayedCampaigns[0]?.campaign
       ?? campaigns[0]
       ?? null;
     let selectedPerformance: RemotePerformance | null = null;
@@ -132,14 +146,24 @@ async function loadProviderLiveData(
       ads = await connector.fetchAds(externalAccountId, selectedCampaign.externalCampaignId, selectedAdGroup);
     }
 
-    return { campaigns: rankedCampaigns, totalCampaignCount: campaigns.length, selectedCampaign, selectedPerformance, adGroups, ads, error: null };
+    return {
+      campaigns: displayedCampaigns,
+      totalCampaignCount: campaigns.length,
+      filteredCampaignCount: filteredCampaigns.length,
+      selectedCampaign,
+      selectedPerformance,
+      adGroups,
+      ads,
+      error: null
+    };
   } catch (err) {
     if (err instanceof GoogleAdsNotTestAccountError || err instanceof MetaAdsNotTestAccountError) {
-      return { campaigns: [], totalCampaignCount: 0, selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: err.message };
+      return { campaigns: [], totalCampaignCount: 0, filteredCampaignCount: 0, selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: err.message };
     }
     return {
       campaigns: [],
       totalCampaignCount: 0,
+      filteredCampaignCount: 0,
       selectedCampaign: null,
       selectedPerformance: null,
       adGroups: [],
@@ -154,6 +178,7 @@ type PageProps = {
   searchParams: Promise<{
     campaignId?: string;
     adGroupId?: string;
+    campaignQ?: string;
     syncError?: string;
     syncedDatasetId?: string;
     syncApplied?: string;
@@ -161,9 +186,10 @@ type PageProps = {
   }>;
 };
 
-function campaignHref(connectionId: string, campaignId: string, adGroupId?: string | null) {
+function campaignHref(connectionId: string, campaignId: string, adGroupId?: string | null, campaignQ?: string | null) {
   const params = new URLSearchParams({ campaignId });
   if (adGroupId) params.set("adGroupId", adGroupId);
+  if (campaignQ?.trim()) params.set("campaignQ", campaignQ.trim());
   return `/acquisition/connections/${connectionId}?${params.toString()}`;
 }
 
@@ -633,7 +659,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
     ? [activeProviderDataset, ...syncedDatasets]
     : syncedDatasets;
   const live = isLiveProvider
-    ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId)
+    ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId, selected.campaignQ)
     : null;
   const syncState = syncStatus({ connection, live, latestDataset });
   const syncReady = isLiveProvider && syncState.label !== "Production access needed" && syncState.label !== "Developer token blocked" && syncState.label !== "Live read blocked" && syncState.label !== "Token expired" && syncState.label !== "Grant inactive" && syncState.label !== "Reconnect required";
@@ -1034,14 +1060,37 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
               </div>
             ) : live && live.campaigns.length === 0 ? (
               <div className="card">
-                <p>No campaigns found in this test account. Create a campaign in Google Ads to see live data here.</p>
+                <p>
+                  {live.totalCampaignCount > 0
+                    ? "No campaigns match this search."
+                    : "No campaigns found in this test account. Create a campaign in Google Ads to see live data here."}
+                </p>
+                {live.totalCampaignCount > 0 ? (
+                  <div className="ctaRow">
+                    <Link className="btn smallBtn" href={`/acquisition/connections/${connection.id}`}>Clear search</Link>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <>
               <div className="card compact" style={{ marginBottom: 12 }}>
                 <p className="small">
-                  Showing {live?.campaigns.length.toLocaleString() ?? "0"} of {live?.totalCampaignCount.toLocaleString() ?? "0"} campaigns, ranked by recent spend and conversions when performance data is available.
+                  Showing {live?.campaigns.length.toLocaleString() ?? "0"} of {live?.filteredCampaignCount.toLocaleString() ?? "0"} matching campaigns
+                  {live && live.filteredCampaignCount !== live.totalCampaignCount ? ` from ${live.totalCampaignCount.toLocaleString()} total` : ""}.
+                  Recent performance is fetched for the first 8 displayed campaigns only.
                 </p>
+                <form className="grid grid-3" style={{ marginTop: 12 }}>
+                  {selected.campaignId ? <input type="hidden" name="campaignId" value={selected.campaignId} /> : null}
+                  {selected.adGroupId ? <input type="hidden" name="adGroupId" value={selected.adGroupId} /> : null}
+                  <label>
+                    Search campaigns
+                    <input name="campaignQ" defaultValue={selected.campaignQ ?? ""} placeholder="Campaign name, id, or status" />
+                  </label>
+                  <div className="ctaRow" style={{ alignSelf: "end" }}>
+                    <button className="btn smallBtn primary" type="submit">Apply search</button>
+                    <Link className="btn smallBtn" href={`/acquisition/connections/${connection.id}`}>Clear</Link>
+                  </div>
+                </form>
               </div>
               <table className="table">
                 <thead>
@@ -1083,7 +1132,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       <td>
                         <ProviderOperationLink
                           className="btn smallBtn"
-                          href={campaignHref(connection.id, row.campaign.externalCampaignId)}
+                          href={campaignHref(connection.id, row.campaign.externalCampaignId, null, selected.campaignQ)}
                           pendingLabel="Inspecting campaign"
                           pendingDetail="Fetching selected campaign performance, child groups, and ads from the provider."
                         >
@@ -1226,7 +1275,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                         <td>
                           <ProviderOperationLink
                             className="btn smallBtn"
-                            href={campaignHref(connection.id, live.selectedCampaign!.externalCampaignId, group.externalAdGroupId)}
+                            href={campaignHref(connection.id, live.selectedCampaign!.externalCampaignId, group.externalAdGroupId, selected.campaignQ)}
                             pendingLabel={`Selecting ${childGroupSingular}`}
                             pendingDetail="Refreshing provider ads and selected-scope performance for this account."
                           >
