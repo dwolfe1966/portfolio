@@ -39,6 +39,7 @@ type CampaignWithPerformance = {
 
 type ProviderLiveData = {
   campaigns: CampaignWithPerformance[];
+  totalCampaignCount: number;
   selectedCampaign: RemoteCampaign | null;
   selectedPerformance: RemotePerformance | null;
   adGroups: RemoteAdGroup[];
@@ -80,7 +81,7 @@ async function loadProviderLiveData(
 ): Promise<ProviderLiveData> {
   const connector = connectorForProvider(provider, accountUserId);
   if (!connector) {
-    return { campaigns: [], selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: "Live-data view not yet implemented for this provider." };
+    return { campaigns: [], totalCampaignCount: 0, selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: "Live-data view not yet implemented for this provider." };
   }
 
   try {
@@ -105,7 +106,12 @@ async function loadProviderLiveData(
       }
     }
 
+    const rankedCampaigns = enriched.sort((a, b) => {
+      const spendDelta = (b.performance?.totals.spendCents ?? 0) - (a.performance?.totals.spendCents ?? 0);
+      return spendDelta || (b.performance?.totals.conversions ?? 0) - (a.performance?.totals.conversions ?? 0);
+    });
     const selectedCampaign = campaigns.find((campaign) => campaign.externalCampaignId === selectedCampaignId)
+      ?? rankedCampaigns[0]?.campaign
       ?? campaigns[0]
       ?? null;
     let selectedPerformance: RemotePerformance | null = null;
@@ -120,13 +126,14 @@ async function loadProviderLiveData(
       ads = await connector.fetchAds(externalAccountId, selectedCampaign.externalCampaignId, selectedAdGroup);
     }
 
-    return { campaigns: enriched, selectedCampaign, selectedPerformance, adGroups, ads, error: null };
+    return { campaigns: rankedCampaigns, totalCampaignCount: campaigns.length, selectedCampaign, selectedPerformance, adGroups, ads, error: null };
   } catch (err) {
     if (err instanceof GoogleAdsNotTestAccountError || err instanceof MetaAdsNotTestAccountError) {
-      return { campaigns: [], selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: err.message };
+      return { campaigns: [], totalCampaignCount: 0, selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: err.message };
     }
     return {
       campaigns: [],
+      totalCampaignCount: 0,
       selectedCampaign: null,
       selectedPerformance: null,
       adGroups: [],
@@ -180,6 +187,22 @@ function preflightTone(severity: string) {
 function rowCountTotal(rowCounts: unknown) {
   if (!rowCounts || typeof rowCounts !== "object" || Array.isArray(rowCounts)) return 0;
   return Object.values(rowCounts).reduce((sum, value) => sum + (typeof value === "number" && Number.isFinite(value) ? value : 0), 0);
+}
+
+function rowCount(rowCounts: unknown, key: string) {
+  if (!rowCounts || typeof rowCounts !== "object" || Array.isArray(rowCounts)) return 0;
+  const value = (rowCounts as Record<string, unknown>)[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function datasetRowSummary(dataset: LatestDataset | null) {
+  if (!dataset) return "No dataset saved";
+  return [
+    `${rowCount(dataset.rowCounts, "campaigns").toLocaleString()} campaigns`,
+    `${rowCount(dataset.rowCounts, "audiences").toLocaleString()} audiences`,
+    `${rowCount(dataset.rowCounts, "creatives").toLocaleString()} creatives`,
+    `${rowCount(dataset.rowCounts, "performance").toLocaleString()} performance`
+  ].join(" · ");
 }
 
 function formatDateTime(date: Date | null | undefined) {
@@ -447,6 +470,64 @@ function providerModeCopy({
   };
 }
 
+function recommendedAction({
+  syncReady,
+  latestDataset,
+  activeProviderDataset,
+  live,
+  providerLabel
+}: {
+  syncReady: boolean;
+  latestDataset: LatestDataset | null;
+  activeProviderDataset: LatestDataset | null;
+  live: ProviderLiveData | null;
+  providerLabel: string;
+}) {
+  if (activeProviderDataset) {
+    return {
+      label: "Active in Acquisition",
+      tone: "live",
+      detail: "This account already powers Acquisition inputs. Review campaign objects or refresh the dataset when new provider data is available.",
+      href: "#provider-object-selection",
+      action: "Review provider objects"
+    };
+  }
+  if (latestDataset) {
+    return {
+      label: "Apply saved dataset",
+      tone: "progress",
+      detail: "A provider snapshot exists for this account but is not the active Acquisition input source.",
+      href: "#workspace-dataset-sync",
+      action: "Apply dataset"
+    };
+  }
+  if (syncReady) {
+    return {
+      label: "Sync provider data",
+      tone: "progress",
+      detail: `Live ${providerLabel} reads are available. Save a dataset, then apply it to Acquisition inputs.`,
+      href: "#workspace-dataset-sync",
+      action: "Go to sync"
+    };
+  }
+  if (live?.error) {
+    return {
+      label: "Use fallback or resolve access",
+      tone: "warning",
+      detail: liveDataErrorCopy(live.error),
+      href: "#workspace-dataset-sync",
+      action: "Review options"
+    };
+  }
+  return {
+    label: "Review account",
+    tone: "progress",
+    detail: "Review diagnostics and decide whether to sync live rows or create a provider-shaped fallback dataset.",
+    href: "#connection-diagnostics",
+    action: "Review diagnostics"
+  };
+}
+
 export default async function ConnectionDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const selected = await searchParams;
@@ -551,6 +632,9 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
   const selectedAdGroupId = live?.adGroups.some((group) => group.externalAdGroupId === selected.adGroupId)
     ? selected.adGroupId
     : null;
+  const recommended = isLiveProvider
+    ? recommendedAction({ syncReady, latestDataset, activeProviderDataset, live, providerLabel })
+    : null;
   const preflight = live?.selectedCampaign
     ? buildProviderWritePreflight({
         provider: connection.provider,
@@ -622,6 +706,42 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
         </Section>
       ) : null}
 
+      {isLiveProvider && recommended ? (
+        <Section title="Command center">
+          <div className="grid grid-4">
+            <div className="card compact">
+              <p className={`statusPill ${recommended.tone}`}>{recommended.label}</p>
+              <h3 style={{ marginTop: 10 }}>Recommended action</h3>
+              <p className="small">{recommended.detail}</p>
+              <div className="ctaRow">
+                <a className="btn smallBtn primary" href={recommended.href}>{recommended.action}</a>
+              </div>
+            </div>
+            <div className="card compact">
+              <p className="small">Latest dataset</p>
+              <div className="kpi">{latestDataset ? rowCountTotal(latestDataset.rowCounts).toLocaleString() : "0"}</div>
+              <p className="small">{datasetRowSummary(latestDataset)}</p>
+            </div>
+            <div className="card compact">
+              <p className="small">Provider campaigns</p>
+              <div className="kpi">{live?.totalCampaignCount.toLocaleString() ?? "—"}</div>
+              <p className="small">
+                {live?.selectedCampaign ? `Selected: ${live.selectedCampaign.name}` : live?.error ? "Provider read blocked" : "No campaign selected"}
+              </p>
+            </div>
+            <div className="card compact">
+              <p className="small">Selected scope</p>
+              <div className="kpi">{selectedAdGroupId ? childGroupSingular : live?.selectedCampaign ? "Campaign" : "Account"}</div>
+              <p className="small">
+                {selectedAdGroupId
+                  ? `${childGroupLabel.slice(0, -1)} ${selectedAdGroupId}`
+                  : live?.selectedCampaign?.externalCampaignId ?? connection.externalAccountId}
+              </p>
+            </div>
+          </div>
+        </Section>
+      ) : null}
+
       <Section title="Token state">
         <div className="grid grid-3">
           <div className="card">
@@ -646,7 +766,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
       </Section>
 
       {isLiveProvider ? (
-        <Section title="Connection diagnostics">
+        <Section id="connection-diagnostics" title="Connection diagnostics">
           <div className="grid grid-3">
             {diagnostics.map((item) => (
               <div className="card compact" key={item.key}>
@@ -660,7 +780,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
       ) : null}
 
       {isLiveProvider ? (
-        <Section title="Workspace dataset sync">
+        <Section id="workspace-dataset-sync" title="Workspace dataset sync">
           <div className="card">
             {selected.syncedDatasetId ? (
               <div className="card compact" style={{ marginBottom: 12 }}>
@@ -873,7 +993,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
         </Section>
       ) : (
         <>
-          <Section title="Provider object selection">
+          <Section id="provider-object-selection" title="Provider object selection">
             {live?.error ? (
               <div className="card">
                 <p className="bandText--unhealthy small">Could not fetch campaigns: {liveDataErrorCopy(live.error)}</p>
@@ -890,6 +1010,12 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                 <p>No campaigns found in this test account. Create a campaign in Google Ads to see live data here.</p>
               </div>
             ) : (
+              <>
+              <div className="card compact" style={{ marginBottom: 12 }}>
+                <p className="small">
+                  Showing {live?.campaigns.length.toLocaleString() ?? "0"} of {live?.totalCampaignCount.toLocaleString() ?? "0"} campaigns, ranked by recent spend and conversions when performance data is available.
+                </p>
+              </div>
               <table className="table">
                 <thead>
                   <tr>
@@ -908,6 +1034,9 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       <td>
                         <code className="small">{row.campaign.externalCampaignId}</code>
                         <div>{row.campaign.name}</div>
+                        {row.campaign.externalCampaignId === live.selectedCampaign?.externalCampaignId ? (
+                          <div className="small bandText--healthy">Selected campaign</div>
+                        ) : null}
                       </td>
                       <td>
                         <span className={`small bandText--${
@@ -938,6 +1067,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                   ))}
                 </tbody>
               </table>
+              </>
             )}
           </Section>
 
