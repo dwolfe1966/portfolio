@@ -202,20 +202,22 @@ export default async function DemoOutputsPage({ searchParams }: PageProps) {
           {visibleRuns.length === 0 ? (
             <div className="card"><p>{presetEmptyMessage(activePreset)}</p></div>
           ) : (
-            <table className="table">
-              <thead><tr><th>Run</th><th>Deltas</th><th>Matches</th><th>High priority</th><th>Revenue</th></tr></thead>
-              <tbody>
-                {visibleRuns.map((run) => (
-                  <tr key={run.id}>
-                    <td><Link href={`/lifecycle/campaigns/${run.id}`}>{run.runName}</Link></td>
-                    <td>{run.totalDeltas}</td>
-                    <td>{run.totalMatches}</td>
-                    <td>{run.totalHighPriority}</td>
-                    <td>${Number(run.estimatedRevenue).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="tableScroll">
+              <table className="table">
+                <thead><tr><th>Run</th><th>Deltas</th><th>Matches</th><th>High priority</th><th>Revenue</th></tr></thead>
+                <tbody>
+                  {visibleRuns.map((run) => (
+                    <tr key={run.id}>
+                      <td><Link href={`/lifecycle/campaigns/${run.id}`}>{run.runName}</Link></td>
+                      <td>{run.totalDeltas}</td>
+                      <td>{run.totalMatches}</td>
+                      <td>{run.totalHighPriority}</td>
+                      <td>${Number(run.estimatedRevenue).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section></div>
         <Section title="Run-over-run trend">
@@ -261,18 +263,20 @@ export default async function DemoOutputsPage({ searchParams }: PageProps) {
           )}
         </Section>
         <Section title="Recent events">
-          <table className="table">
-            <thead><tr><th>Entity</th><th>Change type</th><th>Summary</th></tr></thead>
-            <tbody>
-              {events.map((event) => (
-                <tr key={event.id}>
-                  <td>{event.entity.name}</td>
-                  <td>{event.changeType}</td>
-                  <td>{event.deltaSummary}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="tableScroll">
+            <table className="table">
+              <thead><tr><th>Entity</th><th>Change type</th><th>Summary</th></tr></thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={event.id}>
+                    <td>{event.entity.name}</td>
+                    <td>{event.changeType}</td>
+                    <td>{event.deltaSummary}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Section>
         <div id="recent-generated-messages"><Section title="Recent generated messages">
           <LifecycleMessagePreviewTable

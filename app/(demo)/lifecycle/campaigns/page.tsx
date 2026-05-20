@@ -121,24 +121,26 @@ export default async function CampaignsPage({ searchParams }: PageProps) {
             <p>Generate a campaign run from the dashboard to create candidate opportunities.</p>
           </div>
         ) : (
-          <table className="table">
-            <thead>
-              <tr><th>User</th><th>Entity</th><th>Segment</th><th>Change</th><th>Score</th><th>Run</th><th>Subject</th></tr>
-            </thead>
-            <tbody>
-              {candidates.map((c) => (
-                <tr key={c.id}>
-                  <td><Link href={`/lifecycle/candidates/${c.id}`}>{c.user.fullName}</Link></td>
-                  <td>{c.entity.name}</td>
-                  <td>{c.segmentAtGeneration}</td>
-                  <td>{c.entityDelta.changeType}</td>
-                  <td>{c.priorityScore.toFixed(2)}</td>
-                  <td>{c.campaignRun ? <Link href={`/lifecycle/campaigns/${c.campaignRun.id}`}>{c.campaignRun.runName}</Link> : "—"}</td>
-                  <td>{c.generatedMessage?.subjectLine ?? "Not generated yet"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="tableScroll">
+            <table className="table">
+              <thead>
+                <tr><th>User</th><th>Entity</th><th>Segment</th><th>Change</th><th>Score</th><th>Run</th><th>Subject</th></tr>
+              </thead>
+              <tbody>
+                {candidates.map((c) => (
+                  <tr key={c.id}>
+                    <td><Link href={`/lifecycle/candidates/${c.id}`}>{c.user.fullName}</Link></td>
+                    <td>{c.entity.name}</td>
+                    <td>{c.segmentAtGeneration}</td>
+                    <td>{c.entityDelta.changeType}</td>
+                    <td>{c.priorityScore.toFixed(2)}</td>
+                    <td>{c.campaignRun ? <Link href={`/lifecycle/campaigns/${c.campaignRun.id}`}>{c.campaignRun.runName}</Link> : "—"}</td>
+                    <td>{c.generatedMessage?.subjectLine ?? "Not generated yet"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Section>
     );

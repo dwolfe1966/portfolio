@@ -113,20 +113,22 @@ export default async function DashboardPage() {
               <p>Use the generator below to create your first run and populate this table.</p>
             </div>
           ) : (
-            <table className="table">
-              <thead><tr><th>Run</th><th>Deltas</th><th>Matches</th><th>High priority</th><th>Revenue</th></tr></thead>
-              <tbody>
-                {runs.map((run) => (
-                  <tr key={run.id}>
-                    <td><Link href={`/lifecycle/campaigns/${run.id}`}>{run.runName}</Link></td>
-                    <td>{run.totalDeltas}</td>
-                    <td>{run.totalMatches}</td>
-                    <td>{run.totalHighPriority}</td>
-                    <td>${run.estimatedRevenue.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="tableScroll">
+              <table className="table">
+                <thead><tr><th>Run</th><th>Deltas</th><th>Matches</th><th>High priority</th><th>Revenue</th></tr></thead>
+                <tbody>
+                  {runs.map((run) => (
+                    <tr key={run.id}>
+                      <td><Link href={`/lifecycle/campaigns/${run.id}`}>{run.runName}</Link></td>
+                      <td>{run.totalDeltas}</td>
+                      <td>{run.totalMatches}</td>
+                      <td>{run.totalHighPriority}</td>
+                      <td>${run.estimatedRevenue.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
         <Section title="Run and test scenarios">
@@ -181,34 +183,38 @@ export default async function DashboardPage() {
           </table>
         </Section></div>
         <div id="recent-events"><Section title="Recent events (entity deltas)">
-          <table className="table">
-            <thead><tr><th>Entity</th><th>Change type</th><th>Summary</th><th>Detected</th></tr></thead>
-            <tbody>
-              {events.map((event) => (
-                <tr key={event.id}>
-                  <td>{event.entity.name}</td>
-                  <td>{event.changeType}</td>
-                  <td>{event.deltaSummary}</td>
-                  <td>{new Date(event.detectedAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="tableScroll">
+            <table className="table">
+              <thead><tr><th>Entity</th><th>Change type</th><th>Summary</th><th>Detected</th></tr></thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={event.id}>
+                    <td>{event.entity.name}</td>
+                    <td>{event.changeType}</td>
+                    <td>{event.deltaSummary}</td>
+                    <td>{new Date(event.detectedAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Section></div>
         <div id="recent-generated-messages"><Section title="Recent generated messages">
-          <table className="table">
-            <thead><tr><th>User</th><th>Entity</th><th>Subject</th><th>Model</th></tr></thead>
-            <tbody>
-              {messages.map((message) => (
-                <tr key={message.id}>
-                  <td>{message.campaignCandidate.user.fullName}</td>
-                  <td>{message.campaignCandidate.entity.name}</td>
-                  <td>{message.subjectLine}</td>
-                  <td>{message.modelName}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="tableScroll">
+            <table className="table">
+              <thead><tr><th>User</th><th>Entity</th><th>Subject</th><th>Model</th></tr></thead>
+              <tbody>
+                {messages.map((message) => (
+                  <tr key={message.id}>
+                    <td>{message.campaignCandidate.user.fullName}</td>
+                    <td>{message.campaignCandidate.entity.name}</td>
+                    <td>{message.subjectLine}</td>
+                    <td>{message.modelName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Section></div>
       </>
     );
