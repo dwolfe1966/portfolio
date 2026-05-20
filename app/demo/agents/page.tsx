@@ -63,6 +63,13 @@ function jobActionsFor(status: string) {
   return [];
 }
 
+function primaryJobAction(status: string) {
+  if (status === "queued") return "claim";
+  if (status === "running") return "complete";
+  if (status === "failed" || status === "dead_lettered" || status === "cancelled") return "requeue";
+  return null;
+}
+
 function label(value: string) {
   return value.replace(/_/g, " ");
 }
@@ -610,6 +617,11 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
           <div className="activityFeed">
             {operations.jobs.map((job) => (
               <details className="activityFeedItem" key={job.id}>
+                {(() => {
+                  const primaryAction = primaryJobAction(job.status);
+                  const secondaryActions = jobActionsFor(job.status).filter((action) => action !== primaryAction);
+                  return (
+                    <>
                 <summary>
                   <span className="activityFeedDate">{formatDate(job.createdAt)}</span>
                   <span className={`statusPill ${statusClass(job.status)}`}>{label(job.status)}</span>
@@ -629,7 +641,7 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
                     <AgentJobResultDetail result={job.result} />
                   </div>
                   {jobActionsFor(job.status).length > 0 ? (
-                    <div className="agentApprovalActions" aria-label={`Transition actions for ${job.jobType}`}>
+                    <div className="agentApprovalActions rowActionCluster" aria-label={`Transition actions for ${job.jobType}`}>
                       {job.status === "queued" ? (
                         <form action={runAgentJobOnceAction}>
                           <input type="hidden" name="id" value={job.id} />
@@ -642,21 +654,40 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
                           </button>
                         </form>
                       ) : null}
+                      {primaryAction ? (
+                        <form action={decideAgentJobAction}>
+                          <input type="hidden" name="id" value={job.id} />
+                          <input type="hidden" name="action" value={primaryAction} />
+                          <button className="btn smallBtn primary" type="submit">
+                            {label(primaryAction)}
+                          </button>
+                        </form>
+                      ) : null}
                       {job.app === "acquisition" && job.jobType === "provider_write" && !executionGate.humanApprovedProviderExecutionEnabled ? (
                         <span className="agentConfigWarning">{executionGate.nextRequiredAction}</span>
                       ) : null}
-                      {jobActionsFor(job.status).map((action) => (
-                        <form action={decideAgentJobAction} key={action}>
-                          <input type="hidden" name="id" value={job.id} />
-                          <input type="hidden" name="action" value={action} />
-                          <button className={`btn smallBtn ${action === "claim" || action === "complete" ? "" : "secondary"}`} type="submit">
-                            {label(action)}
-                          </button>
-                        </form>
-                      ))}
+                      {secondaryActions.length > 0 ? (
+                        <details className="rowActionMenu">
+                          <summary className="btn smallBtn">Actions</summary>
+                          <div className="rowActionMenuPanel">
+                            {secondaryActions.map((action) => (
+                              <form action={decideAgentJobAction} key={action}>
+                                <input type="hidden" name="id" value={job.id} />
+                                <input type="hidden" name="action" value={action} />
+                                <button className={`btn smallBtn ${action === "claim" || action === "complete" ? "" : "secondary"}`} type="submit">
+                                  {label(action)}
+                                </button>
+                              </form>
+                            ))}
+                          </div>
+                        </details>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
+                    </>
+                  );
+                })()}
               </details>
             ))}
           </div>
@@ -689,35 +720,40 @@ export default async function AgentOperationsPage({ searchParams }: { searchPara
                     <ApprovalProviderContext proposedAction={approval.proposedAction} />
                   </div>
                   {isOpenApproval(approval.status) ? (
-                    <div className="agentApprovalActions" aria-label={`Decision actions for ${approval.title}`}>
+                    <div className="agentApprovalActions rowActionCluster" aria-label={`Decision actions for ${approval.title}`}>
                       <form action={decideAgentApprovalAction}>
                         <input type="hidden" name="id" value={approval.id} />
                         <input type="hidden" name="status" value="approved" />
-                        <button className="btn smallBtn" type="submit">Approve</button>
+                        <button className="btn smallBtn primary" type="submit">Approve</button>
                       </form>
-                      {approval.app === "acquisition" ? (
-                        <form action={decideAgentApprovalAction}>
-                          <input type="hidden" name="id" value={approval.id} />
-                          <input type="hidden" name="status" value="approved" />
-                          <input type="hidden" name="runAfterApproval" value="true" />
-                          <button className="btn smallBtn" type="submit" disabled={!executionGate.humanApprovedProviderExecutionEnabled}>
-                            Approve and run dry run
-                          </button>
-                        </form>
-                      ) : null}
+                      <details className="rowActionMenu">
+                        <summary className="btn smallBtn">Actions</summary>
+                        <div className="rowActionMenuPanel">
+                          {approval.app === "acquisition" ? (
+                            <form action={decideAgentApprovalAction}>
+                              <input type="hidden" name="id" value={approval.id} />
+                              <input type="hidden" name="status" value="approved" />
+                              <input type="hidden" name="runAfterApproval" value="true" />
+                              <button className="btn smallBtn" type="submit" disabled={!executionGate.humanApprovedProviderExecutionEnabled}>
+                                Approve and run dry run
+                              </button>
+                            </form>
+                          ) : null}
+                          <form action={decideAgentApprovalAction}>
+                            <input type="hidden" name="id" value={approval.id} />
+                            <input type="hidden" name="status" value="rejected" />
+                            <button className="btn secondary smallBtn" type="submit">Reject</button>
+                          </form>
+                          <form action={decideAgentApprovalAction}>
+                            <input type="hidden" name="id" value={approval.id} />
+                            <input type="hidden" name="status" value="cancelled" />
+                            <button className="btn secondary smallBtn" type="submit">Cancel</button>
+                          </form>
+                        </div>
+                      </details>
                       {approval.app === "acquisition" && !executionGate.humanApprovedProviderExecutionEnabled ? (
                         <span className="agentConfigWarning">Approval remains available; immediate provider execution is downgraded until {executionGate.nextRequiredAction}</span>
                       ) : null}
-                      <form action={decideAgentApprovalAction}>
-                        <input type="hidden" name="id" value={approval.id} />
-                        <input type="hidden" name="status" value="rejected" />
-                        <button className="btn secondary smallBtn" type="submit">Reject</button>
-                      </form>
-                      <form action={decideAgentApprovalAction}>
-                        <input type="hidden" name="id" value={approval.id} />
-                        <input type="hidden" name="status" value="cancelled" />
-                        <button className="btn secondary smallBtn" type="submit">Cancel</button>
-                      </form>
                     </div>
                   ) : (
                     <Link className="btn smallBtn" href="/workspace/activity">Review audit trail</Link>
