@@ -205,6 +205,15 @@ function datasetRowSummary(dataset: LatestDataset | null) {
   ].join(" · ");
 }
 
+function datasetObjectCountGrid(dataset: LatestDataset) {
+  return [
+    { label: "Campaigns", value: rowCount(dataset.rowCounts, "campaigns") },
+    { label: "Audiences", value: rowCount(dataset.rowCounts, "audiences") },
+    { label: "Creatives", value: rowCount(dataset.rowCounts, "creatives") },
+    { label: "Performance", value: rowCount(dataset.rowCounts, "performance") }
+  ];
+}
+
 function formatDateTime(date: Date | null | undefined) {
   return date ? new Date(date).toLocaleString() : "None";
 }
@@ -881,6 +890,14 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                       {" · "}
                       {formatDateTime(activeProviderDataset.createdAt)}
                     </p>
+                    <div className="grid grid-4" style={{ gap: 8, marginTop: 12 }}>
+                      {datasetObjectCountGrid(activeProviderDataset).map((item) => (
+                        <div className="card compact" key={item.label}>
+                          <p className="small">{item.label}</p>
+                          <strong>{item.value.toLocaleString()}</strong>
+                        </div>
+                      ))}
+                    </div>
                     <div className="ctaRow">
                       <Link className="btn smallBtn primary" href="/acquisition/inputs?imported=1">Open acquisition inputs</Link>
                       <Link className="btn smallBtn" href={`/workspace/datasets/${activeProviderDataset.id}`}>Review dataset</Link>
@@ -902,6 +919,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                     <p className="small">
                       Latest sync · {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows · {formatDateTime(latestDataset.createdAt)}
                     </p>
+                    <p className="small">{datasetRowSummary(latestDataset)}</p>
                     <div className="ctaRow">
                       <Link className="btn smallBtn primary" href="/acquisition/inputs?imported=1">Open acquisition inputs</Link>
                       <Link className="btn smallBtn" href={`/workspace/datasets/${latestDataset.id}`}>Review dataset</Link>
@@ -926,7 +944,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
               <tr>
                 <th>Dataset</th>
                 <th>Scope</th>
-                <th>Rows</th>
+                <th>Objects</th>
                 <th>Created</th>
                 <th></th>
               </tr>
@@ -941,7 +959,10 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                     {dataset.id === activeDatasetId ? <p className="small">Active inputs source</p> : null}
                   </td>
                   <td>{acquisitionProviderSnapshotScopeLabel(dataset.metadata, { sentenceCase: true })}</td>
-                  <td>{rowCountTotal(dataset.rowCounts).toLocaleString()}</td>
+                  <td>
+                    <strong>{rowCountTotal(dataset.rowCounts).toLocaleString()} total</strong>
+                    <p className="small">{datasetRowSummary(dataset)}</p>
+                  </td>
                   <td>{formatDateTime(dataset.createdAt)}</td>
                   <td>
                     <div className="ctaRow">
