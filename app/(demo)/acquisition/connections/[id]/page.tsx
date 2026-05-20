@@ -92,19 +92,18 @@ async function loadProviderLiveData(
 
     // Fetch perf for up to the first 8 campaigns to keep page load bounded.
     const limited = campaigns.slice(0, 8);
-    const enriched: CampaignWithPerformance[] = [];
-    for (const campaign of limited) {
+    const enriched = await Promise.all(limited.map(async (campaign): Promise<CampaignWithPerformance> => {
       try {
         const performance = await connector.fetchPerformance(externalAccountId, campaign.externalCampaignId, range);
-        enriched.push({ campaign, performance, perfError: null });
+        return { campaign, performance, perfError: null };
       } catch (err) {
-        enriched.push({
+        return {
           campaign,
           performance: null,
           perfError: err instanceof Error ? err.message : "unknown error"
-        });
+        };
       }
-    }
+    }));
 
     const rankedCampaigns = enriched.sort((a, b) => {
       const spendDelta = (b.performance?.totals.spendCents ?? 0) - (a.performance?.totals.spendCents ?? 0);
@@ -118,8 +117,15 @@ async function loadProviderLiveData(
     let adGroups: RemoteAdGroup[] = [];
     let ads: RemoteAdUnit[] = [];
     if (selectedCampaign) {
-      selectedPerformance = await connector.fetchPerformance(externalAccountId, selectedCampaign.externalCampaignId, range);
-      adGroups = await connector.fetchAdGroups(externalAccountId, selectedCampaign.externalCampaignId);
+      const enrichedSelected = enriched.find((row) => row.campaign.externalCampaignId === selectedCampaign.externalCampaignId);
+      const [performanceResult, fetchedAdGroups] = await Promise.all([
+        enrichedSelected?.performance
+          ? Promise.resolve(enrichedSelected.performance)
+          : connector.fetchPerformance(externalAccountId, selectedCampaign.externalCampaignId, range),
+        connector.fetchAdGroups(externalAccountId, selectedCampaign.externalCampaignId)
+      ]);
+      selectedPerformance = performanceResult;
+      adGroups = fetchedAdGroups;
       const selectedAdGroup = selectedAdGroupId && adGroups.some((group) => group.externalAdGroupId === selectedAdGroupId)
         ? selectedAdGroupId
         : null;
