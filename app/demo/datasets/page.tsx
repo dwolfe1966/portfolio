@@ -437,10 +437,15 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                         </div>
                       </div>
                       {detail.sheetId ? <p className="small">Sheet ID: <code>{detail.sheetId}</code></p> : null}
-                      <div className="importHistoryActions">
+                      <div className="importHistoryActions rowActionCluster">
                         <Link className="btn smallBtn primary" href={sourceConfigHref(preset.sourceType, preset.app, preset.id, state.connectorAction)}>{state.action}</Link>
-                        <Link className="btn smallBtn" href={sourceDetailHref(preset.id)}>Manage source</Link>
-                        <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id)}>Open connector</Link>
+                        <details className="rowActionMenu">
+                          <summary className="btn smallBtn">Actions</summary>
+                          <div className="rowActionMenuPanel">
+                            <Link className="btn smallBtn" href={sourceDetailHref(preset.id)}>Manage source</Link>
+                            <Link className="btn smallBtn" href={sourceConfigHref(preset.sourceType, preset.app, preset.id)}>Open connector</Link>
+                          </div>
+                        </details>
                       </div>
                     </div>
                   );
@@ -502,13 +507,18 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                       <strong>{formatDate(dataset.createdAt)}</strong>
                     </div>
                   </div>
-                  <div className="importHistoryActions">
+                  <div className="importHistoryActions rowActionCluster">
                     <Link className="btn smallBtn primary" href={toolPageHref(dataset.app, "inputs")}>Open inputs</Link>
-                    <Link className="btn smallBtn" href={sourceDetailHref(dataset.id)}>Review dataset</Link>
-                    <form action={deleteDatasetSnapshot}>
-                      <input type="hidden" name="id" value={dataset.id} />
-                      <button className="btn smallBtn" type="submit">Delete snapshot</button>
-                    </form>
+                    <details className="rowActionMenu">
+                      <summary className="btn smallBtn">Actions</summary>
+                      <div className="rowActionMenuPanel">
+                        <Link className="btn smallBtn" href={sourceDetailHref(dataset.id)}>Review dataset</Link>
+                        <form action={deleteDatasetSnapshot}>
+                          <input type="hidden" name="id" value={dataset.id} />
+                          <button className="btn smallBtn" type="submit">Delete snapshot</button>
+                        </form>
+                      </div>
+                    </details>
                   </div>
                 </div>
               );
@@ -599,9 +609,14 @@ export default async function DemoDatasetsPage({ searchParams }: PageProps) {
                       <td>{log.validationErrors}</td>
                       <td>{formatDate(log.createdAt)}</td>
                       <td>
-                        <div className="importHistoryActions">
-                          <Link className="btn smallBtn" href="/lifecycle/inputs?imported=1">Inputs</Link>
+                        <div className="importHistoryActions rowActionCluster">
                           <Link className="btn smallBtn primary" href="/lifecycle/simulations?imported=1">Simulate</Link>
+                          <details className="rowActionMenu">
+                            <summary className="btn smallBtn">Actions</summary>
+                            <div className="rowActionMenuPanel">
+                              <Link className="btn smallBtn" href="/lifecycle/inputs?imported=1">Inputs</Link>
+                            </div>
+                          </details>
                         </div>
                       </td>
                     </tr>
