@@ -3019,6 +3019,66 @@ button {
   max-width: 100%;
   -webkit-overflow-scrolling: touch;
 }
+.dataTableScroll {
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 8px;
+}
+.dataTable {
+  min-width: 1120px;
+}
+.demoAppShellContent .dataTable {
+  width: max-content;
+  min-width: 1120px;
+}
+.demoAppShellContent .dataTable th,
+.demoAppShellContent .dataTable td {
+  min-width: 120px;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.demoAppShellContent .dataTable .colProvider { min-width: 96px; width: 96px; }
+.demoAppShellContent .dataTable .colAccount { min-width: 220px; width: 220px; }
+.demoAppShellContent .dataTable .colFlag { min-width: 80px; width: 80px; }
+.demoAppShellContent .dataTable .colSignal { min-width: 220px; width: 220px; }
+.demoAppShellContent .dataTable .colReadiness { min-width: 320px; width: 320px; }
+.demoAppShellContent .dataTable .colDataset { min-width: 240px; width: 240px; }
+.demoAppShellContent .dataTable .colScopes { min-width: 260px; width: 260px; }
+.demoAppShellContent .dataTable .colToken { min-width: 200px; width: 200px; }
+.demoAppShellContent .dataTable .colActions { min-width: 190px; width: 190px; }
+.demoAppShellContent .dataTable code {
+  overflow-wrap: anywhere;
+}
+.rowActionCluster {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+.rowActionMenu {
+  position: relative;
+}
+.rowActionMenu summary {
+  list-style: none;
+}
+.rowActionMenu summary::-webkit-details-marker {
+  display: none;
+}
+.rowActionMenuPanel {
+  display: flex;
+  margin-top: 6px;
+  min-width: 180px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--demo-divider, var(--line));
+  border-radius: 8px;
+  background: var(--demo-surface, #fff);
+  box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.65);
+}
+.rowActionMenuPanel .btn,
+.rowActionMenuPanel button {
+  width: 100%;
+}
 .pricingVizGrid {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);

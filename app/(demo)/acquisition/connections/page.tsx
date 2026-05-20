@@ -15,8 +15,7 @@ import {
   acquisitionProviderSnapshotSourceLabel
 } from "@/lib/acquisition-provider-snapshots";
 import { ConnectionBulkVisibilityButton } from "@/components/acquisition/ConnectionBulkVisibilityButton";
-import { ConnectionDisconnectButton } from "@/components/acquisition/ConnectionDisconnectButton";
-import { ConnectionVisibilityButton } from "@/components/acquisition/ConnectionVisibilityButton";
+import { ConnectionRowActions } from "@/components/acquisition/ConnectionRowActions";
 import { ProviderOperationLink } from "@/components/acquisition/ProviderOperationSubmit";
 
 export const dynamic = "force-dynamic";
@@ -745,138 +744,129 @@ export default async function ConnectionsPage({
                 <p>No {showingHidden ? "hidden" : "visible"} accounts.</p>
               </div>
             ) : (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Provider</th>
-                    <th>Account</th>
-                    <th>Test</th>
-                    <th>Provider signal</th>
-                    <th>Sync readiness</th>
-                    <th>Latest dataset</th>
-                    <th>Scopes</th>
-                    <th>Token</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedConnections.map((conn) => {
-                    const grantHealth = formatGrantHealth(conn.credentialGrant);
-                    const latestDataset = datasetByConnectionId.get(conn.id);
-                    const readiness = connectionReadiness(conn, latestDataset);
-                    const isActiveConnection = conn.id === activeConnectionId;
-                    const hidden = connectionHidden(conn);
-                    const parentId = parentCustomerId(conn);
-                    const campaignRows = latestDataset ? rowCount(latestDataset.rowCounts, "campaigns") : 0;
-                    const performanceRows = latestDataset ? rowCount(latestDataset.rowCounts, "performance") : 0;
-                    const totalRows = latestDataset ? rowCountTotal(latestDataset.rowCounts) : 0;
-                    return (
-                      <tr key={conn.id}>
-                        <td>{PROVIDER_LABEL[conn.provider] ?? conn.provider}</td>
-                        <td>
-                          <Link href={`/acquisition/connections/${conn.id}`}>
-                            <code className="small">{conn.externalAccountId}</code>
-                          </Link>
-                          <div className="small">{conn.accountName}</div>
-                          {parentId ? <div className="small">Manager {parentId}</div> : null}
-                          {hidden ? <div className="small bandText--watch">Hidden from default view</div> : null}
-                        </td>
-                        <td>
-                          <span className={`small bandText--${conn.isTestAccount ? "healthy" : "unhealthy"}`}>
-                            {conn.isTestAccount ? "Test" : "Live"}
-                          </span>
-                        </td>
-                        <td>
-                          {latestDataset ? (
-                            <>
-                              <span className={`statusPill ${campaignRows > 0 ? "live" : "progress"}`}>
-                                {campaignRows > 0 ? "campaign data" : "dataset only"}
-                              </span>
+              <div className="tableScroll dataTableScroll">
+                <table className="table dataTable acquisitionConnectionsTable">
+                  <thead>
+                    <tr>
+                      <th className="colProvider">Provider</th>
+                      <th className="colAccount">Account</th>
+                      <th className="colFlag">Test</th>
+                      <th className="colSignal">Provider signal</th>
+                      <th className="colReadiness">Sync readiness</th>
+                      <th className="colDataset">Latest dataset</th>
+                      <th className="colScopes">Scopes</th>
+                      <th className="colToken">Token</th>
+                      <th className="colActions"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayedConnections.map((conn) => {
+                      const grantHealth = formatGrantHealth(conn.credentialGrant);
+                      const latestDataset = datasetByConnectionId.get(conn.id);
+                      const readiness = connectionReadiness(conn, latestDataset);
+                      const isActiveConnection = conn.id === activeConnectionId;
+                      const hidden = connectionHidden(conn);
+                      const parentId = parentCustomerId(conn);
+                      const campaignRows = latestDataset ? rowCount(latestDataset.rowCounts, "campaigns") : 0;
+                      const performanceRows = latestDataset ? rowCount(latestDataset.rowCounts, "performance") : 0;
+                      const totalRows = latestDataset ? rowCountTotal(latestDataset.rowCounts) : 0;
+                      const actionLabel = `${PROVIDER_LABEL[conn.provider] ?? conn.provider} ${conn.externalAccountId}`;
+                      return (
+                        <tr key={conn.id}>
+                          <td className="colProvider">{PROVIDER_LABEL[conn.provider] ?? conn.provider}</td>
+                          <td className="colAccount">
+                            <Link href={`/acquisition/connections/${conn.id}`}>
+                              <code className="small">{conn.externalAccountId}</code>
+                            </Link>
+                            <div className="small">{conn.accountName}</div>
+                            {parentId ? <div className="small">Manager {parentId}</div> : null}
+                            {hidden ? <div className="small bandText--watch">Hidden from default view</div> : null}
+                          </td>
+                          <td className="colFlag">
+                            <span className={`small bandText--${conn.isTestAccount ? "healthy" : "unhealthy"}`}>
+                              {conn.isTestAccount ? "Test" : "Live"}
+                            </span>
+                          </td>
+                          <td className="colSignal">
+                            {latestDataset ? (
+                              <>
+                                <span className={`statusPill ${campaignRows > 0 ? "live" : "progress"}`}>
+                                  {campaignRows > 0 ? "campaign data" : "dataset only"}
+                                </span>
+                                <div className="small">
+                                  {campaignRows.toLocaleString()} campaigns · {performanceRows.toLocaleString()} performance · {totalRows.toLocaleString()} total rows
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <span className="statusPill progress">not synced</span>
+                                <div className="small">Open account to inspect campaigns and create a dataset.</div>
+                              </>
+                            )}
+                          </td>
+                          <td className="colReadiness">
+                            <span className={`statusPill ${readiness.tone}`}>{readiness.label}</span>
+                            <div className="small">{readiness.detail}</div>
+                          </td>
+                          <td className="colDataset">
+                            {latestDataset ? (
+                              <>
+                                <Link href={`/workspace/datasets/${latestDataset.id}`}>
+                                  {latestDataset.name}
+                                </Link>
+                                <div className="small">
+                                  {acquisitionProviderSnapshotSourceLabel(latestDataset.metadata)}
+                                  {" · "}
+                                  {acquisitionProviderSnapshotScopeLabel(latestDataset.metadata, { sentenceCase: true })}
+                                  {" · "}
+                                  {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows
+                                </div>
+                                {isActiveConnection ? <div className="small bandText--healthy">Active inputs source</div> : null}
+                              </>
+                            ) : isActiveConnection && activeDataset ? (
+                              <>
+                                <Link href={`/workspace/datasets/${activeDataset.id}`}>
+                                  {activeDataset.name}
+                                </Link>
+                                <div className="small">
+                                  {acquisitionProviderSnapshotSourceLabel(activeDataset.metadata)}
+                                  {" · "}
+                                  {acquisitionProviderSnapshotScopeLabel(activeDataset.metadata, { sentenceCase: true })}
+                                  {" · "}
+                                  {rowCountTotal(activeDataset.rowCounts).toLocaleString()} rows
+                                </div>
+                                <div className="small bandText--healthy">Active inputs source</div>
+                              </>
+                            ) : (
+                              <span className="small">No dataset snapshot yet.</span>
+                            )}
+                          </td>
+                          <td className="colScopes">
+                            {conn.scopes.length > 0 ? (
+                              <code className="small">{conn.scopes.join(" ")}</code>
+                            ) : (
+                              <span className="small">—</span>
+                            )}
+                          </td>
+                          <td className="colToken">
+                            <span className={`small bandText--${grantHealth.tone}`}>{grantHealth.label}</span>
+                            {conn.credentialGrant ? (
                               <div className="small">
-                                {campaignRows.toLocaleString()} campaigns · {performanceRows.toLocaleString()} performance · {totalRows.toLocaleString()} total rows
+                                {conn.credentialGrant.capabilities.length} capabilities · expires {formatDateTime(conn.expiresAt)}
                               </div>
-                            </>
-                          ) : (
-                            <>
-                              <span className="statusPill progress">not synced</span>
-                              <div className="small">Open account to inspect campaigns and create a dataset.</div>
-                            </>
-                          )}
-                        </td>
-                        <td>
-                          <span className={`statusPill ${readiness.tone}`}>{readiness.label}</span>
-                          <div className="small">{readiness.detail}</div>
-                        </td>
-                        <td>
-                          {latestDataset ? (
-                            <>
-                              <Link href={`/workspace/datasets/${latestDataset.id}`}>
-                                {latestDataset.name}
-                              </Link>
-                              <div className="small">
-                                {acquisitionProviderSnapshotSourceLabel(latestDataset.metadata)}
-                                {" · "}
-                                {acquisitionProviderSnapshotScopeLabel(latestDataset.metadata, { sentenceCase: true })}
-                                {" · "}
-                                {rowCountTotal(latestDataset.rowCounts).toLocaleString()} rows
-                              </div>
-                              {isActiveConnection ? <div className="small bandText--healthy">Active inputs source</div> : null}
-                            </>
-                          ) : isActiveConnection && activeDataset ? (
-                            <>
-                              <Link href={`/workspace/datasets/${activeDataset.id}`}>
-                                {activeDataset.name}
-                              </Link>
-                              <div className="small">
-                                {acquisitionProviderSnapshotSourceLabel(activeDataset.metadata)}
-                                {" · "}
-                                {acquisitionProviderSnapshotScopeLabel(activeDataset.metadata, { sentenceCase: true })}
-                                {" · "}
-                                {rowCountTotal(activeDataset.rowCounts).toLocaleString()} rows
-                              </div>
-                              <div className="small bandText--healthy">Active inputs source</div>
-                            </>
-                          ) : (
-                            <span className="small">No dataset snapshot yet.</span>
-                          )}
-                        </td>
-                        <td>
-                          {conn.scopes.length > 0 ? (
-                            <code className="small">{conn.scopes.join(" ")}</code>
-                          ) : (
-                            <span className="small">—</span>
-                          )}
-                        </td>
-                        <td>
-                          <span className={`small bandText--${grantHealth.tone}`}>{grantHealth.label}</span>
-                          {conn.credentialGrant ? (
-                            <div className="small">
-                              {conn.credentialGrant.capabilities.length} capabilities · expires {formatDateTime(conn.expiresAt)}
-                            </div>
-                          ) : (
-                            <div className="small">Reconnect to create a grant.</div>
-                          )}
-                        </td>
-                        <td>
-                          <ProviderOperationLink
-                            className="btn smallBtn"
-                            href={`/acquisition/connections/${conn.id}`}
-                            pendingLabel="Opening provider account"
-                            pendingDetail="Loading provider campaigns, ad groups or ad sets, ads, and recent performance."
-                          >
-                            Open
-                          </ProviderOperationLink>
-                          <ConnectionVisibilityButton id={conn.id} hidden={hidden} />
-                          <ConnectionDisconnectButton
-                            id={conn.id}
-                            label={`${PROVIDER_LABEL[conn.provider] ?? conn.provider} ${conn.externalAccountId}`}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            ) : (
+                              <div className="small">Reconnect to create a grant.</div>
+                            )}
+                          </td>
+                          <td className="colActions">
+                            <ConnectionRowActions id={conn.id} hidden={hidden} label={actionLabel} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </>
         )}
