@@ -41,6 +41,10 @@ type ProviderLiveData = {
   campaigns: CampaignWithPerformance[];
   totalCampaignCount: number;
   filteredCampaignCount: number;
+  displayedCampaignCount: number;
+  campaignPage: number;
+  campaignPageCount: number;
+  campaignPageSize: number;
   selectedCampaign: RemoteCampaign | null;
   selectedPerformance: RemotePerformance | null;
   adGroups: RemoteAdGroup[];
@@ -79,11 +83,25 @@ async function loadProviderLiveData(
   accountUserId: string | null,
   selectedCampaignId?: string | null,
   selectedAdGroupId?: string | null,
-  campaignQuery?: string | null
+  campaignQuery?: string | null,
+  campaignPage?: string | null
 ): Promise<ProviderLiveData> {
   const connector = connectorForProvider(provider, accountUserId);
   if (!connector) {
-    return { campaigns: [], totalCampaignCount: 0, filteredCampaignCount: 0, selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: "Live-data view not yet implemented for this provider." };
+    return {
+      campaigns: [],
+      totalCampaignCount: 0,
+      filteredCampaignCount: 0,
+      displayedCampaignCount: 0,
+      campaignPage: 1,
+      campaignPageCount: 1,
+      campaignPageSize: 25,
+      selectedCampaign: null,
+      selectedPerformance: null,
+      adGroups: [],
+      ads: [],
+      error: "Live-data view not yet implemented for this provider."
+    };
   }
 
   try {
@@ -96,9 +114,14 @@ async function loadProviderLiveData(
     const filteredCampaigns = query
       ? campaigns.filter((campaign) => `${campaign.name} ${campaign.externalCampaignId} ${campaign.status}`.toLowerCase().includes(query))
       : campaigns;
+    const campaignPageSize = 25;
+    const campaignPageCount = Math.max(1, Math.ceil(filteredCampaigns.length / campaignPageSize));
+    const parsedPage = Number(campaignPage ?? 1);
+    const currentPage = Math.min(Math.max(Number.isFinite(parsedPage) ? Math.trunc(parsedPage) : 1, 1), campaignPageCount);
+    const pagedCampaigns = filteredCampaigns.slice((currentPage - 1) * campaignPageSize, currentPage * campaignPageSize);
 
     // Fetch perf for up to the first 8 displayed campaigns to keep page load bounded.
-    const limited = filteredCampaigns.slice(0, 8);
+    const limited = pagedCampaigns.slice(0, 8);
     const enriched = await Promise.all(limited.map(async (campaign): Promise<CampaignWithPerformance> => {
       try {
         const performance = await connector.fetchPerformance(externalAccountId, campaign.externalCampaignId, range);
@@ -119,7 +142,7 @@ async function loadProviderLiveData(
     const enrichedIds = new Set(rankedCampaigns.map((row) => row.campaign.externalCampaignId));
     const displayedCampaigns = [
       ...rankedCampaigns,
-      ...filteredCampaigns
+      ...pagedCampaigns
         .filter((campaign) => !enrichedIds.has(campaign.externalCampaignId))
         .map((campaign) => ({ campaign, performance: null, perfError: null }))
     ];
@@ -150,6 +173,10 @@ async function loadProviderLiveData(
       campaigns: displayedCampaigns,
       totalCampaignCount: campaigns.length,
       filteredCampaignCount: filteredCampaigns.length,
+      displayedCampaignCount: displayedCampaigns.length,
+      campaignPage: currentPage,
+      campaignPageCount,
+      campaignPageSize,
       selectedCampaign,
       selectedPerformance,
       adGroups,
@@ -158,12 +185,16 @@ async function loadProviderLiveData(
     };
   } catch (err) {
     if (err instanceof GoogleAdsNotTestAccountError || err instanceof MetaAdsNotTestAccountError) {
-      return { campaigns: [], totalCampaignCount: 0, filteredCampaignCount: 0, selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: err.message };
+      return { campaigns: [], totalCampaignCount: 0, filteredCampaignCount: 0, displayedCampaignCount: 0, campaignPage: 1, campaignPageCount: 1, campaignPageSize: 25, selectedCampaign: null, selectedPerformance: null, adGroups: [], ads: [], error: err.message };
     }
     return {
       campaigns: [],
       totalCampaignCount: 0,
       filteredCampaignCount: 0,
+      displayedCampaignCount: 0,
+      campaignPage: 1,
+      campaignPageCount: 1,
+      campaignPageSize: 25,
       selectedCampaign: null,
       selectedPerformance: null,
       adGroups: [],
@@ -179,6 +210,7 @@ type PageProps = {
     campaignId?: string;
     adGroupId?: string;
     campaignQ?: string;
+    campaignPage?: string;
     syncError?: string;
     syncedDatasetId?: string;
     syncApplied?: string;
@@ -191,6 +223,16 @@ function campaignHref(connectionId: string, campaignId: string, adGroupId?: stri
   if (adGroupId) params.set("adGroupId", adGroupId);
   if (campaignQ?.trim()) params.set("campaignQ", campaignQ.trim());
   return `/acquisition/connections/${connectionId}?${params.toString()}`;
+}
+
+function campaignPageHref(connectionId: string, selected: { campaignId?: string; adGroupId?: string; campaignQ?: string }, page: number) {
+  const params = new URLSearchParams();
+  if (selected.campaignId) params.set("campaignId", selected.campaignId);
+  if (selected.adGroupId) params.set("adGroupId", selected.adGroupId);
+  if (selected.campaignQ?.trim()) params.set("campaignQ", selected.campaignQ.trim());
+  if (page > 1) params.set("campaignPage", String(page));
+  const query = params.toString();
+  return query ? `/acquisition/connections/${connectionId}?${query}` : `/acquisition/connections/${connectionId}`;
 }
 
 function dryRunContext(connection: { provider: string; externalAccountId: string }, campaign: RemoteCampaign | null, adGroupId?: string | null) {
@@ -659,7 +701,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
     ? [activeProviderDataset, ...syncedDatasets]
     : syncedDatasets;
   const live = isLiveProvider
-    ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId, selected.campaignQ)
+    ? await loadProviderLiveData(connection.provider, connection.externalAccountId, accountUserId, selected.campaignId, selected.adGroupId, selected.campaignQ, selected.campaignPage)
     : null;
   const syncState = syncStatus({ connection, live, latestDataset });
   const syncReady = isLiveProvider && syncState.label !== "Production access needed" && syncState.label !== "Developer token blocked" && syncState.label !== "Live read blocked" && syncState.label !== "Token expired" && syncState.label !== "Grant inactive" && syncState.label !== "Reconnect required";
@@ -1075,7 +1117,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
               <>
               <div className="card compact" style={{ marginBottom: 12 }}>
                 <p className="small">
-                  Showing {live?.campaigns.length.toLocaleString() ?? "0"} of {live?.filteredCampaignCount.toLocaleString() ?? "0"} matching campaigns
+                  Showing {live?.displayedCampaignCount.toLocaleString() ?? "0"} of {live?.filteredCampaignCount.toLocaleString() ?? "0"} matching campaigns
                   {live && live.filteredCampaignCount !== live.totalCampaignCount ? ` from ${live.totalCampaignCount.toLocaleString()} total` : ""}.
                   Recent performance is fetched for the first 8 displayed campaigns only.
                 </p>
@@ -1091,6 +1133,27 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                     <Link className="btn smallBtn" href={`/acquisition/connections/${connection.id}`}>Clear</Link>
                   </div>
                 </form>
+                {live && live.campaignPageCount > 1 ? (
+                  <div className="ctaRow" style={{ marginTop: 12 }}>
+                    <Link
+                      className="btn smallBtn"
+                      aria-disabled={live.campaignPage <= 1}
+                      href={campaignPageHref(connection.id, selected, Math.max(1, live.campaignPage - 1))}
+                    >
+                      Previous
+                    </Link>
+                    <span className="small">
+                      Page {live.campaignPage.toLocaleString()} of {live.campaignPageCount.toLocaleString()} · {live.campaignPageSize.toLocaleString()} per page
+                    </span>
+                    <Link
+                      className="btn smallBtn"
+                      aria-disabled={live.campaignPage >= live.campaignPageCount}
+                      href={campaignPageHref(connection.id, selected, Math.min(live.campaignPageCount, live.campaignPage + 1))}
+                    >
+                      Next
+                    </Link>
+                  </div>
+                ) : null}
               </div>
               <table className="table">
                 <thead>
