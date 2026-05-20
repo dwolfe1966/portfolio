@@ -3048,6 +3048,26 @@ button {
 .demoAppShellContent .dataTable code {
   overflow-wrap: anywhere;
 }
+.demoAppShellContent .table:not(.modelDocsTable):has(thead th:nth-child(6)) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.demoAppShellContent .table:not(.modelDocsTable):has(thead th:nth-child(6)) th,
+.demoAppShellContent .table:not(.modelDocsTable):has(thead th:nth-child(6)) td {
+  min-width: 128px;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.demoAppShellContent .table:not(.modelDocsTable):has(thead th:nth-child(6)) th:first-child,
+.demoAppShellContent .table:not(.modelDocsTable):has(thead th:nth-child(6)) td:first-child {
+  min-width: 160px;
+}
+.demoAppShellContent .table:not(.modelDocsTable):has(thead th:nth-child(6)) code {
+  overflow-wrap: anywhere;
+}
 .rowActionCluster {
   align-items: flex-start;
   display: flex;
