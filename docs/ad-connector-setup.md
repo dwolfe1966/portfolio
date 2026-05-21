@@ -4,6 +4,8 @@ Setup checklist for connecting real ad platforms (Google Ads + Meta Ads) to the 
 
 This guide is what you need to configure Google Ads and Meta Ads OAuth for the provider workflows. Until you complete the provider setup steps and provide env vars per [Section 3](#3-environment-variables), connected-provider pages will remain unavailable and the demo continues to run on sample/simulated data.
 
+For the detailed Meta-only checklist, see [Meta Ads Provider Setup](./meta-ads-provider-setup.md).
+
 ## Prerequisites
 
 - A Google account that owns or can create a Google Ads test Manager account
