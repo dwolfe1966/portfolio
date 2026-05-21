@@ -288,6 +288,72 @@ function datasetObjectCountGrid(dataset: LatestDataset) {
   ];
 }
 
+function providerScopeLevel(campaign: RemoteCampaign | null, adGroupId: string | null, childGroupSingular: string) {
+  if (!campaign) return "Account";
+  return adGroupId ? childGroupSingular : "Campaign";
+}
+
+function providerScopeRows({
+  connection,
+  campaign,
+  adGroup,
+  childGroupSingular
+}: {
+  connection: { externalAccountId: string; accountName: string };
+  campaign: RemoteCampaign | null;
+  adGroup: RemoteAdGroup | null;
+  childGroupSingular: string;
+}) {
+  return [
+    { label: "Account", value: connection.externalAccountId, detail: connection.accountName },
+    {
+      label: "Campaign",
+      value: campaign?.name ?? "None selected",
+      detail: campaign ? campaign.externalCampaignId : "Inspect campaigns before syncing a narrower scope."
+    },
+    {
+      label: childGroupSingular === "ad set" ? "Ad set" : "Ad group",
+      value: adGroup?.name ?? "All child objects",
+      detail: adGroup ? adGroup.externalAdGroupId : "Dataset sync includes every child object under the selected campaign."
+    }
+  ];
+}
+
+function providerSyncPreview({
+  live,
+  campaign,
+  selectedAdGroupId,
+  childGroupLabel
+}: {
+  live: ProviderLiveData | null;
+  campaign: RemoteCampaign | null;
+  selectedAdGroupId: string | null;
+  childGroupLabel: string;
+}) {
+  if (!live || live.error) {
+    return [
+      { label: "Campaigns", value: "Blocked" },
+      { label: childGroupLabel, value: "Blocked" },
+      { label: "Ads", value: "Blocked" },
+      { label: "Performance", value: "Blocked" }
+    ];
+  }
+  if (!campaign) {
+    return [
+      { label: "Campaigns", value: live.totalCampaignCount.toLocaleString() },
+      { label: childGroupLabel, value: "Select campaign" },
+      { label: "Ads", value: "Select campaign" },
+      { label: "Performance", value: "Account scope" }
+    ];
+  }
+  return [
+    { label: "Campaigns", value: "1 selected" },
+    { label: childGroupLabel, value: selectedAdGroupId ? "1 selected" : live.adGroups.length.toLocaleString() },
+    { label: "Ads", value: live.ads.length.toLocaleString() },
+    { label: "Performance", value: live.selectedPerformance ? "Last 14 days" : "No rows yet" }
+  ];
+}
+
 function formatDateTime(date: Date | null | undefined) {
   return date ? new Date(date).toLocaleString() : "None";
 }
@@ -713,8 +779,23 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
     ? providerModeCopy({ isTestAccount: connection.isTestAccount, syncReady, latestDataset })
     : null;
   const selectedAdGroupId = live?.adGroups.some((group) => group.externalAdGroupId === selected.adGroupId)
-    ? selected.adGroupId
+    ? selected.adGroupId ?? null
     : null;
+  const selectedAdGroup = selectedAdGroupId
+    ? live?.adGroups.find((group) => group.externalAdGroupId === selectedAdGroupId) ?? null
+    : null;
+  const scopeRows = providerScopeRows({
+    connection,
+    campaign: live?.selectedCampaign ?? null,
+    adGroup: selectedAdGroup,
+    childGroupSingular
+  });
+  const syncPreviewRows = providerSyncPreview({
+    live,
+    campaign: live?.selectedCampaign ?? null,
+    selectedAdGroupId,
+    childGroupLabel
+  });
   const recommended = isLiveProvider
     ? recommendedAction({ syncReady, latestDataset, activeProviderDataset, live, providerLabel })
     : null;
@@ -814,12 +895,43 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
             </div>
             <div className="card compact">
               <p className="small">Selected scope</p>
-              <div className="kpi">{selectedAdGroupId ? childGroupSingular : live?.selectedCampaign ? "Campaign" : "Account"}</div>
+              <div className="kpi">{providerScopeLevel(live?.selectedCampaign ?? null, selectedAdGroupId, childGroupSingular)}</div>
               <p className="small">
                 {selectedAdGroupId
                   ? `${childGroupLabel.slice(0, -1)} ${selectedAdGroupId}`
                   : live?.selectedCampaign?.externalCampaignId ?? connection.externalAccountId}
               </p>
+            </div>
+          </div>
+        </Section>
+      ) : null}
+
+      {isLiveProvider ? (
+        <Section title="Selected provider scope">
+          <div className="card">
+            <div className="grid grid-3">
+              {scopeRows.map((row) => (
+                <div className="card compact" key={row.label}>
+                  <p className="small">{row.label}</p>
+                  <h3>{row.value}</h3>
+                  <p className="small">{row.detail}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-4" style={{ gap: 8, marginTop: 12 }}>
+              {syncPreviewRows.map((row) => (
+                <div className="card compact" key={row.label}>
+                  <p className="small">{row.label}</p>
+                  <strong>{row.value}</strong>
+                </div>
+              ))}
+            </div>
+            <p className="small" style={{ marginTop: 12 }}>
+              Inspecting provider data only reads from {providerLabel}. Syncing creates a workspace dataset. Applying a dataset changes Acquisition inputs.
+            </p>
+            <div className="ctaRow">
+              <a className="btn smallBtn" href="#provider-object-selection">Inspect provider data</a>
+              <a className="btn smallBtn primary" href="#workspace-dataset-sync">Sync or apply dataset</a>
             </div>
           </div>
         </Section>
@@ -1090,7 +1202,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
         </Section>
       ) : (
         <>
-          <Section id="provider-object-selection" title="Provider object selection">
+          <Section id="provider-object-selection" title="Inspect provider data">
             {live?.error ? (
               <div className="card">
                 <p className="bandText--unhealthy small">Could not fetch campaigns: {liveDataErrorCopy(live.error)}</p>
@@ -1107,7 +1219,12 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                 <p>
                   {live.totalCampaignCount > 0
                     ? "No campaigns match this search."
-                    : "No campaigns found in this test account. Create a campaign in Google Ads to see live data here."}
+                    : `No campaigns were returned for this ${providerLabel} account yet.`}
+                </p>
+                <p className="small">
+                  {live.totalCampaignCount > 0
+                    ? "Clear or broaden the search to inspect the campaigns Google returned."
+                    : "If this is a newly connected or newly launched account, wait for campaign objects and performance rows to accrue in the provider, then reload this page. Dataset fallback remains available from Workspace dataset sync."}
                 </p>
                 {live.totalCampaignCount > 0 ? (
                   <div className="ctaRow">
@@ -1121,7 +1238,7 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                 <p className="small">
                   Showing {live?.displayedCampaignCount.toLocaleString() ?? "0"} of {live?.filteredCampaignCount.toLocaleString() ?? "0"} matching campaigns
                   {live && live.filteredCampaignCount !== live.totalCampaignCount ? ` from ${live.totalCampaignCount.toLocaleString()} total` : ""}.
-                  Recent performance is fetched for the first 8 displayed campaigns only.
+                  This section only inspects provider objects; use Workspace dataset sync to save or apply data.
                 </p>
                 <form className="grid grid-3" style={{ marginTop: 12 }}>
                   {selected.campaignId ? <input type="hidden" name="campaignId" value={selected.campaignId} /> : null}
@@ -1245,9 +1362,16 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
                 <div className="card">
                   <h3>Selected provider scope</h3>
                   <p className="small">
-                    Use this selection to materialize only the current campaign
-                    {selectedAdGroupId ? ` and ${childGroupSingular}` : ""}, or to request a provider-write dry-run.
+                    This is the current sync/write-review scope. The account page above shows exactly which provider objects will be included before you save a dataset.
                   </p>
+                  <div className="grid grid-2" style={{ gap: 8 }}>
+                    {syncPreviewRows.map((row) => (
+                      <div className="card compact" key={row.label}>
+                        <p className="small">{row.label}</p>
+                        <strong>{row.value}</strong>
+                      </div>
+                    ))}
+                  </div>
                   <pre className="code">{JSON.stringify(dryRunContext(connection, live.selectedCampaign, selectedAdGroupId), null, 2)}</pre>
                   <div className="ctaRow">
                     <form action={syncProviderConnectionDatasetAction}>
@@ -1320,7 +1444,10 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
             <Section title={childGroupLabel}>
               {live.adGroups.length === 0 ? (
                 <div className="card">
-                  <p>No {childGroupLabel.toLowerCase()} found for this campaign.</p>
+                  <p>No {childGroupLabel.toLowerCase()} were returned for this campaign.</p>
+                  <p className="small">
+                    You can still sync at campaign scope. If this campaign is new, wait for provider child objects to accrue, then inspect again.
+                  </p>
                 </div>
               ) : (
                 <div className="tableScroll">
@@ -1363,7 +1490,10 @@ export default async function ConnectionDetailPage({ params, searchParams }: Pag
             <Section title={selectedAdGroupId ? `Ads in selected ${childGroupSingular}` : "Ads in selected campaign"}>
               {live.ads.length === 0 ? (
                 <div className="card">
-                  <p>No ads found for this scope.</p>
+                  <p>No ads were returned for this scope.</p>
+                  <p className="small">
+                    The selected campaign can still be saved as a dataset. If ads are newly created or paused, wait for provider data to accrue and reload.
+                  </p>
                 </div>
               ) : (
                 <div className="tableScroll">
