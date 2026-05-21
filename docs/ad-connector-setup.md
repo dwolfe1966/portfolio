@@ -102,6 +102,7 @@ GOOGLE_OAUTH_REDIRECT_URI=http://localhost:3000/api/connections/google/callback 
 META_APP_ID=...
 META_APP_SECRET=...
 META_OAUTH_REDIRECT_URI=http://localhost:3000/api/connections/meta/callback
+META_GRAPH_API_VERSION=v25.0 # optional; defaults to v25.0
 
 # Optional local-only read gate for live provider inspection
 ACQUISITION_ALLOW_LIVE_PROVIDER_READS=true
@@ -120,6 +121,7 @@ This key is used to encrypt OAuth refresh tokens at rest in the `AdAccountConnec
 ## 4. Current behavior
 
 - `/api/connections/google/start`, `/api/connections/google/callback`, `/api/connections/meta/start`, and `/api/connections/meta/callback` perform OAuth code exchange and store encrypted tokens in `AdAccountConnection`.
+- Meta account discovery uses `/me/adaccounts` and follows paginated Graph API responses, so all accessible ad accounts should appear in `/acquisition/connections`.
 - `/acquisition/connections` lists connected accounts, provider readiness, latest provider datasets, reconnect actions, and disconnect actions.
 - `/acquisition/connections/[id]` inspects provider objects when reads are available, syncs provider datasets, creates provider-shaped fallback datasets when reads are blocked, and can apply a dataset into acquisition inputs.
 - Google and Meta connectors implement `fetchAccounts`, `fetchCampaigns`, `fetchAdGroups` / ad sets, `fetchAds`, and `fetchPerformance`.

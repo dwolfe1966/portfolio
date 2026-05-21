@@ -67,6 +67,30 @@ const CONNECTION_ERROR_COPY: Record<string, { message: string; href?: string; li
   no_accessible_customers: {
     message:
       "Google OAuth completed, but the signed-in Google user does not have access to any Google Ads customers. Sign in with the Google account that can open the Ads manager/customer account in Google Ads, or add this Google user to the Ads account, then reconnect."
+  },
+  not_configured: {
+    message:
+      "Meta OAuth is not configured. Add META_APP_ID, META_APP_SECRET, META_OAUTH_REDIRECT_URI, and OAUTH_ENCRYPTION_KEY, then restart the app."
+  },
+  token_exchange_failed: {
+    message:
+      "Meta OAuth returned an authorization code, but the app could not exchange it for an access token. Confirm the Meta App ID, App Secret, and redirect URI match exactly."
+  },
+  list_accounts_failed: {
+    message:
+      "Meta OAuth completed, but the app could not list accessible ad accounts. Confirm the Marketing API product is enabled and the signed-in Meta user has access to at least one ad account."
+  },
+  no_accessible_accounts: {
+    message:
+      "Meta OAuth completed, but the signed-in Meta user does not have access to any ad accounts. Add this user to a Business Manager ad account, then reconnect."
+  },
+  missing_params: {
+    message:
+      "The Meta OAuth callback did not include the expected code and state parameters. Restart the connection flow from this page."
+  },
+  state_cookie_mismatch: {
+    message:
+      "The Meta OAuth state cookie did not match the callback. Restart the connection flow in the same browser session."
   }
 };
 
