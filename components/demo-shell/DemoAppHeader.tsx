@@ -34,10 +34,14 @@ export function DemoAppHeader({
       </div>
       <div className="demoAppHeaderRight">
         {activeDataSource ? (
-          <a className={`demoDataSourceChip demoDataSourceChip-${activeDataSource.mode}`} href={activeDataSource.href}>
+          <a
+            className={`demoDataSourceChip demoDataSourceChip-${activeDataSource.mode} demoDataSourceChip-${activeDataSource.sourceType}`}
+            href={activeDataSource.href}
+            title={`${activeDataSource.sourceLabel}: ${activeDataSource.label}. ${activeDataSource.detail}`}
+          >
             <span className="demoDataSourceDot" aria-hidden />
             <span>
-              <strong>{activeDataSource.mode === "imported" ? "Imported data" : "Sample data"}</strong>
+              <strong>{activeDataSource.sourceLabel}</strong>
               <small>{activeDataSource.label}</small>
               <small>{activeDataSource.detail}</small>
             </span>

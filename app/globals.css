@@ -3527,6 +3527,19 @@ button {
   background: var(--amber);
   box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.16);
 }
+.demoDataSourceChip-google_ads .demoDataSourceDot,
+.demoDataSourceChip-meta_ads .demoDataSourceDot {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+.demoDataSourceChip-google_sheets .demoDataSourceDot {
+  background: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+.demoDataSourceChip-csv .demoDataSourceDot {
+  background: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.18);
+}
 .demoEnvChip {
   display: inline-block;
   font-family: var(--demo-mono);
