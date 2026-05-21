@@ -3048,6 +3048,19 @@ button {
 .demoAppShellContent .dataTable code {
   overflow-wrap: anywhere;
 }
+.providerListShortcut {
+  color: inherit;
+  text-decoration: none;
+}
+.providerListShortcut:hover {
+  border-color: var(--demo-accent);
+}
+.acquisitionConnectionsTable tr.providerActiveRow td {
+  background: color-mix(in srgb, var(--demo-accent) 10%, transparent);
+}
+.acquisitionConnectionsTable tr.providerActiveRow td:first-child {
+  box-shadow: inset 4px 0 0 var(--demo-accent);
+}
 .demoAppShellContent .table:not(.modelDocsTable):has(thead th:nth-child(6)) {
   display: block;
   width: 100%;

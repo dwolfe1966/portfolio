@@ -138,6 +138,18 @@ function connectionListHref(view: "visible" | "hidden", params: SearchParams) {
   return query ? `/acquisition/connections?${query}` : "/acquisition/connections";
 }
 
+function connectionFilterHref(params: SearchParams, overrides: Partial<SearchParams>) {
+  const next = { ...params, ...overrides };
+  const search = new URLSearchParams();
+  if (next.view === "hidden") search.set("view", "hidden");
+  if (next.q?.trim()) search.set("q", next.q.trim());
+  if (next.provider && next.provider !== "all") search.set("provider", next.provider);
+  if (next.data && next.data !== "all") search.set("data", next.data);
+  if (next.sort && next.sort !== "priority") search.set("sort", next.sort);
+  const query = search.toString();
+  return query ? `/acquisition/connections?${query}` : "/acquisition/connections";
+}
+
 function providerReady(provider: ProviderKey, encryptionReady: boolean, googleReady: boolean, metaReady: boolean) {
   return encryptionReady && (provider === "google_ads" ? googleReady : metaReady);
 }
@@ -440,6 +452,8 @@ export default async function ConnectionsPage({
   const filteredOutCount = baseDisplayedConnections.length - displayedConnections.length;
   const activeConnection = activeConnectionId ? connections.find((conn) => conn.id === activeConnectionId) ?? null : null;
   const syncedConnectionCount = visibleConnections.filter((conn) => datasetByConnectionId.has(conn.id)).length;
+  const unsyncedConnectionCount = visibleConnections.length - syncedConnectionCount;
+  const visibleLiveCount = visibleConnections.filter((conn) => !conn.isTestAccount).length;
   const attentionCounts = connectionAttentionCounts(visibleConnections);
   const inputSource = inputSourceDetail({ activeConnection, activeDataset, activeSelectionLabel });
   const providers: Array<{ key: ProviderKey; label: string; ready: boolean; connections: ConnectionWithGrant[] }> = [
@@ -691,6 +705,28 @@ export default async function ConnectionsPage({
           </div>
         ) : (
           <>
+            <div className="grid grid-4" style={{ marginBottom: 12 }}>
+              <Link className="card compact providerListShortcut" href={connectionFilterHref(params, { view: undefined, data: "synced", sort: "priority" })}>
+                <p className="small">Synced accounts</p>
+                <div className="kpi">{syncedConnectionCount.toLocaleString()}</div>
+                <p className="small">Accounts with provider snapshots</p>
+              </Link>
+              <Link className="card compact providerListShortcut" href={connectionFilterHref(params, { view: undefined, data: "unsynced", sort: "priority" })}>
+                <p className="small">Need dataset</p>
+                <div className="kpi">{unsyncedConnectionCount.toLocaleString()}</div>
+                <p className="small">Open to inspect and sync</p>
+              </Link>
+              <Link className="card compact providerListShortcut" href={connectionFilterHref(params, { view: undefined, data: "live", sort: "priority" })}>
+                <p className="small">Live accounts</p>
+                <div className="kpi">{visibleLiveCount.toLocaleString()}</div>
+                <p className="small">{liveProviderReadsEnabled() ? "Read inspection enabled" : "Live reads gated"}</p>
+              </Link>
+              <Link className="card compact providerListShortcut" href={connectionFilterHref(params, { view: "hidden", data: "all", sort: "priority" })}>
+                <p className="small">Hidden accounts</p>
+                <div className="kpi">{hiddenConnections.length.toLocaleString()}</div>
+                <p className="small">Review pruned accounts</p>
+              </Link>
+            </div>
             <div className="card compact" style={{ marginBottom: 12 }}>
               <p className="small">
                 Showing {displayedConnections.length.toLocaleString()} {showingHidden ? "hidden" : "visible"} accounts
@@ -772,7 +808,7 @@ export default async function ConnectionsPage({
                       const totalRows = latestDataset ? rowCountTotal(latestDataset.rowCounts) : 0;
                       const actionLabel = `${PROVIDER_LABEL[conn.provider] ?? conn.provider} ${conn.externalAccountId}`;
                       return (
-                        <tr key={conn.id}>
+                        <tr className={isActiveConnection ? "providerActiveRow" : undefined} key={conn.id}>
                           <td className="colProvider">{PROVIDER_LABEL[conn.provider] ?? conn.provider}</td>
                           <td className="colAccount">
                             <Link href={`/acquisition/connections/${conn.id}`}>
