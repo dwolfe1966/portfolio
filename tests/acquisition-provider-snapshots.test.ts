@@ -52,6 +52,16 @@ test("acquisitionProviderSnapshotScopeLabel describes selected and account syncs
     "selected campaign camp_1 / group group_1"
   );
 
+  assert.equal(
+    acquisitionProviderSnapshotScopeLabel({
+      syncScope: "selected_provider_scope",
+      externalCampaignId: "camp_2",
+      externalAdGroupId: "set_1",
+      childScopeType: "ad_set"
+    }),
+    "selected campaign camp_2 / ad set set_1"
+  );
+
   assert.equal(acquisitionProviderSnapshotScopeLabel({}, { sentenceCase: true }), "Account sync");
 });
 

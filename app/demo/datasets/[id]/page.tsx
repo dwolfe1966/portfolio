@@ -314,7 +314,7 @@ export default async function SourceConfigDetailPage({ params }: PageProps) {
                   <div className="workspaceSettingValue">{providerFacts.syncScope === "selected_provider_scope" ? "Selected scope" : "Account"}</div>
                   <p className="small">
                     {providerFacts.externalAdGroupId
-                      ? `Campaign ${providerFacts.externalCampaignId || "unknown"} / group ${providerFacts.externalAdGroupId}`
+                      ? `Campaign ${providerFacts.externalCampaignId || "unknown"} / ${providerFacts.childScopeType === "ad_set" ? "ad set" : "group"} ${providerFacts.externalAdGroupId}`
                       : providerFacts.externalCampaignId
                         ? `Campaign ${providerFacts.externalCampaignId}`
                         : "All synced provider objects"}

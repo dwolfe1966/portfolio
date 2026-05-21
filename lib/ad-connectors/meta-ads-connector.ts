@@ -29,12 +29,24 @@ type StoredConnection = {
   isTestAccount: boolean;
   encryptedAccessToken: string;
   expiresAt: Date | null;
+  credentialGrant?: {
+    metadata: unknown;
+  } | null;
 };
 
 type MetaPage<T> = {
   data?: T[];
   paging?: { next?: string };
 };
+
+function metadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function metadataString(metadata: unknown, key: string) {
+  const value = metadataRecord(metadata)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
 
 export class MetaAdsConnector implements AdConnector {
   readonly provider: AdProvider = "meta_ads";
@@ -53,6 +65,7 @@ export class MetaAdsConnector implements AdConnector {
     if (!isOAuthEncryptionAvailable()) throw new MetaAdsConnectorError("OAUTH_ENCRYPTION_KEY is not configured");
     const connections = await db.adAccountConnection.findMany({
       where: { provider: "meta_ads", ...this.ownedOrLegacyWhere() },
+      include: { credentialGrant: { select: { metadata: true } } },
       orderBy: { createdAt: "asc" }
     });
 
@@ -60,7 +73,7 @@ export class MetaAdsConnector implements AdConnector {
       provider: "meta_ads",
       externalAccountId: conn.externalAccountId,
       name: conn.accountName,
-      currencyCode: "USD",
+      currencyCode: metadataString(conn.credentialGrant?.metadata, "currency") ?? "USD",
       isTestAccount: conn.isTestAccount
     }));
   }
@@ -183,6 +196,7 @@ export class MetaAdsConnector implements AdConnector {
     const config = loadMetaOAuthConfig();
     const connection = await db.adAccountConnection.findFirst({
       where: { provider: "meta_ads", externalAccountId, ...this.ownedOrLegacyWhere() },
+      include: { credentialGrant: { select: { metadata: true } } },
       orderBy: { createdAt: "desc" }
     });
     if (!connection) throw new MetaAdsConnectorError(`No Meta Ads connection for account ${externalAccountId}`);

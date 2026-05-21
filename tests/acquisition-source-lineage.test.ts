@@ -91,7 +91,27 @@ test("acquisitionProviderAudienceLineage finds provider campaign context", () =>
   assert.deepEqual(source, {
     provider: "google_ads",
     externalCampaignId: "campaign_1",
-    externalAdGroupId: "group_1"
+    externalAdGroupId: "group_1",
+    externalAdSetId: ""
+  });
+});
+
+test("acquisitionProviderAudienceLineage finds Meta ad set context", () => {
+  const source = acquisitionProviderAudienceLineage([
+    {
+      targetingJson: {
+        provider: "meta_ads",
+        externalCampaignId: "campaign_2",
+        externalAdSetId: "set_1"
+      }
+    }
+  ]);
+
+  assert.deepEqual(source, {
+    provider: "meta_ads",
+    externalCampaignId: "campaign_2",
+    externalAdGroupId: "",
+    externalAdSetId: "set_1"
   });
 });
 

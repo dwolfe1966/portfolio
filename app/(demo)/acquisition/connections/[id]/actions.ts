@@ -177,12 +177,19 @@ function normalizeProviderBundle({
       campaignName: safeCampaignName(providerLabel, campaign),
       name: `${group.name || group.externalAdGroupId}`.slice(0, 80),
       audienceType: provider === "meta_ads" ? "provider_ad_set" : "provider_ad_group",
-      targetingJson: {
-        provider,
-        externalCampaignId: campaign.externalCampaignId,
-        externalAdGroupId: group.externalAdGroupId,
-        status: group.status
-      },
+      targetingJson: provider === "meta_ads"
+        ? {
+            provider,
+            externalCampaignId: campaign.externalCampaignId,
+            externalAdSetId: group.externalAdGroupId,
+            status: group.status
+          }
+        : {
+            provider,
+            externalCampaignId: campaign.externalCampaignId,
+            externalAdGroupId: group.externalAdGroupId,
+            status: group.status
+          },
       predictedCpcCents: Math.max(1, cpcCents),
       predictedCacCents: targets.targetCacCents
     }));
@@ -257,7 +264,8 @@ async function fetchProviderSnapshot(
     ads.push(...await connector.fetchAds(externalAccountId, campaign.externalCampaignId, scope.externalAdGroupId));
     performance.push(await connector.fetchPerformance(externalAccountId, campaign.externalCampaignId, range));
     if (scope.externalAdGroupId && scopedGroups.length === 0) {
-      throw new Error(`Selected ad group ${scope.externalAdGroupId} was not found under campaign ${campaign.externalCampaignId}.`);
+      const childLabel = connector.provider === "meta_ads" ? "ad set" : "ad group";
+      throw new Error(`Selected ${childLabel} ${scope.externalAdGroupId} was not found under campaign ${campaign.externalCampaignId}.`);
     }
   }
 

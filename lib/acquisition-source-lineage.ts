@@ -16,6 +16,7 @@ export type AcquisitionProviderAudienceLineage = {
   provider: string;
   externalCampaignId: string;
   externalAdGroupId: string;
+  externalAdSetId: string;
 };
 
 export type AcquisitionProviderTargetingFacts = {
@@ -98,16 +99,17 @@ export function acquisitionProviderAudienceLineage(
 ): AcquisitionProviderAudienceLineage {
   for (const audience of audiences) {
     const targeting = acquisitionMetadataRecord(audience.targetingJson);
-    if (targeting.provider || targeting.externalCampaignId || targeting.externalAdGroupId) {
+    if (targeting.provider || targeting.externalCampaignId || targeting.externalAdGroupId || targeting.externalAdSetId) {
       return {
         provider: stringValue(targeting.provider),
         externalCampaignId: stringValue(targeting.externalCampaignId),
-        externalAdGroupId: stringValue(targeting.externalAdGroupId)
+        externalAdGroupId: stringValue(targeting.externalAdGroupId),
+        externalAdSetId: stringValue(targeting.externalAdSetId)
       };
     }
   }
 
-  return { provider: "", externalCampaignId: "", externalAdGroupId: "" };
+  return { provider: "", externalCampaignId: "", externalAdGroupId: "", externalAdSetId: "" };
 }
 
 export function acquisitionProviderTargetingFacts(targetingJson: unknown): AcquisitionProviderTargetingFacts {

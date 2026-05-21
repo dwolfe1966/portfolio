@@ -106,6 +106,7 @@ export async function GET(req: NextRequest) {
         connectionMode: "read_only",
         providerAccountKind: "ad_account",
         accountStatus: account.accountStatus,
+        currency: account.currency,
         liveReadRequiresOptIn: true
       }
     });

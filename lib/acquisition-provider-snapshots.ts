@@ -78,13 +78,14 @@ export function acquisitionProviderSnapshotScopeLabel(metadata: unknown, options
   const facts = acquisitionProviderSnapshotFacts(metadata);
   const fallbackPrefix = facts.fallbackSnapshot ? (options.sentenceCase ? "Fallback " : "fallback ") : "";
   const prefix = options.sentenceCase ? "Selected" : "selected";
+  const childLabel = facts.childScopeType === "ad_set" ? "ad set" : "group";
   const accountLabel = facts.fallbackSnapshot
     ? `${fallbackPrefix}account sync`
     : options.sentenceCase ? "Account sync" : "account sync";
 
   if (facts.syncScope === "selected_provider_scope") {
     return facts.externalAdGroupId
-      ? `${fallbackPrefix}${prefix} campaign ${facts.externalCampaignId || "unknown"} / group ${facts.externalAdGroupId}`
+      ? `${fallbackPrefix}${prefix} campaign ${facts.externalCampaignId || "unknown"} / ${childLabel} ${facts.externalAdGroupId}`
       : `${fallbackPrefix}${prefix} campaign ${facts.externalCampaignId || "unknown"}`;
   }
 
