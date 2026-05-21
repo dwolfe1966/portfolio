@@ -19,7 +19,11 @@ import { buildProviderWritePreflight } from "@/lib/provider-preflight";
 import { getDefaultWorkspace } from "@/lib/workspace";
 import { createWorkspaceDatasetSnapshot } from "@/lib/workspace-dataset-snapshots";
 import { providerConnectionSyncRedirectUrl } from "@/lib/acquisition-provider-sync-redirect";
-import { acquisitionProviderSnapshotFacts } from "@/lib/acquisition-provider-snapshots";
+import {
+  acquisitionProviderSnapshotFacts,
+  acquisitionProviderSnapshotMetadata,
+  acquisitionProviderSnapshotName
+} from "@/lib/acquisition-provider-snapshots";
 
 function optionalString(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
@@ -297,7 +301,6 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
     externalCampaignId: optionalString(formData.get("externalCampaignId")),
     externalAdGroupId: optionalString(formData.get("externalAdGroupId")) ?? optionalString(formData.get("externalAdSetId"))
   };
-  const hasSelectedScope = Boolean(scope.externalCampaignId);
   let bundle: ProviderSnapshotBundle;
   try {
     bundle = await fetchProviderSnapshot(connector, connection.externalAccountId, scope);
@@ -305,6 +308,12 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
     revalidatePath(`/acquisition/connections/${connection.id}`);
     redirect(`/acquisition/connections/${connection.id}?syncError=${syncErrorReason(error)}`);
   }
+  const selectedCampaign = scope.externalCampaignId
+    ? bundle.campaigns.find((campaign) => campaign.externalCampaignId === scope.externalCampaignId) ?? null
+    : null;
+  const selectedAdGroup = scope.externalAdGroupId
+    ? bundle.adGroups.find((group) => group.externalAdGroupId === scope.externalAdGroupId) ?? null
+    : null;
   const normalized = normalizeProviderBundle({ provider: connection.provider, providerLabel, bundle });
   const rowCounts = {
     campaigns: normalized.campaigns.length,
@@ -313,10 +322,31 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
     performance: normalized.performance.length
   };
   const syncedAt = new Date().toISOString();
+  const providerRowCounts = {
+    campaigns: bundle.campaigns.length,
+    adGroups: bundle.adGroups.length,
+    ads: bundle.ads.length,
+    performanceSeries: bundle.performance.length,
+    performancePoints: bundle.performance.reduce((sum, item) => sum + item.daily.length, 0)
+  };
+  const snapshotMetadataInput = {
+    provider: connection.provider,
+    providerLabel,
+    externalAccountId: connection.externalAccountId,
+    accountName: connection.accountName,
+    connectionId: connection.id,
+    externalCampaignId: scope.externalCampaignId,
+    campaignName: selectedCampaign?.name ?? null,
+    externalAdGroupId: scope.externalAdGroupId,
+    adGroupName: selectedAdGroup?.name ?? null,
+    childScopeType: connection.provider === "meta_ads" ? "ad_set" : "ad_group",
+    syncedAt,
+    providerRowCounts
+  };
   const dataset = await createWorkspaceDatasetSnapshot({
     app: "acquisition",
     sourceType: connection.provider,
-    name: `${providerLabel} ${hasSelectedScope ? "selected scope" : "account"} sync · ${connection.externalAccountId}`,
+    name: acquisitionProviderSnapshotName(snapshotMetadataInput),
     accountUserId,
     rowCounts,
     rowData: {
@@ -333,30 +363,7 @@ export async function syncProviderConnectionDatasetAction(formData: FormData) {
       },
       normalized
     },
-    metadata: {
-      provider: connection.provider,
-      externalAccountId: connection.externalAccountId,
-      externalCampaignId: scope.externalCampaignId,
-      externalAdGroupId: scope.externalAdGroupId,
-      connectionId: connection.id,
-      syncScope: hasSelectedScope ? "selected_provider_scope" : "provider_account",
-      syncedAt,
-      sourceMetadata: {
-        sourceFlow: "provider_oauth_sync",
-        provider: connection.provider,
-        externalAccountId: connection.externalAccountId,
-        externalCampaignId: scope.externalCampaignId,
-        externalAdGroupId: scope.externalAdGroupId,
-        syncScope: hasSelectedScope ? "selected_provider_scope" : "provider_account"
-      },
-      providerRowCounts: {
-        campaigns: bundle.campaigns.length,
-        adGroups: bundle.adGroups.length,
-        ads: bundle.ads.length,
-        performanceSeries: bundle.performance.length,
-        performancePoints: bundle.performance.reduce((sum, item) => sum + item.daily.length, 0)
-      }
-    }
+    metadata: acquisitionProviderSnapshotMetadata(snapshotMetadataInput)
   });
 
   if (dataset && applyAfterSync) {
@@ -420,10 +427,27 @@ export async function createProviderFallbackDatasetAction(formData: FormData) {
     performance: normalized.performance.length
   };
   const syncedAt = new Date().toISOString();
+  const providerRowCounts = {
+    campaigns: bundle.campaigns.length,
+    adGroups: bundle.adGroups.length,
+    ads: bundle.ads.length,
+    performanceSeries: bundle.performance.length,
+    performancePoints: bundle.performance.reduce((sum, item) => sum + item.daily.length, 0)
+  };
+  const snapshotMetadataInput = {
+    provider: connection.provider,
+    providerLabel,
+    externalAccountId: connection.externalAccountId,
+    accountName: connection.accountName,
+    connectionId: connection.id,
+    syncedAt,
+    fallbackSnapshot: true,
+    providerRowCounts
+  };
   const dataset = await createWorkspaceDatasetSnapshot({
     app: "acquisition",
     sourceType: connection.provider,
-    name: `${providerLabel} fallback snapshot · ${connection.externalAccountId}`,
+    name: acquisitionProviderSnapshotName(snapshotMetadataInput),
     accountUserId,
     rowCounts,
     rowData: {
@@ -441,29 +465,7 @@ export async function createProviderFallbackDatasetAction(formData: FormData) {
       },
       normalized
     },
-    metadata: {
-      provider: connection.provider,
-      externalAccountId: connection.externalAccountId,
-      connectionId: connection.id,
-      syncScope: "provider_account",
-      syncedAt,
-      fallbackSnapshot: true,
-      sourceMetadata: {
-        sourceFlow: "provider_fallback_snapshot",
-        provider: connection.provider,
-        externalAccountId: connection.externalAccountId,
-        syncScope: "provider_account",
-        liveProviderReadBlocked: true,
-        fallbackSource: "deterministic_simulated_provider_shape"
-      },
-      providerRowCounts: {
-        campaigns: bundle.campaigns.length,
-        adGroups: bundle.adGroups.length,
-        ads: bundle.ads.length,
-        performanceSeries: bundle.performance.length,
-        performancePoints: bundle.performance.reduce((sum, item) => sum + item.daily.length, 0)
-      }
-    }
+    metadata: acquisitionProviderSnapshotMetadata(snapshotMetadataInput)
   });
 
   if (dataset && applyAfterSync) {

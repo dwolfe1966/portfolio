@@ -1,15 +1,37 @@
 export type AcquisitionProviderSnapshotFacts = {
   connectionId: string;
   provider: string;
+  providerLabel: string;
   externalAccountId: string;
+  accountName: string;
   externalCampaignId: string;
+  campaignName: string;
   externalAdGroupId: string;
+  adGroupName: string;
+  childScopeType: string;
   syncScope: string;
   syncedAt: string;
   fallbackSnapshot: boolean;
+  snapshotSource: string;
   sourceFlow: string;
   fallbackSource: string;
   providerRowCounts: Record<string, unknown>;
+};
+
+type AcquisitionProviderSnapshotMetadataInput = {
+  provider: string;
+  providerLabel: string;
+  connectionId: string;
+  externalAccountId: string;
+  accountName: string;
+  externalCampaignId?: string | null;
+  campaignName?: string | null;
+  externalAdGroupId?: string | null;
+  adGroupName?: string | null;
+  childScopeType?: string | null;
+  syncedAt: string;
+  fallbackSnapshot?: boolean;
+  providerRowCounts: Record<string, number>;
 };
 
 function metadataRecord(value: unknown) {
@@ -27,12 +49,18 @@ export function acquisitionProviderSnapshotFacts(metadata: unknown): Acquisition
   return {
     connectionId: stringField(record.connectionId),
     provider: stringField(record.provider, sourceMetadata.provider),
+    providerLabel: stringField(record.providerLabel, sourceMetadata.providerLabel),
     externalAccountId: stringField(record.externalAccountId, sourceMetadata.externalAccountId),
+    accountName: stringField(record.accountName, sourceMetadata.accountName),
     externalCampaignId: stringField(record.externalCampaignId, sourceMetadata.externalCampaignId),
+    campaignName: stringField(record.campaignName, sourceMetadata.campaignName),
     externalAdGroupId: stringField(record.externalAdGroupId, sourceMetadata.externalAdGroupId),
+    adGroupName: stringField(record.adGroupName, sourceMetadata.adGroupName),
+    childScopeType: stringField(record.childScopeType, sourceMetadata.childScopeType),
     syncScope: stringField(record.syncScope, sourceMetadata.syncScope) || "provider_account",
     syncedAt: stringField(record.syncedAt),
     fallbackSnapshot: record.fallbackSnapshot === true || sourceMetadata.sourceFlow === "provider_fallback_snapshot",
+    snapshotSource: stringField(record.snapshotSource, sourceMetadata.snapshotSource),
     sourceFlow: stringField(sourceMetadata.sourceFlow),
     fallbackSource: stringField(sourceMetadata.fallbackSource),
     providerRowCounts: metadataRecord(record.providerRowCounts)
@@ -61,4 +89,65 @@ export function acquisitionProviderSnapshotScopeLabel(metadata: unknown, options
   }
 
   return accountLabel;
+}
+
+function compactText(value: string, max = 44) {
+  const cleaned = value.replace(/\s+/g, " ").trim();
+  return cleaned.length > max ? `${cleaned.slice(0, max - 3)}...` : cleaned;
+}
+
+function snapshotDate(value: string) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+}
+
+export function acquisitionProviderSnapshotName(input: AcquisitionProviderSnapshotMetadataInput) {
+  const scope = input.externalCampaignId
+    ? `Campaign: ${compactText(input.campaignName || input.externalCampaignId)}`
+    : "Account";
+  const child = input.externalAdGroupId
+    ? ` · ${input.childScopeType === "ad_set" ? "Ad set" : "Ad group"}: ${compactText(input.adGroupName || input.externalAdGroupId, 32)}`
+    : "";
+  const source = input.fallbackSnapshot ? "fallback" : "live";
+  return `${input.providerLabel} · ${input.externalAccountId} · ${scope}${child} · ${source} · ${snapshotDate(input.syncedAt)}`.slice(0, 160);
+}
+
+export function acquisitionProviderSnapshotMetadata(input: AcquisitionProviderSnapshotMetadataInput) {
+  const syncScope = input.externalCampaignId ? "selected_provider_scope" : "provider_account";
+  const sourceFlow = input.fallbackSnapshot ? "provider_fallback_snapshot" : "provider_oauth_sync";
+  const snapshotSource = input.fallbackSnapshot ? "fallback" : "live";
+
+  return {
+    provider: input.provider,
+    providerLabel: input.providerLabel,
+    externalAccountId: input.externalAccountId,
+    accountName: input.accountName,
+    externalCampaignId: input.externalCampaignId ?? null,
+    campaignName: input.campaignName ?? null,
+    externalAdGroupId: input.externalAdGroupId ?? null,
+    adGroupName: input.adGroupName ?? null,
+    childScopeType: input.childScopeType ?? null,
+    connectionId: input.connectionId,
+    syncScope,
+    syncedAt: input.syncedAt,
+    snapshotSource,
+    fallbackSnapshot: input.fallbackSnapshot === true,
+    sourceMetadata: {
+      sourceFlow,
+      provider: input.provider,
+      providerLabel: input.providerLabel,
+      externalAccountId: input.externalAccountId,
+      accountName: input.accountName,
+      externalCampaignId: input.externalCampaignId ?? null,
+      campaignName: input.campaignName ?? null,
+      externalAdGroupId: input.externalAdGroupId ?? null,
+      adGroupName: input.adGroupName ?? null,
+      childScopeType: input.childScopeType ?? null,
+      syncScope,
+      snapshotSource,
+      liveProviderReadBlocked: input.fallbackSnapshot === true,
+      fallbackSource: input.fallbackSnapshot ? "deterministic_simulated_provider_shape" : null
+    },
+    providerRowCounts: input.providerRowCounts
+  };
 }
