@@ -33,7 +33,7 @@ const differentiators = [
 const proofStats = [
   { label: "Operating range", value: "Product · Data · Growth · Engineering" },
   { label: "Public + venture-backed contexts", value: "Napster · Interactive One · Goldbelly · MyLife" },
-  { label: "Portfolio proof", value: "6 AI revenue tools" }
+  { label: "Portfolio proof", value: "7 AI revenue tools" }
 ];
 
 type FeaturedProject = {
@@ -85,6 +85,14 @@ const featuredProjects: FeaturedProject[] = [
     href: "/projects/expansion-revenue-intelligence",
     appHref: "/expansion/overview",
     demoApp: "expansion"
+  },
+  {
+    title: "Email Engine ESP",
+    detail: "Provider-backed email platform with templates, audiences, campaigns, journeys, delivery, tracking, suppressions, and analytics.",
+    impact: "Turns owned email into auditable infrastructure instead of brittle one-off send logic.",
+    href: "/projects/email-engine-esp",
+    appHref: "https://email-engine.app",
+    demoApp: "email-engine"
   },
   {
     title: "Closed-Marketplace Auction",
@@ -178,7 +186,7 @@ export default function HomePage() {
 
       <Section title="Featured products">
         <p>
-          Six products backing the case studies — every page below clicks through to
+          Seven products backing the case studies — every page below clicks through to
           live software, not screenshots.
         </p>
         <div className="grid grid-3">

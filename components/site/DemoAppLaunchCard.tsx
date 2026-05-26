@@ -1,6 +1,13 @@
 import Link from "next/link";
 
-export type DemoAppLaunchTarget = "lifecycle" | "acquisition" | "auction" | "pricing" | "retention" | "expansion";
+export type DemoAppLaunchTarget =
+  | "lifecycle"
+  | "acquisition"
+  | "auction"
+  | "pricing"
+  | "retention"
+  | "expansion"
+  | "email-engine";
 
 const APP_COPY: Record<DemoAppLaunchTarget, {
   name: string;
@@ -36,6 +43,11 @@ const APP_COPY: Record<DemoAppLaunchTarget, {
     name: "Expansion Command Center",
     tagline: "Score expansion readiness, recommend upsell motions, and track expected ARR.",
     surface: "Accounts · Offers · Simulations · Outputs · Audit"
+  },
+  "email-engine": {
+    name: "Email Engine",
+    tagline: "Provider-backed ESP with campaigns, journeys, audiences, suppressions, and analytics.",
+    surface: "Admin · Templates · Delivery · Tracking · API"
   }
 };
 

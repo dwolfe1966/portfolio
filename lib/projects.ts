@@ -275,6 +275,57 @@ export const projects: ProjectEntry[] = [
     }
   },
   {
+    slug: "email-engine-esp",
+    title: "Email Engine ESP",
+    summary:
+      "A live provider-backed email service platform for template authoring, audience ingestion, campaign launch, journey orchestration, delivery operations, tracking, suppressions, and analytics.",
+    problem:
+      "Most teams either outgrow lightweight email tools or inherit brittle one-off sending code. They need the operational surface of an ESP without losing control of data contracts, delivery state, compliance rules, and provider portability.",
+    thesis:
+      "An ESP becomes more durable when campaign operations are modeled as an auditable platform: import contacts, build audiences, validate templates, approve launches, process queued delivery, capture provider events, and close the analytics loop.",
+    architecture: [
+      { title: "1. Contact and audience layer", detail: "Ingest contacts through APIs, CSV import, data sources, mappings, audience rules, previews, and snapshots." },
+      { title: "2. Template and content system", detail: "Author, lint, validate, version, preview, and render Jinja templates with tracking and unsubscribe variables." },
+      { title: "3. Campaign and journey orchestration", detail: "Create campaigns, approve scheduled launches, process due sends, clone workflows, and run multi-step journey enrollments." },
+      { title: "4. Delivery and compliance engine", detail: "Queue durable send records, process provider-backed delivery, handle retries, and enforce unsubscribe, bounce, complaint, and manual suppressions." },
+      { title: "5. Analytics and operations console", detail: "Expose campaign, audience, domain, journey, event, tracking-link, send-record, and delivery dashboards through API and admin views." }
+    ],
+    kpiCallouts: [
+      { label: "API surface", value: "80+ endpoints", detail: "FastAPI contracts cover templates, contacts, audiences, campaigns, journeys, delivery, tracking, suppressions, analytics, and webhooks." },
+      { label: "Migrations", value: "15", detail: "Alembic migrations evolve the ESP schema from initial entities through scheduling, journeys, retries, snapshots, and auth/session tables." },
+      { label: "Live provider", value: "SendGrid", detail: "Production delivery is provider-backed while the platform boundary remains neutral for future SMTP or ESP providers." }
+    ],
+    commercialFraming:
+      "The system is framed as owned email infrastructure: the product team controls lifecycle data, campaign workflow, delivery auditability, compliance state, and analytics rather than outsourcing the operating model to a black-box ESP.",
+    whatIBuilt:
+      "I built the FastAPI service, SQLAlchemy/Alembic schema, provider abstraction, template renderer and linting, contacts and audiences, CSV/data-source ingestion, campaign approval and launch flow, journey engine, queued delivery processing, SendGrid webhook ingestion, tracking links, suppressions, analytics endpoints, admin console, tester, deployment docs, and production smoke tests.",
+    appHref: "https://email-engine.app",
+    status: "live",
+    artifacts: {
+      outcomeStrip: [
+        { label: "Live app", value: "email-engine.app", note: "Production FastAPI deployment routes the root URL into the admin console." },
+        { label: "Campaign loop", value: "Approve/queue/send", note: "Campaigns validate, approve, launch into durable send jobs, and process queued records." },
+        { label: "Tracking", value: "Open/click", note: "Generated links and pixels record engagement and roll up into campaign analytics." }
+      ],
+      decisionFrame: [
+        { label: "Input", detail: "Contacts, attributes, audiences, templates, variables, data-source mappings, journeys, and campaign schedules." },
+        { label: "Decision", detail: "Validate render data, audience match count, suppressions, approval state, scheduled timing, and queued delivery eligibility." },
+        { label: "Output", detail: "Provider-backed sends, send records, tracking events, suppression records, campaign timelines, and analytics summaries." }
+      ],
+      evidenceLinks: [
+        { label: "Live admin", href: "https://email-engine.app", detail: "Opens the deployed Email Engine admin console." },
+        { label: "API docs", href: "https://email-engine.app/docs", detail: "Shows the generated OpenAPI schema for the production API." },
+        { label: "Source repository", href: "https://github.com/dwolfe1966/email-engine", detail: "Contains the FastAPI service, migrations, docs, tests, and deployment configuration." },
+        { label: "Template editor", href: "https://email-engine.app/template-editor", detail: "Shows the production template authoring, preview, and validation surface." }
+      ],
+      guardrails: [
+        { label: "Approval gate", detail: "Non-dry-run campaigns must validate and move through approval before production launch." },
+        { label: "Suppression enforcement", detail: "Unsubscribes, bounces, spam complaints, and manual suppressions block future sends." },
+        { label: "Webhook verification", detail: "SendGrid event-webhook signature verification is supported for production hardening." }
+      ]
+    }
+  },
+  {
     slug: "vickrey-auction-closed-ads-ecosystem",
     title: "Vickrey Auction Model for Closed Advertising Ecosystem",
     summary:
