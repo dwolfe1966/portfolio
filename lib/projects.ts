@@ -299,7 +299,7 @@ export const projects: ProjectEntry[] = [
       "The system is framed as owned email infrastructure: the product team controls lifecycle data, campaign workflow, delivery auditability, compliance state, and analytics rather than outsourcing the operating model to a black-box ESP.",
     whatIBuilt:
       "I built the FastAPI service, SQLAlchemy/Alembic schema, provider abstraction, template renderer and linting, contacts and audiences, CSV/data-source ingestion, campaign approval and launch flow, journey engine, queued delivery processing, SendGrid webhook ingestion, tracking links, suppressions, analytics endpoints, admin console, tester, deployment docs, and production smoke tests.",
-    appHref: "https://email-engine.app",
+    appHref: "https://email-engine.app/esp",
     status: "live",
     artifacts: {
       outcomeStrip: [
@@ -313,7 +313,7 @@ export const projects: ProjectEntry[] = [
         { label: "Output", detail: "Provider-backed sends, send records, tracking events, suppression records, campaign timelines, and analytics summaries." }
       ],
       evidenceLinks: [
-        { label: "Live admin", href: "https://email-engine.app", detail: "Opens the deployed Email Engine admin console." },
+        { label: "Live admin", href: "https://email-engine.app/esp", detail: "Opens the deployed Email Engine admin console." },
         { label: "API docs", href: "https://email-engine.app/docs", detail: "Shows the generated OpenAPI schema for the production API." },
         { label: "Source repository", href: "https://github.com/dwolfe1966/email-engine", detail: "Contains the FastAPI service, migrations, docs, tests, and deployment configuration." },
         { label: "Template editor", href: "https://email-engine.app/template-editor", detail: "Shows the production template authoring, preview, and validation surface." }

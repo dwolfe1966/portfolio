@@ -91,7 +91,7 @@ const featuredProjects: FeaturedProject[] = [
     detail: "Provider-backed email platform with templates, audiences, campaigns, journeys, delivery, tracking, suppressions, and analytics.",
     impact: "Turns owned email into auditable infrastructure instead of brittle one-off send logic.",
     href: "/projects/email-engine-esp",
-    appHref: "https://email-engine.app",
+    appHref: "https://email-engine.app/esp",
     demoApp: "email-engine"
   },
   {
