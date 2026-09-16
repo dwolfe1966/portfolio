@@ -30,6 +30,7 @@ model Workspace {
   providerCredentialGrants              ProviderCredentialGrant[]
   launchReadinessRecords                WorkspaceLaunchReadinessRecord[]
   workspaceInvites                      WorkspaceInvite[]
+  compoundingExpertiseAnalyses          CompoundingExpertiseAnalysis[]
 }
 
 model AccountUser {
@@ -63,6 +64,7 @@ model AccountUser {
   providerCredentialGrants              ProviderCredentialGrant[]
   launchReadinessRecords                WorkspaceLaunchReadinessRecord[]
   sentWorkspaceInvites                  WorkspaceInvite[]                      @relation("WorkspaceInviteInviter")
+  compoundingExpertiseAnalyses          CompoundingExpertiseAnalysis[]
 
   @@index([updatedAt])
 }
@@ -190,6 +192,112 @@ enum AcquisitionCampaignState {
   SCALING
   PAUSED
   COMPLETED
+}
+
+enum CompoundingFramework {
+  HELMER
+  SUN
+  WOLFE
+}
+
+enum CompoundingConfidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CompoundingEvidenceStatus {
+  OBSERVED
+  SOURCED
+  ASSUMED
+  UNKNOWN
+}
+
+enum CompoundingDebateSource {
+  SUN
+  WOLFE
+  USER
+  AI
+}
+
+model CompoundingExpertiseAnalysis {
+  id                  String                                   @id @default(cuid())
+  workspaceId         String?
+  accountUserId       String?
+  companyName         String
+  productDescription  String
+  targetCustomer      String
+  workflow            String
+  decisionDescription String
+  thesis              String
+  createdAt           DateTime                                 @default(now())
+  updatedAt           DateTime                                 @updatedAt
+  workspace           Workspace?                               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser         AccountUser?                             @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  keyDebates          CompoundingExpertiseKeyDebate[]
+  dimensionAssessments CompoundingExpertiseDimensionAssessment[]
+  simulationScenarios CompoundingExpertiseSimulationScenario[]
+
+  @@index([workspaceId, updatedAt])
+  @@index([accountUserId, updatedAt])
+  @@index([companyName])
+}
+
+model CompoundingExpertiseKeyDebate {
+  id                    String                      @id @default(cuid())
+  analysisId            String
+  question              String
+  bullCase              String
+  bearCase              String
+  evidenceNeeded        String
+  increaseBelief        String
+  decreaseBelief        String
+  probability           Int
+  source                CompoundingDebateSource     @default(USER)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  analysis              CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId, updatedAt])
+  @@index([source])
+}
+
+model CompoundingExpertiseDimensionAssessment {
+  id             String                        @id @default(cuid())
+  analysisId     String
+  framework      CompoundingFramework
+  dimension      String
+  score          Int
+  confidence     CompoundingConfidence          @default(LOW)
+  rationale      String
+  evidenceStatus CompoundingEvidenceStatus      @default(UNKNOWN)
+  source         CompoundingDebateSource        @default(USER)
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+  analysis       CompoundingExpertiseAnalysis   @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@unique([analysisId, framework, dimension])
+  @@index([analysisId, framework])
+  @@index([evidenceStatus])
+}
+
+model CompoundingExpertiseSimulationScenario {
+  id                 String                       @id @default(cuid())
+  analysisId         String
+  name               String
+  startingCases      Int
+  casesPerMonth      Float
+  feedbackDelayDays  Int
+  transferability    Float
+  informationValue   Float
+  learningEfficiency Float
+  stalenessRate      Float
+  baseCapability     Float
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  analysis           CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId, name])
 }
 
 model AcquisitionCampaign {

@@ -18,6 +18,7 @@ function resolveLaunchTarget(slug: string): DemoAppLaunchTarget {
   if (slug === "pricing-experimentation-control-tower") return "pricing";
   if (slug === "retention-risk-command-center") return "retention";
   if (slug === "expansion-revenue-intelligence") return "expansion";
+  if (slug === "compounding-expertise-lab") return "compounding-expertise";
   if (slug === "vickrey-auction-closed-ads-ecosystem") return "auction";
   if (slug === "email-engine-esp") return "email-engine";
   return "lifecycle";

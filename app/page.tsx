@@ -33,7 +33,7 @@ const differentiators = [
 const proofStats = [
   { label: "Operating range", value: "Product · Data · Growth · Engineering" },
   { label: "Public + venture-backed contexts", value: "Napster · Interactive One · Goldbelly · MyLife" },
-  { label: "Portfolio proof", value: "7 AI revenue tools" }
+  { label: "Portfolio proof", value: "8 AI revenue tools" }
 ];
 
 type FeaturedProject = {
@@ -85,6 +85,14 @@ const featuredProjects: FeaturedProject[] = [
     href: "/projects/expansion-revenue-intelligence",
     appHref: "/expansion/overview",
     demoApp: "expansion"
+  },
+  {
+    title: "Compounding Expertise Lab",
+    detail: "Research instrument for testing whether accumulated graded experience can become durable competitive Power in an AI application.",
+    impact: "Turns a venture thesis into editable debates, provenance-aware diagnostics, lagged learning simulation, and uncertainty-preserving memo.",
+    href: "/projects/compounding-expertise-lab",
+    appHref: "/compounding-expertise/inputs",
+    demoApp: "compounding-expertise"
   },
   {
     title: "Email Engine ESP",
@@ -186,7 +194,7 @@ export default function HomePage() {
 
       <Section title="Featured products">
         <p>
-          Seven products backing the case studies — every page below clicks through to
+          Eight products backing the case studies — every page below clicks through to
           live software, not screenshots.
         </p>
         <div className="grid grid-3">

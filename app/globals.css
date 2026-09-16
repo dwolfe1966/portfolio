@@ -697,6 +697,9 @@ button {
 .demoAppShell-expansion {
   --demo-accent: #f472b6;
 }
+.demoAppShell-compounding-expertise {
+  --demo-accent: #38bdf8;
+}
 .demoAppShell-light {
   --band-healthy: #0f6b3b;
   --band-watch: #a05a00;
@@ -3112,6 +3115,176 @@ button {
 .rowActionMenuPanel button {
   width: 100%;
 }
+.compoundingWorkflowRail {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.compoundingWorkflowRail a {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--demo-surface);
+  color: var(--demo-text);
+}
+.compoundingWorkflowRail a.active {
+  border-color: var(--demo-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--demo-accent) 38%, transparent);
+}
+.compoundingWorkflowRail span {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--demo-accent) 24%, transparent);
+  color: var(--demo-text);
+  font-family: var(--demo-mono);
+  font-size: 12px;
+}
+.compoundingWorkflowRail strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+.compoundingStepGrid .card {
+  min-height: 138px;
+}
+.compoundingIntegrityNotice {
+  border-left: 4px solid var(--demo-accent);
+}
+.compoundingIntegrityNotice strong,
+.compoundingSyntheticBanner strong {
+  display: block;
+  margin-bottom: 6px;
+}
+.compoundingSyntheticBanner {
+  border-color: color-mix(in srgb, var(--band-watch) 60%, var(--demo-divider));
+}
+.compoundingFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.compoundingFormGrid label,
+.compoundingDebateCard label,
+.compoundingAssessmentCard label,
+.compoundingScenarioCard label {
+  display: grid;
+  gap: 6px;
+  color: var(--demo-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.compoundingFormGrid .span-2 {
+  grid-column: 1 / -1;
+}
+.compoundingDebateStack {
+  display: grid;
+  gap: 12px;
+}
+.compoundingDebateCard,
+.compoundingAssessmentCard,
+.compoundingScenarioCard {
+  display: grid;
+  gap: 12px;
+}
+.compoundingCardHeader,
+.compoundingChartHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.provenanceBadge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--demo-accent) 58%, var(--demo-divider));
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--demo-text);
+  background: color-mix(in srgb, var(--demo-accent) 14%, transparent);
+  font-family: var(--demo-mono);
+  font-size: 11px;
+  line-height: 1;
+}
+.provenanceBadge-helmer { border-color: #a78bfa; }
+.provenanceBadge-sun { border-color: #38bdf8; }
+.provenanceBadge-wolfe { border-color: #34d399; }
+.compoundingRangeLabel input {
+  max-width: 160px;
+}
+.compoundingFrameworkIntro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.compoundingFrameworkIntro p {
+  margin: 0;
+}
+.compoundingAssessmentGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.compoundingChartCard {
+  overflow: hidden;
+}
+.compoundingChartCard svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 10px;
+}
+.compoundingCrossover {
+  border: 1px solid color-mix(in srgb, var(--band-watch) 56%, var(--demo-divider));
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--demo-text);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.compoundingLegend,
+.compoundingPowerList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.compoundingLegend span,
+.compoundingPowerList span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--demo-text);
+  font-size: 12px;
+}
+.compoundingLegend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+.compoundingMemoText {
+  width: 100%;
+  min-height: 460px;
+  font-family: var(--demo-mono);
+  font-size: 12px;
+  line-height: 1.55;
+}
 .pricingVizGrid {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -4373,11 +4546,21 @@ button {
   .pricingVizGrid,
   .pricingGuardrailRow,
   .pricingSegmentLiftRow,
+  .grid-5,
+  .compoundingWorkflowRail,
+  .compoundingFormGrid,
+  .compoundingAssessmentGrid,
+  .compoundingFrameworkIntro,
   .retentionVizGrid,
   .retentionBarRow,
   .expansionProcessMap,
   .expansionBoard,
   .expansionMotionGrid { grid-template-columns: 1fr; }
+  .compoundingCardHeader,
+  .compoundingChartHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .expansionProcessMap div { border-right: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
   .expansionProcessMap div:last-child { border-bottom: 0; }
   h1 { font-size: 42px; }

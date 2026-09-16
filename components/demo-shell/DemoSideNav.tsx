@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export type DemoApp = "lifecycle" | "acquisition" | "auction" | "pricing" | "retention" | "expansion";
+export type DemoApp = "lifecycle" | "acquisition" | "auction" | "pricing" | "retention" | "expansion" | "compounding-expertise";
 
 type NavLink = {
   href: string;
@@ -78,6 +78,16 @@ const ACQUISITION_LINKS: NavLink[] = [
   { href: "/acquisition/audit", label: "Audit", group: "operations" }
 ];
 
+const COMPOUNDING_EXPERTISE_LINKS: NavLink[] = [
+  { href: "/compounding-expertise/inputs", label: "Inputs", group: "primary" },
+  { href: "/compounding-expertise/debates", label: "Key Debates", group: "primary" },
+  { href: "/compounding-expertise/diagnostic", label: "Diagnostic", group: "primary" },
+  { href: "/compounding-expertise/simulator", label: "Simulator", group: "primary" },
+  { href: "/compounding-expertise/memo", label: "Memo", group: "primary" },
+  { href: "/compounding-expertise/overview", label: "Overview", group: "operations" },
+  { href: "/compounding-expertise/docs", label: "Docs", group: "operations" }
+];
+
 function isActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   return pathname.startsWith(`${href}/`);
@@ -97,7 +107,9 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
             ? PRICING_LINKS
             : app === "retention"
               ? RETENTION_LINKS
-              : EXPANSION_LINKS;
+              : app === "expansion"
+                ? EXPANSION_LINKS
+                : COMPOUNDING_EXPERTISE_LINKS;
   const primary = links.filter((link) => link.group !== "operations");
   const operations = links.filter((link) => link.group === "operations");
   const navBodyId = `${app}-demo-navigation-links`;
@@ -122,7 +134,9 @@ export function DemoSideNav({ app }: { app: DemoApp }) {
                     ? "Pricing Control Tower"
                     : app === "retention"
                       ? "Retention Command Center"
-                      : "Expansion Command Center"}
+                      : app === "expansion"
+                        ? "Expansion Command Center"
+                        : "Compounding Expertise Lab"}
           </span>
         </div>
         <button

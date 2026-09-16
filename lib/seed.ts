@@ -120,6 +120,13 @@ async function clearExpansionData() {
   await db.expansionAccount.deleteMany();
 }
 
+async function clearCompoundingExpertiseData() {
+  await db.compoundingExpertiseSimulationScenario.deleteMany();
+  await db.compoundingExpertiseDimensionAssessment.deleteMany();
+  await db.compoundingExpertiseKeyDebate.deleteMany();
+  await db.compoundingExpertiseAnalysis.deleteMany();
+}
+
 async function seedExpansionDemo() {
   await Promise.all([
     db.expansionAccount.create({
@@ -855,6 +862,7 @@ export async function reseed() {
   await clearPricingData();
   await clearRetentionData();
   await clearExpansionData();
+  await clearCompoundingExpertiseData();
   await seedLifecycleDemo();
   await seedAcquisitionDemo();
   await seedAuctionDemo();

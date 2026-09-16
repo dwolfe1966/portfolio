@@ -25,6 +25,10 @@ const copy: Record<DemoApp, { title: string; labels: string[] }> = {
   expansion: {
     title: "Expansion lane flow",
     labels: ["Base", "Whitespace", "Lane", "ARR"]
+  },
+  "compounding-expertise": {
+    title: "Thesis stress test",
+    labels: ["Thesis", "Debate", "Grade", "Memo"]
   }
 };
 

@@ -275,6 +275,58 @@ export const projects: ProjectEntry[] = [
     }
   },
   {
+    slug: "compounding-expertise-lab",
+    title: "Compounding Expertise Lab",
+    summary:
+      "An interactive research instrument for stress-testing whether accumulated graded experience can become durable competitive Power in an AI application.",
+    problem:
+      "Compounding Expertise is a powerful thesis, but it can easily become a story that proves itself. Investors and operators need a structured way to represent the thesis, identify unresolved debates, distinguish evidence from assumptions, and test when historical scorebooks can be compressed or relearned.",
+    thesis:
+      "Accumulated graded experience may become Power only when the product owns a continuous decision-to-outcome learning loop, the cases remain fresh and transferable, and challengers cannot cheaply compress, simulate, or relearn the useful knowledge.",
+    architecture: [
+      { title: "1. Thesis capture", detail: "Capture company, product, customer, workflow, principal decision, and current investment thesis." },
+      { title: "2. Key debates", detail: "Represent the 2-4 load-bearing questions with bull case, bear case, evidence needed, and belief-revision triggers." },
+      { title: "3. Provenance diagnostic", detail: "Score HELMER, SUN, and WOLFE dimensions with explicit confidence and evidence status." },
+      { title: "4. Lagged compounding simulator", detail: "Compare incumbent and challenger scenarios using matured feedback delay, staleness, transferability, information value, and base model capability." },
+      { title: "5. Memo synthesis", detail: "Generate a concise, uncertainty-preserving memo that surfaces unresolved debates rather than hiding them behind a simplistic moat score." }
+    ],
+    kpiCallouts: [
+      { label: "Frameworks", value: "3", detail: "HELMER, SUN, and WOLFE provenance stays visible throughout the workflow." },
+      { label: "Evidence states", value: "4", detail: "Observed, sourced, assumed, and unknown are separated explicitly." },
+      { label: "Simulator", value: "Lagged", detail: "Feedback delay is modeled as maturation lag, not a simple haircut." }
+    ],
+    commercialFraming:
+      "The Lab is built for rigorous venture/product conversations: it makes the thesis editable, debate-driven, falsifiable, and honest about uncertainty.",
+    whatIBuilt:
+      "I built the Prisma schema, five-stage workflow, synthetic example loader, belief-revision debate model, provenance-aware diagnostic, lagged toy simulator, crossover detection, memo synthesis, documentation, and unit tests.",
+    status: "live",
+    appHref: "/compounding-expertise/inputs",
+    artifacts: {
+      outcomeStrip: [
+        { label: "Workflow", value: "5 stages", note: "Inputs, Key Debates, Diagnostic, Simulator, and Memo." },
+        { label: "No moat score", value: "By design", note: "The tool preserves uncertainty instead of collapsing assumptions into fake precision." },
+        { label: "Stress test", value: "Wolfe", note: "Asks whether historical scorebook knowledge can be compressed or relearned." }
+      ],
+      decisionFrame: [
+        { label: "Input", detail: "Company thesis, workflow, decision surface, debates, and evidence-backed assessments." },
+        { label: "Decision", detail: "Evaluate whether the scorebook, capture point, or another Power appears defensible." },
+        { label: "Output", detail: "Scenario comparison, unresolved debates, evidence requests, and copyable memo." }
+      ],
+      evidenceLinks: [
+        { label: "Lab inputs", href: "/compounding-expertise/inputs", detail: "Shows company thesis setup and synthetic example loader." },
+        { label: "Key debates", href: "/compounding-expertise/debates", detail: "Shows belief revision questions and evidence requests." },
+        { label: "Diagnostic", href: "/compounding-expertise/diagnostic", detail: "Shows HELMER, SUN, and WOLFE provenance-aware assessment." },
+        { label: "Simulator", href: "/compounding-expertise/simulator", detail: "Shows lagged feedback compounding and crossover detection." },
+        { label: "Memo", href: "/compounding-expertise/memo", detail: "Shows uncertainty-preserving synthesis." }
+      ],
+      guardrails: [
+        { label: "Research integrity", detail: "AI suggestions are analysis, not evidence." },
+        { label: "Evidence provenance", detail: "Observed and sourced statuses require explicit user input." },
+        { label: "Toy-model limits", detail: "The simulator is exploratory and is never presented as an empirical law." }
+      ]
+    }
+  },
+  {
     slug: "email-engine-esp",
     title: "Email Engine ESP",
     summary:

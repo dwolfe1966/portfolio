@@ -7,6 +7,7 @@ export type DemoAppLaunchTarget =
   | "pricing"
   | "retention"
   | "expansion"
+  | "compounding-expertise"
   | "email-engine";
 
 const APP_COPY: Record<DemoAppLaunchTarget, {
@@ -43,6 +44,11 @@ const APP_COPY: Record<DemoAppLaunchTarget, {
     name: "Expansion Command Center",
     tagline: "Score expansion readiness, recommend upsell motions, and track expected ARR.",
     surface: "Accounts · Offers · Simulations · Outputs · Audit"
+  },
+  "compounding-expertise": {
+    name: "Compounding Expertise Lab",
+    tagline: "Test when graded experience becomes durable Power in an AI application.",
+    surface: "Inputs · Debates · Diagnostic · Simulator · Memo"
   },
   "email-engine": {
     name: "Email Engine",
