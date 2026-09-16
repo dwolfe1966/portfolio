@@ -17,42 +17,50 @@ export default async function CompoundingExpertiseLayout({ children }: { childre
 
   return (
     <DemoAppShell app="compounding-expertise">
-      <div className="compoundingActiveAnalysisBar" aria-label="Active Compounding Expertise analysis">
+      <details className="compoundingActiveAnalysisBar" aria-label="Active Compounding Expertise analysis">
         {analysis ? (
           <>
-            <div className="compoundingActiveAnalysisMain">
-              <span className="small">Current analysis</span>
+            <summary className="compoundingActiveAnalysisSummary">
+              <span>Current analysis</span>
               <strong>{analysis.companyName || "Untitled analysis"}</strong>
-              <p>
-                {analysis.targetCustomer || "Target customer not set"}
-                {analysis.workflow ? ` · ${analysis.workflow.slice(0, 96)}${analysis.workflow.length > 96 ? "..." : ""}` : ""}
-              </p>
-            </div>
-            <div className="compoundingActiveAnalysisFacts">
-              <span>{metrics?.totalCases ?? 0} cases</span>
-              <span>{pct(metrics?.gradeCoverage ?? null)} grade coverage</span>
-              <span className={allSynthetic ? "synthetic" : ""}>
-                {allSynthetic ? "Synthetic fixture" : rows?.length ? "User / sourced rows" : "No scorebook rows"}
-              </span>
-            </div>
-            <div className="compoundingActiveAnalysisActions">
-              <Link className="btn" href="/compounding-expertise/inputs">System</Link>
-              <Link className="btn" href="/compounding-expertise/scorebook">Scorebook</Link>
+            </summary>
+            <div className="compoundingActiveAnalysisDetails">
+              <div className="compoundingActiveAnalysisMain">
+                <p>
+                  {analysis.targetCustomer || "Target customer not set"}
+                  {analysis.workflow ? ` · ${analysis.workflow.slice(0, 96)}${analysis.workflow.length > 96 ? "..." : ""}` : ""}
+                </p>
+              </div>
+              <div className="compoundingActiveAnalysisFacts">
+                <span>{metrics?.totalCases ?? 0} cases</span>
+                <span>{pct(metrics?.gradeCoverage ?? null)} grade coverage</span>
+                <span className={allSynthetic ? "synthetic" : ""}>
+                  {allSynthetic ? "Synthetic fixture" : rows?.length ? "User / sourced rows" : "No scorebook rows"}
+                </span>
+              </div>
+              <div className="compoundingActiveAnalysisActions">
+                <Link className="btn" href="/compounding-expertise/inputs">System</Link>
+                <Link className="btn" href="/compounding-expertise/scorebook">Scorebook</Link>
+              </div>
             </div>
           </>
         ) : (
           <>
-            <div className="compoundingActiveAnalysisMain">
-              <span className="small">No active analysis</span>
+            <summary className="compoundingActiveAnalysisSummary">
+              <span>No active analysis</span>
               <strong>Choose a company or load an example</strong>
-              <p>The Lab will anchor every step to the selected company and associated scorebook.</p>
-            </div>
-            <div className="compoundingActiveAnalysisActions">
-              <Link className="btn primary" href="/compounding-expertise/overview">Start</Link>
+            </summary>
+            <div className="compoundingActiveAnalysisDetails">
+              <div className="compoundingActiveAnalysisMain">
+                <p>The Lab will anchor every step to the selected company and associated scorebook.</p>
+              </div>
+              <div className="compoundingActiveAnalysisActions">
+                <Link className="btn primary" href="/compounding-expertise/overview">Start</Link>
+              </div>
             </div>
           </>
         )}
-      </div>
+      </details>
       {children}
     </DemoAppShell>
   );

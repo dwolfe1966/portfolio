@@ -3167,15 +3167,52 @@ button {
   gap: 12px;
 }
 .compoundingActiveAnalysisBar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 12px;
+  display: block;
   border: 1px solid color-mix(in srgb, var(--demo-accent) 34%, var(--demo-divider));
   border-radius: 10px;
   margin: 0 0 12px;
   padding: 12px;
   background: color-mix(in srgb, var(--demo-surface) 82%, var(--demo-accent) 18%);
+}
+.compoundingActiveAnalysisSummary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--demo-text);
+}
+.compoundingActiveAnalysisSummary::-webkit-details-marker {
+  display: none;
+}
+.compoundingActiveAnalysisSummary::after {
+  content: "▾";
+  grid-column: 3;
+  color: var(--demo-text-muted);
+  font-size: 13px;
+  transform: rotate(-90deg);
+  transition: transform 160ms ease;
+}
+.compoundingActiveAnalysisBar[open] .compoundingActiveAnalysisSummary::after {
+  transform: rotate(0deg);
+}
+.compoundingActiveAnalysisSummary span {
+  color: var(--demo-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.compoundingActiveAnalysisSummary strong {
+  overflow-wrap: anywhere;
+}
+.compoundingActiveAnalysisDetails {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--demo-divider);
 }
 .compoundingActiveAnalysisMain {
   min-width: 0;
@@ -3214,6 +3251,30 @@ button {
 .compoundingActiveAnalysisFacts span.synthetic {
   border-color: color-mix(in srgb, var(--band-watch) 70%, var(--demo-divider));
   background: color-mix(in srgb, var(--band-watch) 16%, transparent);
+}
+.compoundingExampleTable {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.compoundingExampleTable .dataTable {
+  min-width: 980px;
+}
+.compoundingExampleTable th:first-child,
+.compoundingExampleTable td:first-child {
+  min-width: 220px;
+}
+.compoundingExampleTable th:nth-child(2),
+.compoundingExampleTable td:nth-child(2) {
+  min-width: 300px;
+}
+.compoundingExampleTable th:nth-child(3),
+.compoundingExampleTable td:nth-child(3) {
+  min-width: 360px;
+}
+.compoundingExampleTable th:last-child,
+.compoundingExampleTable td:last-child {
+  min-width: 120px;
+  text-align: right;
 }
 .compoundingProcessCard {
   display: grid;
@@ -4784,6 +4845,7 @@ button {
   .grid-5,
   .compoundingWorkflowRail,
   .compoundingActiveAnalysisBar,
+  .compoundingActiveAnalysisDetails,
   .compoundingFormGrid,
   .compoundingStructuredGrid,
   .compoundingSimulatorGroups fieldset,

@@ -62,25 +62,42 @@ export default function CompoundingExpertiseOverviewPage() {
             not to describe actual company operations.
           </p>
         </div>
-        <div className="compoundingExampleGrid">
-          {COMPOUNDING_EXAMPLES.map((example) => (
-            <div className="card compoundingExampleCard" key={example.id}>
-              <div>
-                <h3>{example.label}</h3>
-                <p>{example.role}</p>
-              </div>
-              <p className="small">{example.syntheticDatasetLabel}</p>
-              {example.id !== "creative-agent" ? (
-                <p className="small">Company analysis + synthetic illustrative scorebook. Case rows are NOT company data.</p>
-              ) : (
-                <p className="small">Entirely synthetic negative control.</p>
-              )}
-              <form action={loadSyntheticExampleAction}>
-                <input type="hidden" name="exampleId" value={example.id} />
-                <button className="btn" type="submit">Load example</button>
-              </form>
-            </div>
-          ))}
+        <div className="tableScroll compoundingExampleTable">
+          <table className="dataTable">
+            <thead>
+              <tr>
+                <th>Company / archetype</th>
+                <th>Theory test</th>
+                <th>Scorebook status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPOUNDING_EXAMPLES.map((example) => (
+                <tr key={example.id}>
+                  <td>
+                    <strong>{example.label}</strong>
+                  </td>
+                  <td>{example.role}</td>
+                  <td>
+                    <span>{example.syntheticDatasetLabel}</span>
+                    <br />
+                    <span className="small">
+                      {example.id !== "creative-agent"
+                        ? "Company analysis + synthetic illustrative scorebook. Case rows are NOT company data."
+                        : "Entirely synthetic negative control."}
+                    </span>
+                  </td>
+                  <td>
+                    <form action={loadSyntheticExampleAction}>
+                      <input type="hidden" name="exampleId" value={example.id} />
+                      <button className="btn" type="submit">Select</button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </Section>
 
