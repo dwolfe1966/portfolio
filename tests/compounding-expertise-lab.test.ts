@@ -7,6 +7,8 @@ import {
   LAB_WORKFLOW_STEPS,
   apparentPowerLocations,
   calculateScorebookMetrics,
+  caseSetForExample,
+  casesForCaseSet,
   defaultAssessments,
   detectCrossover,
   exampleById,
@@ -16,12 +18,14 @@ import {
   scorebookRowsAreSynthetic,
   simulateComparison,
   simulateScenario,
+  sourceRouteIsSafe,
   summarizeConclusion,
   validateAssessment,
   validateProbability,
   type DimensionAssessmentInput,
   type ScorebookCaseInput
 } from "@/lib/compounding-expertise-lab";
+import { buildPricingCaseSetDescriptor, normalizeCECase, PRICING_CE_CASE_SET_ADAPTER } from "@/lib/compounding-expertise-case-adapters";
 import { buildDebateGenerationPrompt, generateCompoundingExpertiseDebates } from "@/lib/compounding-expertise-ai";
 
 const baseScenario = {
@@ -321,6 +325,93 @@ test("synthetic dataset labeling is explicit for bundled examples", () => {
       if (example.id === "maybern") assert.match(row.sourceLabel, /not Maybern data/);
     }
   }
+});
+
+test("all canonical tests expose the same theory-test metadata", () => {
+  assert.equal(COMPOUNDING_EXAMPLES.length, 5);
+  assert.equal(new Set(COMPOUNDING_EXAMPLES.map((example) => example.testType)).size, 5);
+  for (const example of COMPOUNDING_EXAMPLES) {
+    assert.ok(example.testLabel);
+    assert.ok(example.canonicalQuestion);
+    assert.ok(example.principalDecision);
+    assert.ok(example.gradeObjectivity);
+    assert.ok(example.typicalFeedbackSpeed);
+    assert.ok(example.economicCostOfError);
+    assert.ok(example.primaryPowerHypothesis);
+    assert.ok(example.competingPowerHypothesis);
+    assert.ok(example.whyCanonical);
+    assert.ok(example.expectedTheoreticalBehavior);
+    assert.ok(example.labFailureCondition);
+    assert.ok(example.syntheticDatasetLabel.includes("SYNTHETIC ILLUSTRATIVE DATA"));
+  }
+});
+
+test("canonical fixtures resolve to explicit synthetic CaseSets", () => {
+  for (const example of COMPOUNDING_EXAMPLES) {
+    const caseSet = caseSetForExample(example);
+    assert.equal(caseSet.sourceType, "CANONICAL_SYNTHETIC");
+    assert.equal(caseSet.sourceSystemKey, "canonical_test_suite");
+    assert.equal(caseSet.isSynthetic, true);
+    assert.equal(caseSet.caseCount, example.cases.length);
+    assert.match(caseSet.provenanceLabel, /SYNTHETIC ILLUSTRATIVE DATA/);
+    assert.equal(sourceRouteIsSafe(caseSet.sourceRoute), true);
+  }
+});
+
+test("source route validation rejects external or unsafe routes", () => {
+  assert.equal(sourceRouteIsSafe("/pricing/outputs?returnTo=compounding-expertise"), true);
+  assert.equal(sourceRouteIsSafe("https://example.com"), false);
+  assert.equal(sourceRouteIsSafe("//example.com"), false);
+  assert.equal(sourceRouteIsSafe("javascript:alert(1)"), false);
+});
+
+test("cases can associate with and filter by CaseSet without mixing metrics", () => {
+  const rows: ScorebookCaseInput[] = [
+    { ...scorebookRows[0], caseSetId: "set-a" },
+    { ...scorebookRows[1], caseSetId: "set-a" },
+    { ...scorebookRows[2], caseSetId: "set-b" }
+  ];
+  const setA = casesForCaseSet(rows, "set-a");
+  const setB = casesForCaseSet(rows, "set-b");
+
+  assert.equal(setA.length, 2);
+  assert.equal(setB.length, 1);
+  assert.equal(calculateScorebookMetrics(setA).totalCases, 2);
+  assert.equal(calculateScorebookMetrics(setA).gradedCases, 2);
+  assert.equal(calculateScorebookMetrics(setB).gradedCases, 0);
+});
+
+test("adapter-normalized CE cases allow unresolved nullable outcomes and grades", () => {
+  const normalized = normalizeCECase({
+    externalCaseId: "pricing-run-1-row-1",
+    customerSegment: "mid-market",
+    caseType: "pricing simulation",
+    context: "Segment price variant decision",
+    agentDecision: "raise price",
+    outcome: null,
+    grade: null,
+    humanOverride: null
+  }, "DAVIDWOLFE.APP PRICING SOURCE SYSTEM - generated run descriptor");
+
+  assert.equal(normalized.grade, "UNRESOLVED");
+  assert.equal(normalized.outcome, null);
+  assert.equal(normalized.humanOverride, false);
+  assert.equal(normalized.isSynthetic, false);
+});
+
+test("pricing adapter descriptor uses safe source route and source metadata", () => {
+  const caseSet = buildPricingCaseSetDescriptor({
+    runId: "run-42",
+    runLabel: "Pricing Run #42",
+    caseCount: 12
+  });
+
+  assert.equal(PRICING_CE_CASE_SET_ADAPTER.sourceSystemKey, "pricing");
+  assert.equal(caseSet.sourceType, "DAVIDWOLFE_APP");
+  assert.equal(caseSet.sourceSystemKey, "pricing");
+  assert.equal(caseSet.caseCount, 12);
+  assert.equal(sourceRouteIsSafe(caseSet.sourceRoute), true);
+  assert.match(caseSet.sourceRoute ?? "", /returnTo=compounding-expertise/);
 });
 
 test("example dataset loading resolves every archetype without actual company data claims", () => {

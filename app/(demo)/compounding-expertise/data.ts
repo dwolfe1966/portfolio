@@ -18,6 +18,7 @@ export async function loadCompoundingAnalysis(accountUserId: string | null) {
       keyDebates: { orderBy: { createdAt: "asc" } },
       dimensionAssessments: { orderBy: [{ framework: "asc" }, { dimension: "asc" }] },
       simulationScenarios: { orderBy: { name: "asc" } },
+      caseSets: { orderBy: [{ createdAt: "asc" }] },
       scorebookCases: { orderBy: [{ decisionAt: "desc" }, { createdAt: "desc" }] }
     },
     orderBy: { updatedAt: "desc" }

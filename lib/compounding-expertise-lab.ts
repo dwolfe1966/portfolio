@@ -4,6 +4,13 @@ export type CompoundingEvidenceStatus = "OBSERVED" | "SOURCED" | "ASSUMED" | "UN
 export type CompoundingDebateSource = "SUN" | "WOLFE" | "USER" | "AI";
 export type CompoundingCaseGrade = "CORRECT" | "PARTIALLY_CORRECT" | "INCORRECT" | "UNRESOLVED";
 export type CompoundingExampleId = "casap" | "listen-labs" | "aaru" | "maybern" | "creative-agent";
+export type CanonicalTestType =
+  | "POSITIVE_TEST"
+  | "BOUNDARY_TEST"
+  | "SUBSTITUTION_COMPRESSION_TEST"
+  | "ALTERNATIVE_POWER_TEST"
+  | "NEGATIVE_CONTROL";
+export type CaseSetSourceType = "CANONICAL_SYNTHETIC" | "DAVIDWOLFE_APP" | "CSV" | "GOOGLE_SHEETS" | "LIVE" | "EXTERNAL" | "MANUAL";
 
 export type CompanyThesisInput = {
   companyName: string;
@@ -97,6 +104,7 @@ export type ValidationResult = {
 
 export type ScorebookCaseInput = {
   id?: string;
+  caseSetId?: string | null;
   externalCaseId: string;
   customerSegment: string;
   caseType: string;
@@ -116,6 +124,31 @@ export type ScorebookCaseInput = {
   isSynthetic: boolean;
   sourceLabel: string;
   notes?: string | null;
+};
+
+export type CaseSetInput = {
+  id?: string;
+  analysisId?: string | null;
+  name: string;
+  description?: string | null;
+  sourceType: CaseSetSourceType;
+  sourceSystemKey?: string | null;
+  sourceSystemLabel?: string | null;
+  sourceRunId?: string | null;
+  sourceRunLabel?: string | null;
+  sourceRunType?: string | null;
+  sourceRoute?: string | null;
+  sourceExternalUrl?: string | null;
+  generatedAt?: Date | string | null;
+  importedAt?: Date | string | null;
+  modelVersion?: string | null;
+  policyVersion?: string | null;
+  experimentId?: string | null;
+  isSynthetic: boolean;
+  provenanceLabel: string;
+  caseCount: number;
+  parentCaseSetId?: string | null;
+  derivationDescription?: string | null;
 };
 
 export type ScorebookMetrics = {
@@ -309,7 +342,25 @@ export type CompoundingExample = {
   id: CompoundingExampleId;
   label: string;
   role: string;
+  companyName: string;
+  testType: CanonicalTestType;
+  testLabel: string;
+  canonicalQuestion: string;
+  productCategory: string;
+  principalDecision: string;
+  gradeObjectivity: string;
+  typicalFeedbackSpeed: string;
+  economicCostOfError: string;
+  crossCustomerTransferPotential: string;
+  historicalCaseDependence: string;
+  primaryPowerHypothesis: string;
+  competingPowerHypothesis: string;
+  whyCanonical: string;
+  expectedTheoreticalBehavior: string;
+  labFailureCondition: string;
+  sourceAppKey?: string | null;
   syntheticDatasetLabel: string;
+  caseSet: Omit<CaseSetInput, "analysisId" | "caseCount">;
   analysis: CompanyThesisInput;
   debates: KeyDebateInput[];
   scenarios: SimulationScenarioInput[];
@@ -427,7 +478,38 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     id: "casap",
     label: "Casap",
     role: "Strong Compounding Expertise candidate.",
+    companyName: "Casap",
+    testType: "POSITIVE_TEST",
+    testLabel: "Positive test",
+    canonicalQuestion: "Can repeated, economically consequential, objectively graded decisions create expertise that a capable challenger cannot quickly reproduce?",
+    productCategory: "Disputes / fraud / exception resolution",
+    principalDecision: "Dispute / fraud / exception resolution action.",
+    gradeObjectivity: "Relatively high",
+    typicalFeedbackSpeed: "Relatively fast - days/weeks as an archetype assumption",
+    economicCostOfError: "High",
+    crossCustomerTransferPotential: "Plausibly high but requires evidence",
+    historicalCaseDependence: "Potentially important",
+    primaryPowerHypothesis: "Compounding Expertise, potentially reinforcing Network Economies and Process Power.",
+    competingPowerHypothesis: "Workflow distribution, process execution, or data rights may matter as much as the scorebook.",
+    whyCanonical: "Close to the strongest theoretical environment for Ben Sun's thesis: repeated decisions, observable outcomes, meaningful economics, and workflow capture.",
+    expectedTheoreticalBehavior: "Compounding Expertise should be plausible if cross-customer transfer and resistance to compression are demonstrated.",
+    labFailureCondition: "If the Lab rejects CE merely because case count is modest, or accepts CE without testing transferability/compressibility, the framework is behaving poorly.",
+    sourceAppKey: null,
     syntheticDatasetLabel: CASAP_SOURCE,
+    caseSet: {
+      name: "Synthetic disputes scorebook",
+      description: "Canonical positive-test fixture for objectively graded dispute and exception decisions.",
+      sourceType: "CANONICAL_SYNTHETIC",
+      sourceSystemKey: "canonical_test_suite",
+      sourceSystemLabel: "Canonical Test Fixture",
+      sourceRunLabel: "Casap positive test fixture",
+      sourceRunType: "synthetic_fixture",
+      sourceRoute: "/compounding-expertise/overview?canonical=casap",
+      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
+      isSynthetic: true,
+      provenanceLabel: CASAP_SOURCE,
+      derivationDescription: "Created as a synthetic theory-test CaseSet; not Casap operational data."
+    },
     analysis: {
       companyName: "Casap archetype review",
       productDescription: "Company-analysis archetype for a disputes workflow where decisions can plausibly be graded against outcomes. Case rows are synthetic fixtures only.",
@@ -473,7 +555,38 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     id: "listen-labs",
     label: "Listen Labs",
     role: "Ambiguous case: accumulated research or knowledge may not equal a graded decision scorebook.",
+    companyName: "Listen Labs",
+    testType: "BOUNDARY_TEST",
+    testLabel: "Boundary test",
+    canonicalQuestion: "Is accumulated proprietary knowledge the same thing as accumulated graded expertise?",
+    productCategory: "AI-assisted research / listening",
+    principalDecision: "Research insight / recommendation used to support later product, marketing, or strategy decisions.",
+    gradeObjectivity: "Low-to-medium / often indirect",
+    typicalFeedbackSpeed: "Delayed and sometimes ambiguous",
+    economicCostOfError: "Medium / context-dependent",
+    crossCustomerTransferPotential: "Uncertain",
+    historicalCaseDependence: "Questionable",
+    primaryPowerHypothesis: "Potentially valuable proprietary knowledge / filing cabinet rather than a true scorebook.",
+    competingPowerHypothesis: "Brand, workflow ownership, research distribution, or proprietary access may dominate.",
+    whyCanonical: "Separates information accumulation from decision -> outcome -> grade accumulation.",
+    expectedTheoreticalBehavior: "The Lab should not infer strong CE merely from large amounts of proprietary research or customer knowledge.",
+    labFailureCondition: "If interview/research volume alone creates a strong CE conclusion without an observable decision/outcome/grade loop, the Lab has confused the filing cabinet with the scorebook.",
+    sourceAppKey: null,
     syntheticDatasetLabel: LISTEN_SOURCE,
+    caseSet: {
+      name: "Synthetic research/listening scorebook",
+      description: "Canonical boundary-test fixture for qualitative research where decision/outcome/grade linkage is weak.",
+      sourceType: "CANONICAL_SYNTHETIC",
+      sourceSystemKey: "canonical_test_suite",
+      sourceSystemLabel: "Canonical Test Fixture",
+      sourceRunLabel: "Listen Labs boundary test fixture",
+      sourceRunType: "synthetic_fixture",
+      sourceRoute: "/compounding-expertise/overview?canonical=listen-labs",
+      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
+      isSynthetic: true,
+      provenanceLabel: LISTEN_SOURCE,
+      derivationDescription: "Created as a synthetic theory-test CaseSet; not Listen Labs operational data."
+    },
     analysis: {
       companyName: "Listen Labs archetype review",
       productDescription: "Company-analysis archetype for AI-assisted research/listening workflows. Case rows are synthetic fixtures only.",
@@ -522,7 +635,38 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     id: "aaru",
     label: "Aaru / model-first research",
     role: "Challenge case: stronger model intelligence may substitute for proprietary experience.",
+    companyName: "Aaru",
+    testType: "SUBSTITUTION_COMPRESSION_TEST",
+    testLabel: "Substitution / compression test",
+    canonicalQuestion: "Can sufficiently capable models or simulation substitute for real-world experience that historically had to be accumulated case by case?",
+    productCategory: "Model-first research / simulation",
+    principalDecision: "Prediction/simulation of likely human or market response to a proposed action.",
+    gradeObjectivity: "Potentially high when simulation predictions are later compared with actual outcomes",
+    typicalFeedbackSpeed: "Depends on prediction horizon",
+    economicCostOfError: "Use-case dependent",
+    crossCustomerTransferPotential: "Potentially central",
+    historicalCaseDependence: "Core question - potentially lower if model priors/simulation substitute for experience",
+    primaryPowerHypothesis: "Model/simulation capability may compress the value of historical scorebooks.",
+    competingPowerHypothesis: "Base model capability, simulation quality, or synthetic data generation may dominate proprietary experience.",
+    whyCanonical: "Directly tests the Wolfe criticism that economically useful scorebook information can be compressed, simulated, inferred, or relearned.",
+    expectedTheoreticalBehavior: "Increasing base-model/simulation capability should be capable of reducing the modeled advantage of historical experience.",
+    labFailureCondition: "If the Lab always rewards the larger historical scorebook and cannot represent model/simulation substitution, the theory test is incomplete.",
+    sourceAppKey: null,
     syntheticDatasetLabel: AARU_SOURCE,
+    caseSet: {
+      name: "Synthetic model-first research scorebook",
+      description: "Canonical substitution/compression fixture for model-first research and simulation claims.",
+      sourceType: "CANONICAL_SYNTHETIC",
+      sourceSystemKey: "canonical_test_suite",
+      sourceSystemLabel: "Canonical Test Fixture",
+      sourceRunLabel: "Aaru substitution/compression test fixture",
+      sourceRunType: "synthetic_fixture",
+      sourceRoute: "/compounding-expertise/overview?canonical=aaru",
+      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
+      isSynthetic: true,
+      provenanceLabel: AARU_SOURCE,
+      derivationDescription: "Created as a synthetic theory-test CaseSet; not Aaru operational data."
+    },
     analysis: {
       companyName: "Aaru model-first archetype review",
       productDescription: "Company-analysis archetype for model-first research where base intelligence may compress the value of historical cases. Case rows are synthetic fixtures only.",
@@ -571,7 +715,38 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     id: "maybern",
     label: "Maybern",
     role: "Alternative Power: deterministic rails/schema may matter more than Compounding Expertise.",
+    companyName: "Maybern",
+    testType: "ALTERNATIVE_POWER_TEST",
+    testLabel: "Alternative Power test",
+    canonicalQuestion: "Does an AI company need Compounding Expertise at all, or can durable Power reside in deterministic domain infrastructure?",
+    productCategory: "Deterministic finance / fund operations infrastructure",
+    principalDecision: "Structured fund/finance calculation or controlled operational action.",
+    gradeObjectivity: "Very high",
+    typicalFeedbackSpeed: "Immediate/short",
+    economicCostOfError: "High",
+    crossCustomerTransferPotential: "Not necessarily the primary strategic variable",
+    historicalCaseDependence: "Potentially secondary",
+    primaryPowerHypothesis: "Deterministic rails, Process Power, Switching Costs, domain infrastructure.",
+    competingPowerHypothesis: "Compounding Expertise may be weak/modest while business Power resides elsewhere.",
+    whyCanonical: "Tests Ben's argument that some durable AI applications may sell what intelligence needs rather than intelligence itself.",
+    expectedTheoreticalBehavior: "The Lab should be capable of concluding weak/modest CE but potentially strong business Power elsewhere.",
+    labFailureCondition: "If weak CE automatically produces a weak-company conclusion, the Lab is improperly treating CE as the only form of Power.",
+    sourceAppKey: null,
     syntheticDatasetLabel: MAYBERN_SOURCE,
+    caseSet: {
+      name: "Synthetic deterministic-rails scorebook",
+      description: "Canonical alternative-Power fixture for deterministic rails, schema, and controlled execution.",
+      sourceType: "CANONICAL_SYNTHETIC",
+      sourceSystemKey: "canonical_test_suite",
+      sourceSystemLabel: "Canonical Test Fixture",
+      sourceRunLabel: "Maybern alternative Power test fixture",
+      sourceRunType: "synthetic_fixture",
+      sourceRoute: "/compounding-expertise/overview?canonical=maybern",
+      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
+      isSynthetic: true,
+      provenanceLabel: MAYBERN_SOURCE,
+      derivationDescription: "Created as a synthetic theory-test CaseSet; not Maybern operational data."
+    },
     analysis: {
       companyName: "Maybern archetype review",
       productDescription: "Company-analysis archetype for deterministic workflows where schema, controls, and process execution may be the stronger source of Power. Case rows are synthetic fixtures only.",
@@ -620,7 +795,38 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     id: "creative-agent",
     label: "Creative Marketing Agent",
     role: "Negative control: many cases but subjective/noisy grading and difficult-to-prove decision superiority.",
+    companyName: "Creative Marketing Agent",
+    testType: "NEGATIVE_CONTROL",
+    testLabel: "Negative control",
+    canonicalQuestion: "When can enormous volumes of apparently graded data fail to create durable expertise?",
+    productCategory: "Creative / marketing agent",
+    principalDecision: "Creative / message / audience / campaign allocation choice.",
+    gradeObjectivity: "Superficially measurable but causally noisy",
+    typicalFeedbackSpeed: "Fast for clicks/conversions; slower for durable economic outcomes",
+    economicCostOfError: "Medium",
+    crossCustomerTransferPotential: "Potentially broad but highly context-sensitive",
+    historicalCaseDependence: "Large datasets may exist but contain substantial redundancy",
+    primaryPowerHypothesis: "Possibly none from CE alone.",
+    competingPowerHypothesis: "Workflow distribution, brand, media buying economics, or creative process may matter more.",
+    whyCanonical: "Tests whether the Lab confuses high case volume + rapid feedback with high-value transferable expertise.",
+    expectedTheoreticalBehavior: "Large data volume should not automatically produce strong CE when outcomes are confounded, nonstationary, redundant, or easily learned by frontier models.",
+    labFailureCondition: "If the Lab declares strong CE primarily from volume and fast click feedback, the analytical framework has failed its negative control.",
+    sourceAppKey: null,
     syntheticDatasetLabel: CREATIVE_SOURCE,
+    caseSet: {
+      name: "Synthetic creative marketing scorebook",
+      description: "Canonical negative-control fixture for high-volume but noisy and confounded creative feedback.",
+      sourceType: "CANONICAL_SYNTHETIC",
+      sourceSystemKey: "canonical_test_suite",
+      sourceSystemLabel: "Canonical Test Fixture",
+      sourceRunLabel: "Creative Marketing Agent negative-control fixture",
+      sourceRunType: "synthetic_fixture",
+      sourceRoute: "/compounding-expertise/overview?canonical=creative-agent",
+      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
+      isSynthetic: true,
+      provenanceLabel: CREATIVE_SOURCE,
+      derivationDescription: "Created as a fully synthetic negative-control CaseSet."
+    },
     analysis: {
       companyName: "Creative Marketing Agent",
       productDescription: "Fully synthetic negative-control archetype for a high-volume creative workflow with subjective outcomes and attribution ambiguity.",
@@ -669,6 +875,32 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
 
 export function exampleById(id: string | null | undefined) {
   return COMPOUNDING_EXAMPLES.find((example) => example.id === id) ?? COMPOUNDING_EXAMPLES[0];
+}
+
+export function canonicalExampleForCompany(companyName: string | null | undefined) {
+  const normalized = String(companyName ?? "").toLowerCase();
+  return COMPOUNDING_EXAMPLES.find((example) =>
+    normalized.includes(example.id.replace("-labs", " labs"))
+      || normalized.includes(example.companyName.toLowerCase())
+      || normalized.includes(example.label.toLowerCase())
+  ) ?? null;
+}
+
+export function caseSetForExample(example: CompoundingExample): CaseSetInput {
+  return {
+    ...example.caseSet,
+    caseCount: example.cases.length
+  };
+}
+
+export function sourceRouteIsSafe(route: string | null | undefined) {
+  if (!route) return false;
+  if (!route.startsWith("/") || route.startsWith("//")) return false;
+  return !/^\/(?:\\|%5c)/i.test(route) && !/[\r\n]/.test(route);
+}
+
+export function casesForCaseSet(rows: ScorebookCaseInput[], caseSetId: string | null | undefined) {
+  return caseSetId ? rows.filter((row) => row.caseSetId === caseSetId) : rows;
 }
 
 function finite(value: number, fallback = 0) {

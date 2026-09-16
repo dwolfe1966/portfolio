@@ -6,12 +6,17 @@ import type { CompoundingExampleId } from "@/lib/compounding-expertise-lab";
 type ExampleRow = {
   id: CompoundingExampleId;
   label: string;
-  role: string;
-  context: string;
-  thesis: string;
+  testLabel: string;
+  canonicalQuestion: string;
+  principalDecision: string;
+  gradeObjectivity: string;
+  typicalFeedbackSpeed: string;
+  economicCostOfError: string;
+  primaryPowerHypothesis: string;
+  whyCanonical: string;
+  status: string;
   syntheticDatasetLabel: string;
   caseCount: number;
-  fixtureType: string;
 };
 
 export function ExampleSelectionTable({
@@ -33,12 +38,17 @@ export function ExampleSelectionTable({
         <thead>
           <tr>
             <th>Open</th>
+            <th>Test type</th>
             <th>Company / archetype</th>
-            <th>Context</th>
-            <th>Theory test</th>
+            <th>Canonical question</th>
+            <th>Principal decision</th>
+            <th>Grade objectivity</th>
+            <th>Feedback speed</th>
+            <th>Economic stakes</th>
+            <th>Primary Power hypothesis</th>
+            <th>Why this test exists</th>
             <th>Cases</th>
-            <th>Fixture type</th>
-            <th>Scorebook status</th>
+            <th>Case-set label</th>
           </tr>
         </thead>
         <tbody>
@@ -63,15 +73,20 @@ export function ExampleSelectionTable({
                   <button className="btn" type="submit">Open</button>
                 </form>
               </td>
+              <td><strong>{example.testLabel}</strong></td>
               <td><strong>{example.label}</strong></td>
-              <td>{example.context}</td>
-              <td>{example.role}</td>
+              <td>{example.canonicalQuestion}</td>
+              <td>{example.principalDecision}</td>
+              <td>{example.gradeObjectivity}</td>
+              <td>{example.typicalFeedbackSpeed}</td>
+              <td>{example.economicCostOfError}</td>
+              <td>{example.primaryPowerHypothesis}</td>
+              <td>{example.whyCanonical}</td>
               <td>{example.caseCount}</td>
-              <td>{example.fixtureType}</td>
               <td>
                 <span>{example.syntheticDatasetLabel}</span>
                 <br />
-                <span className="small">{example.thesis}</span>
+                <span className="small">{example.status}</span>
               </td>
             </tr>
           ))}

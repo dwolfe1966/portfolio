@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { EpistemicBadge, LabWorkflowRail, SimulatorLineChart } from "@/components/compounding-expertise/CompoundingLabComponents";
-import { DEFAULT_SCENARIOS, detectCrossover, explainSimulatorComparison, scorebookDerivedSimulatorValues, simulateComparison, type ScorebookCaseInput } from "@/lib/compounding-expertise-lab";
+import { DEFAULT_SCENARIOS, casesForCaseSet, detectCrossover, explainSimulatorComparison, scorebookDerivedSimulatorValues, simulateComparison, type ScorebookCaseInput } from "@/lib/compounding-expertise-lab";
 import { applyScorebookDerivedValuesAction, saveScenariosAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function CompoundingExpertiseSimulatorPage({
   searchParams
 }: {
-  searchParams: Promise<{ scorebook?: string }>;
+  searchParams: Promise<{ scorebook?: string; caseSetId?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
@@ -32,7 +32,12 @@ export default async function CompoundingExpertiseSimulatorPage({
     : DEFAULT_SCENARIOS.map((scenario, index) => ({ id: "", analysisId: analysis.id, createdAt: new Date(), updatedAt: new Date(), ...scenario, name: index === 0 ? "Incumbent A" : "Challenger B" }));
   const series = simulateComparison(scenarios, 36);
   const crossover = series.length >= 2 ? detectCrossover(series[0], series[1]) : null;
-  const derived = scorebookDerivedSimulatorValues(analysis.scorebookCases.map((row) => ({ ...row })) as ScorebookCaseInput[]);
+  const selectedCaseSet = params.caseSetId
+    ? analysis.caseSets.find((caseSet) => caseSet.id === params.caseSetId) ?? null
+    : analysis.caseSets[0] ?? null;
+  const scorebookRows = analysis.scorebookCases.map((row) => ({ ...row })) as ScorebookCaseInput[];
+  const activeRows = casesForCaseSet(scorebookRows, selectedCaseSet?.id);
+  const derived = scorebookDerivedSimulatorValues(activeRows);
 
   return (
     <>
@@ -53,12 +58,13 @@ export default async function CompoundingExpertiseSimulatorPage({
       <Section title="Scenario variables">
         <form action={saveScenariosAction}>
           <input type="hidden" name="analysisId" value={analysis.id} />
+          {selectedCaseSet ? <input type="hidden" name="caseSetId" value={selectedCaseSet.id} /> : null}
           <div className="card compoundingSimulatorSourceCard">
             <div>
               <EpistemicBadge kind="OBSERVED_DERIVED" />
               <h3>Observed / derived from scorebook</h3>
               <p>
-                Current scorebook implies <strong>{derived.startingGradedCases}</strong> starting graded cases and
+                {selectedCaseSet ? `CaseSet "${selectedCaseSet.name}"` : "Current scorebook"} implies <strong>{derived.startingGradedCases}</strong> starting graded cases and
                 {" "}<strong>{derived.feedbackDelayDays === null ? "unavailable" : `${derived.feedbackDelayDays} days`}</strong> median feedback delay
                 {" "}(n={derived.feedbackDelaySampleSize}).
               </p>

@@ -69,6 +69,44 @@ E(t) = base_capability
         </div>
       </Section>
 
+      <Section title="Canonical tests">
+        <div className="grid grid-2">
+          <div className="card">
+            <h3>Why five examples exist</h3>
+            <p>
+              The examples are a canonical test suite: positive test, boundary test, substitution/compression test,
+              alternative Power test, and negative control. They are designed to expose where CE works, where it breaks,
+              and where other forms of Power may dominate.
+            </p>
+          </div>
+          <div className="card">
+            <h3>Synthetic fixture policy</h3>
+            <p>
+              Real-company archetypes may frame the analysis, but bundled case rows are synthetic illustrative data.
+              They test the theory and must not be treated as actual company operations.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="CaseSets and source systems">
+        <div className="card">
+          <p>
+            CE is an analytical layer over experience produced by operating systems. The intended loop is:
+            source system {"->"} run / experiment {"->"} CaseSet {"->"} CE analysis, with a return path back to the source system
+            to change policy or assumptions and produce a new CaseSet.
+          </p>
+          <p>
+            A CaseSet is not automatically a scorebook. It becomes scorebook-like only when it contains decisions,
+            observed outcomes, meaningful grades, and enough provenance to connect learning back to the generating process.
+          </p>
+          <p className="small">
+            Internal source links use a lightweight return context such as returnTo=compounding-expertise,
+            analysisId, and caseSetId. Full production ingestion remains future work.
+          </p>
+        </div>
+      </Section>
+
       <Section title="Evidence statuses">
         <div className="grid grid-4">
           <div className="card"><h3>Observed</h3><p>Directly seen in product, customer, or operating data.</p></div>

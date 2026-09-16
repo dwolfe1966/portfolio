@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { EpistemicBadge, IntegrityNotice, LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
-import { ENDOGENOUS_INPUTS, EXOGENOUS_INPUTS, type CompanyThesisInput, type StructuredInputDefinition } from "@/lib/compounding-expertise-lab";
+import { ENDOGENOUS_INPUTS, EXOGENOUS_INPUTS, canonicalExampleForCompany, type CompanyThesisInput, type StructuredInputDefinition } from "@/lib/compounding-expertise-lab";
 import { saveAnalysisAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
@@ -40,6 +40,7 @@ export default async function CompoundingExpertiseInputsPage({
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
   const analysis = await loadCompoundingAnalysis(accountUserId);
+  const canonicalExample = canonicalExampleForCompany(analysis?.companyName);
 
   return (
     <>
@@ -55,6 +56,17 @@ export default async function CompoundingExpertiseInputsPage({
               Bundled scorebook rows are synthetic illustrative data, not company data.
               Inspect the Scorebook page before treating any diagnostic as evidence.
             </p>
+          </div>
+        ) : null}
+        {canonicalExample ? (
+          <div className="card compoundingCanonicalPanel">
+            <p className="small">Why this is a canonical test</p>
+            <h3>{canonicalExample.testLabel}: {canonicalExample.label}</h3>
+            <p><strong>Canonical question:</strong> {canonicalExample.canonicalQuestion}</p>
+            <p><strong>Why selected:</strong> {canonicalExample.whyCanonical}</p>
+            <p><strong>Expected theoretical behavior:</strong> {canonicalExample.expectedTheoreticalBehavior}</p>
+            <p><strong>Lab failure condition:</strong> {canonicalExample.labFailureCondition}</p>
+            <p className="small">This is explanatory metadata, not evidence about the company.</p>
           </div>
         ) : null}
       </Section>

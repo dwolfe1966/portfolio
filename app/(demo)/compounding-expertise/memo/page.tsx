@@ -5,6 +5,7 @@ import {
   ALL_DIMENSIONS,
   apparentPowerLocations,
   calculateScorebookMetrics,
+  casesForCaseSet,
   composeMemo,
   defaultAssessments,
   summarizeConclusion,
@@ -85,13 +86,16 @@ export default async function CompoundingExpertiseMemoPage() {
   const challenges = strongestChallenges(assessments);
   const unresolved = sortedHighLeverageDebates(debates);
   const power = apparentPowerLocations(assessments);
-  const scorebookMetrics = calculateScorebookMetrics(analysis.scorebookCases);
+  const selectedCaseSet = analysis.caseSets[0] ?? null;
+  const scorebookRows = analysis.scorebookCases.map((row) => ({ ...row }));
+  const activeRows = casesForCaseSet(scorebookRows, selectedCaseSet?.id);
+  const scorebookMetrics = calculateScorebookMetrics(activeRows);
   const conclusion = summarizeConclusion({ analysis, metrics: scorebookMetrics, assessments, debates });
   const memoText = [
     `Current thesis\n${analysis.thesis || "No thesis supplied."}`,
     `\nStrongest evidence for Compounding Expertise\n${memo.strongestEvidence.length ? memo.strongestEvidence.slice(0, 3).map((item) => `- ${item}`).join("\n") : "- No strong evidence has been established yet."}`,
     `\nStrongest challenges\n${memo.strongestChallenges.length ? memo.strongestChallenges.slice(0, 3).map((item) => `- ${item}`).join("\n") : "- No strong challenges have been scored yet."}`,
-    `\nScorebook Evidence\n- Cases: ${scorebookMetrics.totalCases}\n- Grade coverage: ${scorebookMetrics.gradeCoverage === null ? "unavailable" : `${Math.round(scorebookMetrics.gradeCoverage * 100)}%`} (${scorebookMetrics.gradedCases}/${scorebookMetrics.totalCases})\n- Median feedback latency: ${scorebookMetrics.medianFeedbackLatencyDays === null ? "unavailable" : `${scorebookMetrics.medianFeedbackLatencyDays} days`} (n=${scorebookMetrics.feedbackLatencySampleSize})\n- Human override behavior: ${scorebookMetrics.humanOverrideValue.count} override rows; correct/partially correct rate ${scorebookMetrics.humanOverrideValue.correctRate === null ? "unavailable" : `${Math.round(scorebookMetrics.humanOverrideValue.correctRate * 100)}%`} where resolvable\n- Data limitations: unresolved outcomes, synthetic fixtures, subjective grades, or missing economic outcomes should be treated as limitations, not ignored.`,
+    `\nScorebook Evidence\n- CaseSet: ${selectedCaseSet?.name ?? "All scorebook rows"}\n- Cases: ${scorebookMetrics.totalCases}\n- Grade coverage: ${scorebookMetrics.gradeCoverage === null ? "unavailable" : `${Math.round(scorebookMetrics.gradeCoverage * 100)}%`} (${scorebookMetrics.gradedCases}/${scorebookMetrics.totalCases})\n- Median feedback latency: ${scorebookMetrics.medianFeedbackLatencyDays === null ? "unavailable" : `${scorebookMetrics.medianFeedbackLatencyDays} days`} (n=${scorebookMetrics.feedbackLatencySampleSize})\n- Human override behavior: ${scorebookMetrics.humanOverrideValue.count} override rows; correct/partially correct rate ${scorebookMetrics.humanOverrideValue.correctRate === null ? "unavailable" : `${Math.round(scorebookMetrics.humanOverrideValue.correctRate * 100)}%`} where resolvable\n- Data limitations: unresolved outcomes, synthetic fixtures, subjective grades, or missing economic outcomes should be treated as limitations, not ignored.`,
     `\nHighest-leverage unresolved debates\n${memo.unresolvedDebates.map((item) => `- ${item.question} (${item.probability}%). Increase belief: ${item.increaseBelief || "not specified"}. Decrease belief: ${item.decreaseBelief || "not specified"}.`).join("\n")}`,
     `\nWhere Power appears to reside\n${power.map((item) => `- ${item}`).join("\n")}`,
     `\nWhat would change our mind?\n${memo.evidenceRequests.map((item) => `- ${item}`).join("\n")}`,
@@ -149,6 +153,7 @@ export default async function CompoundingExpertiseMemoPage() {
       <Section title="Scorebook evidence">
         <div className="card">
           <p><strong>Cases:</strong> {scorebookMetrics.totalCases}</p>
+          <p><strong>CaseSet:</strong> {selectedCaseSet?.name ?? "All scorebook rows"}</p>
           <p><strong>Grade coverage:</strong> {scorebookMetrics.gradeCoverage === null ? "Unavailable" : `${Math.round(scorebookMetrics.gradeCoverage * 100)}%`} ({scorebookMetrics.gradedCases}/{scorebookMetrics.totalCases})</p>
           <p><strong>Feedback latency:</strong> {scorebookMetrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${scorebookMetrics.medianFeedbackLatencyDays} days`} (n={scorebookMetrics.feedbackLatencySampleSize})</p>
           <p><strong>Override behavior:</strong> {scorebookMetrics.humanOverrideValue.count} human override rows; {scorebookMetrics.humanOverrideValue.resolvableCount} have resolvable grades.</p>

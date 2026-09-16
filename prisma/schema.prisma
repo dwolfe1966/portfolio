@@ -260,15 +260,53 @@ model CompoundingExpertiseAnalysis {
   dimensionAssessments CompoundingExpertiseDimensionAssessment[]
   simulationScenarios CompoundingExpertiseSimulationScenario[]
   scorebookCases      CompoundingExpertiseCase[]
+  caseSets            CompoundingExpertiseCaseSet[]
 
   @@index([workspaceId, updatedAt])
   @@index([accountUserId, updatedAt])
   @@index([companyName])
 }
 
+model CompoundingExpertiseCaseSet {
+  id                    String                       @id @default(cuid())
+  analysisId            String?
+  name                  String
+  description           String?
+  sourceType            String
+  sourceSystemKey       String?
+  sourceSystemLabel     String?
+  sourceRunId           String?
+  sourceRunLabel        String?
+  sourceRunType         String?
+  sourceRoute           String?
+  sourceExternalUrl     String?
+  generatedAt           DateTime?
+  importedAt            DateTime?
+  modelVersion          String?
+  policyVersion         String?
+  experimentId          String?
+  isSynthetic           Boolean                      @default(false)
+  provenanceLabel       String
+  caseCount             Int                          @default(0)
+  parentCaseSetId       String?
+  derivationDescription String?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  analysis              CompoundingExpertiseAnalysis? @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  parentCaseSet         CompoundingExpertiseCaseSet? @relation("CompoundingExpertiseCaseSetDerivation", fields: [parentCaseSetId], references: [id], onDelete: SetNull)
+  derivedCaseSets       CompoundingExpertiseCaseSet[] @relation("CompoundingExpertiseCaseSetDerivation")
+  cases                 CompoundingExpertiseCase[]
+
+  @@index([analysisId, createdAt])
+  @@index([sourceType, sourceSystemKey])
+  @@index([parentCaseSetId])
+  @@index([isSynthetic])
+}
+
 model CompoundingExpertiseCase {
   id                  String                       @id @default(cuid())
   analysisId          String
+  caseSetId           String?
   externalCaseId      String
   customerSegment     String
   caseType            String
@@ -291,8 +329,10 @@ model CompoundingExpertiseCase {
   createdAt           DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt
   analysis            CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  caseSet             CompoundingExpertiseCaseSet? @relation(fields: [caseSetId], references: [id], onDelete: SetNull)
 
   @@index([analysisId, decisionAt])
+  @@index([caseSetId, decisionAt])
   @@index([analysisId, grade])
   @@index([analysisId, customerSegment])
   @@index([analysisId, caseType])

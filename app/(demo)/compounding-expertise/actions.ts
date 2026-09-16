@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -12,6 +13,7 @@ import {
   sanitizeScenario,
   scorebookDerivedSimulatorValues,
   calculateScorebookMetrics,
+  caseSetForExample,
   validateProbability,
   type CompoundingCaseGrade,
   type CompoundingConfidence,
@@ -171,32 +173,47 @@ export async function loadSyntheticExampleAction(formData?: FormData) {
   const accountUserId = await currentAccountUserId();
   const workspace = await getDefaultWorkspace();
   const example = exampleById(formData ? text(formData.get("exampleId")) : "casap");
-  const analysis = await db.compoundingExpertiseAnalysis.create({
-    data: {
-      workspaceId: workspace.id,
-      accountUserId,
-      ...example.analysis,
-      keyDebates: {
-        create: example.debates.map((debate) => ({ ...debate, source: debate.source }))
-      },
-      dimensionAssessments: {
-        create: defaultAssessments().map((assessment) => normalizeAssessment({
-          ...assessment,
-          rationale: "Example analysis starts without evidence. Synthetic case rows are illustrative fixtures, not company data.",
-          evidenceStatus: "UNKNOWN"
-        }))
-      },
-      simulationScenarios: {
-        create: example.scenarios.map((scenario) => sanitizeScenario(scenario))
-      },
-      scorebookCases: {
-        create: example.cases.map((row) => ({
-          ...row,
-          decisionAt: nullableDate(row.decisionAt instanceof Date ? row.decisionAt.toISOString() : row.decisionAt ?? null),
-          outcomeAt: nullableDate(row.outcomeAt instanceof Date ? row.outcomeAt.toISOString() : row.outcomeAt ?? null)
-        }))
+  const caseSetId = randomUUID();
+  const analysis = await db.$transaction(async (tx) => {
+    const created = await tx.compoundingExpertiseAnalysis.create({
+      data: {
+        workspaceId: workspace.id,
+        accountUserId,
+        ...example.analysis,
+        keyDebates: {
+          create: example.debates.map((debate) => ({ ...debate, source: debate.source }))
+        },
+        dimensionAssessments: {
+          create: defaultAssessments().map((assessment) => normalizeAssessment({
+            ...assessment,
+            rationale: "Example analysis starts without evidence. Synthetic case rows are illustrative fixtures, not company data.",
+            evidenceStatus: "UNKNOWN"
+          }))
+        },
+        simulationScenarios: {
+          create: example.scenarios.map((scenario) => sanitizeScenario(scenario))
+        }
       }
-    }
+    });
+
+    const caseSet = caseSetForExample(example);
+    await tx.compoundingExpertiseCaseSet.create({
+      data: {
+        id: caseSetId,
+        analysisId: created.id,
+        ...caseSet
+      }
+    });
+    await tx.compoundingExpertiseCase.createMany({
+      data: example.cases.map((row) => ({
+        ...row,
+        analysisId: created.id,
+        caseSetId,
+        decisionAt: nullableDate(row.decisionAt instanceof Date ? row.decisionAt.toISOString() : row.decisionAt ?? null),
+        outcomeAt: nullableDate(row.outcomeAt instanceof Date ? row.outcomeAt.toISOString() : row.outcomeAt ?? null)
+      }))
+    });
+    return created;
   });
 
   revalidateLab();
@@ -329,6 +346,7 @@ export async function saveScorebookAction(formData: FormData) {
   if (!analysisId) redirect("/compounding-expertise/inputs");
 
   const ids = formData.getAll("caseId").map((value) => text(value));
+  const caseSetIds = formData.getAll("caseSetId").map((value) => nullableText(value));
   const deleteFlags = formData.getAll("deleteCase").map((value) => text(value));
   const externalCaseIds = formData.getAll("externalCaseId").map((value) => text(value));
 
@@ -349,8 +367,10 @@ export async function saveScorebookAction(formData: FormData) {
     if (!id && !requiredAny) continue;
 
     const grade = text(formData.getAll("grade")[index] ?? null) as CompoundingCaseGrade;
+    const caseSetId = caseSetIds[index];
     const data = {
       analysisId,
+      caseSetId,
       externalCaseId: externalCaseIds[index] || `case-${index + 1}`,
       customerSegment: text(formData.getAll("customerSegment")[index] ?? null) || "Unknown",
       caseType: text(formData.getAll("caseType")[index] ?? null) || "Unknown",
@@ -377,15 +397,16 @@ export async function saveScorebookAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect("/compounding-expertise/debates");
+  redirect(`/compounding-expertise/debates${caseSetIds.find(Boolean) ? `?caseSetId=${caseSetIds.find(Boolean)}` : ""}`);
 }
 
 export async function applyScorebookDerivedValuesAction(formData: FormData) {
   const analysisId = text(formData.get("analysisId"));
+  const caseSetId = nullableText(formData.get("caseSetId"));
   if (!analysisId) redirect("/compounding-expertise/inputs");
 
   const [cases, scenarios] = await Promise.all([
-    db.compoundingExpertiseCase.findMany({ where: { analysisId } }),
+    db.compoundingExpertiseCase.findMany({ where: { analysisId, ...(caseSetId ? { caseSetId } : {}) } }),
     db.compoundingExpertiseSimulationScenario.findMany({ where: { analysisId }, orderBy: { name: "asc" } })
   ]);
   const derived = scorebookDerivedSimulatorValues(cases);

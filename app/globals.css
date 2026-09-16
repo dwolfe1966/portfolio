@@ -3257,7 +3257,7 @@ button {
   padding-bottom: 8px;
 }
 .compoundingExampleTable .dataTable {
-  min-width: 1380px;
+  min-width: 2200px;
   border-collapse: collapse;
 }
 .compoundingExampleTable th,
@@ -3277,28 +3277,49 @@ button {
 }
 .compoundingExampleTable th:nth-child(2),
 .compoundingExampleTable td:nth-child(2) {
-  min-width: 220px;
+  min-width: 170px;
 }
 .compoundingExampleTable th:nth-child(3),
 .compoundingExampleTable td:nth-child(3) {
-  min-width: 330px;
+  min-width: 180px;
 }
 .compoundingExampleTable th:nth-child(4),
 .compoundingExampleTable td:nth-child(4) {
-  min-width: 300px;
+  min-width: 360px;
 }
 .compoundingExampleTable th:nth-child(5),
 .compoundingExampleTable td:nth-child(5) {
-  min-width: 90px;
-  text-align: right;
+  min-width: 260px;
+  text-align: left;
 }
 .compoundingExampleTable th:nth-child(6),
 .compoundingExampleTable td:nth-child(6) {
-  min-width: 210px;
+  min-width: 180px;
 }
 .compoundingExampleTable th:nth-child(7),
 .compoundingExampleTable td:nth-child(7) {
-  min-width: 330px;
+  min-width: 190px;
+}
+.compoundingExampleTable th:nth-child(8),
+.compoundingExampleTable td:nth-child(8) {
+  min-width: 160px;
+}
+.compoundingExampleTable th:nth-child(9),
+.compoundingExampleTable td:nth-child(9) {
+  min-width: 320px;
+}
+.compoundingExampleTable th:nth-child(10),
+.compoundingExampleTable td:nth-child(10) {
+  min-width: 340px;
+}
+.compoundingExampleTable th:nth-child(11),
+.compoundingExampleTable td:nth-child(11) {
+  min-width: 90px;
+  text-align: right;
+}
+.compoundingExampleTable th:nth-child(12),
+.compoundingExampleTable td:nth-child(12) {
+  min-width: 360px;
 }
 .compoundingExampleTable tbody tr {
   cursor: pointer;
@@ -3307,10 +3328,59 @@ button {
   background: color-mix(in srgb, var(--demo-accent) 10%, transparent);
 }
 .compoundingExampleTable .btn {
-  min-width: 72px;
+  min-width: 44px;
   padding-left: 10px;
   padding-right: 10px;
   text-align: center;
+}
+.compoundingCanonicalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.compoundingCanonicalCard,
+.compoundingCanonicalPanel,
+.compoundingCaseSetPanel {
+  display: grid;
+  gap: 12px;
+}
+.compoundingCanonicalCard h3,
+.compoundingCanonicalPanel h3,
+.compoundingCaseSetPanel h3 {
+  margin: 0;
+}
+.compoundingCaseSetSelector {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.compoundingCaseSetSelector label {
+  display: grid;
+  gap: 6px;
+  color: var(--demo-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.compoundingCaseSetFacts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.compoundingCaseSetFacts span {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  padding: 8px;
+  color: var(--demo-text);
+  font-size: 12px;
+}
+.compoundingCaseSetFacts strong {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
 }
 .compoundingProcessCard {
   display: grid;
@@ -4883,6 +4953,8 @@ button {
   .compoundingActiveAnalysisBar,
   .compoundingActiveAnalysisDetails,
   .compoundingFormGrid,
+  .compoundingCanonicalGrid,
+  .compoundingCaseSetFacts,
   .compoundingStructuredGrid,
   .compoundingSimulatorGroups fieldset,
   .compoundingAssessmentGrid,
