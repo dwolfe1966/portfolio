@@ -67,6 +67,7 @@ export default function CompoundingExpertiseOverviewPage() {
             <thead>
               <tr>
                 <th>Company / archetype</th>
+                <th>Context</th>
                 <th>Theory test</th>
                 <th>Scorebook status</th>
                 <th>Action</th>
@@ -78,6 +79,7 @@ export default function CompoundingExpertiseOverviewPage() {
                   <td>
                     <strong>{example.label}</strong>
                   </td>
+                  <td>{example.analysis.productDescription}</td>
                   <td>{example.role}</td>
                   <td>
                     <span>{example.syntheticDatasetLabel}</span>

@@ -3257,7 +3257,7 @@ button {
   padding-bottom: 8px;
 }
 .compoundingExampleTable .dataTable {
-  min-width: 980px;
+  min-width: 1220px;
 }
 .compoundingExampleTable th:first-child,
 .compoundingExampleTable td:first-child {
@@ -3269,6 +3269,10 @@ button {
 }
 .compoundingExampleTable th:nth-child(3),
 .compoundingExampleTable td:nth-child(3) {
+  min-width: 300px;
+}
+.compoundingExampleTable th:nth-child(4),
+.compoundingExampleTable td:nth-child(4) {
   min-width: 360px;
 }
 .compoundingExampleTable th:last-child,

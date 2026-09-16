@@ -26,7 +26,13 @@ export default async function CompoundingExpertiseLayout({ children }: { childre
             </summary>
             <div className="compoundingActiveAnalysisDetails">
               <div className="compoundingActiveAnalysisMain">
+                {analysis.productDescription ? (
+                  <p>
+                    <strong>Company context:</strong> {analysis.productDescription}
+                  </p>
+                ) : null}
                 <p>
+                  <strong>Workflow:</strong>{" "}
                   {analysis.targetCustomer || "Target customer not set"}
                   {analysis.workflow ? ` · ${analysis.workflow.slice(0, 96)}${analysis.workflow.length > 96 ? "..." : ""}` : ""}
                 </p>
