@@ -3264,10 +3264,15 @@ button {
 .compoundingExampleTable td {
   border: 1px solid color-mix(in srgb, var(--demo-divider) 72%, var(--demo-text) 28%);
   font-size: 12px;
+  font-weight: 700;
   line-height: 1.45;
   padding: 10px 12px;
   text-align: center;
   vertical-align: middle;
+}
+.compoundingExampleTable :is(th, td, td span, td strong, td .small, td button) {
+  font-size: 12px;
+  line-height: 1.45;
 }
 .compoundingExampleTable td,
 .compoundingExampleTable td span,
