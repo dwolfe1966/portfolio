@@ -3195,7 +3195,8 @@ button {
 }
 .compoundingDebateCard,
 .compoundingAssessmentCard,
-.compoundingScenarioCard {
+.compoundingScenarioCard,
+.compoundingExampleCard {
   display: grid;
   gap: 12px;
 }
@@ -3284,6 +3285,22 @@ button {
   font-family: var(--demo-mono);
   font-size: 12px;
   line-height: 1.55;
+}
+.compoundingScorebookTable {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.compoundingScorebookTable .dataTable {
+  min-width: 2600px;
+}
+.compoundingScorebookTable input,
+.compoundingScorebookTable select,
+.compoundingScorebookTable textarea {
+  min-width: 130px;
+}
+.compoundingScorebookTable textarea {
+  min-width: 220px;
+  resize: vertical;
 }
 .pricingVizGrid {
   display: grid;

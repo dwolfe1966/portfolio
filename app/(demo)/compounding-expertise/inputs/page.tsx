@@ -1,5 +1,6 @@
 import { Section } from "@/components/site/Section";
 import { IntegrityNotice, LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
+import { COMPOUNDING_EXAMPLES } from "@/lib/compounding-expertise-lab";
 import { loadSyntheticExampleAction, saveAnalysisAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
@@ -22,10 +23,13 @@ export default async function CompoundingExpertiseInputsPage({
           Describe the company, workflow, principal decisions, and current investment thesis. The analysis should be usable even before
           any AI generation is available.
         </p>
-        {params.example === "synthetic" ? (
+        {params.example ? (
           <div className="card compoundingSyntheticBanner">
-            <strong>Synthetic example loaded.</strong>
-            <p>This claims/disputes AI company is fictional and should not be treated as factual information about any real company.</p>
+            <strong>Example loaded.</strong>
+            <p>
+              Bundled scorebook rows are synthetic illustrative data, not company data.
+              Inspect the Scorebook page before treating any diagnostic as evidence.
+            </p>
           </div>
         ) : null}
       </Section>
@@ -63,15 +67,26 @@ export default async function CompoundingExpertiseInputsPage({
         </form>
       </Section>
 
-      <Section title="Example">
-        <div className="card">
-          <h3>Load synthetic claims/disputes AI company</h3>
+      <Section title="Example library">
+        <div className="card compoundingSyntheticBanner">
+          <strong>Case-level fixtures are synthetic.</strong>
           <p>
-            This creates a clearly labeled fictional example for exercising the Lab. It does not describe a real company.
+            Casap, Listen Labs, Aaru, and Maybern are company-analysis archetypes here.
+            Their bundled case rows are explicitly synthetic test fixtures and are never represented as actual company data.
           </p>
-          <form action={loadSyntheticExampleAction}>
-            <button className="btn" type="submit">Load synthetic example</button>
-          </form>
+        </div>
+        <div className="grid grid-2">
+          {COMPOUNDING_EXAMPLES.map((example) => (
+            <div className="card compoundingExampleCard" key={example.id}>
+              <h3>{example.label}</h3>
+              <p>{example.role}</p>
+              <p className="small">{example.syntheticDatasetLabel}</p>
+              <form action={loadSyntheticExampleAction}>
+                <input type="hidden" name="exampleId" value={example.id} />
+                <button className="btn" type="submit">Load example</button>
+              </form>
+            </div>
+          ))}
         </div>
       </Section>
 

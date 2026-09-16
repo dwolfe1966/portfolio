@@ -37,6 +37,7 @@ const SEGMENT_LABEL: Record<string, string> = {
   interventions: "Interventions",
   debates: "Key Debates",
   diagnostic: "Diagnostic",
+  scorebook: "Scorebook",
   simulator: "Simulator",
   memo: "Memo",
   docs: "Docs"

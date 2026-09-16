@@ -1,12 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  COMPOUNDING_EXAMPLES,
+  calculateScorebookMetrics,
   detectCrossover,
+  exampleById,
   normalizeAssessment,
+  scorebookDerivedSimulatorValues,
+  scorebookRowsAreSynthetic,
   simulateScenario,
   validateAssessment,
   validateProbability,
-  type DimensionAssessmentInput
+  type DimensionAssessmentInput,
+  type ScorebookCaseInput
 } from "@/lib/compounding-expertise-lab";
 import { generateCompoundingExpertiseDebates } from "@/lib/compounding-expertise-ai";
 
@@ -137,5 +143,128 @@ test("debate generation degrades gracefully when OpenAI is unavailable", async (
     assert.match(result.reason, /OPENAI_API_KEY/);
   } finally {
     if (original) process.env.OPENAI_API_KEY = original;
+  }
+});
+
+const scorebookRows: ScorebookCaseInput[] = [
+  {
+    externalCaseId: "case-1",
+    customerSegment: "enterprise",
+    caseType: "dispute",
+    context: "Resolved correct row",
+    agentDecision: "approve",
+    agentConfidence: 0.8,
+    humanDecision: "approve",
+    humanOverride: false,
+    actionTaken: "approve",
+    outcome: "won",
+    outcomeValue: 100,
+    grade: "CORRECT",
+    gradeConfidence: 0.9,
+    decisionAt: new Date("2026-01-01T00:00:00Z"),
+    outcomeAt: new Date("2026-01-04T00:00:00Z"),
+    isEdgeCase: false,
+    isSynthetic: true,
+    sourceLabel: "SYNTHETIC ILLUSTRATIVE DATA - test fixture",
+    notes: null
+  },
+  {
+    externalCaseId: "case-2",
+    customerSegment: "smb",
+    caseType: "dispute",
+    context: "Override row",
+    agentDecision: "deny",
+    agentConfidence: 0.72,
+    humanDecision: "approve",
+    humanOverride: true,
+    actionTaken: "approve",
+    outcome: "retained",
+    outcomeValue: 200,
+    grade: "PARTIALLY_CORRECT",
+    gradeConfidence: 0.7,
+    decisionAt: new Date("2026-01-02T00:00:00Z"),
+    outcomeAt: new Date("2026-01-08T00:00:00Z"),
+    isEdgeCase: true,
+    isSynthetic: true,
+    sourceLabel: "SYNTHETIC ILLUSTRATIVE DATA - test fixture",
+    notes: "observational only"
+  },
+  {
+    externalCaseId: "case-3",
+    customerSegment: "smb",
+    caseType: "appeal",
+    context: "Unresolved row",
+    agentDecision: "request evidence",
+    agentConfidence: 0.52,
+    humanDecision: null,
+    humanOverride: false,
+    actionTaken: null,
+    outcome: null,
+    outcomeValue: null,
+    grade: "UNRESOLVED",
+    gradeConfidence: null,
+    decisionAt: new Date("2026-01-03T00:00:00Z"),
+    outcomeAt: null,
+    isEdgeCase: false,
+    isSynthetic: true,
+    sourceLabel: "SYNTHETIC ILLUSTRATIVE DATA - test fixture",
+    notes: null
+  }
+];
+
+test("case metric calculations preserve missing and unresolved outcomes", () => {
+  const metrics = calculateScorebookMetrics(scorebookRows);
+
+  assert.equal(metrics.totalCases, 3);
+  assert.equal(metrics.resolvedCases, 2);
+  assert.equal(metrics.gradedCases, 2);
+  assert.equal(metrics.outcomeCompletionRate, 0.6667);
+  assert.equal(metrics.gradeCoverage, 0.6667);
+  assert.equal(metrics.agentCorrectnessRate, 1);
+});
+
+test("feedback latency and simulator-derived values use only observed graded rows", () => {
+  const metrics = calculateScorebookMetrics(scorebookRows);
+  const derived = scorebookDerivedSimulatorValues(scorebookRows);
+
+  assert.equal(metrics.medianFeedbackLatencyDays, 4.5);
+  assert.equal(metrics.feedbackLatencySampleSize, 2);
+  assert.equal(derived.startingGradedCases, 2);
+  assert.equal(derived.feedbackDelayDays, 4.5);
+  assert.equal(derived.feedbackDelaySampleSize, 2);
+});
+
+test("human override calculations are descriptive and sample-sized", () => {
+  const metrics = calculateScorebookMetrics(scorebookRows);
+
+  assert.equal(metrics.humanOverrideValue.count, 1);
+  assert.equal(metrics.humanOverrideValue.resolvableCount, 1);
+  assert.equal(metrics.humanOverrideValue.correctRate, 1);
+  assert.equal(metrics.humanOverrideValue.totalOutcomeValue, 200);
+});
+
+test("synthetic dataset labeling is explicit for bundled examples", () => {
+  for (const example of COMPOUNDING_EXAMPLES) {
+    assert.match(example.syntheticDatasetLabel, /SYNTHETIC ILLUSTRATIVE DATA/);
+    assert.equal(scorebookRowsAreSynthetic(example.cases), true);
+    for (const row of example.cases) {
+      assert.equal(row.isSynthetic, true);
+      assert.match(row.sourceLabel, /SYNTHETIC ILLUSTRATIVE DATA/);
+      if (example.id === "casap") assert.match(row.sourceLabel, /not Casap data/);
+      if (example.id === "listen-labs") assert.match(row.sourceLabel, /not Listen Labs data/);
+      if (example.id === "aaru") assert.match(row.sourceLabel, /not Aaru data/);
+      if (example.id === "maybern") assert.match(row.sourceLabel, /not Maybern data/);
+    }
+  }
+});
+
+test("example dataset loading resolves every archetype without actual company data claims", () => {
+  for (const id of ["casap", "listen-labs", "aaru", "maybern", "creative-agent"]) {
+    const example = exampleById(id);
+    assert.equal(example.id, id);
+    assert.ok(example.cases.length >= 20);
+    assert.ok(example.cases.length <= 50);
+    assert.ok(example.syntheticDatasetLabel.includes("SYNTHETIC ILLUSTRATIVE DATA"));
+    assert.ok(!example.syntheticDatasetLabel.includes("actual"));
   }
 });

@@ -220,6 +220,13 @@ enum CompoundingDebateSource {
   AI
 }
 
+enum CompoundingCaseGrade {
+  CORRECT
+  PARTIALLY_CORRECT
+  INCORRECT
+  UNRESOLVED
+}
+
 model CompoundingExpertiseAnalysis {
   id                  String                                   @id @default(cuid())
   workspaceId         String?
@@ -237,10 +244,46 @@ model CompoundingExpertiseAnalysis {
   keyDebates          CompoundingExpertiseKeyDebate[]
   dimensionAssessments CompoundingExpertiseDimensionAssessment[]
   simulationScenarios CompoundingExpertiseSimulationScenario[]
+  scorebookCases      CompoundingExpertiseCase[]
 
   @@index([workspaceId, updatedAt])
   @@index([accountUserId, updatedAt])
   @@index([companyName])
+}
+
+model CompoundingExpertiseCase {
+  id                  String                       @id @default(cuid())
+  analysisId          String
+  externalCaseId      String
+  customerSegment     String
+  caseType            String
+  context             String
+  agentDecision       String
+  agentConfidence     Float?
+  humanDecision       String?
+  humanOverride       Boolean                      @default(false)
+  actionTaken         String?
+  outcome             String?
+  outcomeValue        Float?
+  grade               CompoundingCaseGrade         @default(UNRESOLVED)
+  gradeConfidence     Float?
+  decisionAt          DateTime?
+  outcomeAt           DateTime?
+  isEdgeCase          Boolean                      @default(false)
+  isSynthetic         Boolean                      @default(true)
+  sourceLabel         String
+  notes               String?
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  analysis            CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId, decisionAt])
+  @@index([analysisId, grade])
+  @@index([analysisId, customerSegment])
+  @@index([analysisId, caseType])
+  @@index([analysisId, humanOverride])
+  @@index([analysisId, isEdgeCase])
+  @@index([analysisId, isSynthetic])
 }
 
 model CompoundingExpertiseKeyDebate {

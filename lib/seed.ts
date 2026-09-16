@@ -121,6 +121,7 @@ async function clearExpansionData() {
 }
 
 async function clearCompoundingExpertiseData() {
+  await db.compoundingExpertiseCase.deleteMany();
   await db.compoundingExpertiseSimulationScenario.deleteMany();
   await db.compoundingExpertiseDimensionAssessment.deleteMany();
   await db.compoundingExpertiseKeyDebate.deleteMany();

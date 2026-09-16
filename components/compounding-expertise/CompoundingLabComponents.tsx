@@ -5,6 +5,7 @@ const STEPS = [
   { href: "/compounding-expertise/inputs", label: "Inputs" },
   { href: "/compounding-expertise/debates", label: "Key Debates" },
   { href: "/compounding-expertise/diagnostic", label: "Diagnostic" },
+  { href: "/compounding-expertise/scorebook", label: "Scorebook" },
   { href: "/compounding-expertise/simulator", label: "Simulator" },
   { href: "/compounding-expertise/memo", label: "Memo" }
 ];

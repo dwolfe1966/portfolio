@@ -33,6 +33,19 @@ E(t) = base_capability
         </div>
       </Section>
 
+      <Section title="Scorebook inspection">
+        <div className="card">
+          <p>
+            The scorebook is inspectable because case-level evidence is the object under test:
+            case, decision, outcome, and grade. Missing outcomes and unresolved grades remain visible
+            because coverage and latency are themselves diagnostics.
+          </p>
+          <p className="small">
+            Bundled example rows are synthetic illustrative fixtures, not actual company data.
+          </p>
+        </div>
+      </Section>
+
       <Section title="Evidence statuses">
         <div className="grid grid-4">
           <div className="card"><h3>Observed</h3><p>Directly seen in product, customer, or operating data.</p></div>

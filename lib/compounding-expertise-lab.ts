@@ -2,6 +2,8 @@ export type CompoundingFramework = "HELMER" | "SUN" | "WOLFE";
 export type CompoundingConfidence = "LOW" | "MEDIUM" | "HIGH";
 export type CompoundingEvidenceStatus = "OBSERVED" | "SOURCED" | "ASSUMED" | "UNKNOWN";
 export type CompoundingDebateSource = "SUN" | "WOLFE" | "USER" | "AI";
+export type CompoundingCaseGrade = "CORRECT" | "PARTIALLY_CORRECT" | "INCORRECT" | "UNRESOLVED";
+export type CompoundingExampleId = "casap" | "listen-labs" | "aaru" | "maybern" | "creative-agent";
 
 export type CompanyThesisInput = {
   companyName: string;
@@ -76,6 +78,64 @@ export type Crossover = {
 export type ValidationResult = {
   ok: boolean;
   errors: string[];
+};
+
+export type ScorebookCaseInput = {
+  id?: string;
+  externalCaseId: string;
+  customerSegment: string;
+  caseType: string;
+  context: string;
+  agentDecision: string;
+  agentConfidence?: number | null;
+  humanDecision?: string | null;
+  humanOverride: boolean;
+  actionTaken?: string | null;
+  outcome?: string | null;
+  outcomeValue?: number | null;
+  grade: CompoundingCaseGrade;
+  gradeConfidence?: number | null;
+  decisionAt?: Date | string | null;
+  outcomeAt?: Date | string | null;
+  isEdgeCase: boolean;
+  isSynthetic: boolean;
+  sourceLabel: string;
+  notes?: string | null;
+};
+
+export type ScorebookMetrics = {
+  totalCases: number;
+  resolvedCases: number;
+  gradedCases: number;
+  outcomeCompletionRate: number | null;
+  gradeCoverage: number | null;
+  agentCorrectnessRate: number | null;
+  humanOverrideRate: number | null;
+  medianFeedbackLatencyDays: number | null;
+  feedbackLatencySampleSize: number;
+  edgeCaseShare: number | null;
+  outcomeValueSampleSize: number;
+  totalOutcomeValue: number | null;
+  averageOutcomeValue: number | null;
+  syntheticCaseCount: number;
+  humanOverrideValue: {
+    count: number;
+    shareOfCases: number | null;
+    resolvableCount: number;
+    correctCount: number;
+    incorrectCount: number;
+    correctRate: number | null;
+    incorrectRate: number | null;
+    outcomeValueSampleSize: number;
+    totalOutcomeValue: number | null;
+    averageOutcomeValue: number | null;
+  };
+};
+
+export type ScorebookDerivedSimulatorValues = {
+  startingGradedCases: number;
+  feedbackDelayDays: number | null;
+  feedbackDelaySampleSize: number;
 };
 
 export const HELMER_POWERS: DimensionDefinition[] = [
@@ -189,6 +249,98 @@ export const INITIAL_DEBATES: KeyDebateInput[] = [
   }
 ];
 
+export type CompoundingExample = {
+  id: CompoundingExampleId;
+  label: string;
+  role: string;
+  syntheticDatasetLabel: string;
+  analysis: CompanyThesisInput;
+  debates: KeyDebateInput[];
+  scenarios: SimulationScenarioInput[];
+  cases: ScorebookCaseInput[];
+};
+
+function addDays(date: Date, days: number) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function createSyntheticCases(config: {
+  prefix: string;
+  sourceLabel: string;
+  segments: string[];
+  caseTypes: string[];
+  decisions: string[];
+  outcomes: string[];
+  count: number;
+  delayPattern: number[];
+  unresolvedEvery?: number;
+  overrideEvery?: number;
+  edgeEvery?: number;
+  objectiveBias?: "strong" | "mixed" | "weak";
+  valueBase?: number;
+}): ScorebookCaseInput[] {
+  const base = new Date("2026-01-05T12:00:00.000Z");
+  return Array.from({ length: config.count }, (_, index) => {
+    const externalCaseId = `${config.prefix}-${String(index + 1).padStart(3, "0")}`;
+    const isUnresolved = config.unresolvedEvery ? (index + 1) % config.unresolvedEvery === 0 : false;
+    const humanOverride = config.overrideEvery ? (index + 2) % config.overrideEvery === 0 : false;
+    const isEdgeCase = config.edgeEvery ? (index + 3) % config.edgeEvery === 0 : false;
+    const delayDays = config.delayPattern[index % config.delayPattern.length];
+    const decisionAt = addDays(base, index * 2);
+    const outcomeAt = isUnresolved ? null : addDays(decisionAt, delayDays);
+    const agentDecision = config.decisions[index % config.decisions.length];
+    const humanDecision = humanOverride
+      ? config.decisions[(index + 1) % config.decisions.length]
+      : index % 5 === 0
+        ? null
+        : agentDecision;
+    const grade: CompoundingCaseGrade = isUnresolved
+      ? "UNRESOLVED"
+      : config.objectiveBias === "weak"
+        ? (index % 4 === 0 ? "INCORRECT" : index % 3 === 0 ? "PARTIALLY_CORRECT" : "CORRECT")
+        : config.objectiveBias === "mixed"
+          ? (index % 5 === 0 ? "INCORRECT" : index % 3 === 0 ? "PARTIALLY_CORRECT" : "CORRECT")
+          : (index % 8 === 0 ? "INCORRECT" : index % 5 === 0 ? "PARTIALLY_CORRECT" : "CORRECT");
+    const outcomeValue = isUnresolved
+      ? null
+      : Math.round(((config.valueBase ?? 1200) + index * 85) * (grade === "INCORRECT" ? -0.35 : grade === "PARTIALLY_CORRECT" ? 0.45 : 1));
+
+    return {
+      externalCaseId,
+      customerSegment: config.segments[index % config.segments.length],
+      caseType: config.caseTypes[index % config.caseTypes.length],
+      context: `${config.sourceLabel}. Synthetic case context ${index + 1}; generated to test scorebook inspection, not to describe real operations.`,
+      agentDecision,
+      agentConfidence: Math.min(0.96, 0.54 + (index % 7) * 0.06),
+      humanDecision,
+      humanOverride,
+      actionTaken: isUnresolved ? null : humanDecision ?? agentDecision,
+      outcome: isUnresolved ? null : config.outcomes[index % config.outcomes.length],
+      outcomeValue,
+      grade,
+      gradeConfidence: isUnresolved ? null : config.objectiveBias === "weak" ? 0.45 + (index % 3) * 0.08 : 0.68 + (index % 4) * 0.07,
+      decisionAt,
+      outcomeAt,
+      isEdgeCase,
+      isSynthetic: true,
+      sourceLabel: config.sourceLabel,
+      notes: isUnresolved ? "Outcome not yet observed; unresolved rows should remain incomplete." : "Synthetic illustrative row for theory testing."
+    };
+  });
+}
+
+const EXAMPLE_DEBATES: KeyDebateInput[] = [
+  INITIAL_DEBATES[0],
+  INITIAL_DEBATES[1],
+  INITIAL_DEBATES[2]
+];
+
+const CASAP_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic disputes scorebook, not Casap data";
+const LISTEN_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic research/listening scorebook, not Listen Labs data";
+const AARU_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic model-first research scorebook, not Aaru data";
+const MAYBERN_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic deterministic-rails scorebook, not Maybern data";
+const CREATIVE_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic creative marketing agent scorebook";
+
 export const DEFAULT_SCENARIOS: SimulationScenarioInput[] = [
   {
     name: "Incumbent A",
@@ -213,6 +365,180 @@ export const DEFAULT_SCENARIOS: SimulationScenarioInput[] = [
     baseCapability: 2.9
   }
 ];
+
+export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
+  {
+    id: "casap",
+    label: "Casap",
+    role: "Strong Compounding Expertise candidate.",
+    syntheticDatasetLabel: CASAP_SOURCE,
+    analysis: {
+      companyName: "Casap archetype review",
+      productDescription: "Company-analysis archetype for a disputes workflow where decisions can plausibly be graded against outcomes. Case rows are synthetic fixtures only.",
+      targetCustomer: "Operations teams handling repeated disputes, chargebacks, or exception workflows.",
+      workflow: "Dispute intake -> evidence review -> recommended resolution -> human approval or override -> outcome and grade capture.",
+      decisionDescription: "Recommend approve, deny, refund, escalate, or request evidence for repeated dispute cases.",
+      thesis: "This is a strong candidate for Compounding Expertise if the product owns the graded workflow and cross-customer cases remain transferable."
+    },
+    debates: EXAMPLE_DEBATES,
+    scenarios: DEFAULT_SCENARIOS,
+    cases: createSyntheticCases({
+      prefix: "SYN-DSP",
+      sourceLabel: CASAP_SOURCE,
+      segments: ["mid-market marketplace", "enterprise fintech", "consumer platform"],
+      caseTypes: ["evidence mismatch", "policy exception", "fraud signal", "customer appeal"],
+      decisions: ["approve claim", "deny claim", "request more evidence", "escalate for review"],
+      outcomes: ["chargeback avoided", "customer retained", "loss prevented", "manual review saved"],
+      count: 28,
+      delayPattern: [3, 5, 7, 10, 14],
+      unresolvedEvery: 9,
+      overrideEvery: 4,
+      edgeEvery: 5,
+      objectiveBias: "strong",
+      valueBase: 1800
+    })
+  },
+  {
+    id: "listen-labs",
+    label: "Listen Labs",
+    role: "Ambiguous case: accumulated research or knowledge may not equal a graded decision scorebook.",
+    syntheticDatasetLabel: LISTEN_SOURCE,
+    analysis: {
+      companyName: "Listen Labs archetype review",
+      productDescription: "Company-analysis archetype for AI-assisted research/listening workflows. Case rows are synthetic fixtures only.",
+      targetCustomer: "Product, marketing, and research teams synthesizing customer interviews or qualitative feedback.",
+      workflow: "Research prompt -> participant/session evidence -> synthesis -> recommendation -> later product or messaging decision.",
+      decisionDescription: "Recommend themes, positioning, prioritization, or follow-up research questions from qualitative evidence.",
+      thesis: "Accumulated knowledge may be valuable, but the scorebook claim is weaker unless recommendations are tied to objective later grades."
+    },
+    debates: EXAMPLE_DEBATES,
+    scenarios: [
+      { ...DEFAULT_SCENARIOS[0], startingCases: 900, casesPerMonth: 90, feedbackDelayDays: 75, transferability: 0.42, informationValue: 0.55, learningEfficiency: 0.48 },
+      { ...DEFAULT_SCENARIOS[1], startingCases: 120, casesPerMonth: 60, feedbackDelayDays: 45, transferability: 0.5, informationValue: 0.5, learningEfficiency: 0.62 }
+    ],
+    cases: createSyntheticCases({
+      prefix: "SYN-RSCH",
+      sourceLabel: LISTEN_SOURCE,
+      segments: ["growth team", "product team", "enterprise research"],
+      caseTypes: ["theme synthesis", "positioning read", "feature priority", "interview follow-up"],
+      decisions: ["recommend theme", "recommend segment", "recommend follow-up", "defer conclusion"],
+      outcomes: ["directionally useful", "ambiguous downstream signal", "not adopted", "later validated by team"],
+      count: 24,
+      delayPattern: [21, 45, 60, 90],
+      unresolvedEvery: 4,
+      overrideEvery: 6,
+      edgeEvery: 7,
+      objectiveBias: "mixed",
+      valueBase: 700
+    })
+  },
+  {
+    id: "aaru",
+    label: "Aaru / model-first research",
+    role: "Challenge case: stronger model intelligence may substitute for proprietary experience.",
+    syntheticDatasetLabel: AARU_SOURCE,
+    analysis: {
+      companyName: "Aaru model-first archetype review",
+      productDescription: "Company-analysis archetype for model-first research where base intelligence may compress the value of historical cases. Case rows are synthetic fixtures only.",
+      targetCustomer: "Strategy, investment, or research teams asking model-heavy analytical questions.",
+      workflow: "Question -> model-generated analysis -> reviewer correction -> decision support -> optional later outcome review.",
+      decisionDescription: "Generate or rank analytical conclusions, research paths, or scenario implications.",
+      thesis: "The challenge is whether higher base capability can substitute for proprietary historical experience quickly enough to weaken scorebook Power."
+    },
+    debates: EXAMPLE_DEBATES,
+    scenarios: [
+      { ...DEFAULT_SCENARIOS[0], startingCases: 600, casesPerMonth: 80, feedbackDelayDays: 35, transferability: 0.45, informationValue: 0.5, learningEfficiency: 0.5, baseCapability: 2.7 },
+      { ...DEFAULT_SCENARIOS[1], startingCases: 80, casesPerMonth: 120, feedbackDelayDays: 14, transferability: 0.68, informationValue: 0.58, learningEfficiency: 0.82, baseCapability: 3.35 }
+    ],
+    cases: createSyntheticCases({
+      prefix: "SYN-MDL",
+      sourceLabel: AARU_SOURCE,
+      segments: ["investor research", "strategy desk", "model evaluation"],
+      caseTypes: ["market map", "company assessment", "scenario analysis", "forecast critique"],
+      decisions: ["support thesis", "challenge thesis", "request more evidence", "rank alternative"],
+      outcomes: ["reviewer accepted", "partially revised", "superseded by new data", "unresolved external result"],
+      count: 22,
+      delayPattern: [7, 14, 30, 60],
+      unresolvedEvery: 5,
+      overrideEvery: 5,
+      edgeEvery: 6,
+      objectiveBias: "mixed",
+      valueBase: 500
+    })
+  },
+  {
+    id: "maybern",
+    label: "Maybern",
+    role: "Alternative Power: deterministic rails/schema may matter more than Compounding Expertise.",
+    syntheticDatasetLabel: MAYBERN_SOURCE,
+    analysis: {
+      companyName: "Maybern archetype review",
+      productDescription: "Company-analysis archetype for deterministic workflows where schema, controls, and process execution may be the stronger source of Power. Case rows are synthetic fixtures only.",
+      targetCustomer: "Finance, fund operations, or compliance teams requiring controlled execution.",
+      workflow: "Structured request -> schema validation -> deterministic rule path -> exception handling -> audit trail.",
+      decisionDescription: "Validate, route, reconcile, or reject structured operational exceptions.",
+      thesis: "The key question is whether Power resides in accumulated graded cases or in deterministic process rails, schemas, and trust controls."
+    },
+    debates: EXAMPLE_DEBATES,
+    scenarios: [
+      { ...DEFAULT_SCENARIOS[0], startingCases: 2000, casesPerMonth: 180, feedbackDelayDays: 10, transferability: 0.52, informationValue: 0.42, learningEfficiency: 0.46, baseCapability: 2.2 },
+      { ...DEFAULT_SCENARIOS[1], startingCases: 300, casesPerMonth: 120, feedbackDelayDays: 8, transferability: 0.55, informationValue: 0.4, learningEfficiency: 0.55, baseCapability: 2.6 }
+    ],
+    cases: createSyntheticCases({
+      prefix: "SYN-RAIL",
+      sourceLabel: MAYBERN_SOURCE,
+      segments: ["fund operations", "finance controller", "compliance ops"],
+      caseTypes: ["schema mismatch", "rule exception", "reconciliation variance", "approval routing"],
+      decisions: ["accept", "reject", "route exception", "request source document"],
+      outcomes: ["audit trail complete", "variance resolved", "control prevented error", "manual escalation required"],
+      count: 26,
+      delayPattern: [1, 2, 3, 5],
+      unresolvedEvery: 13,
+      overrideEvery: 7,
+      edgeEvery: 4,
+      objectiveBias: "strong",
+      valueBase: 900
+    })
+  },
+  {
+    id: "creative-agent",
+    label: "Creative Marketing Agent",
+    role: "Negative control: many cases but subjective/noisy grading and difficult-to-prove decision superiority.",
+    syntheticDatasetLabel: CREATIVE_SOURCE,
+    analysis: {
+      companyName: "Creative Marketing Agent",
+      productDescription: "Fully synthetic negative-control archetype for a high-volume creative workflow with subjective outcomes and attribution ambiguity.",
+      targetCustomer: "Marketing teams producing creative variants, social posts, ads, and campaign concepts.",
+      workflow: "Brief -> generated creative -> human edit -> launch or discard -> noisy performance readout.",
+      decisionDescription: "Select, rewrite, or reject creative variants for audience/channel use.",
+      thesis: "High case volume alone should not imply Compounding Expertise if grades are subjective, delayed, confounded, or weakly tied to decisions."
+    },
+    debates: EXAMPLE_DEBATES,
+    scenarios: [
+      { ...DEFAULT_SCENARIOS[0], startingCases: 20000, casesPerMonth: 3000, feedbackDelayDays: 28, transferability: 0.28, informationValue: 0.35, learningEfficiency: 0.38, stalenessRate: 0.08, baseCapability: 2.3 },
+      { ...DEFAULT_SCENARIOS[1], startingCases: 1500, casesPerMonth: 2200, feedbackDelayDays: 21, transferability: 0.4, informationValue: 0.42, learningEfficiency: 0.7, stalenessRate: 0.05, baseCapability: 3.0 }
+    ],
+    cases: createSyntheticCases({
+      prefix: "SYN-CRTV",
+      sourceLabel: CREATIVE_SOURCE,
+      segments: ["paid social", "email", "brand", "content"],
+      caseTypes: ["headline variant", "image concept", "email subject", "landing copy"],
+      decisions: ["ship variant", "rewrite", "reject", "test against control"],
+      outcomes: ["mixed performance", "attribution unclear", "team liked creative", "underperformed noisy baseline"],
+      count: 32,
+      delayPattern: [14, 21, 28, 45],
+      unresolvedEvery: 3,
+      overrideEvery: 4,
+      edgeEvery: 5,
+      objectiveBias: "weak",
+      valueBase: 300
+    })
+  }
+];
+
+export function exampleById(id: string | null | undefined) {
+  return COMPOUNDING_EXAMPLES.find((example) => example.id === id) ?? COMPOUNDING_EXAMPLES[0];
+}
 
 function finite(value: number, fallback = 0) {
   return Number.isFinite(value) ? value : fallback;
@@ -289,6 +615,102 @@ export function sanitizeScenario(input: SimulationScenarioInput): SimulationScen
     learningEfficiency: clamp(input.learningEfficiency, 0, 1),
     stalenessRate: clamp(input.stalenessRate, 0, 1),
     baseCapability: clamp(input.baseCapability, 0, 5)
+  };
+}
+
+function asDate(value: Date | string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+function ratio(numerator: number, denominator: number) {
+  return denominator > 0 ? round(numerator / denominator, 4) : null;
+}
+
+function median(values: number[]) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const midpoint = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? round((sorted[midpoint - 1] + sorted[midpoint]) / 2, 2)
+    : round(sorted[midpoint], 2);
+}
+
+function isResolvableGrade(grade: CompoundingCaseGrade) {
+  return grade === "CORRECT" || grade === "PARTIALLY_CORRECT" || grade === "INCORRECT";
+}
+
+function isCorrectGrade(grade: CompoundingCaseGrade) {
+  return grade === "CORRECT" || grade === "PARTIALLY_CORRECT";
+}
+
+function feedbackLatencyDays(row: ScorebookCaseInput) {
+  const decisionAt = asDate(row.decisionAt);
+  const outcomeAt = asDate(row.outcomeAt);
+  if (!decisionAt || !outcomeAt || outcomeAt < decisionAt) return null;
+  return (outcomeAt.getTime() - decisionAt.getTime()) / (24 * 60 * 60 * 1000);
+}
+
+export function scorebookRowsAreSynthetic(rows: ScorebookCaseInput[]) {
+  return rows.length > 0 && rows.every((row) => row.isSynthetic);
+}
+
+export function calculateScorebookMetrics(rows: ScorebookCaseInput[]): ScorebookMetrics {
+  const totalCases = rows.length;
+  const resolvedRows = rows.filter((row) => Boolean(row.outcome || row.outcomeAt || row.grade !== "UNRESOLVED"));
+  const gradedRows = rows.filter((row) => isResolvableGrade(row.grade));
+  const correctRows = gradedRows.filter((row) => isCorrectGrade(row.grade));
+  const overrideRows = rows.filter((row) => row.humanOverride && row.humanDecision && row.humanDecision !== row.agentDecision);
+  const overrideResolvable = overrideRows.filter((row) => isResolvableGrade(row.grade));
+  const overrideCorrect = overrideResolvable.filter((row) => isCorrectGrade(row.grade));
+  const overrideIncorrect = overrideResolvable.filter((row) => row.grade === "INCORRECT");
+  const latencyValues = rows.map(feedbackLatencyDays).filter((value): value is number => value !== null);
+  const outcomeValues = rows.map((row) => row.outcomeValue).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const overrideOutcomeValues = overrideRows.map((row) => row.outcomeValue).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+
+  const totalOutcomeValue = outcomeValues.length ? round(outcomeValues.reduce((sum, value) => sum + value, 0), 2) : null;
+  const overrideTotalOutcomeValue = overrideOutcomeValues.length
+    ? round(overrideOutcomeValues.reduce((sum, value) => sum + value, 0), 2)
+    : null;
+
+  return {
+    totalCases,
+    resolvedCases: resolvedRows.length,
+    gradedCases: gradedRows.length,
+    outcomeCompletionRate: ratio(resolvedRows.length, totalCases),
+    gradeCoverage: ratio(gradedRows.length, totalCases),
+    agentCorrectnessRate: ratio(correctRows.length, gradedRows.length),
+    humanOverrideRate: ratio(overrideRows.length, totalCases),
+    medianFeedbackLatencyDays: median(latencyValues),
+    feedbackLatencySampleSize: latencyValues.length,
+    edgeCaseShare: ratio(rows.filter((row) => row.isEdgeCase).length, totalCases),
+    outcomeValueSampleSize: outcomeValues.length,
+    totalOutcomeValue,
+    averageOutcomeValue: totalOutcomeValue !== null ? round(totalOutcomeValue / outcomeValues.length, 2) : null,
+    syntheticCaseCount: rows.filter((row) => row.isSynthetic).length,
+    humanOverrideValue: {
+      count: overrideRows.length,
+      shareOfCases: ratio(overrideRows.length, totalCases),
+      resolvableCount: overrideResolvable.length,
+      correctCount: overrideCorrect.length,
+      incorrectCount: overrideIncorrect.length,
+      correctRate: ratio(overrideCorrect.length, overrideResolvable.length),
+      incorrectRate: ratio(overrideIncorrect.length, overrideResolvable.length),
+      outcomeValueSampleSize: overrideOutcomeValues.length,
+      totalOutcomeValue: overrideTotalOutcomeValue,
+      averageOutcomeValue: overrideTotalOutcomeValue !== null ? round(overrideTotalOutcomeValue / overrideOutcomeValues.length, 2) : null
+    }
+  };
+}
+
+export function scorebookDerivedSimulatorValues(rows: ScorebookCaseInput[]): ScorebookDerivedSimulatorValues {
+  const gradedRows = rows.filter((row) => isResolvableGrade(row.grade));
+  const latencyValues = gradedRows.map(feedbackLatencyDays).filter((value): value is number => value !== null);
+  return {
+    startingGradedCases: gradedRows.length,
+    feedbackDelayDays: median(latencyValues),
+    feedbackDelaySampleSize: latencyValues.length
   };
 }
 

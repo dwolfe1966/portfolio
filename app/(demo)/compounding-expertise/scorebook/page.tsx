@@ -1,0 +1,285 @@
+import Link from "next/link";
+import { Section } from "@/components/site/Section";
+import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
+import {
+  calculateScorebookMetrics,
+  scorebookDerivedSimulatorValues,
+  scorebookRowsAreSynthetic,
+  type CompoundingCaseGrade,
+  type ScorebookCaseInput
+} from "@/lib/compounding-expertise-lab";
+import { saveScorebookAction } from "../actions";
+import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
+
+export const dynamic = "force-dynamic";
+
+const GRADES: CompoundingCaseGrade[] = ["CORRECT", "PARTIALLY_CORRECT", "INCORRECT", "UNRESOLVED"];
+
+function caseInput(row: NonNullable<Awaited<ReturnType<typeof loadCompoundingAnalysis>>>["scorebookCases"][number]): ScorebookCaseInput {
+  return {
+    id: row.id,
+    externalCaseId: row.externalCaseId,
+    customerSegment: row.customerSegment,
+    caseType: row.caseType,
+    context: row.context,
+    agentDecision: row.agentDecision,
+    agentConfidence: row.agentConfidence,
+    humanDecision: row.humanDecision,
+    humanOverride: row.humanOverride,
+    actionTaken: row.actionTaken,
+    outcome: row.outcome,
+    outcomeValue: row.outcomeValue,
+    grade: row.grade,
+    gradeConfidence: row.gradeConfidence,
+    decisionAt: row.decisionAt,
+    outcomeAt: row.outcomeAt,
+    isEdgeCase: row.isEdgeCase,
+    isSynthetic: row.isSynthetic,
+    sourceLabel: row.sourceLabel,
+    notes: row.notes
+  };
+}
+
+function uniq(values: string[]) {
+  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+function pct(value: number | null) {
+  return value === null ? "Unavailable" : `${Math.round(value * 100)}%`;
+}
+
+function money(value: number | null) {
+  return value === null ? "Unavailable" : value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
+function dateValue(value: Date | string | null | undefined) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function matches(row: ScorebookCaseInput, filters: Record<string, string>) {
+  if (filters.segment && row.customerSegment !== filters.segment) return false;
+  if (filters.caseType && row.caseType !== filters.caseType) return false;
+  if (filters.grade && row.grade !== filters.grade) return false;
+  if (filters.override === "yes" && !row.humanOverride) return false;
+  if (filters.override === "no" && row.humanOverride) return false;
+  if (filters.edge === "yes" && !row.isEdgeCase) return false;
+  if (filters.edge === "no" && row.isEdgeCase) return false;
+  if (filters.resolved === "resolved" && row.grade === "UNRESOLVED" && !row.outcome && !row.outcomeAt) return false;
+  if (filters.resolved === "unresolved" && (row.grade !== "UNRESOLVED" || row.outcome || row.outcomeAt)) return false;
+  if (filters.synthetic === "synthetic" && !row.isSynthetic) return false;
+  if (filters.synthetic === "non-synthetic" && row.isSynthetic) return false;
+  return true;
+}
+
+function metricCard(label: string, value: string, sample: string) {
+  return (
+    <div className="card compact">
+      <p className="small">{label}</p>
+      <h3>{value}</h3>
+      <p className="small">{sample}</p>
+    </div>
+  );
+}
+
+function ScorebookRow({ row, blank = false }: { row: Partial<ScorebookCaseInput>; blank?: boolean }) {
+  const suffix = row.id ?? `blank-${row.externalCaseId ?? "new"}`;
+  return (
+    <tr>
+      <td>
+        <input type="hidden" name="caseId" value={row.id ?? ""} />
+        <select name="deleteCase" defaultValue="0" aria-label={`Delete ${suffix}`}>
+          <option value="0">{blank ? "Add" : "Keep"}</option>
+          {!blank ? <option value="1">Delete</option> : null}
+        </select>
+      </td>
+      <td><input name="externalCaseId" defaultValue={row.externalCaseId ?? ""} placeholder="case id" /></td>
+      <td><input name="customerSegment" defaultValue={row.customerSegment ?? ""} /></td>
+      <td><input name="caseType" defaultValue={row.caseType ?? ""} /></td>
+      <td><textarea name="context" rows={3} defaultValue={row.context ?? ""} /></td>
+      <td><input name="agentDecision" defaultValue={row.agentDecision ?? ""} /></td>
+      <td><input name="agentConfidence" type="number" min="0" max="1" step="0.01" defaultValue={row.agentConfidence ?? ""} /></td>
+      <td><input name="humanDecision" defaultValue={row.humanDecision ?? ""} /></td>
+      <td>
+        <select name="humanOverride" defaultValue={row.humanOverride ? "1" : "0"}>
+          <option value="0">No</option>
+          <option value="1">Yes</option>
+        </select>
+      </td>
+      <td><input name="actionTaken" defaultValue={row.actionTaken ?? ""} /></td>
+      <td><textarea name="outcome" rows={3} defaultValue={row.outcome ?? ""} /></td>
+      <td><input name="outcomeValue" type="number" step="1" defaultValue={row.outcomeValue ?? ""} /></td>
+      <td>
+        <select name="grade" defaultValue={row.grade ?? "UNRESOLVED"}>
+          {GRADES.map((grade) => <option key={grade} value={grade}>{grade.replaceAll("_", " ")}</option>)}
+        </select>
+      </td>
+      <td><input name="gradeConfidence" type="number" min="0" max="1" step="0.01" defaultValue={row.gradeConfidence ?? ""} /></td>
+      <td><input name="decisionAt" type="date" defaultValue={dateValue(row.decisionAt)} /></td>
+      <td><input name="outcomeAt" type="date" defaultValue={dateValue(row.outcomeAt)} /></td>
+      <td>
+        <select name="isEdgeCase" defaultValue={row.isEdgeCase ? "1" : "0"}>
+          <option value="0">No</option>
+          <option value="1">Yes</option>
+        </select>
+      </td>
+      <td>
+        <select name="isSynthetic" defaultValue={row.isSynthetic === false ? "0" : "1"}>
+          <option value="1">Synthetic</option>
+          <option value="0">User / sourced</option>
+        </select>
+      </td>
+      <td><textarea name="sourceLabel" rows={3} defaultValue={row.sourceLabel ?? "User-entered scorebook row"} /></td>
+      <td><textarea name="notes" rows={3} defaultValue={row.notes ?? ""} /></td>
+    </tr>
+  );
+}
+
+export default async function CompoundingExpertiseScorebookPage({
+  searchParams
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
+  const accountUserId = await currentAccountUserId();
+  const analysis = await loadCompoundingAnalysis(accountUserId);
+  if (!analysis) {
+    return (
+      <>
+        <LabWorkflowRail active="Scorebook" />
+        <Section title="Start with company inputs">
+          <p>Create or load an analysis before inspecting the scorebook.</p>
+          <Link className="btn primary" href="/compounding-expertise/inputs">Go to inputs</Link>
+        </Section>
+      </>
+    );
+  }
+
+  const rows = analysis.scorebookCases.map(caseInput);
+  const filtered = rows.filter((row) => matches(row, params as Record<string, string>));
+  const metrics = calculateScorebookMetrics(rows);
+  const derived = scorebookDerivedSimulatorValues(rows);
+  const segments = uniq(rows.map((row) => row.customerSegment));
+  const caseTypes = uniq(rows.map((row) => row.caseType));
+  const allSynthetic = scorebookRowsAreSynthetic(rows);
+
+  return (
+    <>
+      <LabWorkflowRail active="Scorebook" />
+      <Section eyebrow="Stage 4" title="Show me the Scorebook">
+        <p>
+          Inspect the underlying graded cases before accepting any scorebook-quality claim.
+          Incomplete rows are valid: unresolved outcomes and missing grades are part of the evidence.
+        </p>
+        {allSynthetic ? (
+          <div className="card compoundingSyntheticBanner">
+            <strong>SYNTHETIC ILLUSTRATIVE DATA - NOT COMPANY DATA</strong>
+            <p>Every current row is marked synthetic. Use this fixture to test the theory, not to describe real company operations.</p>
+          </div>
+        ) : null}
+      </Section>
+
+      <Section title="Derived scorebook evidence">
+        <div className="grid grid-4">
+          {metricCard("Total cases", String(metrics.totalCases), "All rows")}
+          {metricCard("Outcome completion", pct(metrics.outcomeCompletionRate), `n=${metrics.resolvedCases}/${metrics.totalCases}`)}
+          {metricCard("Grade coverage", pct(metrics.gradeCoverage), `n=${metrics.gradedCases}/${metrics.totalCases}`)}
+          {metricCard("Agent correctness", pct(metrics.agentCorrectnessRate), `n=${metrics.gradedCases} resolvable grades`)}
+          {metricCard("Human override rate", pct(metrics.humanOverrideRate), `n=${metrics.humanOverrideValue.count}/${metrics.totalCases}`)}
+          {metricCard("Median feedback latency", metrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${metrics.medianFeedbackLatencyDays} days`, `n=${metrics.feedbackLatencySampleSize}`)}
+          {metricCard("Edge-case share", pct(metrics.edgeCaseShare), `n=${rows.filter((row) => row.isEdgeCase).length}/${metrics.totalCases}`)}
+          {metricCard("Economic outcome", money(metrics.totalOutcomeValue), `avg ${money(metrics.averageOutcomeValue)}; n=${metrics.outcomeValueSampleSize}`)}
+        </div>
+      </Section>
+
+      <Section title="Human override value">
+        <div className="card">
+          <p>
+            Overrides where the human final decision differs from the agent decision:
+            <strong> {metrics.humanOverrideValue.count}</strong> ({pct(metrics.humanOverrideValue.shareOfCases)} of cases).
+          </p>
+          <p>
+            Resolvable override grades: {metrics.humanOverrideValue.resolvableCount}.
+            Correct/partially correct: {metrics.humanOverrideValue.correctCount} ({pct(metrics.humanOverrideValue.correctRate)}).
+            Incorrect: {metrics.humanOverrideValue.incorrectCount} ({pct(metrics.humanOverrideValue.incorrectRate)}).
+          </p>
+          <p>
+            Override economic outcome where available: {money(metrics.humanOverrideValue.totalOutcomeValue)}
+            {" "}across n={metrics.humanOverrideValue.outcomeValueSampleSize}. This is observational, not causal proof of human value.
+          </p>
+        </div>
+      </Section>
+
+      <Section title="Filters">
+        <form className="grid grid-4">
+          <label>Customer segment<select name="segment" defaultValue={params.segment ?? ""}><option value="">All</option>{segments.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label>Case type<select name="caseType" defaultValue={params.caseType ?? ""}><option value="">All</option>{caseTypes.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label>Grade<select name="grade" defaultValue={params.grade ?? ""}><option value="">All</option>{GRADES.map((grade) => <option key={grade} value={grade}>{grade.replaceAll("_", " ")}</option>)}</select></label>
+          <label>Human override<select name="override" defaultValue={params.override ?? ""}><option value="">All</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Edge case<select name="edge" defaultValue={params.edge ?? ""}><option value="">All</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Resolution<select name="resolved" defaultValue={params.resolved ?? ""}><option value="">All</option><option value="resolved">Resolved</option><option value="unresolved">Unresolved</option></select></label>
+          <label>Source status<select name="synthetic" defaultValue={params.synthetic ?? ""}><option value="">All</option><option value="synthetic">Synthetic</option><option value="non-synthetic">User / sourced</option></select></label>
+          <div className="ctaRow" style={{ alignItems: "end" }}>
+            <button className="btn" type="submit">Apply filters</button>
+            <Link className="btn" href="/compounding-expertise/scorebook">Clear</Link>
+          </div>
+        </form>
+      </Section>
+
+      <Section title="Editable cases">
+        <form action={saveScorebookAction}>
+          <input type="hidden" name="analysisId" value={analysis.id} />
+          <div className="tableScroll compoundingScorebookTable">
+            <table className="dataTable">
+              <thead>
+                <tr>
+                  <th>Row</th>
+                  <th>External case ID</th>
+                  <th>Customer segment</th>
+                  <th>Case type</th>
+                  <th>Context</th>
+                  <th>Agent decision</th>
+                  <th>Agent confidence</th>
+                  <th>Human final decision</th>
+                  <th>Human override</th>
+                  <th>Action taken</th>
+                  <th>Outcome</th>
+                  <th>Outcome economic value</th>
+                  <th>Grade</th>
+                  <th>Grade confidence</th>
+                  <th>Decision timestamp</th>
+                  <th>Outcome timestamp</th>
+                  <th>Edge case</th>
+                  <th>Synthetic/source status</th>
+                  <th>Source label</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row) => <ScorebookRow key={row.id} row={row} />)}
+                <ScorebookRow row={{ externalCaseId: "", sourceLabel: "User-entered scorebook row", grade: "UNRESOLVED", isSynthetic: false, humanOverride: false, isEdgeCase: false }} blank />
+              </tbody>
+            </table>
+          </div>
+          <div className="ctaRow">
+            <button className="btn primary" type="submit">Save scorebook</button>
+            <Link className="btn" href="/compounding-expertise/simulator">Continue to simulator</Link>
+          </div>
+        </form>
+      </Section>
+
+      <Section title="Simulator bridge">
+        <div className="card">
+          <h3>Scorebook-derived values available</h3>
+          <p>
+            Starting graded cases: {derived.startingGradedCases}. Median feedback delay:
+            {" "}{derived.feedbackDelayDays === null ? "unavailable" : `${derived.feedbackDelayDays} days`} (n={derived.feedbackDelaySampleSize}).
+            Information value, transferability, and learning efficiency remain theoretical assumptions in V0.1.1.
+          </p>
+        </div>
+      </Section>
+    </>
+  );
+}

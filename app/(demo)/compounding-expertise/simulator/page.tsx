@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LabWorkflowRail, SimulatorLineChart } from "@/components/compounding-expertise/CompoundingLabComponents";
-import { DEFAULT_SCENARIOS, detectCrossover, simulateComparison } from "@/lib/compounding-expertise-lab";
-import { saveScenariosAction } from "../actions";
+import { DEFAULT_SCENARIOS, detectCrossover, scorebookDerivedSimulatorValues, simulateComparison, type ScorebookCaseInput } from "@/lib/compounding-expertise-lab";
+import { applyScorebookDerivedValuesAction, saveScenariosAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
 export const dynamic = "force-dynamic";
 
-export default async function CompoundingExpertiseSimulatorPage() {
+export default async function CompoundingExpertiseSimulatorPage({
+  searchParams
+}: {
+  searchParams: Promise<{ scorebook?: string }>;
+}) {
+  const params = await searchParams;
   const accountUserId = await currentAccountUserId();
   const analysis = await loadCompoundingAnalysis(accountUserId);
   if (!analysis) {
@@ -27,15 +32,36 @@ export default async function CompoundingExpertiseSimulatorPage() {
     : DEFAULT_SCENARIOS.map((scenario, index) => ({ id: "", analysisId: analysis.id, createdAt: new Date(), updatedAt: new Date(), ...scenario, name: index === 0 ? "Incumbent A" : "Challenger B" }));
   const series = simulateComparison(scenarios, 36);
   const crossover = series.length >= 2 ? detectCrossover(series[0], series[1]) : null;
+  const derived = scorebookDerivedSimulatorValues(analysis.scorebookCases.map((row) => ({ ...row })) as ScorebookCaseInput[]);
 
   return (
     <>
       <LabWorkflowRail active="Simulator" />
-      <Section eyebrow="Stage 4" title="Compounding simulator">
+      <Section eyebrow="Stage 5" title="Compounding simulator">
         <p>
           Compare two scenarios with a transparent toy model. Feedback delay is modeled as a maturation lag:
           new cases do not become effective graded experience until their feedback arrives.
         </p>
+        {params.scorebook === "applied" ? (
+          <div className="card compoundingSyntheticBanner">
+            <strong>Scorebook-derived values applied.</strong>
+            <p>Only starting graded cases and feedback delay were populated. Theoretical assumptions remain user-controlled.</p>
+          </div>
+        ) : null}
+      </Section>
+
+      <Section title="Scorebook-derived inputs">
+        <div className="card">
+          <p>
+            Current scorebook implies <strong>{derived.startingGradedCases}</strong> starting graded cases and
+            {" "}<strong>{derived.feedbackDelayDays === null ? "unavailable" : `${derived.feedbackDelayDays} days`}</strong> median feedback delay
+            {" "}(n={derived.feedbackDelaySampleSize}). Transferability, information value, and learning efficiency are not inferred in V0.1.1.
+          </p>
+          <form action={applyScorebookDerivedValuesAction}>
+            <input type="hidden" name="analysisId" value={analysis.id} />
+            <button className="btn" type="submit">Use scorebook-derived values</button>
+          </form>
+        </div>
       </Section>
 
       <Section title="Scenario variables">
@@ -64,7 +90,7 @@ export default async function CompoundingExpertiseSimulatorPage() {
           </div>
           <div className="ctaRow">
             <button className="btn primary" type="submit">Save and continue</button>
-            <Link className="btn" href="/compounding-expertise/diagnostic">Back</Link>
+            <Link className="btn" href="/compounding-expertise/scorebook">Back</Link>
           </div>
         </form>
       </Section>

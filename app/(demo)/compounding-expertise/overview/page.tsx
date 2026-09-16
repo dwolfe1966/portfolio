@@ -18,13 +18,14 @@ export default function CompoundingExpertiseOverviewPage() {
       </Section>
 
       <Section title="Primary workflow">
-        <div className="grid grid-5 compoundingStepGrid">
+        <div className="grid grid-3 compoundingStepGrid">
           {[
             ["1", "Inputs", "Company, product, workflow, decision, and thesis."],
             ["2", "Key Debates", "Load-bearing questions with belief revision fields."],
             ["3", "Diagnostic", "HELMER, SUN, and WOLFE assessments with provenance."],
-            ["4", "Simulator", "Toy compounding model with feedback maturation lag."],
-            ["5", "Memo", "Uncertainty-preserving synthesis for discussion."]
+            ["4", "Scorebook", "Inspectable case-level rows behind the scorebook claim."],
+            ["5", "Simulator", "Toy compounding model with feedback maturation lag."],
+            ["6", "Memo", "Uncertainty-preserving synthesis for discussion."]
           ].map(([number, title, detail]) => (
             <div className="card" key={number}>
               <p className="small">Stage {number}</p>

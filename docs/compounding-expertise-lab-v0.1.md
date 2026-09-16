@@ -57,13 +57,14 @@ These are not attributed to Ben Sun or Hamilton Helmer.
 
 ## V0.1 Workflow
 
-The primary workflow has five stages:
+The primary workflow has six stages as of V0.1.1:
 
 1. Inputs: company, product, target customer, workflow, principal decisions, and current thesis.
 2. Key Debates: 2-4 load-bearing debates with bull case, bear case, evidence needed, current probability, and belief-revision triggers.
 3. Diagnostic: HELMER / SUN / WOLFE assessments with score, confidence, rationale, and evidence status.
-4. Simulator: incumbent/challenger comparison with lagged feedback maturation.
-5. Memo: concise synthesis preserving uncertainty and surfacing unresolved debates.
+4. Scorebook: inspect and edit case-level rows behind the scorebook claim.
+5. Simulator: incumbent/challenger comparison with lagged feedback maturation.
+6. Memo: concise synthesis preserving uncertainty, scorebook evidence, and unresolved debates.
 
 Overview and Docs are supporting routes, not numbered stages.
 
@@ -127,27 +128,105 @@ V0.1 adds:
 - `CompoundingExpertiseDimensionAssessment`
 - `CompoundingExpertiseSimulationScenario`
 
+V0.1.1 adds:
+
+- `CompoundingExpertiseCase`
+
 Enums:
 
 - `CompoundingFramework`: HELMER, SUN, WOLFE
 - `CompoundingConfidence`: LOW, MEDIUM, HIGH
 - `CompoundingEvidenceStatus`: OBSERVED, SOURCED, ASSUMED, UNKNOWN
 - `CompoundingDebateSource`: SUN, WOLFE, USER, AI
+- `CompoundingCaseGrade`: CORRECT, PARTIALLY_CORRECT, INCORRECT, UNRESOLVED
 
-The V0.1 schema does not implement the future production scorebook:
+The V0.1.1 case table is intentionally minimal and inspection-oriented. Fields that can legitimately be missing before resolution are nullable, including human final decision, action taken, outcome, economic outcome value, outcome timestamp, and notes. A row with no observed outcome should normally remain `UNRESOLVED`.
+
+The V0.1.1 schema is still not a full production scorebook system:
 
 ```text
 Case -> Decision -> Outcome -> Grade
 ```
 
-That belongs in V0.2+.
+It is a first inspectable representation for theory testing. A richer empirical scorebook belongs in V0.2+.
+
+## V0.1.1 Scorebook Inspection
+
+The scorebook is a central object in the Compounding Expertise thesis. A Lab that assesses scorebook quality without showing the underlying graded cases would hide the most important evidence.
+
+The Scorebook page adds:
+
+- A spreadsheet-like editable case table.
+- Filters for segment, case type, grade, human override, edge case, resolution state, and source/synthetic status.
+- Derived metrics from current rows:
+  - total cases
+  - outcome completion
+  - grade coverage
+  - agent correctness rate
+  - human override rate
+  - median feedback latency
+  - edge-case share
+  - total and average economic outcome where available
+- Human Override Value diagnostics for cases where the human final decision differs from the agent decision.
+
+These metrics remain descriptive. They do not prove causality or durable Power.
+
+### Example Archetypes
+
+V0.1.1 includes five theory-testing examples:
+
+- Casap: strong Compounding Expertise candidate.
+- Listen Labs: ambiguous case where accumulated research may not equal a graded decision scorebook.
+- Aaru / model-first research: challenge case where model capability may substitute for proprietary experience.
+- Maybern: alternative Power case where deterministic rails/schema may matter more.
+- Creative Marketing Agent: negative control with high volume but subjective/noisy grading.
+
+### Synthetic-Data Policy
+
+Bundled case-level rows are never company data.
+
+Casap, Listen Labs, Aaru, and Maybern may appear as company-analysis archetypes, but their case rows are explicitly labeled as synthetic illustrative fixtures, for example:
+
+```text
+SYNTHETIC ILLUSTRATIVE DATA - Synthetic disputes scorebook, not Casap data
+```
+
+Creative Marketing Agent is entirely synthetic. The examples are test fixtures designed to stress the theory, not to make the thesis succeed.
+
+### Simulator Bridge
+
+The scorebook can populate only defensible simulator inputs in V0.1.1:
+
+- starting graded cases
+- median feedback delay
+
+The following remain theoretical assumptions and are not inferred automatically:
+
+- information value per case
+- transferability
+- learning efficiency
+- staleness
+- base model capability
+
+### Future Information-Theoretic Work
+
+Case data is structured so future versions can investigate:
+
+- marginal information gain
+- redundancy
+- cross-customer transfer
+- knowledge compressibility
+- causal quality
+- autonomy thresholds
+
+V0.1.1 does not implement mathematically rigorous versions of those metrics.
 
 ## Assumptions And Limitations
 
 - Scores are structured judgments, not validated measurements.
 - The simulator is intentionally transparent and incomplete.
-- The synthetic claims/disputes example is fictional.
-- No factual claims about real companies are bundled.
+- Bundled case-level records are synthetic illustrative fixtures, not actual company data.
+- Real-company archetype labels do not imply factual company metrics or proprietary operational data.
 - AI debate generation is optional and degrades to manual/fallback content when unavailable.
 - The memo preserves uncertainty and highlights unresolved debates rather than asserting a final moat.
 
