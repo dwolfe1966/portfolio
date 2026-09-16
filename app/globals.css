@@ -3258,11 +3258,18 @@ button {
 }
 .compoundingExampleTable .dataTable {
   min-width: 1380px;
+  border-collapse: collapse;
 }
 .compoundingExampleTable th,
 .compoundingExampleTable td {
-  font-size: 13px;
+  border: 1px solid color-mix(in srgb, var(--demo-divider) 72%, var(--demo-text) 28%);
+  font-size: 12px;
   line-height: 1.45;
+}
+.compoundingExampleTable td,
+.compoundingExampleTable td span,
+.compoundingExampleTable td strong {
+  font-size: 12px;
 }
 .compoundingExampleTable th:first-child,
 .compoundingExampleTable td:first-child {
@@ -3300,7 +3307,10 @@ button {
   background: color-mix(in srgb, var(--demo-accent) 10%, transparent);
 }
 .compoundingExampleTable .btn {
-  min-width: 120px;
+  min-width: 72px;
+  padding-left: 10px;
+  padding-right: 10px;
+  text-align: center;
 }
 .compoundingProcessCard {
   display: grid;
