@@ -79,13 +79,13 @@ const ACQUISITION_LINKS: NavLink[] = [
 ];
 
 const COMPOUNDING_EXPERTISE_LINKS: NavLink[] = [
-  { href: "/compounding-expertise/inputs", label: "Inputs", group: "primary" },
+  { href: "/compounding-expertise/overview", label: "Overview", group: "primary" },
+  { href: "/compounding-expertise/inputs", label: "System & Environment", group: "primary" },
+  { href: "/compounding-expertise/scorebook", label: "Scorebook", group: "primary" },
   { href: "/compounding-expertise/debates", label: "Key Debates", group: "primary" },
   { href: "/compounding-expertise/diagnostic", label: "Diagnostic", group: "primary" },
-  { href: "/compounding-expertise/scorebook", label: "Scorebook", group: "primary" },
   { href: "/compounding-expertise/simulator", label: "Simulator", group: "primary" },
-  { href: "/compounding-expertise/memo", label: "Memo", group: "primary" },
-  { href: "/compounding-expertise/overview", label: "Overview", group: "operations" },
+  { href: "/compounding-expertise/memo", label: "Conclusion", group: "primary" },
   { href: "/compounding-expertise/docs", label: "Docs", group: "operations" }
 ];
 

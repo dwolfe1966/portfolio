@@ -12,6 +12,21 @@ export type CompanyThesisInput = {
   workflow: string;
   decisionDescription: string;
   thesis: string;
+  economicCostWrongDecision?: string | null;
+  outcomeObjectivity?: string | null;
+  naturalFeedbackTime?: string | null;
+  customerCaseHeterogeneity?: string | null;
+  environmentalChangeRate?: string | null;
+  foundationModelImprovementRate?: string | null;
+  ownsDecisionPoint?: string | null;
+  observesOutcome?: string | null;
+  capturesOverrides?: string | null;
+  capturesGrades?: string | null;
+  learnsAcrossCustomers?: string | null;
+  contractualLearningRights?: string | null;
+  runsControlledExperiments?: string | null;
+  updatesModelPolicyRegularly?: string | null;
+  deploysImprovementsQuickly?: string | null;
 };
 
 export type KeyDebateInput = {
@@ -137,6 +152,47 @@ export type ScorebookDerivedSimulatorValues = {
   feedbackDelayDays: number | null;
   feedbackDelaySampleSize: number;
 };
+
+export type EpistemicKind = "OBSERVED_DERIVED" | "SOURCED" | "ENDOGENOUS_ASSUMPTION" | "EXOGENOUS_ASSUMPTION" | "UNKNOWN";
+
+export type StructuredInputDefinition = {
+  key: keyof CompanyThesisInput;
+  label: string;
+  description: string;
+  options: string[];
+  epistemicKind: EpistemicKind;
+};
+
+export const LAB_WORKFLOW_STEPS = [
+  { href: "/compounding-expertise/overview", label: "Overview", stage: "0", verb: "Understand" },
+  { href: "/compounding-expertise/inputs", label: "System & Environment", stage: "1", verb: "Understand" },
+  { href: "/compounding-expertise/scorebook", label: "Scorebook", stage: "2", verb: "Observe" },
+  { href: "/compounding-expertise/debates", label: "Key Debates", stage: "3", verb: "Hypothesize" },
+  { href: "/compounding-expertise/diagnostic", label: "Diagnostic", stage: "4", verb: "Hypothesize" },
+  { href: "/compounding-expertise/simulator", label: "Simulator", stage: "5", verb: "Test" },
+  { href: "/compounding-expertise/memo", label: "Conclusion", stage: "6", verb: "Decide" }
+] as const;
+
+export const EXOGENOUS_INPUTS: StructuredInputDefinition[] = [
+  { key: "economicCostWrongDecision", label: "Economic cost of a wrong decision", description: "How much value is at stake when the product is wrong?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
+  { key: "outcomeObjectivity", label: "Outcome objectivity", description: "Can outcomes be graded objectively rather than by taste or politics?", options: ["Unknown", "Subjective", "Mixed", "Objective / deterministic"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
+  { key: "naturalFeedbackTime", label: "Natural feedback time", description: "How quickly does reality reveal whether the decision was good?", options: ["Unknown", "Minutes", "Days", "Weeks", "Months", "Years"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
+  { key: "customerCaseHeterogeneity", label: "Customer / case heterogeneity", description: "How different are customers, cases, policies, and contexts?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
+  { key: "environmentalChangeRate", label: "Environmental change / nonstationarity", description: "How quickly does the problem distribution change?", options: ["Unknown", "Stable", "Moderate", "Rapidly changing"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
+  { key: "foundationModelImprovementRate", label: "Foundation-model improvement relative to this task", description: "How quickly general model capability may compress proprietary experience advantage.", options: ["Unknown", "Slow", "Moderate", "Fast"], epistemicKind: "EXOGENOUS_ASSUMPTION" }
+];
+
+export const ENDOGENOUS_INPUTS: StructuredInputDefinition[] = [
+  { key: "ownsDecisionPoint", label: "Owns or participates directly in decision point?", description: "Can the product see the actual decision moment?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "observesOutcome", label: "Observes eventual outcome?", description: "Can the company observe what happened after the decision?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "capturesOverrides", label: "Captures human overrides?", description: "Are human corrections captured as learning signal?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "capturesGrades", label: "Captures explicit grades?", description: "Are decisions explicitly graded against outcomes?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "learnsAcrossCustomers", label: "Can learn across customers?", description: "Can learning from one customer improve another?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "contractualLearningRights", label: "Has contractual rights to learn?", description: "Can the company legally use the feedback loop to improve?", options: ["Unknown", "No", "Partial / restricted", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "runsControlledExperiments", label: "Runs controlled experiments?", description: "Can the company test changes rather than infer from anecdotes?", options: ["Unknown", "No", "Sometimes", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "updatesModelPolicyRegularly", label: "Updates model / policy regularly?", description: "Does learning feed back into system behavior?", options: ["Unknown", "No", "Occasionally", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "deploysImprovementsQuickly", label: "Can deploy improvements quickly?", description: "How quickly can the company turn learning into changed behavior?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" }
+];
 
 export const HELMER_POWERS: DimensionDefinition[] = [
   { framework: "HELMER", dimension: "scale_economies", label: "Scale Economies", description: "Unit economics improve with volume in a way that is hard to match." },
@@ -378,7 +434,22 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       targetCustomer: "Operations teams handling repeated disputes, chargebacks, or exception workflows.",
       workflow: "Dispute intake -> evidence review -> recommended resolution -> human approval or override -> outcome and grade capture.",
       decisionDescription: "Recommend approve, deny, refund, escalate, or request evidence for repeated dispute cases.",
-      thesis: "This is a strong candidate for Compounding Expertise if the product owns the graded workflow and cross-customer cases remain transferable."
+      thesis: "This is a strong candidate for Compounding Expertise if the product owns the graded workflow and cross-customer cases remain transferable.",
+      economicCostWrongDecision: "High",
+      outcomeObjectivity: "Objective / deterministic",
+      naturalFeedbackTime: "Days",
+      customerCaseHeterogeneity: "Medium",
+      environmentalChangeRate: "Moderate",
+      foundationModelImprovementRate: "Moderate",
+      ownsDecisionPoint: "Yes",
+      observesOutcome: "Yes",
+      capturesOverrides: "Yes",
+      capturesGrades: "Yes",
+      learnsAcrossCustomers: "Partially",
+      contractualLearningRights: "Partial / restricted",
+      runsControlledExperiments: "Sometimes",
+      updatesModelPolicyRegularly: "Yes",
+      deploysImprovementsQuickly: "Yes"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: DEFAULT_SCENARIOS,
@@ -409,7 +480,22 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       targetCustomer: "Product, marketing, and research teams synthesizing customer interviews or qualitative feedback.",
       workflow: "Research prompt -> participant/session evidence -> synthesis -> recommendation -> later product or messaging decision.",
       decisionDescription: "Recommend themes, positioning, prioritization, or follow-up research questions from qualitative evidence.",
-      thesis: "Accumulated knowledge may be valuable, but the scorebook claim is weaker unless recommendations are tied to objective later grades."
+      thesis: "Accumulated knowledge may be valuable, but the scorebook claim is weaker unless recommendations are tied to objective later grades.",
+      economicCostWrongDecision: "Medium",
+      outcomeObjectivity: "Subjective",
+      naturalFeedbackTime: "Months",
+      customerCaseHeterogeneity: "High",
+      environmentalChangeRate: "Moderate",
+      foundationModelImprovementRate: "Fast",
+      ownsDecisionPoint: "Partially",
+      observesOutcome: "Partially",
+      capturesOverrides: "Partially",
+      capturesGrades: "No",
+      learnsAcrossCustomers: "Partially",
+      contractualLearningRights: "Partial / restricted",
+      runsControlledExperiments: "Sometimes",
+      updatesModelPolicyRegularly: "Occasionally",
+      deploysImprovementsQuickly: "Partially"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: [
@@ -443,7 +529,22 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       targetCustomer: "Strategy, investment, or research teams asking model-heavy analytical questions.",
       workflow: "Question -> model-generated analysis -> reviewer correction -> decision support -> optional later outcome review.",
       decisionDescription: "Generate or rank analytical conclusions, research paths, or scenario implications.",
-      thesis: "The challenge is whether higher base capability can substitute for proprietary historical experience quickly enough to weaken scorebook Power."
+      thesis: "The challenge is whether higher base capability can substitute for proprietary historical experience quickly enough to weaken scorebook Power.",
+      economicCostWrongDecision: "Medium",
+      outcomeObjectivity: "Mixed",
+      naturalFeedbackTime: "Weeks",
+      customerCaseHeterogeneity: "High",
+      environmentalChangeRate: "Rapidly changing",
+      foundationModelImprovementRate: "Fast",
+      ownsDecisionPoint: "Partially",
+      observesOutcome: "Partially",
+      capturesOverrides: "Yes",
+      capturesGrades: "Partially",
+      learnsAcrossCustomers: "Partially",
+      contractualLearningRights: "Unknown",
+      runsControlledExperiments: "Sometimes",
+      updatesModelPolicyRegularly: "Yes",
+      deploysImprovementsQuickly: "Yes"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: [
@@ -477,7 +578,22 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       targetCustomer: "Finance, fund operations, or compliance teams requiring controlled execution.",
       workflow: "Structured request -> schema validation -> deterministic rule path -> exception handling -> audit trail.",
       decisionDescription: "Validate, route, reconcile, or reject structured operational exceptions.",
-      thesis: "The key question is whether Power resides in accumulated graded cases or in deterministic process rails, schemas, and trust controls."
+      thesis: "The key question is whether Power resides in accumulated graded cases or in deterministic process rails, schemas, and trust controls.",
+      economicCostWrongDecision: "High",
+      outcomeObjectivity: "Objective / deterministic",
+      naturalFeedbackTime: "Days",
+      customerCaseHeterogeneity: "Medium",
+      environmentalChangeRate: "Stable",
+      foundationModelImprovementRate: "Moderate",
+      ownsDecisionPoint: "Yes",
+      observesOutcome: "Yes",
+      capturesOverrides: "Yes",
+      capturesGrades: "Partially",
+      learnsAcrossCustomers: "Partially",
+      contractualLearningRights: "Yes",
+      runsControlledExperiments: "No",
+      updatesModelPolicyRegularly: "Occasionally",
+      deploysImprovementsQuickly: "Partially"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: [
@@ -511,7 +627,22 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       targetCustomer: "Marketing teams producing creative variants, social posts, ads, and campaign concepts.",
       workflow: "Brief -> generated creative -> human edit -> launch or discard -> noisy performance readout.",
       decisionDescription: "Select, rewrite, or reject creative variants for audience/channel use.",
-      thesis: "High case volume alone should not imply Compounding Expertise if grades are subjective, delayed, confounded, or weakly tied to decisions."
+      thesis: "High case volume alone should not imply Compounding Expertise if grades are subjective, delayed, confounded, or weakly tied to decisions.",
+      economicCostWrongDecision: "Low",
+      outcomeObjectivity: "Subjective",
+      naturalFeedbackTime: "Weeks",
+      customerCaseHeterogeneity: "High",
+      environmentalChangeRate: "Rapidly changing",
+      foundationModelImprovementRate: "Fast",
+      ownsDecisionPoint: "Partially",
+      observesOutcome: "Partially",
+      capturesOverrides: "Yes",
+      capturesGrades: "Partially",
+      learnsAcrossCustomers: "Partially",
+      contractualLearningRights: "Unknown",
+      runsControlledExperiments: "Sometimes",
+      updatesModelPolicyRegularly: "Yes",
+      deploysImprovementsQuickly: "Yes"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: [
@@ -770,6 +901,28 @@ export function detectCrossover(a: SimulationSeries, b: SimulationSeries): Cross
   return null;
 }
 
+export function explainSimulatorComparison(series: SimulationSeries[], crossover: Crossover | null) {
+  if (series.length < 2) return "Add two scenarios to compare trajectories. This is an exploratory scenario, not a forecast.";
+  const [a, b] = series;
+  const aEnd = a.points[a.points.length - 1]?.expertise ?? 0;
+  const bEnd = b.points[b.points.length - 1]?.expertise ?? 0;
+  const leader = aEnd >= bEnd ? a : b;
+  const trailer = aEnd >= bEnd ? b : a;
+  const reasons: string[] = [];
+  if (leader.scenario.startingCases > trailer.scenario.startingCases * 1.5) reasons.push("a larger starting stock of graded cases");
+  if (leader.scenario.feedbackDelayDays < trailer.scenario.feedbackDelayDays) reasons.push("faster modeled feedback maturation");
+  if (leader.scenario.learningEfficiency > trailer.scenario.learningEfficiency) reasons.push("higher learning efficiency");
+  if (leader.scenario.baseCapability > trailer.scenario.baseCapability) reasons.push("higher base/foundation-model capability");
+  if (leader.scenario.transferability > trailer.scenario.transferability) reasons.push("stronger assumed transferability");
+  if (leader.scenario.stalenessRate < trailer.scenario.stalenessRate) reasons.push("slower modeled staleness");
+  const reasonText = reasons.length ? reasons.join(", ") : "small combined parameter differences";
+
+  if (crossover) {
+    return `${crossover.to} overtakes ${crossover.from} around month ${crossover.month} in this toy model because ${reasonText}. This is an exploratory scenario, not a forecast.`;
+  }
+  return `${leader.scenario.name} remains ahead over the modeled horizon primarily because of ${reasonText}. This is an exploratory scenario, not a forecast.`;
+}
+
 export function defaultAssessments(): DimensionAssessmentInput[] {
   return ALL_DIMENSIONS.map((definition) => ({
     framework: definition.framework,
@@ -781,6 +934,46 @@ export function defaultAssessments(): DimensionAssessmentInput[] {
     source: "USER"
   }));
 }
+
+export const DIAGNOSTIC_QUESTIONS = [
+  {
+    title: "Is valuable expertise being created?",
+    description: "Does each case teach something decision-relevant, economically meaningful, and causally interpretable?",
+    items: [
+      { framework: "SUN", dimension: "objective_grading" },
+      { framework: "SUN", dimension: "economic_value_of_being_right" },
+      { framework: "WOLFE", dimension: "marginal_information_gain" },
+      { framework: "WOLFE", dimension: "causal_quality" }
+    ]
+  },
+  {
+    title: "Does the expertise compound?",
+    description: "Does feedback arrive fast enough, remain fresh, cover edge cases, and transfer across customers?",
+    items: [
+      { framework: "SUN", dimension: "feedback_speed" },
+      { framework: "SUN", dimension: "freshness" },
+      { framework: "SUN", dimension: "cross_customer_learning" },
+      { framework: "SUN", dimension: "diversity_edge_cases" },
+      { framework: "WOLFE", dimension: "cross_customer_transferability" },
+      { framework: "WOLFE", dimension: "customer_heterogeneity" },
+      { framework: "WOLFE", dimension: "nonstationarity" },
+      { framework: "WOLFE", dimension: "learning_efficiency" }
+    ]
+  },
+  {
+    title: "Is the expertise defensible?",
+    description: "Can competitors reproduce, compress, infer, or legally access the useful learning loop?",
+    items: [
+      { framework: "SUN", dimension: "workflow_capture_position" },
+      { framework: "SUN", dimension: "contractual_rights_consent" },
+      { framework: "WOLFE", dimension: "knowledge_compressibility" }
+    ]
+  }
+] satisfies Array<{
+  title: string;
+  description: string;
+  items: Array<{ framework: CompoundingFramework; dimension: string }>;
+}>;
 
 export function sortedHighLeverageDebates(debates: KeyDebateInput[], take = 4) {
   return [...debates]
@@ -818,6 +1011,67 @@ export function apparentPowerLocations(assessments: DimensionAssessmentInput[]) 
   if (labels.size > 1) labels.add("combination");
   if (labels.size === 0) labels.add("no demonstrated Power yet");
   return [...labels];
+}
+
+function includesAny(values: Array<string | null | undefined>, targets: string[]) {
+  return values.some((value) => value ? targets.includes(value) : false);
+}
+
+export function summarizeConclusion(input: {
+  analysis: CompanyThesisInput;
+  metrics: ScorebookMetrics;
+  assessments: DimensionAssessmentInput[];
+  debates: KeyDebateInput[];
+}) {
+  const opportunityFavorable = includesAny([
+    input.analysis.economicCostWrongDecision,
+    input.analysis.outcomeObjectivity,
+    input.analysis.naturalFeedbackTime
+  ], ["High", "Objective / deterministic", "Minutes", "Days", "Weeks"]);
+  const opportunityUnfavorable = includesAny([
+    input.analysis.outcomeObjectivity,
+    input.analysis.foundationModelImprovementRate,
+    input.analysis.environmentalChangeRate
+  ], ["Subjective", "Fast", "Rapidly changing"]);
+  const capabilityStrongCount = [
+    input.analysis.ownsDecisionPoint,
+    input.analysis.observesOutcome,
+    input.analysis.capturesOverrides,
+    input.analysis.capturesGrades,
+    input.analysis.learnsAcrossCustomers,
+    input.analysis.contractualLearningRights,
+    input.analysis.runsControlledExperiments,
+    input.analysis.updatesModelPolicyRegularly,
+    input.analysis.deploysImprovementsQuickly
+  ].filter((value) => value === "Yes").length;
+  const capabilityWeakCount = [
+    input.analysis.ownsDecisionPoint,
+    input.analysis.observesOutcome,
+    input.analysis.capturesGrades,
+    input.analysis.learnsAcrossCustomers,
+    input.analysis.contractualLearningRights
+  ].filter((value) => value === "No").length;
+  const evidenceQuality = input.metrics.totalCases < 5 || input.metrics.gradeCoverage === null || input.metrics.gradeCoverage < 0.35
+    ? "Weak / insufficient"
+    : input.metrics.gradeCoverage >= 0.75 && input.metrics.feedbackLatencySampleSize >= 5
+      ? "Strong"
+      : "Partial";
+  const biggestDebate = sortedHighLeverageDebates(input.debates, 1)[0] ?? null;
+  const nextExperiment = biggestDebate?.evidenceNeeded
+    || (input.metrics.humanOverrideValue.count > 0
+      ? "Compare human overrides with eventual outcomes to determine whether overrides add decision value."
+      : "Run a held-out-customer test to see whether pooled experience improves decisions beyond customer-specific history.");
+
+  return {
+    opportunity: opportunityFavorable && !opportunityUnfavorable ? "Favorable" : opportunityUnfavorable && !opportunityFavorable ? "Unfavorable" : "Uncertain",
+    opportunityWhy: "Based on exogenous assumptions about decision value, outcome objectivity, feedback timing, nonstationarity, and model improvement.",
+    capability: capabilityStrongCount >= 6 && capabilityWeakCount === 0 ? "Strong" : capabilityWeakCount >= 2 ? "Weak" : "Uncertain",
+    capabilityWhy: "Based on endogenous assumptions about capture position, outcome visibility, override/grade capture, rights, experimentation, and deployment velocity.",
+    evidenceQuality,
+    evidenceWhy: `Based on ${input.metrics.totalCases} cases, ${input.metrics.gradedCases} graded rows, and ${input.metrics.feedbackLatencySampleSize} latency observations.`,
+    biggestDebate,
+    nextExperiment
+  };
 }
 
 export function composeMemo(input: {

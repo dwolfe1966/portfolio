@@ -111,14 +111,14 @@ function ScorebookRow({ row, blank = false }: { row: Partial<ScorebookCaseInput>
       <td><input name="actionTaken" defaultValue={row.actionTaken ?? ""} /></td>
       <td><textarea name="outcome" rows={3} defaultValue={row.outcome ?? ""} /></td>
       <td><input name="outcomeValue" type="number" step="1" defaultValue={row.outcomeValue ?? ""} /></td>
+      <td><input name="decisionAt" type="date" defaultValue={dateValue(row.decisionAt)} /></td>
+      <td><input name="outcomeAt" type="date" defaultValue={dateValue(row.outcomeAt)} /></td>
       <td>
         <select name="grade" defaultValue={row.grade ?? "UNRESOLVED"}>
           {GRADES.map((grade) => <option key={grade} value={grade}>{grade.replaceAll("_", " ")}</option>)}
         </select>
       </td>
       <td><input name="gradeConfidence" type="number" min="0" max="1" step="0.01" defaultValue={row.gradeConfidence ?? ""} /></td>
-      <td><input name="decisionAt" type="date" defaultValue={dateValue(row.decisionAt)} /></td>
-      <td><input name="outcomeAt" type="date" defaultValue={dateValue(row.outcomeAt)} /></td>
       <td>
         <select name="isEdgeCase" defaultValue={row.isEdgeCase ? "1" : "0"}>
           <option value="0">No</option>
@@ -168,9 +168,9 @@ export default async function CompoundingExpertiseScorebookPage({
   return (
     <>
       <LabWorkflowRail active="Scorebook" />
-      <Section eyebrow="Stage 4" title="Show me the Scorebook">
+      <Section eyebrow="Stage 2" title="Show me the experience">
         <p>
-          Inspect the underlying graded cases before accepting any scorebook-quality claim.
+          A scorebook connects what the system saw, what it decided, what humans changed, and what actually happened.
           Incomplete rows are valid: unresolved outcomes and missing grades are part of the evidence.
         </p>
         {allSynthetic ? (
@@ -184,13 +184,21 @@ export default async function CompoundingExpertiseScorebookPage({
       <Section title="Derived scorebook evidence">
         <div className="grid grid-4">
           {metricCard("Total cases", String(metrics.totalCases), "All rows")}
-          {metricCard("Outcome completion", pct(metrics.outcomeCompletionRate), `n=${metrics.resolvedCases}/${metrics.totalCases}`)}
-          {metricCard("Grade coverage", pct(metrics.gradeCoverage), `n=${metrics.gradedCases}/${metrics.totalCases}`)}
-          {metricCard("Agent correctness", pct(metrics.agentCorrectnessRate), `n=${metrics.gradedCases} resolvable grades`)}
+          {metricCard("Graded cases", pct(metrics.gradeCoverage), `n=${metrics.gradedCases}/${metrics.totalCases}`)}
           {metricCard("Human override rate", pct(metrics.humanOverrideRate), `n=${metrics.humanOverrideValue.count}/${metrics.totalCases}`)}
           {metricCard("Median feedback latency", metrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${metrics.medianFeedbackLatencyDays} days`, `n=${metrics.feedbackLatencySampleSize}`)}
           {metricCard("Edge-case share", pct(metrics.edgeCaseShare), `n=${rows.filter((row) => row.isEdgeCase).length}/${metrics.totalCases}`)}
+          {metricCard("Outcome completion", pct(metrics.outcomeCompletionRate), `n=${metrics.resolvedCases}/${metrics.totalCases}`)}
+          {metricCard("Agent correctness", pct(metrics.agentCorrectnessRate), `n=${metrics.gradedCases} resolvable grades`)}
           {metricCard("Economic outcome", money(metrics.totalOutcomeValue), `avg ${money(metrics.averageOutcomeValue)}; n=${metrics.outcomeValueSampleSize}`)}
+        </div>
+      </Section>
+
+      <Section title="Why this matters">
+        <div className="card">
+          <p>
+            A large dataset is not necessarily expertise. We are looking for cases that reduce uncertainty about future decisions.
+          </p>
         </div>
       </Section>
 
@@ -232,27 +240,34 @@ export default async function CompoundingExpertiseScorebookPage({
         <form action={saveScorebookAction}>
           <input type="hidden" name="analysisId" value={analysis.id} />
           <div className="tableScroll compoundingScorebookTable">
-            <table className="dataTable">
+            <table className="dataTable compoundingGroupedTable">
               <thead>
                 <tr>
-                  <th>Row</th>
-                  <th>External case ID</th>
-                  <th>Customer segment</th>
-                  <th>Case type</th>
+                  <th rowSpan={2}>Row</th>
+                  <th colSpan={4}>Case</th>
+                  <th colSpan={2}>Agent</th>
+                  <th colSpan={2}>Human</th>
+                  <th colSpan={5}>Reality</th>
+                  <th colSpan={6}>Learning</th>
+                </tr>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Type</th>
                   <th>Context</th>
-                  <th>Agent decision</th>
-                  <th>Agent confidence</th>
-                  <th>Human final decision</th>
-                  <th>Human override</th>
+                  <th>Decision</th>
+                  <th>Confidence</th>
+                  <th>Final decision</th>
+                  <th>Override</th>
                   <th>Action taken</th>
                   <th>Outcome</th>
-                  <th>Outcome economic value</th>
+                  <th>Economic value</th>
+                  <th>Decision date</th>
+                  <th>Outcome date</th>
                   <th>Grade</th>
                   <th>Grade confidence</th>
-                  <th>Decision timestamp</th>
-                  <th>Outcome timestamp</th>
                   <th>Edge case</th>
-                  <th>Synthetic/source status</th>
+                  <th>Provenance</th>
                   <th>Source label</th>
                   <th>Notes</th>
                 </tr>
@@ -265,7 +280,7 @@ export default async function CompoundingExpertiseScorebookPage({
           </div>
           <div className="ctaRow">
             <button className="btn primary" type="submit">Save scorebook</button>
-            <Link className="btn" href="/compounding-expertise/simulator">Continue to simulator</Link>
+            <Link className="btn" href="/compounding-expertise/debates">Continue to key debates</Link>
           </div>
         </form>
       </Section>

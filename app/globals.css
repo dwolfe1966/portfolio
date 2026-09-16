@@ -3117,7 +3117,7 @@ button {
 }
 .compoundingWorkflowRail {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
   margin: 0 0 12px;
 }
@@ -3159,6 +3159,29 @@ button {
 .compoundingStepGrid .card {
   min-height: 138px;
 }
+.compoundingProcessFlow,
+.compoundingExampleGrid,
+.compoundingConclusionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+.compoundingProcessCard {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.compoundingProcessIndex {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--demo-accent) 22%, transparent);
+  color: var(--demo-text);
+  font-family: var(--demo-mono);
+  font-size: 12px;
+}
 .compoundingIntegrityNotice {
   border-left: 4px solid var(--demo-accent);
 }
@@ -3174,6 +3197,49 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+.compoundingSystemForm {
+  display: grid;
+  gap: 12px;
+}
+.compoundingDisclosure {
+  display: grid;
+  gap: 12px;
+}
+.compoundingDisclosure summary,
+.compoundingInlineEditor summary,
+.compoundingAssessmentCard summary {
+  cursor: pointer;
+  color: var(--demo-text);
+  font-weight: 800;
+}
+.compoundingDisclosure[open],
+.compoundingInlineEditor[open],
+.compoundingAssessmentCard[open] {
+  border-color: color-mix(in srgb, var(--demo-accent) 42%, var(--demo-divider));
+}
+.compoundingStructuredGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.compoundingStructuredControl {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--demo-surface) 92%, var(--demo-accent) 8%);
+}
+.compoundingStructuredControl > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.compoundingStructuredControl small {
+  color: var(--demo-text-muted);
 }
 .compoundingFormGrid label,
 .compoundingDebateCard label,
@@ -3200,6 +3266,18 @@ button {
   display: grid;
   gap: 12px;
 }
+.compoundingAssessmentCard summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.compoundingAssessmentCard summary span {
+  display: grid;
+  gap: 4px;
+}
+.compoundingAssessmentCard summary small {
+  color: var(--demo-text-muted);
+}
 .compoundingCardHeader,
 .compoundingChartHeader {
   display: flex;
@@ -3223,6 +3301,57 @@ button {
 .provenanceBadge-helmer { border-color: #a78bfa; }
 .provenanceBadge-sun { border-color: #38bdf8; }
 .provenanceBadge-wolfe { border-color: #34d399; }
+.epistemicBadge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid var(--demo-divider);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--demo-surface) 80%, var(--demo-accent) 20%);
+  color: var(--demo-text);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.epistemicBadge-observed-derived {
+  border-color: color-mix(in srgb, #22c55e 70%, var(--demo-divider));
+  background: color-mix(in srgb, #22c55e 16%, transparent);
+}
+.epistemicBadge-sourced {
+  border-color: color-mix(in srgb, #38bdf8 70%, var(--demo-divider));
+  background: color-mix(in srgb, #38bdf8 14%, transparent);
+}
+.epistemicBadge-endogenous-assumption {
+  border-color: color-mix(in srgb, #fbbf24 70%, var(--demo-divider));
+  background: color-mix(in srgb, #fbbf24 14%, transparent);
+}
+.epistemicBadge-exogenous-assumption {
+  border-color: color-mix(in srgb, #a78bfa 70%, var(--demo-divider));
+  background: color-mix(in srgb, #a78bfa 14%, transparent);
+}
+.epistemicBadge-unknown {
+  background: color-mix(in srgb, var(--demo-surface) 86%, #64748b 14%);
+}
+.compoundingBadgeStack {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.compoundingMindChange {
+  background: color-mix(in srgb, var(--demo-surface) 90%, var(--demo-accent) 10%);
+}
+.compoundingMindChange h4,
+.compoundingMindChange p {
+  margin: 0;
+}
+.compoundingInlineEditor {
+  display: grid;
+  gap: 10px;
+}
 .compoundingRangeLabel input {
   max-width: 160px;
 }
@@ -3293,6 +3422,12 @@ button {
 .compoundingScorebookTable .dataTable {
   min-width: 2600px;
 }
+.compoundingGroupedTable thead tr:first-child th {
+  background: color-mix(in srgb, var(--demo-accent) 18%, var(--demo-surface));
+  color: var(--demo-text);
+  text-align: center;
+  text-transform: uppercase;
+}
 .compoundingScorebookTable input,
 .compoundingScorebookTable select,
 .compoundingScorebookTable textarea {
@@ -3301,6 +3436,40 @@ button {
 .compoundingScorebookTable textarea {
   min-width: 220px;
   resize: vertical;
+}
+.compoundingSimulatorSourceCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.compoundingSimulatorGroups {
+  display: grid;
+  gap: 10px;
+}
+.compoundingSimulatorGroups fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  padding: 12px;
+}
+.compoundingSimulatorGroups legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  color: var(--demo-text);
+  font-weight: 800;
+}
+.compoundingSimulatorGroups .small {
+  grid-column: 1 / -1;
+}
+.compoundingConclusionCard {
+  display: grid;
+  gap: 8px;
 }
 .pricingVizGrid {
   display: grid;
@@ -4566,6 +4735,8 @@ button {
   .grid-5,
   .compoundingWorkflowRail,
   .compoundingFormGrid,
+  .compoundingStructuredGrid,
+  .compoundingSimulatorGroups fieldset,
   .compoundingAssessmentGrid,
   .compoundingFrameworkIntro,
   .retentionVizGrid,
@@ -4574,7 +4745,8 @@ button {
   .expansionBoard,
   .expansionMotionGrid { grid-template-columns: 1fr; }
   .compoundingCardHeader,
-  .compoundingChartHeader {
+  .compoundingChartHeader,
+  .compoundingSimulatorSourceCard {
     align-items: flex-start;
     flex-direction: column;
   }

@@ -7,6 +7,7 @@ import {
   calculateScorebookMetrics,
   composeMemo,
   defaultAssessments,
+  summarizeConclusion,
   sortedHighLeverageDebates,
   strongestChallenges,
   strongestEvidence,
@@ -52,13 +53,23 @@ function labelForDimension(dimension: string) {
   return ALL_DIMENSIONS.find((item) => item.dimension === dimension)?.label ?? dimension.replaceAll("_", " ");
 }
 
+function conclusionCard(title: string, value: string, why: string) {
+  return (
+    <div className="card compoundingConclusionCard">
+      <p className="small">{title}</p>
+      <h3>{value}</h3>
+      <p>{why}</p>
+    </div>
+  );
+}
+
 export default async function CompoundingExpertiseMemoPage() {
   const accountUserId = await currentAccountUserId();
   const analysis = await loadCompoundingAnalysis(accountUserId);
   if (!analysis) {
     return (
       <>
-        <LabWorkflowRail active="Memo" />
+        <LabWorkflowRail active="Conclusion" />
         <Section title="Start with company inputs">
           <p>Create or load an analysis before generating a memo.</p>
           <Link className="btn primary" href="/compounding-expertise/inputs">Go to inputs</Link>
@@ -75,6 +86,7 @@ export default async function CompoundingExpertiseMemoPage() {
   const unresolved = sortedHighLeverageDebates(debates);
   const power = apparentPowerLocations(assessments);
   const scorebookMetrics = calculateScorebookMetrics(analysis.scorebookCases);
+  const conclusion = summarizeConclusion({ analysis, metrics: scorebookMetrics, assessments, debates });
   const memoText = [
     `Current thesis\n${analysis.thesis || "No thesis supplied."}`,
     `\nStrongest evidence for Compounding Expertise\n${memo.strongestEvidence.length ? memo.strongestEvidence.slice(0, 3).map((item) => `- ${item}`).join("\n") : "- No strong evidence has been established yet."}`,
@@ -89,12 +101,49 @@ export default async function CompoundingExpertiseMemoPage() {
 
   return (
     <>
-      <LabWorkflowRail active="Memo" />
-      <Section eyebrow="Stage 6" title="Analysis memo">
+      <LabWorkflowRail active="Conclusion" />
+      <Section eyebrow="Stage 6" title="Conclusion">
         <p>
-          This memo preserves uncertainty. It should help a real conversation by showing what is believed,
-          what is assumed, and what evidence would change the conclusion.
+          The conclusion preserves uncertainty. It should show what is believed, what is assumed,
+          where Power may actually reside, and what evidence would most change the thesis.
         </p>
+      </Section>
+
+      <Section title="What do we currently believe?">
+        <div className="compoundingConclusionGrid">
+          {conclusionCard("Compounding Opportunity", conclusion.opportunity, conclusion.opportunityWhy)}
+          {conclusionCard("Company Compounding Capability", conclusion.capability, conclusion.capabilityWhy)}
+          {conclusionCard("Evidence Quality", conclusion.evidenceQuality, conclusion.evidenceWhy)}
+        </div>
+      </Section>
+
+      <Section title="Where Power may reside">
+        <div className="card">
+          <div className="compoundingPowerList">
+            {power.map((item) => <span key={item}>{item}</span>)}
+          </div>
+          <p className="small">Compounding Expertise may reinforce or produce existing Helmer Powers. No demonstrated Power yet remains valid.</p>
+        </div>
+      </Section>
+
+      <Section title="Biggest unresolved debate">
+        <div className="card">
+          <h3>{conclusion.biggestDebate?.question ?? "No key debate has been defined yet."}</h3>
+          {conclusion.biggestDebate ? (
+            <>
+              <p><strong>Current belief:</strong> {conclusion.biggestDebate.probability}%</p>
+              <p><strong>Evidence needed:</strong> {conclusion.biggestDebate.evidenceNeeded || "Not specified."}</p>
+              <p><strong>Would increase belief:</strong> {conclusion.biggestDebate.increaseBelief || "Not specified."}</p>
+              <p><strong>Would decrease belief:</strong> {conclusion.biggestDebate.decreaseBelief || "Not specified."}</p>
+            </>
+          ) : null}
+        </div>
+      </Section>
+
+      <Section title="Best next experiment / evidence">
+        <div className="card">
+          <p>{conclusion.nextExperiment}</p>
+        </div>
       </Section>
 
       <Section title="Scorebook evidence">
@@ -152,14 +201,6 @@ export default async function CompoundingExpertiseMemoPage() {
               <p><strong>Would decrease belief:</strong> {debate.decreaseBelief}</p>
             </div>
           ))}
-        </div>
-      </Section>
-
-      <Section title="Where Power appears to reside">
-        <div className="card">
-          <div className="compoundingPowerList">
-            {power.map((item) => <span key={item}>{item}</span>)}
-          </div>
         </div>
       </Section>
 

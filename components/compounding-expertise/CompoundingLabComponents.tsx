@@ -1,21 +1,12 @@
 import Link from "next/link";
-import type { CompoundingFramework, Crossover, SimulationSeries } from "@/lib/compounding-expertise-lab";
-
-const STEPS = [
-  { href: "/compounding-expertise/inputs", label: "Inputs" },
-  { href: "/compounding-expertise/debates", label: "Key Debates" },
-  { href: "/compounding-expertise/diagnostic", label: "Diagnostic" },
-  { href: "/compounding-expertise/scorebook", label: "Scorebook" },
-  { href: "/compounding-expertise/simulator", label: "Simulator" },
-  { href: "/compounding-expertise/memo", label: "Memo" }
-];
+import { LAB_WORKFLOW_STEPS, type CompoundingFramework, type Crossover, type EpistemicKind, type SimulationSeries } from "@/lib/compounding-expertise-lab";
 
 export function LabWorkflowRail({ active }: { active: string }) {
   return (
     <div className="compoundingWorkflowRail" aria-label="Compounding Expertise Lab workflow">
-      {STEPS.map((step, index) => (
+      {LAB_WORKFLOW_STEPS.map((step) => (
         <Link className={active === step.label ? "active" : ""} href={step.href} key={step.href}>
-          <span>{index + 1}</span>
+          <span>{step.stage}</span>
           <strong>{step.label}</strong>
         </Link>
       ))}
@@ -25,6 +16,18 @@ export function LabWorkflowRail({ active }: { active: string }) {
 
 export function ProvenanceBadge({ framework }: { framework: CompoundingFramework }) {
   return <span className={`provenanceBadge provenanceBadge-${framework.toLowerCase()}`}>{framework}</span>;
+}
+
+const EPISTEMIC_LABELS: Record<EpistemicKind, string> = {
+  OBSERVED_DERIVED: "Observed / derived",
+  SOURCED: "Sourced",
+  ENDOGENOUS_ASSUMPTION: "Endogenous assumption",
+  EXOGENOUS_ASSUMPTION: "Exogenous assumption",
+  UNKNOWN: "Unknown"
+};
+
+export function EpistemicBadge({ kind }: { kind: EpistemicKind }) {
+  return <span className={`epistemicBadge epistemicBadge-${kind.toLowerCase().replaceAll("_", "-")}`}>{EPISTEMIC_LABELS[kind]}</span>;
 }
 
 export function IntegrityNotice() {

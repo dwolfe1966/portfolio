@@ -2,19 +2,27 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   COMPOUNDING_EXAMPLES,
+  ENDOGENOUS_INPUTS,
+  EXOGENOUS_INPUTS,
+  LAB_WORKFLOW_STEPS,
+  apparentPowerLocations,
   calculateScorebookMetrics,
+  defaultAssessments,
   detectCrossover,
   exampleById,
+  explainSimulatorComparison,
   normalizeAssessment,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
+  simulateComparison,
   simulateScenario,
+  summarizeConclusion,
   validateAssessment,
   validateProbability,
   type DimensionAssessmentInput,
   type ScorebookCaseInput
 } from "@/lib/compounding-expertise-lab";
-import { generateCompoundingExpertiseDebates } from "@/lib/compounding-expertise-ai";
+import { buildDebateGenerationPrompt, generateCompoundingExpertiseDebates } from "@/lib/compounding-expertise-ai";
 
 const baseScenario = {
   name: "Base",
@@ -146,6 +154,29 @@ test("debate generation degrades gracefully when OpenAI is unavailable", async (
   }
 });
 
+test("V0.2 workflow places scorebook before debates and conclusion last", () => {
+  assert.deepEqual(LAB_WORKFLOW_STEPS.map((step) => step.label), [
+    "Overview",
+    "System & Environment",
+    "Scorebook",
+    "Key Debates",
+    "Diagnostic",
+    "Simulator",
+    "Conclusion"
+  ]);
+  assert.ok(
+    LAB_WORKFLOW_STEPS.findIndex((step) => step.label === "Scorebook") <
+      LAB_WORKFLOW_STEPS.findIndex((step) => step.label === "Key Debates")
+  );
+});
+
+test("structured inputs distinguish exogenous opportunity from endogenous capability", () => {
+  assert.ok(EXOGENOUS_INPUTS.length >= 6);
+  assert.ok(ENDOGENOUS_INPUTS.length >= 9);
+  assert.equal(EXOGENOUS_INPUTS.every((input) => input.epistemicKind === "EXOGENOUS_ASSUMPTION"), true);
+  assert.equal(ENDOGENOUS_INPUTS.every((input) => input.epistemicKind === "ENDOGENOUS_ASSUMPTION"), true);
+});
+
 const scorebookRows: ScorebookCaseInput[] = [
   {
     externalCaseId: "case-1",
@@ -243,6 +274,40 @@ test("human override calculations are descriptive and sample-sized", () => {
   assert.equal(metrics.humanOverrideValue.totalOutcomeValue, 200);
 });
 
+test("simulator explanation preserves toy-model framing", () => {
+  const series = simulateComparison([
+    { ...baseScenario, name: "Incumbent A", startingCases: 500, baseCapability: 1.4 },
+    { ...baseScenario, name: "Challenger B", startingCases: 20, baseCapability: 2.6, learningEfficiency: 0.9 }
+  ], 12);
+  const crossover = detectCrossover(series[0], series[1]);
+  const explanation = explainSimulatorComparison(series, crossover);
+
+  assert.match(explanation, /exploratory scenario/i);
+  assert.ok(explanation.includes("base/foundation-model capability") || explanation.includes("starting graded cases"));
+});
+
+test("conclusion handles insufficient evidence without manufacturing Power", () => {
+  const assessments = defaultAssessments();
+  const metrics = calculateScorebookMetrics([]);
+  const conclusion = summarizeConclusion({
+    analysis: {
+      companyName: "EmptyCo",
+      productDescription: "",
+      targetCustomer: "",
+      workflow: "",
+      decisionDescription: "",
+      thesis: ""
+    },
+    metrics,
+    assessments,
+    debates: []
+  });
+
+  assert.equal(conclusion.evidenceQuality, "Weak / insufficient");
+  assert.match(conclusion.nextExperiment, /held-out-customer|instrument/i);
+  assert.deepEqual(apparentPowerLocations(assessments), ["no demonstrated Power yet"]);
+});
+
 test("synthetic dataset labeling is explicit for bundled examples", () => {
   for (const example of COMPOUNDING_EXAMPLES) {
     assert.match(example.syntheticDatasetLabel, /SYNTHETIC ILLUSTRATIVE DATA/);
@@ -267,4 +332,29 @@ test("example dataset loading resolves every archetype without actual company da
     assert.ok(example.syntheticDatasetLabel.includes("SYNTHETIC ILLUSTRATIVE DATA"));
     assert.ok(!example.syntheticDatasetLabel.includes("actual"));
   }
+});
+
+test("AI debate prompt uses scorebook summary without converting synthetic fixtures into evidence", () => {
+  const prompt = buildDebateGenerationPrompt(
+    {
+      companyName: "TestCo",
+      productDescription: "AI decision tool",
+      targetCustomer: "Operators",
+      workflow: "Case -> decision -> outcome -> grade",
+      decisionDescription: "Approve or deny",
+      thesis: "Experience may compound.",
+      economicCostWrongDecision: "high",
+      ownsDecisionPoint: "yes"
+    },
+    {
+      exogenous: { outcomeObjectivity: "objective / deterministic" },
+      endogenous: { capturesGrades: "yes" },
+      scorebookSummary: calculateScorebookMetrics(scorebookRows)
+    }
+  );
+
+  assert.match(prompt, /Scorebook summary/);
+  assert.match(prompt, /synthetic case fixtures/);
+  assert.doesNotMatch(prompt, /case-1/);
+  assert.match(prompt, /AI output is hypothesis generation, not evidence/);
 });

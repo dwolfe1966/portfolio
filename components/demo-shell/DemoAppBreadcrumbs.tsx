@@ -16,7 +16,7 @@ const APP_LABEL: Record<DemoApp, string> = {
 
 const SEGMENT_LABEL: Record<string, string> = {
   overview: "Overview",
-  inputs: "Inputs",
+  inputs: "System & Environment",
   simulations: "Simulations",
   outputs: "Outputs",
   campaigns: "Campaigns",
@@ -39,7 +39,7 @@ const SEGMENT_LABEL: Record<string, string> = {
   diagnostic: "Diagnostic",
   scorebook: "Scorebook",
   simulator: "Simulator",
-  memo: "Memo",
+  memo: "Conclusion",
   docs: "Docs"
 };
 

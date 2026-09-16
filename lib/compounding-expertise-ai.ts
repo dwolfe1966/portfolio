@@ -1,10 +1,16 @@
 import OpenAI from "openai";
-import type { CompanyThesisInput, KeyDebateInput } from "@/lib/compounding-expertise-lab";
+import type { CompanyThesisInput, KeyDebateInput, ScorebookMetrics } from "@/lib/compounding-expertise-lab";
 import { INITIAL_DEBATES } from "@/lib/compounding-expertise-lab";
 
 export type DebateGenerationResult =
   | { ok: true; debates: KeyDebateInput[]; modelName: string; provenance: "AI" }
   | { ok: false; debates: KeyDebateInput[]; reason: string; provenance: "fallback" };
+
+export type DebateGenerationContext = {
+  exogenous?: Record<string, unknown>;
+  endogenous?: Record<string, unknown>;
+  scorebookSummary?: ScorebookMetrics;
+};
 
 function stripJsonFence(text: string) {
   return text
@@ -43,7 +49,29 @@ function parseDebates(text: string): KeyDebateInput[] {
   return rows.map(normalizeDebate).filter((item): item is KeyDebateInput => Boolean(item)).slice(0, 4);
 }
 
-export async function generateCompoundingExpertiseDebates(input: CompanyThesisInput): Promise<DebateGenerationResult> {
+export function buildDebateGenerationPrompt(input: CompanyThesisInput, context?: DebateGenerationContext) {
+  const scorebook = context?.scorebookSummary;
+  return [
+    "Generate 2-4 load-bearing debates for evaluating whether accumulated graded experience could become durable competitive Power in an AI application.",
+    "Return JSON only as an array of objects with fields: question, bullCase, bearCase, evidenceNeeded, increaseBelief, decreaseBelief, probability.",
+    "Use the company/workflow context, endogenous assumptions, exogenous assumptions, and scorebook summary statistics.",
+    "Do not treat synthetic case fixtures as factual company evidence. Do not invent factual evidence. AI output is hypothesis generation, not evidence.",
+    "Probabilities must be 0-100 and labeled internally as current belief under uncertainty.",
+    `Company: ${input.companyName}`,
+    `Product: ${input.productDescription}`,
+    `Target customer: ${input.targetCustomer}`,
+    `Workflow: ${input.workflow}`,
+    `Principal decisions: ${input.decisionDescription}`,
+    `Current thesis: ${input.thesis}`,
+    `Exogenous assumptions: ${JSON.stringify(context?.exogenous ?? {})}`,
+    `Endogenous assumptions: ${JSON.stringify(context?.endogenous ?? {})}`,
+    scorebook
+      ? `Scorebook summary: totalCases=${scorebook.totalCases}; gradedCases=${scorebook.gradedCases}; gradeCoverage=${scorebook.gradeCoverage ?? "unavailable"}; medianFeedbackLatencyDays=${scorebook.medianFeedbackLatencyDays ?? "unavailable"}; humanOverrideRate=${scorebook.humanOverrideRate ?? "unavailable"}; edgeCaseShare=${scorebook.edgeCaseShare ?? "unavailable"}; syntheticCaseCount=${scorebook.syntheticCaseCount}.`
+      : "Scorebook summary: unavailable."
+  ].join("\n\n");
+}
+
+export async function generateCompoundingExpertiseDebates(input: CompanyThesisInput, context?: DebateGenerationContext): Promise<DebateGenerationResult> {
   if (!process.env.OPENAI_API_KEY) {
     return {
       ok: false,
@@ -55,17 +83,7 @@ export async function generateCompoundingExpertiseDebates(input: CompanyThesisIn
 
   const modelName = process.env.OPENAI_COMPOUNDING_EXPERTISE_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const prompt = [
-    "Generate 2-4 load-bearing debates for evaluating whether accumulated graded experience could become durable competitive Power in an AI application.",
-    "Return JSON only as an array of objects with fields: question, bullCase, bearCase, evidenceNeeded, increaseBelief, decreaseBelief, probability.",
-    "Probabilities must be 0-100 and reflect uncertainty. Do not invent factual evidence. Treat content as hypotheses and analysis suggestions, not evidence.",
-    `Company: ${input.companyName}`,
-    `Product: ${input.productDescription}`,
-    `Target customer: ${input.targetCustomer}`,
-    `Workflow: ${input.workflow}`,
-    `Principal decisions: ${input.decisionDescription}`,
-    `Current thesis: ${input.thesis}`
-  ].join("\n\n");
+  const prompt = buildDebateGenerationPrompt(input, context);
 
   try {
     const response = await client.responses.create({

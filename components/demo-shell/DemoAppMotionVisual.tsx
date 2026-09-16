@@ -28,7 +28,7 @@ const copy: Record<DemoApp, { title: string; labels: string[] }> = {
   },
   "compounding-expertise": {
     title: "Thesis stress test",
-    labels: ["Thesis", "Debate", "Grade", "Memo"]
+    labels: ["System", "Scorebook", "Debate", "Conclusion"]
   }
 };
 

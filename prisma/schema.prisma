@@ -237,6 +237,21 @@ model CompoundingExpertiseAnalysis {
   workflow            String
   decisionDescription String
   thesis              String
+  economicCostWrongDecision String?
+  outcomeObjectivity  String?
+  naturalFeedbackTime String?
+  customerCaseHeterogeneity String?
+  environmentalChangeRate String?
+  foundationModelImprovementRate String?
+  ownsDecisionPoint   String?
+  observesOutcome     String?
+  capturesOverrides   String?
+  capturesGrades      String?
+  learnsAcrossCustomers String?
+  contractualLearningRights String?
+  runsControlledExperiments String?
+  updatesModelPolicyRegularly String?
+  deploysImprovementsQuickly String?
   createdAt           DateTime                                 @default(now())
   updatedAt           DateTime                                 @updatedAt
   workspace           Workspace?                               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

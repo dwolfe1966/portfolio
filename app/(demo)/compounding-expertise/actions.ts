@@ -11,6 +11,7 @@ import {
   normalizeAssessment,
   sanitizeScenario,
   scorebookDerivedSimulatorValues,
+  calculateScorebookMetrics,
   validateProbability,
   type CompoundingCaseGrade,
   type CompoundingConfidence,
@@ -65,7 +66,22 @@ function analysisInput(formData: FormData): CompanyThesisInput {
     targetCustomer: text(formData.get("targetCustomer")),
     workflow: text(formData.get("workflow")),
     decisionDescription: text(formData.get("decisionDescription")),
-    thesis: text(formData.get("thesis"))
+    thesis: text(formData.get("thesis")),
+    economicCostWrongDecision: text(formData.get("economicCostWrongDecision")) || null,
+    outcomeObjectivity: text(formData.get("outcomeObjectivity")) || null,
+    naturalFeedbackTime: text(formData.get("naturalFeedbackTime")) || null,
+    customerCaseHeterogeneity: text(formData.get("customerCaseHeterogeneity")) || null,
+    environmentalChangeRate: text(formData.get("environmentalChangeRate")) || null,
+    foundationModelImprovementRate: text(formData.get("foundationModelImprovementRate")) || null,
+    ownsDecisionPoint: text(formData.get("ownsDecisionPoint")) || null,
+    observesOutcome: text(formData.get("observesOutcome")) || null,
+    capturesOverrides: text(formData.get("capturesOverrides")) || null,
+    capturesGrades: text(formData.get("capturesGrades")) || null,
+    learnsAcrossCustomers: text(formData.get("learnsAcrossCustomers")) || null,
+    contractualLearningRights: text(formData.get("contractualLearningRights")) || null,
+    runsControlledExperiments: text(formData.get("runsControlledExperiments")) || null,
+    updatesModelPolicyRegularly: text(formData.get("updatesModelPolicyRegularly")) || null,
+    deploysImprovementsQuickly: text(formData.get("deploysImprovementsQuickly")) || null
   };
 }
 
@@ -126,9 +142,9 @@ function revalidateLab() {
   [
     "/compounding-expertise/overview",
     "/compounding-expertise/inputs",
+    "/compounding-expertise/scorebook",
     "/compounding-expertise/debates",
     "/compounding-expertise/diagnostic",
-    "/compounding-expertise/scorebook",
     "/compounding-expertise/simulator",
     "/compounding-expertise/memo"
   ].forEach((path) => revalidatePath(path));
@@ -148,7 +164,7 @@ export async function saveAnalysisAction(formData: FormData) {
 
   await ensureAnalysisDefaults(analysis.id);
   revalidateLab();
-  redirect("/compounding-expertise/debates");
+  redirect("/compounding-expertise/scorebook");
 }
 
 export async function loadSyntheticExampleAction(formData?: FormData) {
@@ -229,10 +245,35 @@ export async function saveDebatesAction(formData: FormData) {
 export async function generateDebatesAction(formData: FormData) {
   const analysisId = text(formData.get("analysisId"));
   if (!analysisId) redirect("/compounding-expertise/inputs");
-  const analysis = await db.compoundingExpertiseAnalysis.findUnique({ where: { id: analysisId } });
+  const analysis = await db.compoundingExpertiseAnalysis.findUnique({
+    where: { id: analysisId },
+    include: { scorebookCases: true }
+  });
   if (!analysis) redirect("/compounding-expertise/inputs");
 
-  const result = await generateCompoundingExpertiseDebates(analysis);
+  const metrics = calculateScorebookMetrics(analysis.scorebookCases);
+  const result = await generateCompoundingExpertiseDebates(analysis, {
+    exogenous: {
+      economicCostWrongDecision: analysis.economicCostWrongDecision,
+      outcomeObjectivity: analysis.outcomeObjectivity,
+      naturalFeedbackTime: analysis.naturalFeedbackTime,
+      customerCaseHeterogeneity: analysis.customerCaseHeterogeneity,
+      environmentalChangeRate: analysis.environmentalChangeRate,
+      foundationModelImprovementRate: analysis.foundationModelImprovementRate
+    },
+    endogenous: {
+      ownsDecisionPoint: analysis.ownsDecisionPoint,
+      observesOutcome: analysis.observesOutcome,
+      capturesOverrides: analysis.capturesOverrides,
+      capturesGrades: analysis.capturesGrades,
+      learnsAcrossCustomers: analysis.learnsAcrossCustomers,
+      contractualLearningRights: analysis.contractualLearningRights,
+      runsControlledExperiments: analysis.runsControlledExperiments,
+      updatesModelPolicyRegularly: analysis.updatesModelPolicyRegularly,
+      deploysImprovementsQuickly: analysis.deploysImprovementsQuickly
+    },
+    scorebookSummary: metrics
+  });
   await db.compoundingExpertiseKeyDebate.deleteMany({ where: { analysisId } });
   await db.compoundingExpertiseKeyDebate.createMany({
     data: result.debates.map((debate) => ({
@@ -280,7 +321,7 @@ export async function saveDiagnosticAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect("/compounding-expertise/scorebook");
+  redirect("/compounding-expertise/simulator");
 }
 
 export async function saveScorebookAction(formData: FormData) {
@@ -336,7 +377,7 @@ export async function saveScorebookAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect("/compounding-expertise/scorebook");
+  redirect("/compounding-expertise/debates");
 }
 
 export async function applyScorebookDerivedValuesAction(formData: FormData) {

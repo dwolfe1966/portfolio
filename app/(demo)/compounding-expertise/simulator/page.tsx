@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
-import { LabWorkflowRail, SimulatorLineChart } from "@/components/compounding-expertise/CompoundingLabComponents";
-import { DEFAULT_SCENARIOS, detectCrossover, scorebookDerivedSimulatorValues, simulateComparison, type ScorebookCaseInput } from "@/lib/compounding-expertise-lab";
+import { EpistemicBadge, LabWorkflowRail, SimulatorLineChart } from "@/components/compounding-expertise/CompoundingLabComponents";
+import { DEFAULT_SCENARIOS, detectCrossover, explainSimulatorComparison, scorebookDerivedSimulatorValues, simulateComparison, type ScorebookCaseInput } from "@/lib/compounding-expertise-lab";
 import { applyScorebookDerivedValuesAction, saveScenariosAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
@@ -50,23 +50,22 @@ export default async function CompoundingExpertiseSimulatorPage({
         ) : null}
       </Section>
 
-      <Section title="Scorebook-derived inputs">
-        <div className="card">
-          <p>
-            Current scorebook implies <strong>{derived.startingGradedCases}</strong> starting graded cases and
-            {" "}<strong>{derived.feedbackDelayDays === null ? "unavailable" : `${derived.feedbackDelayDays} days`}</strong> median feedback delay
-            {" "}(n={derived.feedbackDelaySampleSize}). Transferability, information value, and learning efficiency are not inferred in V0.1.1.
-          </p>
-          <form action={applyScorebookDerivedValuesAction}>
-            <input type="hidden" name="analysisId" value={analysis.id} />
-            <button className="btn" type="submit">Use scorebook-derived values</button>
-          </form>
-        </div>
-      </Section>
-
       <Section title="Scenario variables">
         <form action={saveScenariosAction}>
           <input type="hidden" name="analysisId" value={analysis.id} />
+          <div className="card compoundingSimulatorSourceCard">
+            <div>
+              <EpistemicBadge kind="OBSERVED_DERIVED" />
+              <h3>Observed / derived from scorebook</h3>
+              <p>
+                Current scorebook implies <strong>{derived.startingGradedCases}</strong> starting graded cases and
+                {" "}<strong>{derived.feedbackDelayDays === null ? "unavailable" : `${derived.feedbackDelayDays} days`}</strong> median feedback delay
+                {" "}(n={derived.feedbackDelaySampleSize}).
+              </p>
+              <p className="small">Only starting graded cases and feedback delay can be populated from the current scorebook.</p>
+            </div>
+            <button className="btn" type="submit" formAction={applyScorebookDerivedValuesAction}>Use scorebook-derived values</button>
+          </div>
           <div className="grid grid-2">
             {scenarios.slice(0, 2).map((scenario) => (
               <div className="card compoundingScenarioCard" key={scenario.id || scenario.name}>
@@ -75,15 +74,25 @@ export default async function CompoundingExpertiseSimulatorPage({
                   Scenario name
                   <input name="name" defaultValue={scenario.name} />
                 </label>
-                <div className="grid grid-2">
-                  <label>Starting graded cases<input name="startingCases" type="number" min="0" step="1" defaultValue={scenario.startingCases} /></label>
-                  <label>New cases / month<input name="casesPerMonth" type="number" min="0" step="1" defaultValue={scenario.casesPerMonth} /></label>
-                  <label>Feedback delay days<input name="feedbackDelayDays" type="number" min="0" step="1" defaultValue={scenario.feedbackDelayDays} /></label>
-                  <label>Transferability<input name="transferability" type="number" min="0" max="1" step="0.05" defaultValue={scenario.transferability} /></label>
-                  <label>Information value / case<input name="informationValue" type="number" min="0" max="1" step="0.05" defaultValue={scenario.informationValue} /></label>
-                  <label>Learning efficiency<input name="learningEfficiency" type="number" min="0" max="1" step="0.05" defaultValue={scenario.learningEfficiency} /></label>
-                  <label>Monthly staleness rate<input name="stalenessRate" type="number" min="0" max="1" step="0.005" defaultValue={scenario.stalenessRate} /></label>
-                  <label>Base model capability<input name="baseCapability" type="number" min="0" max="5" step="0.1" defaultValue={scenario.baseCapability} /></label>
+                <div className="compoundingSimulatorGroups">
+                  <fieldset>
+                    <legend><EpistemicBadge kind="OBSERVED_DERIVED" /> Scorebook-derived</legend>
+                    <label>Starting graded cases<input name="startingCases" type="number" min="0" step="1" defaultValue={scenario.startingCases} /></label>
+                    <label>Feedback delay days<input name="feedbackDelayDays" type="number" min="0" step="1" defaultValue={scenario.feedbackDelayDays} /></label>
+                  </fieldset>
+                  <fieldset>
+                    <legend><EpistemicBadge kind="ENDOGENOUS_ASSUMPTION" /> Company levers / endogenous</legend>
+                    <label>New cases / month<input name="casesPerMonth" type="number" min="0" step="1" defaultValue={scenario.casesPerMonth} /></label>
+                    <label>Learning efficiency<input name="learningEfficiency" type="number" min="0" max="1" step="0.05" defaultValue={scenario.learningEfficiency} /></label>
+                    <label>Information value / case<input name="informationValue" type="number" min="0" max="1" step="0.05" defaultValue={scenario.informationValue} /></label>
+                  </fieldset>
+                  <fieldset>
+                    <legend><EpistemicBadge kind="EXOGENOUS_ASSUMPTION" /> Market conditions / exogenous</legend>
+                    <label>Transferability<input name="transferability" type="number" min="0" max="1" step="0.05" defaultValue={scenario.transferability} /></label>
+                    <label>Monthly staleness rate<input name="stalenessRate" type="number" min="0" max="1" step="0.005" defaultValue={scenario.stalenessRate} /></label>
+                    <label>Base model capability<input name="baseCapability" type="number" min="0" max="5" step="0.1" defaultValue={scenario.baseCapability} /></label>
+                    <p className="small">Transferability and base capability can be mixed in reality; this toy model treats them as scenario assumptions.</p>
+                  </fieldset>
                 </div>
               </div>
             ))}
@@ -97,6 +106,13 @@ export default async function CompoundingExpertiseSimulatorPage({
 
       <Section title="Trajectory">
         <SimulatorLineChart series={series} crossover={crossover} />
+      </Section>
+
+      <Section title="Why did the trajectories differ?">
+        <div className="card">
+          <p>{explainSimulatorComparison(series, crossover)}</p>
+          <p className="small">Exploratory scenario only; this is not a forecast.</p>
+        </div>
       </Section>
 
       <Section title="Methodology note">
