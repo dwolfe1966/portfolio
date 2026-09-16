@@ -3166,6 +3166,55 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 12px;
 }
+.compoundingActiveAnalysisBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--demo-accent) 34%, var(--demo-divider));
+  border-radius: 10px;
+  margin: 0 0 12px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--demo-surface) 82%, var(--demo-accent) 18%);
+}
+.compoundingActiveAnalysisMain {
+  min-width: 0;
+}
+.compoundingActiveAnalysisMain strong {
+  display: block;
+  color: var(--demo-text);
+  font-size: 16px;
+  line-height: 1.2;
+}
+.compoundingActiveAnalysisMain p {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.compoundingActiveAnalysisFacts,
+.compoundingActiveAnalysisActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.compoundingActiveAnalysisFacts {
+  justify-content: flex-end;
+}
+.compoundingActiveAnalysisFacts span {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--demo-divider);
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: var(--demo-text);
+  background: color-mix(in srgb, var(--demo-surface) 88%, transparent);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.compoundingActiveAnalysisFacts span.synthetic {
+  border-color: color-mix(in srgb, var(--band-watch) 70%, var(--demo-divider));
+  background: color-mix(in srgb, var(--band-watch) 16%, transparent);
+}
 .compoundingProcessCard {
   display: grid;
   align-content: start;
@@ -4734,6 +4783,7 @@ button {
   .pricingSegmentLiftRow,
   .grid-5,
   .compoundingWorkflowRail,
+  .compoundingActiveAnalysisBar,
   .compoundingFormGrid,
   .compoundingStructuredGrid,
   .compoundingSimulatorGroups fieldset,
@@ -4749,6 +4799,10 @@ button {
   .compoundingSimulatorSourceCard {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .compoundingActiveAnalysisFacts,
+  .compoundingActiveAnalysisActions {
+    justify-content: flex-start;
   }
   .expansionProcessMap div { border-right: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
   .expansionProcessMap div:last-child { border-bottom: 0; }
