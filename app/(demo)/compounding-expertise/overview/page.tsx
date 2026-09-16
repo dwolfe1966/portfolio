@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { IntegrityNotice, LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
+import { ExampleSelectionTable } from "@/components/compounding-expertise/ExampleSelectionTable";
 import { COMPOUNDING_EXAMPLES } from "@/lib/compounding-expertise-lab";
 import { loadSyntheticExampleAction } from "../actions";
 
@@ -62,45 +63,21 @@ export default function CompoundingExpertiseOverviewPage() {
             not to describe actual company operations.
           </p>
         </div>
-        <div className="tableScroll compoundingExampleTable">
-          <table className="dataTable">
-            <thead>
-              <tr>
-                <th>Company / archetype</th>
-                <th>Context</th>
-                <th>Theory test</th>
-                <th>Scorebook status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {COMPOUNDING_EXAMPLES.map((example) => (
-                <tr key={example.id}>
-                  <td>
-                    <strong>{example.label}</strong>
-                  </td>
-                  <td>{example.analysis.productDescription}</td>
-                  <td>{example.role}</td>
-                  <td>
-                    <span>{example.syntheticDatasetLabel}</span>
-                    <br />
-                    <span className="small">
-                      {example.id !== "creative-agent"
-                        ? "Company analysis + synthetic illustrative scorebook. Case rows are NOT company data."
-                        : "Entirely synthetic negative control."}
-                    </span>
-                  </td>
-                  <td>
-                    <form action={loadSyntheticExampleAction}>
-                      <input type="hidden" name="exampleId" value={example.id} />
-                      <button className="btn" type="submit">Select</button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ExampleSelectionTable
+          loadAction={loadSyntheticExampleAction}
+          examples={COMPOUNDING_EXAMPLES.map((example) => ({
+            id: example.id,
+            label: example.label,
+            role: example.role,
+            context: example.analysis.productDescription,
+            thesis: example.id !== "creative-agent"
+              ? "Company analysis + synthetic illustrative scorebook. Case rows are NOT company data."
+              : "Entirely synthetic negative control.",
+            syntheticDatasetLabel: example.syntheticDatasetLabel,
+            caseCount: example.cases.length,
+            fixtureType: example.cases.every((row) => row.isSynthetic) ? "Synthetic illustrative rows" : "Mixed provenance"
+          }))}
+        />
       </Section>
 
       <Section title="Research integrity">

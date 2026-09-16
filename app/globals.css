@@ -3257,28 +3257,50 @@ button {
   padding-bottom: 8px;
 }
 .compoundingExampleTable .dataTable {
-  min-width: 1220px;
+  min-width: 1380px;
+}
+.compoundingExampleTable th,
+.compoundingExampleTable td {
+  font-size: 13px;
+  line-height: 1.45;
 }
 .compoundingExampleTable th:first-child,
 .compoundingExampleTable td:first-child {
-  min-width: 220px;
+  min-width: 112px;
 }
 .compoundingExampleTable th:nth-child(2),
 .compoundingExampleTable td:nth-child(2) {
-  min-width: 300px;
+  min-width: 220px;
 }
 .compoundingExampleTable th:nth-child(3),
 .compoundingExampleTable td:nth-child(3) {
-  min-width: 300px;
+  min-width: 330px;
 }
 .compoundingExampleTable th:nth-child(4),
 .compoundingExampleTable td:nth-child(4) {
-  min-width: 360px;
+  min-width: 300px;
 }
-.compoundingExampleTable th:last-child,
-.compoundingExampleTable td:last-child {
-  min-width: 120px;
+.compoundingExampleTable th:nth-child(5),
+.compoundingExampleTable td:nth-child(5) {
+  min-width: 90px;
   text-align: right;
+}
+.compoundingExampleTable th:nth-child(6),
+.compoundingExampleTable td:nth-child(6) {
+  min-width: 210px;
+}
+.compoundingExampleTable th:nth-child(7),
+.compoundingExampleTable td:nth-child(7) {
+  min-width: 330px;
+}
+.compoundingExampleTable tbody tr {
+  cursor: pointer;
+}
+.compoundingExampleTable tbody tr:hover {
+  background: color-mix(in srgb, var(--demo-accent) 10%, transparent);
+}
+.compoundingExampleTable .btn {
+  min-width: 120px;
 }
 .compoundingProcessCard {
   display: grid;
