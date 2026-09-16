@@ -29,9 +29,11 @@ export type NormalizedCECase = {
   grade?: CompoundingCaseGrade | null;
   gradeConfidence?: number | null;
   decisionAt?: Date | string | null;
+  actionAt?: Date | string | null;
   outcomeAt?: Date | string | null;
   isEdgeCase?: boolean | null;
   sourceRecordId?: string | null;
+  sourceRecordType?: string | null;
   sourceRecordRoute?: string | null;
   notes?: string | null;
 };
@@ -60,10 +62,14 @@ export function normalizeCECase(input: NormalizedCECase, sourceLabel: string): S
     grade: input.grade ?? "UNRESOLVED",
     gradeConfidence: input.gradeConfidence ?? null,
     decisionAt: input.decisionAt ?? null,
+    actionAt: input.actionAt ?? null,
     outcomeAt: input.outcomeAt ?? null,
     isEdgeCase: Boolean(input.isEdgeCase),
     isSynthetic: false,
     sourceLabel,
+    sourceRecordId: input.sourceRecordId ?? null,
+    sourceRecordType: input.sourceRecordType ?? null,
+    sourceRecordRoute: input.sourceRecordRoute ?? null,
     notes: input.notes ?? null
   };
 }
@@ -77,6 +83,8 @@ export function buildPricingCaseSetDescriptor(input: {
   modelVersion?: string | null;
   policyVersion?: string | null;
   experimentId?: string | null;
+  timeWindowStart?: Date | string | null;
+  timeWindowEnd?: Date | string | null;
 }): CaseSetInput {
   const sourceRoute = `/pricing/outputs?returnTo=compounding-expertise&sourceRunId=${encodeURIComponent(input.runId)}`;
   return {
@@ -93,6 +101,8 @@ export function buildPricingCaseSetDescriptor(input: {
     modelVersion: input.modelVersion ?? null,
     policyVersion: input.policyVersion ?? null,
     experimentId: input.experimentId ?? null,
+    timeWindowStart: input.timeWindowStart ?? null,
+    timeWindowEnd: input.timeWindowEnd ?? null,
     isSynthetic: false,
     provenanceLabel: "DAVIDWOLFE.APP PRICING SOURCE SYSTEM - generated run descriptor",
     caseCount: input.caseCount,

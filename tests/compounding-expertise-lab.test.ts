@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   COMPOUNDING_EXAMPLES,
+  COMPETITIVE_INPUTS,
   ENDOGENOUS_INPUTS,
   EXOGENOUS_INPUTS,
   LAB_WORKFLOW_STEPS,
@@ -175,10 +176,14 @@ test("V0.2 workflow places scorebook before debates and conclusion last", () => 
 });
 
 test("structured inputs distinguish exogenous opportunity from endogenous capability", () => {
-  assert.ok(EXOGENOUS_INPUTS.length >= 6);
-  assert.ok(ENDOGENOUS_INPUTS.length >= 9);
+  assert.ok(EXOGENOUS_INPUTS.length >= 7);
+  assert.ok(ENDOGENOUS_INPUTS.length >= 10);
+  assert.ok(COMPETITIVE_INPUTS.length >= 8);
   assert.equal(EXOGENOUS_INPUTS.every((input) => input.epistemicKind === "EXOGENOUS_ASSUMPTION"), true);
   assert.equal(ENDOGENOUS_INPUTS.every((input) => input.epistemicKind === "ENDOGENOUS_ASSUMPTION"), true);
+  assert.ok(EXOGENOUS_INPUTS.some((input) => input.key === "caseFrequency"));
+  assert.ok(ENDOGENOUS_INPUTS.some((input) => input.key === "controlsAction"));
+  assert.ok(COMPETITIVE_INPUTS.some((input) => input.key === "rebuildability"));
 });
 
 const scorebookRows: ScorebookCaseInput[] = [
@@ -319,6 +324,9 @@ test("synthetic dataset labeling is explicit for bundled examples", () => {
     for (const row of example.cases) {
       assert.equal(row.isSynthetic, true);
       assert.match(row.sourceLabel, /SYNTHETIC ILLUSTRATIVE DATA/);
+      assert.ok(row.actionAt === null || row.actionAt instanceof Date || typeof row.actionAt === "string");
+      assert.equal(row.sourceRecordType, "canonical_synthetic_fixture");
+      assert.ok(row.sourceRecordId);
       if (example.id === "casap") assert.match(row.sourceLabel, /not Casap data/);
       if (example.id === "listen-labs") assert.match(row.sourceLabel, /not Listen Labs data/);
       if (example.id === "aaru") assert.match(row.sourceLabel, /not Aaru data/);
@@ -337,6 +345,7 @@ test("all canonical tests expose the same theory-test metadata", () => {
     assert.ok(example.gradeObjectivity);
     assert.ok(example.typicalFeedbackSpeed);
     assert.ok(example.economicCostOfError);
+    assert.ok(example.caseFrequency);
     assert.ok(example.primaryPowerHypothesis);
     assert.ok(example.competingPowerHypothesis);
     assert.ok(example.whyCanonical);
@@ -390,11 +399,16 @@ test("adapter-normalized CE cases allow unresolved nullable outcomes and grades"
     agentDecision: "raise price",
     outcome: null,
     grade: null,
+    actionAt: new Date("2026-01-02T00:00:00Z"),
+    sourceRecordId: "pricing-result-1",
+    sourceRecordType: "pricing_simulation_result",
     humanOverride: null
   }, "DAVIDWOLFE.APP PRICING SOURCE SYSTEM - generated run descriptor");
 
   assert.equal(normalized.grade, "UNRESOLVED");
   assert.equal(normalized.outcome, null);
+  assert.ok(normalized.actionAt);
+  assert.equal(normalized.sourceRecordType, "pricing_simulation_result");
   assert.equal(normalized.humanOverride, false);
   assert.equal(normalized.isSynthetic, false);
 });
@@ -403,13 +417,17 @@ test("pricing adapter descriptor uses safe source route and source metadata", ()
   const caseSet = buildPricingCaseSetDescriptor({
     runId: "run-42",
     runLabel: "Pricing Run #42",
-    caseCount: 12
+    caseCount: 12,
+    timeWindowStart: "2026-01-01",
+    timeWindowEnd: "2026-01-31"
   });
 
   assert.equal(PRICING_CE_CASE_SET_ADAPTER.sourceSystemKey, "pricing");
   assert.equal(caseSet.sourceType, "DAVIDWOLFE_APP");
   assert.equal(caseSet.sourceSystemKey, "pricing");
   assert.equal(caseSet.caseCount, 12);
+  assert.equal(caseSet.timeWindowStart, "2026-01-01");
+  assert.equal(caseSet.timeWindowEnd, "2026-01-31");
   assert.equal(sourceRouteIsSafe(caseSet.sourceRoute), true);
   assert.match(caseSet.sourceRoute ?? "", /returnTo=compounding-expertise/);
 });

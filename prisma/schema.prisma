@@ -232,18 +232,25 @@ model CompoundingExpertiseAnalysis {
   workspaceId         String?
   accountUserId       String?
   companyName         String
+  companyUrl          String?
+  productCategory     String?
   productDescription  String
   targetCustomer      String
+  businessModel       String?
   workflow            String
   decisionDescription String
+  actionSpace         String?
+  companyStage        String?
   thesis              String
   economicCostWrongDecision String?
   outcomeObjectivity  String?
   naturalFeedbackTime String?
+  caseFrequency       String?
   customerCaseHeterogeneity String?
   environmentalChangeRate String?
   foundationModelImprovementRate String?
   ownsDecisionPoint   String?
+  controlsAction      String?
   observesOutcome     String?
   capturesOverrides   String?
   capturesGrades      String?
@@ -252,6 +259,14 @@ model CompoundingExpertiseAnalysis {
   runsControlledExperiments String?
   updatesModelPolicyRegularly String?
   deploysImprovementsQuickly String?
+  dataExclusivity     String?
+  workflowEmbeddedness String?
+  switchingCostsAssumption String?
+  rebuildability      String?
+  foundationModelDependence String?
+  deterministicInfrastructure String?
+  distributionAdvantage String?
+  regulatoryContractualBarriers String?
   createdAt           DateTime                                 @default(now())
   updatedAt           DateTime                                 @updatedAt
   workspace           Workspace?                               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -285,6 +300,8 @@ model CompoundingExpertiseCaseSet {
   modelVersion          String?
   policyVersion         String?
   experimentId          String?
+  timeWindowStart       DateTime?
+  timeWindowEnd         DateTime?
   isSynthetic           Boolean                      @default(false)
   provenanceLabel       String
   caseCount             Int                          @default(0)
@@ -321,10 +338,14 @@ model CompoundingExpertiseCase {
   grade               CompoundingCaseGrade         @default(UNRESOLVED)
   gradeConfidence     Float?
   decisionAt          DateTime?
+  actionAt            DateTime?
   outcomeAt           DateTime?
   isEdgeCase          Boolean                      @default(false)
   isSynthetic         Boolean                      @default(true)
   sourceLabel         String
+  sourceRecordId      String?
+  sourceRecordType    String?
+  sourceRecordRoute   String?
   notes               String?
   createdAt           DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt

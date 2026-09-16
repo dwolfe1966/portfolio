@@ -12,6 +12,9 @@ type ExampleRow = {
   gradeObjectivity: string;
   typicalFeedbackSpeed: string;
   economicCostOfError: string;
+  caseFrequency: string;
+  crossCustomerTransferPotential: string;
+  historicalCaseDependence: string;
   primaryPowerHypothesis: string;
   whyCanonical: string;
   status: string;
@@ -45,6 +48,9 @@ export function ExampleSelectionTable({
             <th>Grade objectivity</th>
             <th>Feedback speed</th>
             <th>Economic stakes</th>
+            <th>Case frequency</th>
+            <th>Transfer potential</th>
+            <th>Historical dependence</th>
             <th>Primary Power hypothesis</th>
             <th>Why this test exists</th>
             <th>Cases</th>
@@ -80,6 +86,9 @@ export function ExampleSelectionTable({
               <td>{example.gradeObjectivity}</td>
               <td>{example.typicalFeedbackSpeed}</td>
               <td>{example.economicCostOfError}</td>
+              <td>{example.caseFrequency}</td>
+              <td>{example.crossCustomerTransferPotential}</td>
+              <td>{example.historicalCaseDependence}</td>
               <td>{example.primaryPowerHypothesis}</td>
               <td>{example.whyCanonical}</td>
               <td>{example.caseCount}</td>

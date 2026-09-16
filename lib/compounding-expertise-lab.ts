@@ -14,18 +14,25 @@ export type CaseSetSourceType = "CANONICAL_SYNTHETIC" | "DAVIDWOLFE_APP" | "CSV"
 
 export type CompanyThesisInput = {
   companyName: string;
+  companyUrl?: string | null;
+  productCategory?: string | null;
   productDescription: string;
   targetCustomer: string;
+  businessModel?: string | null;
   workflow: string;
   decisionDescription: string;
+  actionSpace?: string | null;
+  companyStage?: string | null;
   thesis: string;
   economicCostWrongDecision?: string | null;
   outcomeObjectivity?: string | null;
   naturalFeedbackTime?: string | null;
+  caseFrequency?: string | null;
   customerCaseHeterogeneity?: string | null;
   environmentalChangeRate?: string | null;
   foundationModelImprovementRate?: string | null;
   ownsDecisionPoint?: string | null;
+  controlsAction?: string | null;
   observesOutcome?: string | null;
   capturesOverrides?: string | null;
   capturesGrades?: string | null;
@@ -34,6 +41,14 @@ export type CompanyThesisInput = {
   runsControlledExperiments?: string | null;
   updatesModelPolicyRegularly?: string | null;
   deploysImprovementsQuickly?: string | null;
+  dataExclusivity?: string | null;
+  workflowEmbeddedness?: string | null;
+  switchingCostsAssumption?: string | null;
+  rebuildability?: string | null;
+  foundationModelDependence?: string | null;
+  deterministicInfrastructure?: string | null;
+  distributionAdvantage?: string | null;
+  regulatoryContractualBarriers?: string | null;
 };
 
 export type KeyDebateInput = {
@@ -119,10 +134,14 @@ export type ScorebookCaseInput = {
   grade: CompoundingCaseGrade;
   gradeConfidence?: number | null;
   decisionAt?: Date | string | null;
+  actionAt?: Date | string | null;
   outcomeAt?: Date | string | null;
   isEdgeCase: boolean;
   isSynthetic: boolean;
   sourceLabel: string;
+  sourceRecordId?: string | null;
+  sourceRecordType?: string | null;
+  sourceRecordRoute?: string | null;
   notes?: string | null;
 };
 
@@ -144,6 +163,8 @@ export type CaseSetInput = {
   modelVersion?: string | null;
   policyVersion?: string | null;
   experimentId?: string | null;
+  timeWindowStart?: Date | string | null;
+  timeWindowEnd?: Date | string | null;
   isSynthetic: boolean;
   provenanceLabel: string;
   caseCount: number;
@@ -210,6 +231,7 @@ export const EXOGENOUS_INPUTS: StructuredInputDefinition[] = [
   { key: "economicCostWrongDecision", label: "Economic cost of a wrong decision", description: "How much value is at stake when the product is wrong?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
   { key: "outcomeObjectivity", label: "Outcome objectivity", description: "Can outcomes be graded objectively rather than by taste or politics?", options: ["Unknown", "Subjective", "Mixed", "Objective / deterministic"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
   { key: "naturalFeedbackTime", label: "Natural feedback time", description: "How quickly does reality reveal whether the decision was good?", options: ["Unknown", "Minutes", "Days", "Weeks", "Months", "Years"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
+  { key: "caseFrequency", label: "Case / decision frequency", description: "How often does the workflow generate meaningful decision cases?", options: ["Unknown", "Low", "Medium", "High", "Very high"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
   { key: "customerCaseHeterogeneity", label: "Customer / case heterogeneity", description: "How different are customers, cases, policies, and contexts?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
   { key: "environmentalChangeRate", label: "Environmental change / nonstationarity", description: "How quickly does the problem distribution change?", options: ["Unknown", "Stable", "Moderate", "Rapidly changing"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
   { key: "foundationModelImprovementRate", label: "Foundation-model improvement relative to this task", description: "How quickly general model capability may compress proprietary experience advantage.", options: ["Unknown", "Slow", "Moderate", "Fast"], epistemicKind: "EXOGENOUS_ASSUMPTION" }
@@ -217,6 +239,7 @@ export const EXOGENOUS_INPUTS: StructuredInputDefinition[] = [
 
 export const ENDOGENOUS_INPUTS: StructuredInputDefinition[] = [
   { key: "ownsDecisionPoint", label: "Owns or participates directly in decision point?", description: "Can the product see the actual decision moment?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "controlsAction", label: "Controls or executes action?", description: "Does the product actually execute the action, or only recommend it?", options: ["Unknown", "No", "Recommends only", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
   { key: "observesOutcome", label: "Observes eventual outcome?", description: "Can the company observe what happened after the decision?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
   { key: "capturesOverrides", label: "Captures human overrides?", description: "Are human corrections captured as learning signal?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
   { key: "capturesGrades", label: "Captures explicit grades?", description: "Are decisions explicitly graded against outcomes?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
@@ -225,6 +248,17 @@ export const ENDOGENOUS_INPUTS: StructuredInputDefinition[] = [
   { key: "runsControlledExperiments", label: "Runs controlled experiments?", description: "Can the company test changes rather than infer from anecdotes?", options: ["Unknown", "No", "Sometimes", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
   { key: "updatesModelPolicyRegularly", label: "Updates model / policy regularly?", description: "Does learning feed back into system behavior?", options: ["Unknown", "No", "Occasionally", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
   { key: "deploysImprovementsQuickly", label: "Can deploy improvements quickly?", description: "How quickly can the company turn learning into changed behavior?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" }
+];
+
+export const COMPETITIVE_INPUTS: StructuredInputDefinition[] = [
+  { key: "dataExclusivity", label: "Data exclusivity", description: "Can rivals access equivalent decision/outcome data?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "workflowEmbeddedness", label: "Workflow embeddedness", description: "How deeply is the product embedded in the operating workflow?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "switchingCostsAssumption", label: "Switching costs", description: "Would customers face operational, risk, or integration costs to switch?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "rebuildability", label: "Rebuildability", description: "How easily could a capable challenger rebuild the useful system and learning loop?", options: ["Unknown", "Easy", "Moderate", "Hard"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
+  { key: "foundationModelDependence", label: "Foundation-model dependence", description: "How dependent is the advantage on commoditized frontier model capability?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
+  { key: "deterministicInfrastructure", label: "Deterministic / domain infrastructure", description: "Does defensibility reside in rails, schema, controls, or domain process rather than CE?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "distributionAdvantage", label: "Distribution advantage", description: "Does the company have advantaged access to customers or workflows?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
+  { key: "regulatoryContractualBarriers", label: "Regulatory / contractual barriers", description: "Do contracts, consent, or regulation make replication harder?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" }
 ];
 
 export const HELMER_POWERS: DimensionDefinition[] = [
@@ -351,6 +385,7 @@ export type CompoundingExample = {
   gradeObjectivity: string;
   typicalFeedbackSpeed: string;
   economicCostOfError: string;
+  caseFrequency: string;
   crossCustomerTransferPotential: string;
   historicalCaseDependence: string;
   primaryPowerHypothesis: string;
@@ -427,10 +462,14 @@ function createSyntheticCases(config: {
       grade,
       gradeConfidence: isUnresolved ? null : config.objectiveBias === "weak" ? 0.45 + (index % 3) * 0.08 : 0.68 + (index % 4) * 0.07,
       decisionAt,
+      actionAt: isUnresolved ? null : addDays(decisionAt, 1),
       outcomeAt,
       isEdgeCase,
       isSynthetic: true,
       sourceLabel: config.sourceLabel,
+      sourceRecordId: externalCaseId,
+      sourceRecordType: "canonical_synthetic_fixture",
+      sourceRecordRoute: null,
       notes: isUnresolved ? "Outcome not yet observed; unresolved rows should remain incomplete." : "Synthetic illustrative row for theory testing."
     };
   });
@@ -487,6 +526,7 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     gradeObjectivity: "Relatively high",
     typicalFeedbackSpeed: "Relatively fast - days/weeks as an archetype assumption",
     economicCostOfError: "High",
+    caseFrequency: "High / repeated workflow",
     crossCustomerTransferPotential: "Plausibly high but requires evidence",
     historicalCaseDependence: "Potentially important",
     primaryPowerHypothesis: "Compounding Expertise, potentially reinforcing Network Economies and Process Power.",
@@ -512,18 +552,25 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     },
     analysis: {
       companyName: "Casap archetype review",
+      companyUrl: null,
+      productCategory: "Disputes / fraud / exception resolution",
       productDescription: "Company-analysis archetype for a disputes workflow where decisions can plausibly be graded against outcomes. Case rows are synthetic fixtures only.",
       targetCustomer: "Operations teams handling repeated disputes, chargebacks, or exception workflows.",
+      businessModel: "Unknown / not assessed",
       workflow: "Dispute intake -> evidence review -> recommended resolution -> human approval or override -> outcome and grade capture.",
       decisionDescription: "Recommend approve, deny, refund, escalate, or request evidence for repeated dispute cases.",
+      actionSpace: "Approve, deny, refund, escalate, or request additional evidence.",
+      companyStage: "Unknown / not assessed",
       thesis: "This is a strong candidate for Compounding Expertise if the product owns the graded workflow and cross-customer cases remain transferable.",
       economicCostWrongDecision: "High",
       outcomeObjectivity: "Objective / deterministic",
       naturalFeedbackTime: "Days",
+      caseFrequency: "High",
       customerCaseHeterogeneity: "Medium",
       environmentalChangeRate: "Moderate",
       foundationModelImprovementRate: "Moderate",
       ownsDecisionPoint: "Yes",
+      controlsAction: "Partially",
       observesOutcome: "Yes",
       capturesOverrides: "Yes",
       capturesGrades: "Yes",
@@ -531,7 +578,15 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       contractualLearningRights: "Partial / restricted",
       runsControlledExperiments: "Sometimes",
       updatesModelPolicyRegularly: "Yes",
-      deploysImprovementsQuickly: "Yes"
+      deploysImprovementsQuickly: "Yes",
+      dataExclusivity: "Medium",
+      workflowEmbeddedness: "High",
+      switchingCostsAssumption: "Medium",
+      rebuildability: "Moderate",
+      foundationModelDependence: "Medium",
+      deterministicInfrastructure: "Medium",
+      distributionAdvantage: "Unknown",
+      regulatoryContractualBarriers: "Medium"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: DEFAULT_SCENARIOS,
@@ -564,6 +619,7 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     gradeObjectivity: "Low-to-medium / often indirect",
     typicalFeedbackSpeed: "Delayed and sometimes ambiguous",
     economicCostOfError: "Medium / context-dependent",
+    caseFrequency: "Potentially high research volume, but not necessarily high graded-decision volume",
     crossCustomerTransferPotential: "Uncertain",
     historicalCaseDependence: "Questionable",
     primaryPowerHypothesis: "Potentially valuable proprietary knowledge / filing cabinet rather than a true scorebook.",
@@ -589,18 +645,25 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     },
     analysis: {
       companyName: "Listen Labs archetype review",
+      companyUrl: null,
+      productCategory: "AI-assisted research / listening",
       productDescription: "Company-analysis archetype for AI-assisted research/listening workflows. Case rows are synthetic fixtures only.",
       targetCustomer: "Product, marketing, and research teams synthesizing customer interviews or qualitative feedback.",
+      businessModel: "Unknown / not assessed",
       workflow: "Research prompt -> participant/session evidence -> synthesis -> recommendation -> later product or messaging decision.",
       decisionDescription: "Recommend themes, positioning, prioritization, or follow-up research questions from qualitative evidence.",
+      actionSpace: "Recommend themes, segments, follow-up research, or defer conclusion.",
+      companyStage: "Unknown / not assessed",
       thesis: "Accumulated knowledge may be valuable, but the scorebook claim is weaker unless recommendations are tied to objective later grades.",
       economicCostWrongDecision: "Medium",
       outcomeObjectivity: "Subjective",
       naturalFeedbackTime: "Months",
+      caseFrequency: "Medium",
       customerCaseHeterogeneity: "High",
       environmentalChangeRate: "Moderate",
       foundationModelImprovementRate: "Fast",
       ownsDecisionPoint: "Partially",
+      controlsAction: "Recommends only",
       observesOutcome: "Partially",
       capturesOverrides: "Partially",
       capturesGrades: "No",
@@ -608,7 +671,15 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       contractualLearningRights: "Partial / restricted",
       runsControlledExperiments: "Sometimes",
       updatesModelPolicyRegularly: "Occasionally",
-      deploysImprovementsQuickly: "Partially"
+      deploysImprovementsQuickly: "Partially",
+      dataExclusivity: "Medium",
+      workflowEmbeddedness: "Medium",
+      switchingCostsAssumption: "Low",
+      rebuildability: "Moderate",
+      foundationModelDependence: "High",
+      deterministicInfrastructure: "Low",
+      distributionAdvantage: "Unknown",
+      regulatoryContractualBarriers: "Low"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: [
@@ -644,6 +715,7 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     gradeObjectivity: "Potentially high when simulation predictions are later compared with actual outcomes",
     typicalFeedbackSpeed: "Depends on prediction horizon",
     economicCostOfError: "Use-case dependent",
+    caseFrequency: "Potentially high through simulation",
     crossCustomerTransferPotential: "Potentially central",
     historicalCaseDependence: "Core question - potentially lower if model priors/simulation substitute for experience",
     primaryPowerHypothesis: "Model/simulation capability may compress the value of historical scorebooks.",
@@ -669,18 +741,25 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     },
     analysis: {
       companyName: "Aaru model-first archetype review",
+      companyUrl: null,
+      productCategory: "Model-first research / simulation",
       productDescription: "Company-analysis archetype for model-first research where base intelligence may compress the value of historical cases. Case rows are synthetic fixtures only.",
       targetCustomer: "Strategy, investment, or research teams asking model-heavy analytical questions.",
+      businessModel: "Unknown / not assessed",
       workflow: "Question -> model-generated analysis -> reviewer correction -> decision support -> optional later outcome review.",
       decisionDescription: "Generate or rank analytical conclusions, research paths, or scenario implications.",
+      actionSpace: "Generate, rank, support, challenge, or request more evidence.",
+      companyStage: "Unknown / not assessed",
       thesis: "The challenge is whether higher base capability can substitute for proprietary historical experience quickly enough to weaken scorebook Power.",
       economicCostWrongDecision: "Medium",
       outcomeObjectivity: "Mixed",
       naturalFeedbackTime: "Weeks",
+      caseFrequency: "High",
       customerCaseHeterogeneity: "High",
       environmentalChangeRate: "Rapidly changing",
       foundationModelImprovementRate: "Fast",
       ownsDecisionPoint: "Partially",
+      controlsAction: "Recommends only",
       observesOutcome: "Partially",
       capturesOverrides: "Yes",
       capturesGrades: "Partially",
@@ -688,7 +767,15 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       contractualLearningRights: "Unknown",
       runsControlledExperiments: "Sometimes",
       updatesModelPolicyRegularly: "Yes",
-      deploysImprovementsQuickly: "Yes"
+      deploysImprovementsQuickly: "Yes",
+      dataExclusivity: "Low",
+      workflowEmbeddedness: "Medium",
+      switchingCostsAssumption: "Low",
+      rebuildability: "Easy",
+      foundationModelDependence: "High",
+      deterministicInfrastructure: "Low",
+      distributionAdvantage: "Unknown",
+      regulatoryContractualBarriers: "Low"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: [
@@ -724,6 +811,7 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     gradeObjectivity: "Very high",
     typicalFeedbackSpeed: "Immediate/short",
     economicCostOfError: "High",
+    caseFrequency: "Repeated but not necessarily strategically important for learning",
     crossCustomerTransferPotential: "Not necessarily the primary strategic variable",
     historicalCaseDependence: "Potentially secondary",
     primaryPowerHypothesis: "Deterministic rails, Process Power, Switching Costs, domain infrastructure.",
@@ -749,18 +837,25 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     },
     analysis: {
       companyName: "Maybern archetype review",
+      companyUrl: null,
+      productCategory: "Deterministic finance / fund operations infrastructure",
       productDescription: "Company-analysis archetype for deterministic workflows where schema, controls, and process execution may be the stronger source of Power. Case rows are synthetic fixtures only.",
       targetCustomer: "Finance, fund operations, or compliance teams requiring controlled execution.",
+      businessModel: "Unknown / not assessed",
       workflow: "Structured request -> schema validation -> deterministic rule path -> exception handling -> audit trail.",
       decisionDescription: "Validate, route, reconcile, or reject structured operational exceptions.",
+      actionSpace: "Validate, route, reconcile, reject, or request source documentation.",
+      companyStage: "Unknown / not assessed",
       thesis: "The key question is whether Power resides in accumulated graded cases or in deterministic process rails, schemas, and trust controls.",
       economicCostWrongDecision: "High",
       outcomeObjectivity: "Objective / deterministic",
       naturalFeedbackTime: "Days",
+      caseFrequency: "Medium",
       customerCaseHeterogeneity: "Medium",
       environmentalChangeRate: "Stable",
       foundationModelImprovementRate: "Moderate",
       ownsDecisionPoint: "Yes",
+      controlsAction: "Yes",
       observesOutcome: "Yes",
       capturesOverrides: "Yes",
       capturesGrades: "Partially",
@@ -768,7 +863,15 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       contractualLearningRights: "Yes",
       runsControlledExperiments: "No",
       updatesModelPolicyRegularly: "Occasionally",
-      deploysImprovementsQuickly: "Partially"
+      deploysImprovementsQuickly: "Partially",
+      dataExclusivity: "Medium",
+      workflowEmbeddedness: "High",
+      switchingCostsAssumption: "High",
+      rebuildability: "Hard",
+      foundationModelDependence: "Low",
+      deterministicInfrastructure: "High",
+      distributionAdvantage: "Unknown",
+      regulatoryContractualBarriers: "High"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: [
@@ -804,6 +907,7 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     gradeObjectivity: "Superficially measurable but causally noisy",
     typicalFeedbackSpeed: "Fast for clicks/conversions; slower for durable economic outcomes",
     economicCostOfError: "Medium",
+    caseFrequency: "Very high",
     crossCustomerTransferPotential: "Potentially broad but highly context-sensitive",
     historicalCaseDependence: "Large datasets may exist but contain substantial redundancy",
     primaryPowerHypothesis: "Possibly none from CE alone.",
@@ -829,18 +933,25 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
     },
     analysis: {
       companyName: "Creative Marketing Agent",
+      companyUrl: null,
+      productCategory: "Creative / marketing agent",
       productDescription: "Fully synthetic negative-control archetype for a high-volume creative workflow with subjective outcomes and attribution ambiguity.",
       targetCustomer: "Marketing teams producing creative variants, social posts, ads, and campaign concepts.",
+      businessModel: "Synthetic",
       workflow: "Brief -> generated creative -> human edit -> launch or discard -> noisy performance readout.",
       decisionDescription: "Select, rewrite, or reject creative variants for audience/channel use.",
+      actionSpace: "Ship, rewrite, reject, or test a creative variant against a control.",
+      companyStage: "Synthetic",
       thesis: "High case volume alone should not imply Compounding Expertise if grades are subjective, delayed, confounded, or weakly tied to decisions.",
       economicCostWrongDecision: "Low",
       outcomeObjectivity: "Subjective",
       naturalFeedbackTime: "Weeks",
+      caseFrequency: "Very high",
       customerCaseHeterogeneity: "High",
       environmentalChangeRate: "Rapidly changing",
       foundationModelImprovementRate: "Fast",
       ownsDecisionPoint: "Partially",
+      controlsAction: "Partially",
       observesOutcome: "Partially",
       capturesOverrides: "Yes",
       capturesGrades: "Partially",
@@ -848,7 +959,15 @@ export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
       contractualLearningRights: "Unknown",
       runsControlledExperiments: "Sometimes",
       updatesModelPolicyRegularly: "Yes",
-      deploysImprovementsQuickly: "Yes"
+      deploysImprovementsQuickly: "Yes",
+      dataExclusivity: "Low",
+      workflowEmbeddedness: "Low",
+      switchingCostsAssumption: "Low",
+      rebuildability: "Easy",
+      foundationModelDependence: "High",
+      deterministicInfrastructure: "Low",
+      distributionAdvantage: "Medium",
+      regulatoryContractualBarriers: "Low"
     },
     debates: EXAMPLE_DEBATES,
     scenarios: [

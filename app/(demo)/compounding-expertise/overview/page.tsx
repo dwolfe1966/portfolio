@@ -78,6 +78,9 @@ export default function CompoundingExpertiseOverviewPage() {
             gradeObjectivity: example.gradeObjectivity,
             typicalFeedbackSpeed: example.typicalFeedbackSpeed,
             economicCostOfError: example.economicCostOfError,
+            caseFrequency: example.caseFrequency,
+            crossCustomerTransferPotential: example.crossCustomerTransferPotential,
+            historicalCaseDependence: example.historicalCaseDependence,
             primaryPowerHypothesis: example.primaryPowerHypothesis,
             whyCanonical: example.whyCanonical,
             status: example.id !== "creative-agent"
@@ -101,6 +104,8 @@ export default function CompoundingExpertiseOverviewPage() {
               </div>
               <p><strong>Question:</strong> {example.canonicalQuestion}</p>
               <p><strong>Principal decision:</strong> {example.principalDecision}</p>
+              <p><strong>Grade / feedback / stakes:</strong> {example.gradeObjectivity} · {example.typicalFeedbackSpeed} · {example.economicCostOfError}</p>
+              <p><strong>Case frequency:</strong> {example.caseFrequency}</p>
               <p><strong>Primary Power hypothesis:</strong> {example.primaryPowerHypothesis}</p>
               <details className="compoundingInlineEditor">
                 <summary>Why this test exists</summary>

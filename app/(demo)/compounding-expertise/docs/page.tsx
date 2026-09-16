@@ -107,6 +107,20 @@ E(t) = base_capability
         </div>
       </Section>
 
+      <Section title="Structural model">
+        <div className="card">
+          <p>
+            The Lab separates company identity, exogenous compounding opportunity, endogenous learning architecture,
+            and competitive architecture. Useful learning is not automatically defensible learning.
+          </p>
+          <p>
+            Cases preserve the sequence: context {"->"} agent decision {"->"} human intervention {"->"} action actually taken
+            {"->"} outcome {"->"} grade. Action timestamps and source-record lineage are kept separate from decision and outcome
+            timestamps so future source systems can link CE evidence back to operational records.
+          </p>
+        </div>
+      </Section>
+
       <Section title="Evidence statuses">
         <div className="grid grid-4">
           <div className="card"><h3>Observed</h3><p>Directly seen in product, customer, or operating data.</p></div>

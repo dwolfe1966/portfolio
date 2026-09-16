@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { EpistemicBadge, IntegrityNotice, LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
-import { ENDOGENOUS_INPUTS, EXOGENOUS_INPUTS, canonicalExampleForCompany, type CompanyThesisInput, type StructuredInputDefinition } from "@/lib/compounding-expertise-lab";
+import { COMPETITIVE_INPUTS, ENDOGENOUS_INPUTS, EXOGENOUS_INPUTS, canonicalExampleForCompany, type CompanyThesisInput, type StructuredInputDefinition } from "@/lib/compounding-expertise-lab";
 import { saveAnalysisAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
@@ -66,6 +66,8 @@ export default async function CompoundingExpertiseInputsPage({
             <p><strong>Why selected:</strong> {canonicalExample.whyCanonical}</p>
             <p><strong>Expected theoretical behavior:</strong> {canonicalExample.expectedTheoreticalBehavior}</p>
             <p><strong>Lab failure condition:</strong> {canonicalExample.labFailureCondition}</p>
+            <p><strong>Primary Power hypothesis:</strong> {canonicalExample.primaryPowerHypothesis}</p>
+            <p><strong>Competing Power hypothesis:</strong> {canonicalExample.competingPowerHypothesis}</p>
             <p className="small">This is explanatory metadata, not evidence about the company.</p>
           </div>
         ) : null}
@@ -76,9 +78,9 @@ export default async function CompoundingExpertiseInputsPage({
           <input type="hidden" name="analysisId" value={analysis?.id ?? ""} />
 
           <details className="card compoundingDisclosure" open>
-            <summary>Company / workflow context</summary>
+            <summary>Company identity - What is this business/system?</summary>
             <p className="small">
-              Describe the company, product, workflow, principal decisions, and current thesis. This context frames the evidence inspection.
+              These fields are descriptive. For canonical tests, distinguish public/company description from archetype assumptions and synthetic case data.
             </p>
             <div className="compoundingFormGrid">
               <label>
@@ -86,8 +88,24 @@ export default async function CompoundingExpertiseInputsPage({
                 <input name="companyName" defaultValue={analysis?.companyName ?? ""} placeholder="Company or product under review" />
               </label>
               <label>
+                Website / company URL
+                <input name="companyUrl" defaultValue={analysis?.companyUrl ?? ""} placeholder="https://..." />
+              </label>
+              <label>
+                Product category
+                <input name="productCategory" defaultValue={analysis?.productCategory ?? ""} placeholder="Disputes, research, pricing, etc." />
+              </label>
+              <label>
                 Target customer
                 <input name="targetCustomer" defaultValue={analysis?.targetCustomer ?? ""} placeholder="Buyer/user/operator" />
+              </label>
+              <label>
+                Business model
+                <input name="businessModel" defaultValue={analysis?.businessModel ?? ""} placeholder="Unknown allowed" />
+              </label>
+              <label>
+                Company stage
+                <input name="companyStage" defaultValue={analysis?.companyStage ?? ""} placeholder="Optional / unknown allowed" />
               </label>
               <label className="span-2">
                 Product description
@@ -102,6 +120,10 @@ export default async function CompoundingExpertiseInputsPage({
                 <textarea name="decisionDescription" rows={3} defaultValue={analysis?.decisionDescription ?? ""} placeholder="What decision does the product make or recommend?" />
               </label>
               <label className="span-2">
+                Action space / possible actions
+                <textarea name="actionSpace" rows={3} defaultValue={analysis?.actionSpace ?? ""} placeholder="What actions can be recommended or executed?" />
+              </label>
+              <label className="span-2">
                 Current investment thesis
                 <textarea name="thesis" rows={4} defaultValue={analysis?.thesis ?? ""} placeholder="What would have to be true for accumulated graded experience to become Power?" />
               </label>
@@ -109,9 +131,10 @@ export default async function CompoundingExpertiseInputsPage({
           </details>
 
           <details className="card compoundingDisclosure" open>
-            <summary>External / exogenous - Compounding Opportunity</summary>
+            <summary>Compounding Opportunity - External / exogenous environment</summary>
             <p>
-              Properties of the market/problem the company largely does not control. These are exogenous assumptions unless observed or sourced.
+              Properties of the problem and market that largely determine whether valuable expertise can accumulate.
+              A workflow producing 12 meaningful cases per year compounds differently from one producing millions.
             </p>
             <div className="compoundingStructuredGrid">
               {EXOGENOUS_INPUTS.map((definition) => (
@@ -121,12 +144,26 @@ export default async function CompoundingExpertiseInputsPage({
           </details>
 
           <details className="card compoundingDisclosure" open>
-            <summary>Internal / endogenous - Compounding Capability</summary>
+            <summary>Compounding Capability - Learning architecture</summary>
             <p>
-              Properties the company can design, control, or improve. These indicate whether management can capture the opportunity.
+              Properties the company can design or improve to turn experience into better future decisions.
+              Recommendation is not the same thing as executed action.
             </p>
             <div className="compoundingStructuredGrid">
               {ENDOGENOUS_INPUTS.map((definition) => (
+                <StructuredControl analysis={analysis} definition={definition} key={definition.key} />
+              ))}
+            </div>
+          </details>
+
+          <details className="card compoundingDisclosure" open>
+            <summary>Competitive architecture - Why can&apos;t others reproduce it?</summary>
+            <p>
+              Valuable learning is not the same as defensible learning. These assumptions support the Helmer analysis
+              without replacing it.
+            </p>
+            <div className="compoundingStructuredGrid">
+              {COMPETITIVE_INPUTS.map((definition) => (
                 <StructuredControl analysis={analysis} definition={definition} key={definition.key} />
               ))}
             </div>

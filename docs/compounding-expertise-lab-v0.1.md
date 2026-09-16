@@ -447,3 +447,45 @@ V0.2.1 does not implement:
 - production ingestion pipelines
 
 Those remain future analytical layers after the CaseSet/source-system abstraction and UX are validated.
+
+### V0.2.1 Structural Object Model
+
+The Lab now makes the analytical hierarchy more explicit:
+
+```text
+COMPANY
+-> ENVIRONMENT
+-> LEARNING ARCHITECTURE
+-> CASE SETS
+-> CASE -> DECISION -> HUMAN INTERVENTION -> ACTION -> OUTCOME -> GRADE
+-> COMPOUNDING EXPERTISE
+-> DURABLE POWER
+```
+
+System & Environment is organized into four layers:
+
+- Company identity: company name, URL, product category, product description, target customer, business model, workflow, principal decision, action space, and stage.
+- Compounding Opportunity: exogenous properties such as cost of error, outcome objectivity, natural feedback time, case frequency, heterogeneity, nonstationarity, and foundation-model improvement.
+- Compounding Capability: endogenous properties such as decision-point ownership, action control, outcome observation, override/grade capture, cross-customer learning, learning rights, experimentation, update cadence, and deployment speed.
+- Competitive Architecture: assumptions about whether useful learning is defensible, including data exclusivity, workflow embeddedness, switching costs, rebuildability, foundation-model dependence, deterministic infrastructure, distribution, and regulatory/contractual barriers.
+
+The key distinction is:
+
+```text
+valuable learning != defensible learning
+```
+
+### CaseSet And Case Refinements
+
+CaseSets now support time windows and source/run metadata so future comparisons can distinguish Q1 vs Q2, model version A vs B, policy version A vs B, customer cohort A vs B, synthetic benchmark vs production, and control vs treatment.
+
+Cases preserve:
+
+- decision timestamp
+- action timestamp
+- outcome timestamp
+- source record id
+- source record type
+- source record route
+
+This supports future pivots from CE analysis back to the operational record that generated a case. The implementation remains deliberately lightweight; no production source-system adapters are built in this pass.

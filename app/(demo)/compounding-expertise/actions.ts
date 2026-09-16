@@ -64,18 +64,25 @@ function nullableDate(value: FormDataEntryValue | null) {
 function analysisInput(formData: FormData): CompanyThesisInput {
   return {
     companyName: text(formData.get("companyName")) || "Untitled analysis",
+    companyUrl: text(formData.get("companyUrl")) || null,
+    productCategory: text(formData.get("productCategory")) || null,
     productDescription: text(formData.get("productDescription")),
     targetCustomer: text(formData.get("targetCustomer")),
+    businessModel: text(formData.get("businessModel")) || null,
     workflow: text(formData.get("workflow")),
     decisionDescription: text(formData.get("decisionDescription")),
+    actionSpace: text(formData.get("actionSpace")) || null,
+    companyStage: text(formData.get("companyStage")) || null,
     thesis: text(formData.get("thesis")),
     economicCostWrongDecision: text(formData.get("economicCostWrongDecision")) || null,
     outcomeObjectivity: text(formData.get("outcomeObjectivity")) || null,
     naturalFeedbackTime: text(formData.get("naturalFeedbackTime")) || null,
+    caseFrequency: text(formData.get("caseFrequency")) || null,
     customerCaseHeterogeneity: text(formData.get("customerCaseHeterogeneity")) || null,
     environmentalChangeRate: text(formData.get("environmentalChangeRate")) || null,
     foundationModelImprovementRate: text(formData.get("foundationModelImprovementRate")) || null,
     ownsDecisionPoint: text(formData.get("ownsDecisionPoint")) || null,
+    controlsAction: text(formData.get("controlsAction")) || null,
     observesOutcome: text(formData.get("observesOutcome")) || null,
     capturesOverrides: text(formData.get("capturesOverrides")) || null,
     capturesGrades: text(formData.get("capturesGrades")) || null,
@@ -83,7 +90,15 @@ function analysisInput(formData: FormData): CompanyThesisInput {
     contractualLearningRights: text(formData.get("contractualLearningRights")) || null,
     runsControlledExperiments: text(formData.get("runsControlledExperiments")) || null,
     updatesModelPolicyRegularly: text(formData.get("updatesModelPolicyRegularly")) || null,
-    deploysImprovementsQuickly: text(formData.get("deploysImprovementsQuickly")) || null
+    deploysImprovementsQuickly: text(formData.get("deploysImprovementsQuickly")) || null,
+    dataExclusivity: text(formData.get("dataExclusivity")) || null,
+    workflowEmbeddedness: text(formData.get("workflowEmbeddedness")) || null,
+    switchingCostsAssumption: text(formData.get("switchingCostsAssumption")) || null,
+    rebuildability: text(formData.get("rebuildability")) || null,
+    foundationModelDependence: text(formData.get("foundationModelDependence")) || null,
+    deterministicInfrastructure: text(formData.get("deterministicInfrastructure")) || null,
+    distributionAdvantage: text(formData.get("distributionAdvantage")) || null,
+    regulatoryContractualBarriers: text(formData.get("regulatoryContractualBarriers")) || null
   };
 }
 
@@ -210,6 +225,7 @@ export async function loadSyntheticExampleAction(formData?: FormData) {
         analysisId: created.id,
         caseSetId,
         decisionAt: nullableDate(row.decisionAt instanceof Date ? row.decisionAt.toISOString() : row.decisionAt ?? null),
+        actionAt: nullableDate(row.actionAt instanceof Date ? row.actionAt.toISOString() : row.actionAt ?? null),
         outcomeAt: nullableDate(row.outcomeAt instanceof Date ? row.outcomeAt.toISOString() : row.outcomeAt ?? null)
       }))
     });
@@ -385,10 +401,14 @@ export async function saveScorebookAction(formData: FormData) {
       grade: ["CORRECT", "PARTIALLY_CORRECT", "INCORRECT", "UNRESOLVED"].includes(grade) ? grade : "UNRESOLVED",
       gradeConfidence: nullableNumber(formData.getAll("gradeConfidence")[index] ?? null),
       decisionAt: nullableDate(formData.getAll("decisionAt")[index] ?? null),
+      actionAt: nullableDate(formData.getAll("actionAt")[index] ?? null),
       outcomeAt: nullableDate(formData.getAll("outcomeAt")[index] ?? null),
       isEdgeCase: text(formData.getAll("isEdgeCase")[index] ?? null) === "1",
       isSynthetic: text(formData.getAll("isSynthetic")[index] ?? null) !== "0",
       sourceLabel: text(formData.getAll("sourceLabel")[index] ?? null) || "User-entered scorebook row",
+      sourceRecordId: nullableText(formData.getAll("sourceRecordId")[index] ?? null),
+      sourceRecordType: nullableText(formData.getAll("sourceRecordType")[index] ?? null),
+      sourceRecordRoute: nullableText(formData.getAll("sourceRecordRoute")[index] ?? null),
       notes: nullableText(formData.getAll("notes")[index] ?? null)
     };
 
@@ -398,6 +418,42 @@ export async function saveScorebookAction(formData: FormData) {
 
   revalidateLab();
   redirect(`/compounding-expertise/debates${caseSetIds.find(Boolean) ? `?caseSetId=${caseSetIds.find(Boolean)}` : ""}`);
+}
+
+export async function saveCaseSetAction(formData: FormData) {
+  const analysisId = text(formData.get("analysisId"));
+  if (!analysisId) redirect("/compounding-expertise/inputs");
+
+  const caseSetId = text(formData.get("caseSetId"));
+  const data = {
+    analysisId,
+    name: text(formData.get("name")) || "Untitled CaseSet",
+    description: nullableText(formData.get("description")),
+    sourceType: text(formData.get("sourceType")) || "MANUAL",
+    sourceSystemKey: nullableText(formData.get("sourceSystemKey")),
+    sourceSystemLabel: nullableText(formData.get("sourceSystemLabel")),
+    sourceRunId: nullableText(formData.get("sourceRunId")),
+    sourceRunLabel: nullableText(formData.get("sourceRunLabel")),
+    sourceRunType: nullableText(formData.get("sourceRunType")),
+    sourceRoute: nullableText(formData.get("sourceRoute")),
+    sourceExternalUrl: nullableText(formData.get("sourceExternalUrl")),
+    modelVersion: nullableText(formData.get("modelVersion")),
+    policyVersion: nullableText(formData.get("policyVersion")),
+    experimentId: nullableText(formData.get("experimentId")),
+    timeWindowStart: nullableDate(formData.get("timeWindowStart")),
+    timeWindowEnd: nullableDate(formData.get("timeWindowEnd")),
+    isSynthetic: text(formData.get("isSynthetic")) === "1",
+    provenanceLabel: text(formData.get("provenanceLabel")) || "User-entered CaseSet",
+    parentCaseSetId: nullableText(formData.get("parentCaseSetId")),
+    derivationDescription: nullableText(formData.get("derivationDescription"))
+  };
+
+  const saved = caseSetId
+    ? await db.compoundingExpertiseCaseSet.update({ where: { id: caseSetId }, data })
+    : await db.compoundingExpertiseCaseSet.create({ data });
+
+  revalidateLab();
+  redirect(`/compounding-expertise/scorebook?caseSetId=${saved.id}`);
 }
 
 export async function applyScorebookDerivedValuesAction(formData: FormData) {
