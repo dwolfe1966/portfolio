@@ -14,6 +14,9 @@ import {
   scorebookDerivedSimulatorValues,
   calculateScorebookMetrics,
   caseSetForExample,
+  actionKeyFromDecision,
+  decisionClassKeyForCase,
+  normalizedModelForExample,
   validateProbability,
   type CompoundingCaseGrade,
   type CompoundingConfidence,
@@ -188,6 +191,7 @@ export async function loadSyntheticExampleAction(formData?: FormData) {
   const accountUserId = await currentAccountUserId();
   const workspace = await getDefaultWorkspace();
   const example = exampleById(formData ? text(formData.get("exampleId")) : "casap");
+  const normalized = normalizedModelForExample(example);
   const caseSetId = randomUUID();
   const analysis = await db.$transaction(async (tx) => {
     const created = await tx.compoundingExpertiseAnalysis.create({
@@ -211,24 +215,147 @@ export async function loadSyntheticExampleAction(formData?: FormData) {
       }
     });
 
+    const profile = await tx.compoundingCompanyProfile.create({
+      data: {
+        analysisId: created.id,
+        ...normalized.profile
+      }
+    });
+    const workflow = await tx.compoundingWorkflow.create({
+      data: {
+        analysisId: created.id,
+        companyProfileId: profile.id,
+        name: normalized.workflow.name,
+        description: normalized.workflow.description,
+        position: normalized.workflow.position
+      }
+    });
+    const stageIds = new Map<string, string>();
+    for (const workflowStage of normalized.workflow.stages) {
+      const savedStage = await tx.compoundingWorkflowStage.create({
+        data: {
+          workflowId: workflow.id,
+          name: workflowStage.name,
+          description: workflowStage.description,
+          position: workflowStage.position,
+          stageType: workflowStage.stageType
+        }
+      });
+      stageIds.set(workflowStage.key, savedStage.id);
+    }
+    const decisionClassIds = new Map<string, string>();
+    const actionIds = new Map<string, string>();
+    for (const decisionClass of normalized.workflow.decisionClasses) {
+      const savedDecisionClass = await tx.compoundingDecisionClass.create({
+        data: {
+          analysisId: created.id,
+          workflowId: workflow.id,
+          workflowStageId: decisionClass.stageKey ? stageIds.get(decisionClass.stageKey) ?? null : null,
+          name: decisionClass.name,
+          description: decisionClass.description,
+          decisionMakerType: decisionClass.decisionMakerType,
+          decisionFrequency: decisionClass.decisionFrequency,
+          estimatedCasesPerPeriod: decisionClass.estimatedCasesPerPeriod,
+          frequencyPeriod: decisionClass.frequencyPeriod,
+          economicStakes: decisionClass.economicStakes,
+          reversibility: decisionClass.reversibility,
+          regulatoryRisk: decisionClass.regulatoryRisk,
+          operationalRisk: decisionClass.operationalRisk,
+          outcomeObservability: decisionClass.outcomeObservability,
+          gradeObjectivity: decisionClass.gradeObjectivity,
+          naturalFeedbackLatencyDays: decisionClass.naturalFeedbackLatencyDays,
+          humanReviewMode: decisionClass.humanReviewMode,
+          currentAutonomyMode: decisionClass.currentAutonomyMode
+        }
+      });
+      decisionClassIds.set(decisionClass.key, savedDecisionClass.id);
+      for (const action of normalized.workflow.actions.filter((item) => decisionClass.actionKeys.includes(item.key))) {
+        const savedAction = await tx.compoundingDecisionAction.create({
+          data: {
+            decisionClassId: savedDecisionClass.id,
+            key: action.key,
+            label: action.label,
+            description: action.description,
+            reversible: action.reversible ?? "UNKNOWN",
+            requiresHumanApproval: action.requiresHumanApproval ?? false,
+            economicExposure: action.economicExposure,
+            regulatoryExposure: action.regulatoryExposure
+          }
+        });
+        actionIds.set(`${decisionClass.key}:${action.key}`, savedAction.id);
+      }
+    }
+    await tx.compoundingEnvironment.create({ data: { analysisId: created.id, ...normalized.environment } });
+    await tx.compoundingLearningArchitecture.create({ data: { analysisId: created.id, ...normalized.learningArchitecture } });
+    await tx.compoundingCompetitiveArchitecture.create({ data: { analysisId: created.id, ...normalized.competitiveArchitecture } });
+
     const caseSet = caseSetForExample(example);
+    const caseSetDecisionClassId = normalized.workflow.decisionClasses.length === 1
+      ? decisionClassIds.get(normalized.workflow.decisionClasses[0].key) ?? null
+      : null;
     await tx.compoundingExpertiseCaseSet.create({
       data: {
         id: caseSetId,
         analysisId: created.id,
+        workflowId: workflow.id,
+        decisionClassId: caseSetDecisionClassId,
         ...caseSet
       }
     });
     await tx.compoundingExpertiseCase.createMany({
-      data: example.cases.map((row) => ({
-        ...row,
-        analysisId: created.id,
-        caseSetId,
-        decisionAt: nullableDate(row.decisionAt instanceof Date ? row.decisionAt.toISOString() : row.decisionAt ?? null),
-        actionAt: nullableDate(row.actionAt instanceof Date ? row.actionAt.toISOString() : row.actionAt ?? null),
-        outcomeAt: nullableDate(row.outcomeAt instanceof Date ? row.outcomeAt.toISOString() : row.outcomeAt ?? null)
-      }))
+      data: example.cases.map((row) => {
+        const decisionClassKey = decisionClassKeyForCase(example, row);
+        const decisionClassId = decisionClassIds.get(decisionClassKey) ?? caseSetDecisionClassId;
+        const scopedActionId = (value: string | null | undefined) => {
+          const key = actionKeyFromDecision(value);
+          return actionIds.get(`${decisionClassKey}:${key}`) ?? null;
+        };
+        return {
+          ...row,
+          analysisId: created.id,
+          caseSetId,
+          decisionClassId,
+          agentDecisionActionId: scopedActionId(row.agentDecision),
+          humanDecisionActionId: scopedActionId(row.humanDecision),
+          actionTakenActionId: scopedActionId(row.actionTaken),
+          decisionAt: nullableDate(row.decisionAt instanceof Date ? row.decisionAt.toISOString() : row.decisionAt ?? null),
+          actionAt: nullableDate(row.actionAt instanceof Date ? row.actionAt.toISOString() : row.actionAt ?? null),
+          outcomeAt: nullableDate(row.outcomeAt instanceof Date ? row.outcomeAt.toISOString() : row.outcomeAt ?? null)
+        };
+      })
     });
+    for (const evidence of normalized.evidence) {
+      const entityId = evidence.entityType === "company_profile"
+        ? profile.id
+        : evidence.entityType === "workflow"
+          ? workflow.id
+          : evidence.entityType === "case_set"
+            ? caseSetId
+            : evidence.entityType === "environment"
+              ? created.id
+              : evidence.entityType === "decision_class" && evidence.entityKey
+                ? decisionClassIds.get(evidence.entityKey) ?? null
+                : null;
+      await tx.compoundingEvidence.create({
+        data: {
+          analysisId: created.id,
+          entityType: evidence.entityType,
+          entityId,
+          fieldKey: evidence.fieldKey,
+          evidenceType: evidence.evidenceType,
+          epistemicStatus: evidence.epistemicStatus,
+          valueSnapshot: evidence.valueSnapshot,
+          sourceLabel: evidence.sourceLabel,
+          sourceUrl: evidence.sourceUrl,
+          sourceRecordId: evidence.sourceRecordId,
+          sourceCaseSetId: evidence.sourceCaseSetKey === "canonical_case_set" ? caseSetId : null,
+          confidence: evidence.confidence,
+          observedAt: nullableDate(evidence.observedAt instanceof Date ? evidence.observedAt.toISOString() : evidence.observedAt ?? null),
+          derivationMethod: evidence.derivationMethod,
+          analystNotes: evidence.analystNotes
+        }
+      });
+    }
     return created;
   });
 

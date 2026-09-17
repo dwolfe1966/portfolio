@@ -11,10 +11,15 @@ import {
   caseSetForExample,
   casesForCaseSet,
   defaultAssessments,
+  actionKeyFromDecision,
+  decisionClassKeyForCase,
+  deriveDecisionSystemMetrics,
   detectCrossover,
   exampleById,
   explainSimulatorComparison,
+  normalizedModelForExample,
   normalizeAssessment,
+  summarizeEvidenceCoverage,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
   simulateComparison,
@@ -353,6 +358,56 @@ test("all canonical tests expose the same theory-test metadata", () => {
     assert.ok(example.labFailureCondition);
     assert.ok(example.syntheticDatasetLabel.includes("SYNTHETIC ILLUSTRATIVE DATA"));
   }
+});
+
+test("V0.3 canonical fixtures expose normalized company and decision-system model", () => {
+  const casap = exampleById("casap");
+  const normalized = normalizedModelForExample(casap);
+
+  assert.equal(normalized.profile.name, "Casap archetype review");
+  assert.ok(normalized.workflow.stages.length >= 6);
+  assert.ok(normalized.workflow.decisionClasses.length >= 4);
+  assert.ok(normalized.workflow.decisionClasses.some((item) => item.key === "fraud_escalation"));
+  assert.ok(normalized.workflow.actions.some((item) => item.key === "REQUEST_MORE_EVIDENCE"));
+  assert.equal(normalized.learningArchitecture.capturesAgentDecision, "YES");
+  assert.ok(normalized.evidence.some((item) => item.epistemicStatus === "ASSUMED" && item.sourceLabel.includes("not Casap data")));
+});
+
+test("V0.3 keeps decision class as a finer analytical unit than company", () => {
+  const casap = exampleById("casap");
+  const fraudCase = casap.cases.find((row) => row.caseType.toLowerCase().includes("fraud"));
+
+  assert.ok(fraudCase);
+  assert.equal(decisionClassKeyForCase(casap, fraudCase!), "fraud_escalation");
+  assert.equal(actionKeyFromDecision("request more evidence"), "REQUEST_MORE_EVIDENCE");
+});
+
+test("V0.3 decision-system metrics derive only observable CaseSet facts", () => {
+  const metrics = deriveDecisionSystemMetrics(scorebookRows);
+
+  assert.equal(metrics.totalCases, 3);
+  assert.equal(metrics.customerSegmentCount, 2);
+  assert.equal(metrics.caseTypeCount, 2);
+  assert.equal(metrics.medianDecisionToOutcomeLatencyDays, 4.5);
+  assert.ok(metrics.actionDistribution.some((item) => item.label === "approve" && item.count === 2));
+  assert.equal(metrics.observedDecisionVolume.count, 3);
+});
+
+test("V0.3 evidence coverage preserves epistemic distinctions", () => {
+  const summary = summarizeEvidenceCoverage([
+    { epistemicStatus: "DERIVED" },
+    { epistemicStatus: "OBSERVED" },
+    { epistemicStatus: "SOURCED" },
+    { epistemicStatus: "ASSUMED" },
+    { epistemicStatus: "INFERRED" },
+    { epistemicStatus: "UNKNOWN" }
+  ]);
+
+  assert.equal(summary.derived, 2);
+  assert.equal(summary.sourced, 1);
+  assert.equal(summary.assumed, 1);
+  assert.equal(summary.inferred, 1);
+  assert.equal(summary.unknown, 1);
 });
 
 test("canonical fixtures resolve to explicit synthetic CaseSets", () => {

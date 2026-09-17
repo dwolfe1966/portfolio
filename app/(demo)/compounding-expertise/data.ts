@@ -18,8 +18,21 @@ export async function loadCompoundingAnalysis(accountUserId: string | null) {
       keyDebates: { orderBy: { createdAt: "asc" } },
       dimensionAssessments: { orderBy: [{ framework: "asc" }, { dimension: "asc" }] },
       simulationScenarios: { orderBy: { name: "asc" } },
-      caseSets: { orderBy: [{ createdAt: "asc" }] },
-      scorebookCases: { orderBy: [{ decisionAt: "desc" }, { createdAt: "desc" }] }
+      caseSets: { orderBy: [{ createdAt: "asc" }], include: { workflow: true, decisionClass: true } },
+      scorebookCases: { orderBy: [{ decisionAt: "desc" }, { createdAt: "desc" }], include: { decisionClass: true, agentDecisionAction: true, humanDecisionAction: true, actionTakenAction: true } },
+      companyProfile: true,
+      workflows: {
+        orderBy: { position: "asc" },
+        include: {
+          stages: { orderBy: { position: "asc" } },
+          decisionClasses: { orderBy: { name: "asc" }, include: { actions: { orderBy: { key: "asc" } }, workflowStage: true } }
+        }
+      },
+      environment: true,
+      learningArchitecture: true,
+      competitiveArchitecture: true,
+      evidenceRecords: { orderBy: [{ entityType: "asc" }, { fieldKey: "asc" }] },
+      analystOverrides: { orderBy: [{ entityType: "asc" }, { fieldKey: "asc" }] }
     },
     orderBy: { updatedAt: "desc" }
   });

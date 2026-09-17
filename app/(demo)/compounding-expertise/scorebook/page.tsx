@@ -21,6 +21,10 @@ function caseInput(row: NonNullable<Awaited<ReturnType<typeof loadCompoundingAna
   return {
     id: row.id,
     caseSetId: row.caseSetId,
+    decisionClassId: row.decisionClassId,
+    agentDecisionActionId: row.agentDecisionActionId,
+    humanDecisionActionId: row.humanDecisionActionId,
+    actionTakenActionId: row.actionTakenActionId,
     externalCaseId: row.externalCaseId,
     customerSegment: row.customerSegment,
     caseType: row.caseType,

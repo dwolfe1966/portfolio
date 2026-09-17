@@ -11,6 +11,17 @@ export type CanonicalTestType =
   | "ALTERNATIVE_POWER_TEST"
   | "NEGATIVE_CONTROL";
 export type CaseSetSourceType = "CANONICAL_SYNTHETIC" | "DAVIDWOLFE_APP" | "CSV" | "GOOGLE_SHEETS" | "LIVE" | "EXTERNAL" | "MANUAL";
+export type CompoundingEvidenceType =
+  | "CASESET_DERIVED"
+  | "UPSTREAM_APP"
+  | "PUBLIC_SOURCE"
+  | "COMPANY_DOCUMENT"
+  | "ANALYST_INPUT"
+  | "MODEL_INFERENCE"
+  | "SYNTHETIC_ASSUMPTION"
+  | "UNKNOWN";
+export type CompoundingEpistemicStatus = "OBSERVED" | "DERIVED" | "SOURCED" | "ASSUMED" | "INFERRED" | "UNKNOWN";
+export type CompoundingFieldConfidence = "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN";
 
 export type CompanyThesisInput = {
   companyName: string;
@@ -120,6 +131,10 @@ export type ValidationResult = {
 export type ScorebookCaseInput = {
   id?: string;
   caseSetId?: string | null;
+  decisionClassId?: string | null;
+  agentDecisionActionId?: string | null;
+  humanDecisionActionId?: string | null;
+  actionTakenActionId?: string | null;
   externalCaseId: string;
   customerSegment: string;
   caseType: string;
@@ -148,6 +163,8 @@ export type ScorebookCaseInput = {
 export type CaseSetInput = {
   id?: string;
   analysisId?: string | null;
+  workflowId?: string | null;
+  decisionClassId?: string | null;
   name: string;
   description?: string | null;
   sourceType: CaseSetSourceType;
@@ -170,6 +187,203 @@ export type CaseSetInput = {
   caseCount: number;
   parentCaseSetId?: string | null;
   derivationDescription?: string | null;
+};
+
+export type NormalizedCompanyProfileInput = {
+  name: string;
+  website?: string | null;
+  industry?: string | null;
+  productCategory?: string | null;
+  productDescription?: string | null;
+  companyStage?: string | null;
+  geography?: string | null;
+  customerType?: string | null;
+  customerSegments?: string | null;
+  revenueModel?: string | null;
+  pricingUnit?: string | null;
+  businessModelNotes?: string | null;
+  grossMarginProfile?: string | null;
+  economicValueUnit?: string | null;
+  economicsNotes?: string | null;
+  marketContext?: string | null;
+  analystThesis?: string | null;
+};
+
+export type NormalizedWorkflowStageInput = {
+  key: string;
+  name: string;
+  description?: string | null;
+  position: number;
+  stageType: string;
+};
+
+export type NormalizedDecisionActionInput = {
+  key: string;
+  label: string;
+  description?: string | null;
+  reversible?: string;
+  requiresHumanApproval?: boolean;
+  economicExposure?: string | null;
+  regulatoryExposure?: string | null;
+};
+
+export type NormalizedDecisionClassInput = {
+  key: string;
+  stageKey?: string | null;
+  name: string;
+  description?: string | null;
+  decisionMakerType: string;
+  decisionFrequency?: string | null;
+  estimatedCasesPerPeriod?: number | null;
+  frequencyPeriod?: string | null;
+  economicStakes: string;
+  reversibility: string;
+  regulatoryRisk: string;
+  operationalRisk: string;
+  outcomeObservability: string;
+  gradeObjectivity: string;
+  naturalFeedbackLatencyDays?: number | null;
+  humanReviewMode: string;
+  currentAutonomyMode: string;
+  actionKeys: string[];
+};
+
+export type NormalizedWorkflowInput = {
+  key: string;
+  name: string;
+  description?: string | null;
+  position: number;
+  stages: NormalizedWorkflowStageInput[];
+  decisionClasses: NormalizedDecisionClassInput[];
+  actions: NormalizedDecisionActionInput[];
+};
+
+export type NormalizedEnvironmentInput = {
+  naturalCaseFrequency?: string | null;
+  estimatedCasesPerPeriod?: number | null;
+  frequencyPeriod?: string | null;
+  typicalEconomicCostOfError?: string | null;
+  typicalValueOfCorrectDecision?: string | null;
+  outcomeObservability?: string | null;
+  outcomeObjectivity?: string | null;
+  naturalFeedbackLatencyDays?: number | null;
+  customerHeterogeneity?: string | null;
+  caseHeterogeneity?: string | null;
+  environmentalNonstationarity?: string | null;
+  regulatoryChangeRate?: string | null;
+  foundationModelImprovementRate?: string | null;
+  notes?: string | null;
+};
+
+export type NormalizedLearningArchitectureInput = {
+  capturesContext: string;
+  capturesAgentDecision: string;
+  capturesHumanDecision: string;
+  capturesActionTaken: string;
+  capturesOutcome: string;
+  capturesExplicitGrade: string;
+  outcomeCompletionMechanism?: string | null;
+  gradeGenerationMethod?: string | null;
+  feedbackLatencyMechanism?: string | null;
+  pooledAcrossCustomers: string;
+  customerSpecificAdaptation: string;
+  usesHumanOverridesForLearning: string;
+  usesOutcomeGradesForLearning: string;
+  experimentationMode?: string | null;
+  modelUpdateCadence?: string | null;
+  policyUpdateCadence?: string | null;
+  deploymentMode?: string | null;
+  deploymentCadence?: string | null;
+  humanApprovalForPolicyChanges: string;
+  canRetainCases: string;
+  canRetainDerivedFeatures: string;
+  canTrainAcrossCustomers: string;
+  canUseForEvaluation: string;
+  contractualRestrictions?: string | null;
+  notes?: string | null;
+};
+
+export type NormalizedCompetitiveArchitectureInput = {
+  rawCasesExclusive: string;
+  outcomesExclusive: string;
+  humanCorrectionsExclusive: string;
+  crossCustomerPoolExclusive: string;
+  customerCanExportData: string;
+  competitorCanAccessEquivalentData: string;
+  systemOfRecord: string;
+  systemOfDecision: string;
+  systemOfAction: string;
+  systemOfOutcomeCapture: string;
+  integrationDepth?: string | null;
+  replacementComplexity?: string | null;
+  publicDataSubstitutionRisk?: string | null;
+  syntheticDataSubstitutionRisk?: string | null;
+  foundationModelSubstitutionRisk?: string | null;
+  competitorRelearningDifficulty?: string | null;
+  deterministicInfrastructureStrength?: string | null;
+  distributionAdvantage?: string | null;
+  regulatoryBarrierStrength?: string | null;
+  contractualBarrierStrength?: string | null;
+  notes?: string | null;
+};
+
+export type NormalizedEvidenceInput = {
+  entityType: string;
+  entityKey?: string | null;
+  fieldKey: string;
+  evidenceType: CompoundingEvidenceType;
+  epistemicStatus: CompoundingEpistemicStatus;
+  valueSnapshot?: string | null;
+  sourceLabel: string;
+  sourceUrl?: string | null;
+  sourceRecordId?: string | null;
+  sourceCaseSetKey?: string | null;
+  confidence: CompoundingFieldConfidence;
+  observedAt?: Date | string | null;
+  derivationMethod?: string | null;
+  analystNotes?: string | null;
+};
+
+export type NormalizedExampleModel = {
+  profile: NormalizedCompanyProfileInput;
+  workflow: NormalizedWorkflowInput;
+  environment: NormalizedEnvironmentInput;
+  learningArchitecture: NormalizedLearningArchitectureInput;
+  competitiveArchitecture: NormalizedCompetitiveArchitectureInput;
+  evidence: NormalizedEvidenceInput[];
+};
+
+export type EvidenceCoverageSummary = {
+  derived: number;
+  sourced: number;
+  assumed: number;
+  inferred: number;
+  unknown: number;
+};
+
+export type DecisionSystemDerivedMetrics = {
+  totalCases: number;
+  resolvedCases: number;
+  gradedCases: number;
+  gradeCoverage: number | null;
+  outcomeCompletionRate: number | null;
+  medianDecisionToActionLatencyDays: number | null;
+  medianDecisionToOutcomeLatencyDays: number | null;
+  humanOverrideRate: number | null;
+  actionDistribution: { label: string; count: number; share: number | null }[];
+  gradeDistribution: { label: CompoundingCaseGrade; count: number; share: number | null }[];
+  edgeCaseShare: number | null;
+  totalOutcomeValue: number | null;
+  averageOutcomeValue: number | null;
+  customerSegmentCount: number;
+  caseTypeCount: number;
+  observedDecisionVolume: {
+    count: number;
+    windowStart: Date | null;
+    windowEnd: Date | null;
+    days: number | null;
+    casesPerMonth: number | null;
+  };
 };
 
 export type ScorebookMetrics = {
@@ -1012,6 +1226,254 @@ export function caseSetForExample(example: CompoundingExample): CaseSetInput {
   };
 }
 
+function stage(key: string, name: string, position: number, stageType: string, description?: string): NormalizedWorkflowStageInput {
+  return { key, name, position, stageType, description };
+}
+
+function action(key: string, label: string, description: string, reversible = "UNKNOWN", requiresHumanApproval = false): NormalizedDecisionActionInput {
+  return { key, label, description, reversible, requiresHumanApproval };
+}
+
+function decisionClass(input: NormalizedDecisionClassInput): NormalizedDecisionClassInput {
+  return input;
+}
+
+export function actionKeyFromDecision(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "") || "UNKNOWN";
+}
+
+function baseWorkflow(example: CompoundingExample, stages: NormalizedWorkflowStageInput[], decisionClasses: NormalizedDecisionClassInput[], actions: NormalizedDecisionActionInput[]): NormalizedWorkflowInput {
+  return {
+    key: "primary_workflow",
+    name: example.analysis.workflow.split("->")[0]?.trim() || `${example.label} workflow`,
+    description: example.analysis.workflow,
+    position: 0,
+    stages,
+    decisionClasses,
+    actions
+  };
+}
+
+export function normalizedModelForExample(example: CompoundingExample): NormalizedExampleModel {
+  const profile: NormalizedCompanyProfileInput = {
+    name: example.analysis.companyName,
+    website: example.analysis.companyUrl,
+    industry: example.productCategory,
+    productCategory: example.productCategory,
+    productDescription: example.analysis.productDescription,
+    companyStage: example.analysis.companyStage,
+    geography: "Unknown / not assessed",
+    customerType: example.analysis.targetCustomer,
+    customerSegments: [...new Set(example.cases.map((row) => row.customerSegment))].join(", "),
+    revenueModel: example.id === "creative-agent" ? "UNKNOWN" : "UNKNOWN",
+    pricingUnit: "Unknown / not assessed",
+    businessModelNotes: example.analysis.businessModel,
+    grossMarginProfile: "Unknown / not assessed",
+    economicValueUnit: example.economicCostOfError,
+    economicsNotes: `Canonical test metadata only: ${example.economicCostOfError}.`,
+    marketContext: example.role,
+    analystThesis: example.analysis.thesis
+  };
+
+  const commonStages = [
+    stage("intake", "Intake", 0, "INTAKE", "Case or request enters the workflow."),
+    stage("evidence", "Evidence", 1, "EVIDENCE_COLLECTION", "Relevant context and evidence are assembled."),
+    stage("decision", "Decision", 2, "DECISION", "Agent, rule, or human recommends a decision."),
+    stage("human_review", "Human review", 3, "HUMAN_REVIEW", "Human reviewer approves, overrides, or escalates."),
+    stage("execution", "Action", 4, "EXECUTION", "The actual action is taken."),
+    stage("outcome", "Outcome", 5, "OUTCOME", "Reality later reveals an outcome."),
+    stage("grade", "Grade", 6, "GRADING", "The decision/action is graded where possible.")
+  ];
+
+  const commonLearning: NormalizedLearningArchitectureInput = {
+    capturesContext: "YES",
+    capturesAgentDecision: "YES",
+    capturesHumanDecision: example.analysis.capturesOverrides ?? "UNKNOWN",
+    capturesActionTaken: example.analysis.controlsAction === "Recommends only" ? "PARTIAL" : example.analysis.controlsAction ?? "UNKNOWN",
+    capturesOutcome: example.analysis.observesOutcome ?? "UNKNOWN",
+    capturesExplicitGrade: example.analysis.capturesGrades ?? "UNKNOWN",
+    outcomeCompletionMechanism: "Derived from scorebook rows when outcomes exist; otherwise analyst assumption.",
+    gradeGenerationMethod: "Synthetic canonical fixtures use illustrative grades; observed grades require future source evidence.",
+    feedbackLatencyMechanism: "Derived from decision/outcome timestamps when present.",
+    pooledAcrossCustomers: example.analysis.learnsAcrossCustomers ?? "UNKNOWN",
+    customerSpecificAdaptation: "UNKNOWN",
+    usesHumanOverridesForLearning: example.analysis.capturesOverrides ?? "UNKNOWN",
+    usesOutcomeGradesForLearning: example.analysis.capturesGrades ?? "UNKNOWN",
+    experimentationMode: example.analysis.runsControlledExperiments ?? "UNKNOWN",
+    modelUpdateCadence: example.analysis.updatesModelPolicyRegularly ?? "UNKNOWN",
+    policyUpdateCadence: example.analysis.updatesModelPolicyRegularly ?? "UNKNOWN",
+    deploymentMode: "Unknown / not assessed",
+    deploymentCadence: example.analysis.deploysImprovementsQuickly ?? "UNKNOWN",
+    humanApprovalForPolicyChanges: "UNKNOWN",
+    canRetainCases: "UNKNOWN",
+    canRetainDerivedFeatures: "UNKNOWN",
+    canTrainAcrossCustomers: example.analysis.contractualLearningRights ?? "UNKNOWN",
+    canUseForEvaluation: "UNKNOWN",
+    contractualRestrictions: example.analysis.contractualLearningRights,
+    notes: "Canonical test architecture metadata; not verified operating-company evidence."
+  };
+
+  const competitiveArchitecture: NormalizedCompetitiveArchitectureInput = {
+    rawCasesExclusive: example.analysis.dataExclusivity ?? "UNKNOWN",
+    outcomesExclusive: example.analysis.dataExclusivity ?? "UNKNOWN",
+    humanCorrectionsExclusive: example.analysis.dataExclusivity ?? "UNKNOWN",
+    crossCustomerPoolExclusive: example.analysis.dataExclusivity ?? "UNKNOWN",
+    customerCanExportData: "UNKNOWN",
+    competitorCanAccessEquivalentData: example.analysis.rebuildability ?? "UNKNOWN",
+    systemOfRecord: example.analysis.workflowEmbeddedness ?? "UNKNOWN",
+    systemOfDecision: example.analysis.ownsDecisionPoint ?? "UNKNOWN",
+    systemOfAction: example.analysis.controlsAction ?? "UNKNOWN",
+    systemOfOutcomeCapture: example.analysis.observesOutcome ?? "UNKNOWN",
+    integrationDepth: example.analysis.workflowEmbeddedness,
+    replacementComplexity: example.analysis.switchingCostsAssumption,
+    publicDataSubstitutionRisk: example.analysis.rebuildability,
+    syntheticDataSubstitutionRisk: example.id === "aaru" || example.id === "creative-agent" ? "High" : "Unknown",
+    foundationModelSubstitutionRisk: example.analysis.foundationModelDependence,
+    competitorRelearningDifficulty: example.historicalCaseDependence,
+    deterministicInfrastructureStrength: example.analysis.deterministicInfrastructure,
+    distributionAdvantage: example.analysis.distributionAdvantage,
+    regulatoryBarrierStrength: example.analysis.regulatoryContractualBarriers,
+    contractualBarrierStrength: example.analysis.regulatoryContractualBarriers,
+    notes: "Competitive architecture assumptions support Helmer interpretation but do not prove Power."
+  };
+
+  const environment: NormalizedEnvironmentInput = {
+    naturalCaseFrequency: example.caseFrequency,
+    estimatedCasesPerPeriod: null,
+    frequencyPeriod: "month",
+    typicalEconomicCostOfError: example.economicCostOfError,
+    typicalValueOfCorrectDecision: example.economicCostOfError,
+    outcomeObservability: example.analysis.observesOutcome,
+    outcomeObjectivity: example.gradeObjectivity,
+    naturalFeedbackLatencyDays: null,
+    customerHeterogeneity: example.analysis.customerCaseHeterogeneity,
+    caseHeterogeneity: example.analysis.customerCaseHeterogeneity,
+    environmentalNonstationarity: example.analysis.environmentalChangeRate,
+    regulatoryChangeRate: "Unknown / not assessed",
+    foundationModelImprovementRate: example.analysis.foundationModelImprovementRate,
+    notes: "Environment values are canonical-test assumptions unless separately sourced."
+  };
+
+  const genericActions = [
+    action("APPROVE_CLAIM", "Approve claim", "Approve or accept the requested action.", "MODERATE", true),
+    action("DENY_CLAIM", "Deny claim", "Deny or reject the requested action.", "MODERATE", true),
+    action("REQUEST_MORE_EVIDENCE", "Request more evidence", "Ask for more evidence before resolution.", "EASY", false),
+    action("ESCALATE_FOR_REVIEW", "Escalate for review", "Route to specialist or fraud review.", "EASY", true),
+    action("RECOMMEND_THEME", "Recommend theme", "Recommend a synthesized research theme.", "EASY", false),
+    action("RECOMMEND_SEGMENT", "Recommend segment", "Recommend a segment or audience interpretation.", "EASY", false),
+    action("RECOMMEND_FOLLOW_UP", "Recommend follow-up", "Ask for more research or evidence.", "EASY", false),
+    action("DEFER_CONCLUSION", "Defer conclusion", "Defer until evidence improves.", "EASY", false),
+    action("SUPPORT_THESIS", "Support thesis", "Support the proposed analytical thesis.", "EASY", false),
+    action("CHALLENGE_THESIS", "Challenge thesis", "Challenge the proposed analytical thesis.", "EASY", false),
+    action("RANK_ALTERNATIVE", "Rank alternative", "Rank candidate alternatives.", "EASY", false),
+    action("ACCEPT", "Accept", "Accept a structured operational action.", "MODERATE", false),
+    action("REJECT", "Reject", "Reject a structured operational action.", "MODERATE", false),
+    action("ROUTE_EXCEPTION", "Route exception", "Route exception for operational handling.", "EASY", true),
+    action("REQUEST_SOURCE_DOCUMENT", "Request source document", "Request source documentation.", "EASY", false),
+    action("SHIP_VARIANT", "Ship variant", "Ship creative or message variant.", "MODERATE", false),
+    action("REWRITE", "Rewrite", "Rewrite creative or message.", "EASY", false),
+    action("TEST_AGAINST_CONTROL", "Test against control", "Run a comparative creative test.", "EASY", false)
+  ];
+
+  const workflow = baseWorkflow(example, commonStages, [
+    decisionClass({
+      key: "primary_decision",
+      stageKey: "decision",
+      name: example.principalDecision.replace(/\.$/, ""),
+      description: example.canonicalQuestion,
+      decisionMakerType: example.analysis.ownsDecisionPoint === "Yes" ? "HYBRID" : "UNKNOWN",
+      decisionFrequency: example.caseFrequency,
+      estimatedCasesPerPeriod: null,
+      frequencyPeriod: "month",
+      economicStakes: example.economicCostOfError.toUpperCase().includes("HIGH") ? "HIGH" : example.economicCostOfError.toUpperCase().includes("LOW") ? "LOW" : "MEDIUM",
+      reversibility: example.id === "creative-agent" ? "MODERATE" : "UNKNOWN",
+      regulatoryRisk: example.id === "maybern" ? "HIGH" : "UNKNOWN",
+      operationalRisk: example.economicCostOfError.toUpperCase().includes("HIGH") ? "HIGH" : "UNKNOWN",
+      outcomeObservability: example.analysis.observesOutcome === "Yes" ? "HIGH" : example.analysis.observesOutcome === "No" ? "LOW" : "PARTIAL",
+      gradeObjectivity: example.gradeObjectivity.toUpperCase().includes("OBJECTIVE") || example.gradeObjectivity.toUpperCase().includes("HIGH") ? "MOSTLY_OBJECTIVE" : example.gradeObjectivity.toUpperCase().includes("LOW") || example.gradeObjectivity.toUpperCase().includes("SUBJECTIVE") ? "SUBJECTIVE" : "MIXED",
+      naturalFeedbackLatencyDays: null,
+      humanReviewMode: example.analysis.controlsAction === "Recommends only" ? "REQUIRED" : "EXCEPTION",
+      currentAutonomyMode: example.analysis.controlsAction === "Recommends only" ? "RECOMMEND_ONLY" : "HUMAN_APPROVAL",
+      actionKeys: genericActions.map((item) => item.key)
+    })
+  ], genericActions);
+
+  if (example.id === "casap") {
+    workflow.name = "Dispute resolution";
+    workflow.decisionClasses = [
+      decisionClass({ ...workflow.decisionClasses[0], key: "classify_dispute", name: "Classify dispute", description: "Classify incoming disputes by policy, evidence, and fraud signals.", economicStakes: "HIGH", outcomeObservability: "HIGH", gradeObjectivity: "MOSTLY_OBJECTIVE", humanReviewMode: "SAMPLE", currentAutonomyMode: "BOUNDED_AUTONOMY", actionKeys: ["REQUEST_MORE_EVIDENCE", "ESCALATE_FOR_REVIEW"] }),
+      decisionClass({ ...workflow.decisionClasses[0], key: "request_evidence", name: "Request evidence", description: "Decide whether more evidence is required before resolution.", economicStakes: "MEDIUM", outcomeObservability: "HIGH", gradeObjectivity: "MIXED", humanReviewMode: "SAMPLE", currentAutonomyMode: "BOUNDED_AUTONOMY", actionKeys: ["REQUEST_MORE_EVIDENCE", "APPROVE_CLAIM", "DENY_CLAIM"] }),
+      decisionClass({ ...workflow.decisionClasses[0], key: "recommend_resolution", name: "Recommend resolution", description: "Recommend approve, deny, refund, or related dispute outcome.", economicStakes: "HIGH", outcomeObservability: "HIGH", gradeObjectivity: "MOSTLY_OBJECTIVE", humanReviewMode: "EXCEPTION", currentAutonomyMode: "HUMAN_APPROVAL", actionKeys: ["APPROVE_CLAIM", "DENY_CLAIM", "REQUEST_MORE_EVIDENCE"] }),
+      decisionClass({ ...workflow.decisionClasses[0], key: "fraud_escalation", name: "Escalate suspected fraud", description: "Escalate suspicious or high-risk cases for fraud review.", economicStakes: "VERY_HIGH", outcomeObservability: "PARTIAL", gradeObjectivity: "MOSTLY_OBJECTIVE", humanReviewMode: "REQUIRED", currentAutonomyMode: "RECOMMEND_ONLY", actionKeys: ["ESCALATE_FOR_REVIEW", "REQUEST_MORE_EVIDENCE"] })
+    ];
+  }
+
+  return {
+    profile,
+    workflow,
+    environment,
+    learningArchitecture: commonLearning,
+    competitiveArchitecture,
+    evidence: [
+      {
+        entityType: "company_profile",
+        entityKey: "profile",
+        fieldKey: "name",
+        evidenceType: example.id === "creative-agent" ? "SYNTHETIC_ASSUMPTION" : "PUBLIC_SOURCE",
+        epistemicStatus: example.id === "creative-agent" ? "ASSUMED" : "UNKNOWN",
+        valueSnapshot: example.companyName,
+        sourceLabel: example.id === "creative-agent" ? "Synthetic archetype" : "Public-company archetype; source verification pending",
+        confidence: example.id === "creative-agent" ? "HIGH" : "LOW"
+      },
+      {
+        entityType: "case_set",
+        entityKey: "canonical_case_set",
+        fieldKey: "provenanceLabel",
+        evidenceType: "SYNTHETIC_ASSUMPTION",
+        epistemicStatus: "ASSUMED",
+        valueSnapshot: example.syntheticDatasetLabel,
+        sourceLabel: example.syntheticDatasetLabel,
+        confidence: "HIGH"
+      },
+      {
+        entityType: "environment",
+        entityKey: "environment",
+        fieldKey: "naturalCaseFrequency",
+        evidenceType: "SYNTHETIC_ASSUMPTION",
+        epistemicStatus: "ASSUMED",
+        valueSnapshot: example.caseFrequency,
+        sourceLabel: "Canonical test metadata; not measured company data",
+        confidence: "MEDIUM"
+      },
+      {
+        entityType: "decision_class",
+        entityKey: "primary_decision",
+        fieldKey: "gradeObjectivity",
+        evidenceType: "SYNTHETIC_ASSUMPTION",
+        epistemicStatus: "ASSUMED",
+        valueSnapshot: example.gradeObjectivity,
+        sourceLabel: "Canonical test metadata; not measured company data",
+        confidence: "MEDIUM"
+      }
+    ]
+  };
+}
+
+export function decisionClassKeyForCase(example: CompoundingExample, row: ScorebookCaseInput) {
+  if (example.id === "casap") {
+    const type = row.caseType.toLowerCase();
+    if (type.includes("evidence")) return "request_evidence";
+    if (type.includes("fraud")) return "fraud_escalation";
+    if (type.includes("appeal") || type.includes("exception")) return "classify_dispute";
+    return "recommend_resolution";
+  }
+  return "primary_decision";
+}
+
 export function sourceRouteIsSafe(route: string | null | undefined) {
   if (!route) return false;
   if (!route.startsWith("/") || route.startsWith("//")) return false;
@@ -1134,6 +1596,21 @@ function feedbackLatencyDays(row: ScorebookCaseInput) {
   return (outcomeAt.getTime() - decisionAt.getTime()) / (24 * 60 * 60 * 1000);
 }
 
+function actionLatencyDays(row: ScorebookCaseInput) {
+  const decisionAt = asDate(row.decisionAt);
+  const actionAt = asDate(row.actionAt);
+  if (!decisionAt || !actionAt || actionAt < decisionAt) return null;
+  return (actionAt.getTime() - decisionAt.getTime()) / (24 * 60 * 60 * 1000);
+}
+
+function distribution<T extends string>(values: T[], total: number) {
+  const counts = new Map<T, number>();
+  values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
+  return [...counts.entries()]
+    .map(([label, count]) => ({ label, count, share: ratio(count, total) }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
 export function scorebookRowsAreSynthetic(rows: ScorebookCaseInput[]) {
   return rows.length > 0 && rows.every((row) => row.isSynthetic);
 }
@@ -1194,6 +1671,59 @@ export function scorebookDerivedSimulatorValues(rows: ScorebookCaseInput[]): Sco
     feedbackDelayDays: median(latencyValues),
     feedbackDelaySampleSize: latencyValues.length
   };
+}
+
+export function deriveDecisionSystemMetrics(rows: ScorebookCaseInput[]): DecisionSystemDerivedMetrics {
+  const totalCases = rows.length;
+  const scorebook = calculateScorebookMetrics(rows);
+  const actionLatencyValues = rows.map(actionLatencyDays).filter((value): value is number => value !== null);
+  const outcomeLatencyValues = rows.map(feedbackLatencyDays).filter((value): value is number => value !== null);
+  const actionValues = rows
+    .map((row) => row.actionTaken ?? row.humanDecision ?? row.agentDecision)
+    .filter((value): value is string => Boolean(value));
+  const decisionDates = rows.map((row) => asDate(row.decisionAt)).filter((value): value is Date => value !== null);
+  const windowStart = decisionDates.length ? new Date(Math.min(...decisionDates.map((date) => date.getTime()))) : null;
+  const windowEnd = decisionDates.length ? new Date(Math.max(...decisionDates.map((date) => date.getTime()))) : null;
+  const windowDays = windowStart && windowEnd
+    ? Math.max(1, (windowEnd.getTime() - windowStart.getTime()) / (24 * 60 * 60 * 1000))
+    : null;
+
+  return {
+    totalCases,
+    resolvedCases: scorebook.resolvedCases,
+    gradedCases: scorebook.gradedCases,
+    gradeCoverage: scorebook.gradeCoverage,
+    outcomeCompletionRate: scorebook.outcomeCompletionRate,
+    medianDecisionToActionLatencyDays: median(actionLatencyValues),
+    medianDecisionToOutcomeLatencyDays: median(outcomeLatencyValues),
+    humanOverrideRate: scorebook.humanOverrideRate,
+    actionDistribution: distribution(actionValues, totalCases),
+    gradeDistribution: distribution(rows.map((row) => row.grade), totalCases),
+    edgeCaseShare: scorebook.edgeCaseShare,
+    totalOutcomeValue: scorebook.totalOutcomeValue,
+    averageOutcomeValue: scorebook.averageOutcomeValue,
+    customerSegmentCount: new Set(rows.map((row) => row.customerSegment).filter(Boolean)).size,
+    caseTypeCount: new Set(rows.map((row) => row.caseType).filter(Boolean)).size,
+    observedDecisionVolume: {
+      count: decisionDates.length,
+      windowStart,
+      windowEnd,
+      days: windowDays,
+      casesPerMonth: windowDays === null ? null : round(decisionDates.length / windowDays * 30, 2)
+    }
+  };
+}
+
+export function summarizeEvidenceCoverage(records: Array<{ epistemicStatus: string }>): EvidenceCoverageSummary {
+  return records.reduce<EvidenceCoverageSummary>((summary, record) => {
+    const status = record.epistemicStatus.toUpperCase();
+    if (status === "DERIVED" || status === "OBSERVED") summary.derived += 1;
+    else if (status === "SOURCED") summary.sourced += 1;
+    else if (status === "ASSUMED") summary.assumed += 1;
+    else if (status === "INFERRED") summary.inferred += 1;
+    else summary.unknown += 1;
+    return summary;
+  }, { derived: 0, sourced: 0, assumed: 0, inferred: 0, unknown: 0 });
 }
 
 export function simulateScenario(input: SimulationScenarioInput, months = 36): SimulationSeries {

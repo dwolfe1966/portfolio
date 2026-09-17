@@ -489,3 +489,166 @@ Cases preserve:
 - source record route
 
 This supports future pivots from CE analysis back to the operational record that generated a case. The implementation remains deliberately lightweight; no production source-system adapters are built in this pass.
+
+## V0.3 Normalized Company + Decision System Model
+
+V0.3 changes the epistemic architecture from a questionnaire-first model to a normalized company intelligence profile:
+
+```text
+RAW EVIDENCE
+-> STRUCTURED COMPANY / DECISION MODEL
+-> DERIVED CHARACTERISTICS
+-> ANALYTICAL ASSESSMENTS
+-> COMPOUNDING EXPERTISE / HELMER POWER HYPOTHESES
+```
+
+The central analytical unit is no longer only the company. Many Compounding Expertise questions belong at the Decision Class level. A company can have strong evidence for one decision class and weak evidence for another.
+
+The normalized hierarchy is:
+
+```text
+Company
+-> Workflow
+-> Workflow Stage
+-> Decision Class
+-> Action Space
+-> CaseSet
+-> Case
+-> Decision
+-> Human Intervention
+-> Action Taken
+-> Outcome
+-> Grade
+```
+
+### Additive Data Model
+
+V0.3 adds normalized tables while preserving all existing V0.1/V0.2 fields and rows:
+
+- `CompoundingCompanyProfile`
+- `CompoundingWorkflow`
+- `CompoundingWorkflowStage`
+- `CompoundingDecisionClass`
+- `CompoundingDecisionAction`
+- `CompoundingEnvironment`
+- `CompoundingLearningArchitecture`
+- `CompoundingCompetitiveArchitecture`
+- `CompoundingEvidence`
+- `CompoundingAnalystOverride`
+
+It also adds nullable links:
+
+- CaseSet -> Workflow
+- CaseSet -> DecisionClass
+- Case -> DecisionClass
+- Case -> agent/human/action DecisionAction records
+
+Legacy string fields such as `agentDecision`, `humanDecision`, and `actionTaken` remain because existing data must remain displayable and editable.
+
+### Decision Class
+
+Decision Class is the primary normalized object for evaluating whether experience compounds. It captures:
+
+- decision maker type
+- decision frequency
+- estimated cases per period
+- stakes and risks
+- grade objectivity
+- outcome observability
+- feedback latency
+- human review mode
+- current autonomy mode
+- action space
+
+These are structured descriptive values. They are not empirical truth merely because they are stored in enums/strings.
+
+### CaseSet-Derived Characteristics
+
+V0.3 derives only values genuinely supported by case rows:
+
+- total cases
+- resolved cases
+- graded cases
+- grade coverage
+- outcome completion rate
+- decision -> action latency
+- decision -> outcome latency
+- human override rate
+- action distribution
+- grade distribution
+- edge-case share
+- economic outcome summary where available
+- customer segment count
+- case type count
+- observed decision volume inside the CaseSet time window
+
+The derivation engine does not infer:
+
+- cross-customer transferability
+- marginal information gain
+- knowledge compressibility
+- causal quality
+- customer heterogeneity
+- learning efficiency
+
+Those remain analytical constructs for later versions.
+
+### Evidence And Overrides
+
+`CompoundingEvidence` records support structured attributes with:
+
+- entity type / entity id / field key
+- evidence type
+- epistemic status
+- value snapshot
+- source label / URL / record id / CaseSet id
+- confidence
+- derivation method
+- analyst notes
+
+Evidence records do not become truth merely because they exist.
+
+`CompoundingAnalystOverride` preserves analyst corrections without destroying provenance. The intended UX is:
+
+```text
+DERIVED: 14.2 days
+ANALYST SCENARIO OVERRIDE: 30 days
+```
+
+The derived value and analyst scenario remain separately visible.
+
+### System & Environment UX
+
+The default System & Environment page is now a readable company intelligence profile rather than a long questionnaire. It shows:
+
+- evidence coverage strip
+- company profile
+- decision system table
+- workflow map
+- Compounding Opportunity
+- Learning Architecture
+- Competitive Architecture
+
+The legacy edit form remains available behind progressive disclosure for backward-compatible editing.
+
+### Canonical Fixtures
+
+Canonical tests now load normalized workflow and decision-system objects in addition to legacy analysis fields. Casap-style fixtures include multiple decision classes such as:
+
+- classify dispute
+- request evidence
+- recommend resolution
+- escalate suspected fraud
+
+Bundled case rows remain synthetic illustrative data and are linked to decision classes/actions where possible. They are still not company data.
+
+### Still Deferred
+
+V0.3 still does not implement:
+
+- Shannon / information-theoretic metrics
+- Autonomy Frontier
+- causal inference
+- production source-system integrations
+- cross-app CaseSet export pipelines
+- material changes to the existing simulator mathematics

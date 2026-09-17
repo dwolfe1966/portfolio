@@ -228,63 +228,317 @@ enum CompoundingCaseGrade {
 }
 
 model CompoundingExpertiseAnalysis {
-  id                  String                                   @id @default(cuid())
-  workspaceId         String?
-  accountUserId       String?
-  companyName         String
-  companyUrl          String?
-  productCategory     String?
-  productDescription  String
-  targetCustomer      String
-  businessModel       String?
-  workflow            String
-  decisionDescription String
-  actionSpace         String?
-  companyStage        String?
-  thesis              String
-  economicCostWrongDecision String?
-  outcomeObjectivity  String?
-  naturalFeedbackTime String?
-  caseFrequency       String?
-  customerCaseHeterogeneity String?
-  environmentalChangeRate String?
+  id                             String                                    @id @default(cuid())
+  workspaceId                    String?
+  accountUserId                  String?
+  companyName                    String
+  companyUrl                     String?
+  productCategory                String?
+  productDescription             String
+  targetCustomer                 String
+  businessModel                  String?
+  workflow                       String
+  decisionDescription            String
+  actionSpace                    String?
+  companyStage                   String?
+  thesis                         String
+  economicCostWrongDecision      String?
+  outcomeObjectivity             String?
+  naturalFeedbackTime            String?
+  caseFrequency                  String?
+  customerCaseHeterogeneity      String?
+  environmentalChangeRate        String?
   foundationModelImprovementRate String?
-  ownsDecisionPoint   String?
-  controlsAction      String?
-  observesOutcome     String?
-  capturesOverrides   String?
-  capturesGrades      String?
-  learnsAcrossCustomers String?
-  contractualLearningRights String?
-  runsControlledExperiments String?
-  updatesModelPolicyRegularly String?
-  deploysImprovementsQuickly String?
-  dataExclusivity     String?
-  workflowEmbeddedness String?
-  switchingCostsAssumption String?
-  rebuildability      String?
-  foundationModelDependence String?
-  deterministicInfrastructure String?
-  distributionAdvantage String?
-  regulatoryContractualBarriers String?
-  createdAt           DateTime                                 @default(now())
-  updatedAt           DateTime                                 @updatedAt
-  workspace           Workspace?                               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  accountUser         AccountUser?                             @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
-  keyDebates          CompoundingExpertiseKeyDebate[]
-  dimensionAssessments CompoundingExpertiseDimensionAssessment[]
-  simulationScenarios CompoundingExpertiseSimulationScenario[]
-  scorebookCases      CompoundingExpertiseCase[]
-  caseSets            CompoundingExpertiseCaseSet[]
+  ownsDecisionPoint              String?
+  controlsAction                 String?
+  observesOutcome                String?
+  capturesOverrides              String?
+  capturesGrades                 String?
+  learnsAcrossCustomers          String?
+  contractualLearningRights      String?
+  runsControlledExperiments      String?
+  updatesModelPolicyRegularly    String?
+  deploysImprovementsQuickly     String?
+  dataExclusivity                String?
+  workflowEmbeddedness           String?
+  switchingCostsAssumption       String?
+  rebuildability                 String?
+  foundationModelDependence      String?
+  deterministicInfrastructure    String?
+  distributionAdvantage          String?
+  regulatoryContractualBarriers  String?
+  createdAt                      DateTime                                  @default(now())
+  updatedAt                      DateTime                                  @updatedAt
+  workspace                      Workspace?                                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountUser                    AccountUser?                              @relation(fields: [accountUserId], references: [id], onDelete: SetNull)
+  keyDebates                     CompoundingExpertiseKeyDebate[]
+  dimensionAssessments           CompoundingExpertiseDimensionAssessment[]
+  simulationScenarios            CompoundingExpertiseSimulationScenario[]
+  scorebookCases                 CompoundingExpertiseCase[]
+  caseSets                       CompoundingExpertiseCaseSet[]
+  companyProfile                 CompoundingCompanyProfile?
+  workflows                      CompoundingWorkflow[]
+  environment                    CompoundingEnvironment?
+  learningArchitecture           CompoundingLearningArchitecture?
+  competitiveArchitecture        CompoundingCompetitiveArchitecture?
+  evidenceRecords                CompoundingEvidence[]
+  analystOverrides               CompoundingAnalystOverride[]
+  compoundingDecisionClasses     CompoundingDecisionClass[]
 
   @@index([workspaceId, updatedAt])
   @@index([accountUserId, updatedAt])
   @@index([companyName])
 }
 
+model CompoundingCompanyProfile {
+  id                 String                       @id @default(cuid())
+  analysisId         String                       @unique
+  name               String
+  website            String?
+  industry           String?
+  productCategory    String?
+  productDescription String?
+  companyStage       String?
+  geography          String?
+  customerType       String?
+  customerSegments   String?
+  revenueModel       String?
+  pricingUnit        String?
+  businessModelNotes String?
+  grossMarginProfile String?
+  economicValueUnit  String?
+  economicsNotes     String?
+  marketContext      String?
+  analystThesis      String?
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  analysis           CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  workflows          CompoundingWorkflow[]
+
+  @@index([name])
+  @@index([productCategory])
+}
+
+model CompoundingWorkflow {
+  id               String                        @id @default(cuid())
+  analysisId       String
+  companyProfileId String?
+  name             String
+  description      String?
+  position         Int                           @default(0)
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+  analysis         CompoundingExpertiseAnalysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  companyProfile   CompoundingCompanyProfile?    @relation(fields: [companyProfileId], references: [id], onDelete: SetNull)
+  stages           CompoundingWorkflowStage[]
+  decisionClasses  CompoundingDecisionClass[]
+  caseSets         CompoundingExpertiseCaseSet[]
+
+  @@index([analysisId, position])
+  @@index([companyProfileId])
+}
+
+model CompoundingWorkflowStage {
+  id              String                     @id @default(cuid())
+  workflowId      String
+  name            String
+  description     String?
+  position        Int                        @default(0)
+  stageType       String                     @default("OTHER")
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  workflow        CompoundingWorkflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  decisionClasses CompoundingDecisionClass[]
+
+  @@index([workflowId, position])
+  @@index([stageType])
+}
+
+model CompoundingDecisionClass {
+  id                         String                        @id @default(cuid())
+  analysisId                 String
+  workflowId                 String
+  workflowStageId            String?
+  name                       String
+  description                String?
+  decisionMakerType          String                        @default("UNKNOWN")
+  decisionFrequency          String?
+  estimatedCasesPerPeriod    Float?
+  frequencyPeriod            String?
+  economicStakes             String                        @default("UNKNOWN")
+  reversibility              String                        @default("UNKNOWN")
+  regulatoryRisk             String                        @default("UNKNOWN")
+  operationalRisk            String                        @default("UNKNOWN")
+  outcomeObservability       String                        @default("UNKNOWN")
+  gradeObjectivity           String                        @default("UNKNOWN")
+  naturalFeedbackLatencyDays Float?
+  humanReviewMode            String                        @default("UNKNOWN")
+  currentAutonomyMode        String                        @default("UNKNOWN")
+  createdAt                  DateTime                      @default(now())
+  updatedAt                  DateTime                      @updatedAt
+  analysis                   CompoundingExpertiseAnalysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  workflow                   CompoundingWorkflow           @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowStage              CompoundingWorkflowStage?     @relation(fields: [workflowStageId], references: [id], onDelete: SetNull)
+  actions                    CompoundingDecisionAction[]
+  caseSets                   CompoundingExpertiseCaseSet[]
+  cases                      CompoundingExpertiseCase[]
+
+  @@index([analysisId, name])
+  @@index([workflowId])
+  @@index([workflowStageId])
+}
+
+model CompoundingDecisionAction {
+  id                    String                     @id @default(cuid())
+  decisionClassId       String
+  key                   String
+  label                 String
+  description           String?
+  reversible            String                     @default("UNKNOWN")
+  requiresHumanApproval Boolean                    @default(false)
+  economicExposure      String?
+  regulatoryExposure    String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  decisionClass         CompoundingDecisionClass   @relation(fields: [decisionClassId], references: [id], onDelete: Cascade)
+  agentDecisionCases    CompoundingExpertiseCase[] @relation("CompoundingAgentDecisionAction")
+  humanDecisionCases    CompoundingExpertiseCase[] @relation("CompoundingHumanDecisionAction")
+  actionTakenCases      CompoundingExpertiseCase[] @relation("CompoundingActionTakenAction")
+
+  @@unique([decisionClassId, key])
+  @@index([decisionClassId])
+}
+
+model CompoundingEnvironment {
+  id                             String                       @id @default(cuid())
+  analysisId                     String                       @unique
+  naturalCaseFrequency           String?
+  estimatedCasesPerPeriod        Float?
+  frequencyPeriod                String?
+  typicalEconomicCostOfError     String?
+  typicalValueOfCorrectDecision  String?
+  outcomeObservability           String?
+  outcomeObjectivity             String?
+  naturalFeedbackLatencyDays     Float?
+  customerHeterogeneity          String?
+  caseHeterogeneity              String?
+  environmentalNonstationarity   String?
+  regulatoryChangeRate           String?
+  foundationModelImprovementRate String?
+  notes                          String?
+  createdAt                      DateTime                     @default(now())
+  updatedAt                      DateTime                     @updatedAt
+  analysis                       CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+}
+
+model CompoundingLearningArchitecture {
+  id                            String                       @id @default(cuid())
+  analysisId                    String                       @unique
+  capturesContext               String                       @default("UNKNOWN")
+  capturesAgentDecision         String                       @default("UNKNOWN")
+  capturesHumanDecision         String                       @default("UNKNOWN")
+  capturesActionTaken           String                       @default("UNKNOWN")
+  capturesOutcome               String                       @default("UNKNOWN")
+  capturesExplicitGrade         String                       @default("UNKNOWN")
+  outcomeCompletionMechanism    String?
+  gradeGenerationMethod         String?
+  feedbackLatencyMechanism      String?
+  pooledAcrossCustomers         String                       @default("UNKNOWN")
+  customerSpecificAdaptation    String                       @default("UNKNOWN")
+  usesHumanOverridesForLearning String                       @default("UNKNOWN")
+  usesOutcomeGradesForLearning  String                       @default("UNKNOWN")
+  experimentationMode           String?
+  modelUpdateCadence            String?
+  policyUpdateCadence           String?
+  deploymentMode                String?
+  deploymentCadence             String?
+  humanApprovalForPolicyChanges String                       @default("UNKNOWN")
+  canRetainCases                String                       @default("UNKNOWN")
+  canRetainDerivedFeatures      String                       @default("UNKNOWN")
+  canTrainAcrossCustomers       String                       @default("UNKNOWN")
+  canUseForEvaluation           String                       @default("UNKNOWN")
+  contractualRestrictions       String?
+  notes                         String?
+  createdAt                     DateTime                     @default(now())
+  updatedAt                     DateTime                     @updatedAt
+  analysis                      CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+}
+
+model CompoundingCompetitiveArchitecture {
+  id                                  String                       @id @default(cuid())
+  analysisId                          String                       @unique
+  rawCasesExclusive                   String                       @default("UNKNOWN")
+  outcomesExclusive                   String                       @default("UNKNOWN")
+  humanCorrectionsExclusive           String                       @default("UNKNOWN")
+  crossCustomerPoolExclusive          String                       @default("UNKNOWN")
+  customerCanExportData               String                       @default("UNKNOWN")
+  competitorCanAccessEquivalentData   String                       @default("UNKNOWN")
+  systemOfRecord                      String                       @default("UNKNOWN")
+  systemOfDecision                    String                       @default("UNKNOWN")
+  systemOfAction                      String                       @default("UNKNOWN")
+  systemOfOutcomeCapture              String                       @default("UNKNOWN")
+  integrationDepth                    String?
+  replacementComplexity               String?
+  publicDataSubstitutionRisk          String?
+  syntheticDataSubstitutionRisk       String?
+  foundationModelSubstitutionRisk     String?
+  competitorRelearningDifficulty      String?
+  deterministicInfrastructureStrength String?
+  distributionAdvantage               String?
+  regulatoryBarrierStrength           String?
+  contractualBarrierStrength          String?
+  notes                               String?
+  createdAt                           DateTime                     @default(now())
+  updatedAt                           DateTime                     @updatedAt
+  analysis                            CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+}
+
+model CompoundingEvidence {
+  id               String                       @id @default(cuid())
+  analysisId       String
+  entityType       String
+  entityId         String?
+  fieldKey         String
+  evidenceType     String                       @default("UNKNOWN")
+  epistemicStatus  String                       @default("UNKNOWN")
+  valueSnapshot    String?
+  sourceLabel      String
+  sourceUrl        String?
+  sourceRecordId   String?
+  sourceCaseSetId  String?
+  confidence       String                       @default("UNKNOWN")
+  observedAt       DateTime?
+  derivationMethod String?
+  analystNotes     String?
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+  analysis         CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId, entityType, fieldKey])
+  @@index([analysisId, epistemicStatus])
+  @@index([sourceCaseSetId])
+}
+
+model CompoundingAnalystOverride {
+  id            String                       @id @default(cuid())
+  analysisId    String
+  entityType    String
+  entityId      String?
+  fieldKey      String
+  overrideValue String
+  rationale     String
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+  analysis      CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId, entityType, fieldKey])
+}
+
 model CompoundingExpertiseCaseSet {
-  id                    String                       @id @default(cuid())
+  id                    String                        @id @default(cuid())
   analysisId            String?
+  workflowId            String?
+  decisionClassId       String?
   name                  String
   description           String?
   sourceType            String
@@ -302,58 +556,74 @@ model CompoundingExpertiseCaseSet {
   experimentId          String?
   timeWindowStart       DateTime?
   timeWindowEnd         DateTime?
-  isSynthetic           Boolean                      @default(false)
+  isSynthetic           Boolean                       @default(false)
   provenanceLabel       String
-  caseCount             Int                          @default(0)
+  caseCount             Int                           @default(0)
   parentCaseSetId       String?
   derivationDescription String?
-  createdAt             DateTime                     @default(now())
-  updatedAt             DateTime                     @updatedAt
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
   analysis              CompoundingExpertiseAnalysis? @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  parentCaseSet         CompoundingExpertiseCaseSet? @relation("CompoundingExpertiseCaseSetDerivation", fields: [parentCaseSetId], references: [id], onDelete: SetNull)
+  workflow              CompoundingWorkflow?          @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+  decisionClass         CompoundingDecisionClass?     @relation(fields: [decisionClassId], references: [id], onDelete: SetNull)
+  parentCaseSet         CompoundingExpertiseCaseSet?  @relation("CompoundingExpertiseCaseSetDerivation", fields: [parentCaseSetId], references: [id], onDelete: SetNull)
   derivedCaseSets       CompoundingExpertiseCaseSet[] @relation("CompoundingExpertiseCaseSetDerivation")
   cases                 CompoundingExpertiseCase[]
 
   @@index([analysisId, createdAt])
+  @@index([workflowId])
+  @@index([decisionClassId])
   @@index([sourceType, sourceSystemKey])
   @@index([parentCaseSetId])
   @@index([isSynthetic])
 }
 
 model CompoundingExpertiseCase {
-  id                  String                       @id @default(cuid())
-  analysisId          String
-  caseSetId           String?
-  externalCaseId      String
-  customerSegment     String
-  caseType            String
-  context             String
-  agentDecision       String
-  agentConfidence     Float?
-  humanDecision       String?
-  humanOverride       Boolean                      @default(false)
-  actionTaken         String?
-  outcome             String?
-  outcomeValue        Float?
-  grade               CompoundingCaseGrade         @default(UNRESOLVED)
-  gradeConfidence     Float?
-  decisionAt          DateTime?
-  actionAt            DateTime?
-  outcomeAt           DateTime?
-  isEdgeCase          Boolean                      @default(false)
-  isSynthetic         Boolean                      @default(true)
-  sourceLabel         String
-  sourceRecordId      String?
-  sourceRecordType    String?
-  sourceRecordRoute   String?
-  notes               String?
-  createdAt           DateTime                     @default(now())
-  updatedAt           DateTime                     @updatedAt
-  analysis            CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  caseSet             CompoundingExpertiseCaseSet? @relation(fields: [caseSetId], references: [id], onDelete: SetNull)
+  id                    String                       @id @default(cuid())
+  analysisId            String
+  caseSetId             String?
+  decisionClassId       String?
+  agentDecisionActionId String?
+  humanDecisionActionId String?
+  actionTakenActionId   String?
+  externalCaseId        String
+  customerSegment       String
+  caseType              String
+  context               String
+  agentDecision         String
+  agentConfidence       Float?
+  humanDecision         String?
+  humanOverride         Boolean                      @default(false)
+  actionTaken           String?
+  outcome               String?
+  outcomeValue          Float?
+  grade                 CompoundingCaseGrade         @default(UNRESOLVED)
+  gradeConfidence       Float?
+  decisionAt            DateTime?
+  actionAt              DateTime?
+  outcomeAt             DateTime?
+  isEdgeCase            Boolean                      @default(false)
+  isSynthetic           Boolean                      @default(true)
+  sourceLabel           String
+  sourceRecordId        String?
+  sourceRecordType      String?
+  sourceRecordRoute     String?
+  notes                 String?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  analysis              CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  caseSet               CompoundingExpertiseCaseSet? @relation(fields: [caseSetId], references: [id], onDelete: SetNull)
+  decisionClass         CompoundingDecisionClass?    @relation(fields: [decisionClassId], references: [id], onDelete: SetNull)
+  agentDecisionAction   CompoundingDecisionAction?   @relation("CompoundingAgentDecisionAction", fields: [agentDecisionActionId], references: [id], onDelete: SetNull)
+  humanDecisionAction   CompoundingDecisionAction?   @relation("CompoundingHumanDecisionAction", fields: [humanDecisionActionId], references: [id], onDelete: SetNull)
+  actionTakenAction     CompoundingDecisionAction?   @relation("CompoundingActionTakenAction", fields: [actionTakenActionId], references: [id], onDelete: SetNull)
 
   @@index([analysisId, decisionAt])
   @@index([caseSetId, decisionAt])
+  @@index([decisionClassId, decisionAt])
+  @@index([agentDecisionActionId])
+  @@index([humanDecisionActionId])
+  @@index([actionTakenActionId])
   @@index([analysisId, grade])
   @@index([analysisId, customerSegment])
   @@index([analysisId, caseType])
@@ -363,37 +633,37 @@ model CompoundingExpertiseCase {
 }
 
 model CompoundingExpertiseKeyDebate {
-  id                    String                      @id @default(cuid())
-  analysisId            String
-  question              String
-  bullCase              String
-  bearCase              String
-  evidenceNeeded        String
-  increaseBelief        String
-  decreaseBelief        String
-  probability           Int
-  source                CompoundingDebateSource     @default(USER)
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
-  analysis              CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  id             String                       @id @default(cuid())
+  analysisId     String
+  question       String
+  bullCase       String
+  bearCase       String
+  evidenceNeeded String
+  increaseBelief String
+  decreaseBelief String
+  probability    Int
+  source         CompoundingDebateSource      @default(USER)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  analysis       CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
 
   @@index([analysisId, updatedAt])
   @@index([source])
 }
 
 model CompoundingExpertiseDimensionAssessment {
-  id             String                        @id @default(cuid())
+  id             String                       @id @default(cuid())
   analysisId     String
   framework      CompoundingFramework
   dimension      String
   score          Int
-  confidence     CompoundingConfidence          @default(LOW)
+  confidence     CompoundingConfidence        @default(LOW)
   rationale      String
-  evidenceStatus CompoundingEvidenceStatus      @default(UNKNOWN)
-  source         CompoundingDebateSource        @default(USER)
-  createdAt      DateTime                      @default(now())
-  updatedAt      DateTime                      @updatedAt
-  analysis       CompoundingExpertiseAnalysis   @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  evidenceStatus CompoundingEvidenceStatus    @default(UNKNOWN)
+  source         CompoundingDebateSource      @default(USER)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  analysis       CompoundingExpertiseAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
 
   @@unique([analysisId, framework, dimension])
   @@index([analysisId, framework])

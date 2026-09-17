@@ -3489,6 +3489,102 @@ button {
   font-size: 10px;
   text-transform: uppercase;
 }
+.compoundingEvidenceStrip,
+.compoundingLearningLoop,
+.compoundingWorkflowMap,
+.compoundingActionPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.compoundingEvidenceStrip span,
+.compoundingLearningLoop span,
+.compoundingWorkflowMap span,
+.compoundingActionPills span {
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--demo-surface) 86%, transparent);
+}
+.compoundingEvidenceStrip span strong,
+.compoundingLearningLoop span strong,
+.compoundingWorkflowMap span strong {
+  display: block;
+  color: var(--demo-text);
+  font-size: 14px;
+}
+.compoundingWorkflowMap span,
+.compoundingLearningLoop span {
+  min-width: 118px;
+}
+.compoundingWorkflowMap small,
+.compoundingLearningLoop small {
+  display: block;
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+.compoundingProfilePanel {
+  display: grid;
+  gap: 12px;
+}
+.compoundingProfilePanel h3 {
+  margin: 0;
+}
+.compoundingProfileGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.compoundingProfileGrid .card {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+.compoundingProfileGrid .card strong {
+  color: var(--demo-text);
+}
+.compoundingProfileGrid .card p {
+  margin: 0;
+}
+.compoundingDecisionClassTable {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+.compoundingDecisionClassTable .dataTable {
+  min-width: 1160px;
+  border-collapse: collapse;
+}
+.compoundingDecisionClassTable th,
+.compoundingDecisionClassTable td {
+  border: 1px solid color-mix(in srgb, var(--demo-divider) 72%, var(--demo-text) 28%);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.compoundingDecisionClassTable th {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.miniTag {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--demo-divider);
+  border-radius: 999px;
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 5px 7px;
+  text-transform: uppercase;
+}
 .compoundingProcessCard {
   display: grid;
   align-content: start;
@@ -5065,6 +5161,7 @@ button {
   .compoundingCanonicalFacts,
   .compoundingEpistemicLayers,
   .compoundingCaseSetFacts,
+  .compoundingProfileGrid,
   .compoundingStructuredGrid,
   .compoundingSimulatorGroups fieldset,
   .compoundingAssessmentGrid,
