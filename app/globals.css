@@ -3359,6 +3359,103 @@ button {
 .compoundingCaseSetPanel h3 {
   margin: 0;
 }
+.compoundingOverviewStatePanel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.compoundingOverviewStatePanel h3 {
+  margin: 0;
+}
+.compoundingOverviewStateFacts,
+.compoundingCanonicalFacts,
+.compoundingEpistemicLayers {
+  display: grid;
+  gap: 8px;
+}
+.compoundingOverviewStateFacts {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.compoundingCanonicalFacts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.compoundingEpistemicLayers {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.compoundingOverviewStateFacts span,
+.compoundingCanonicalFacts span,
+.compoundingEpistemicLayers span {
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  padding: 8px;
+  color: var(--demo-text);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.compoundingOverviewStateFacts strong,
+.compoundingCanonicalFacts strong,
+.compoundingEpistemicLayers strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.compoundingCanonicalCard form {
+  display: flex;
+}
+.compoundingCanonicalGridPrimary {
+  margin-top: 14px;
+}
+.compoundingCompareTests {
+  margin-top: 12px;
+}
+.compoundingCompareTests summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+.compoundingCanonicalCompareTable {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+.compoundingCanonicalCompareTable .dataTable {
+  min-width: 1280px;
+  border-collapse: collapse;
+}
+.compoundingCanonicalCompareTable th,
+.compoundingCanonicalCompareTable td {
+  border: 1px solid color-mix(in srgb, var(--demo-divider) 72%, var(--demo-text) 28%);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.compoundingCanonicalCompareTable th {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.compoundingProcessFlowCompact {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+.compoundingProcessFlowCompact .compoundingProcessCard {
+  padding: 12px;
+}
+.compoundingProcessFlowCompact .compoundingProcessCard h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.compoundingProcessFlowCompact .compoundingProcessCard p {
+  font-size: 13px;
+}
+.compoundingProcessFlowCompact .compoundingProcessIndex {
+  width: 26px;
+  height: 26px;
+}
 .compoundingCaseSetSelector {
   display: flex;
   align-items: flex-end;
@@ -4964,6 +5061,9 @@ button {
   .compoundingActiveAnalysisDetails,
   .compoundingFormGrid,
   .compoundingCanonicalGrid,
+  .compoundingOverviewStateFacts,
+  .compoundingCanonicalFacts,
+  .compoundingEpistemicLayers,
   .compoundingCaseSetFacts,
   .compoundingStructuredGrid,
   .compoundingSimulatorGroups fieldset,

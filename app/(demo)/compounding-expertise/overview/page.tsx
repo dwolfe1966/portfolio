@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { IntegrityNotice, LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
-import { ExampleSelectionTable } from "@/components/compounding-expertise/ExampleSelectionTable";
-import { COMPOUNDING_EXAMPLES } from "@/lib/compounding-expertise-lab";
+import {
+  canonicalExampleForCompany,
+  COMPOUNDING_EXAMPLES,
+  type CompoundingExampleId
+} from "@/lib/compounding-expertise-lab";
 import { loadSyntheticExampleAction } from "../actions";
+import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
 const LAB_FLOW = [
   {
@@ -28,7 +32,42 @@ const LAB_FLOW = [
   }
 ];
 
-export default function CompoundingExpertiseOverviewPage() {
+const TEST_IDENTITIES: Record<CompoundingExampleId, { testType: string; isolates: string; companyBasis: string }> = {
+  casap: {
+    testType: "POSITIVE TEST",
+    isolates: "Does CE work under favorable conditions?",
+    companyBasis: "Public-company archetype; source verification pending."
+  },
+  "listen-labs": {
+    testType: "BOUNDARY TEST",
+    isolates: "When is accumulated knowledge not graded expertise?",
+    companyBasis: "Public-company archetype; source verification pending."
+  },
+  aaru: {
+    testType: "SUBSTITUTION / COMPRESSION TEST",
+    isolates: "Can model/simulation capability substitute for accumulated experience?",
+    companyBasis: "Public-company archetype; source verification pending."
+  },
+  maybern: {
+    testType: "ALTERNATIVE POWER TEST",
+    isolates: "Can durable Power reside somewhere other than CE?",
+    companyBasis: "Public-company archetype; source verification pending."
+  },
+  "creative-agent": {
+    testType: "NEGATIVE CONTROL",
+    isolates: "Can huge volumes of apparently graded data still fail to create durable expertise?",
+    companyBasis: "Entirely synthetic archetype."
+  }
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function CompoundingExpertiseOverviewPage() {
+  const accountUserId = await currentAccountUserId();
+  const analysis = await loadCompoundingAnalysis(accountUserId);
+  const activeExample = canonicalExampleForCompany(analysis?.companyName);
+  const activeCaseSet = analysis?.caseSets[0] ?? null;
+
   return (
     <>
       <LabWorkflowRail active="Overview" />
@@ -38,13 +77,41 @@ export default function CompoundingExpertiseOverviewPage() {
           into expertise that competitors cannot easily reproduce.
         </p>
         <div className="ctaRow">
-          <Link className="btn primary" href="/compounding-expertise/inputs">Start a new analysis</Link>
+          <Link className="btn primary" href="/compounding-expertise/inputs">Start new company analysis</Link>
           <Link className="btn" href="/compounding-expertise/docs">Read methodology</Link>
+        </div>
+        <div className="card compoundingOverviewStatePanel">
+          <div>
+            <p className="small">Current analysis</p>
+            <h3>{analysis?.companyName || "No active company selected"}</h3>
+          </div>
+          <div className="compoundingOverviewStateFacts">
+            <span>
+              <strong>Company/test</strong>
+              {analysis?.companyName || "Not selected"}
+            </span>
+            <span>
+              <strong>Test type</strong>
+              {analysis ? activeExample ? TEST_IDENTITIES[activeExample.id].testType : "Custom company analysis" : "No canonical test selected"}
+            </span>
+            <span>
+              <strong>Active CaseSet</strong>
+              {activeCaseSet?.name || "No CaseSet selected"}
+            </span>
+            <span>
+              <strong>Provenance</strong>
+              {activeCaseSet?.provenanceLabel || "No case provenance available"}
+            </span>
+          </div>
+          <div className="ctaRow">
+            {analysis ? <Link className="btn primary" href="/compounding-expertise/inputs">Continue analysis</Link> : null}
+            <Link className="btn" href="/compounding-expertise/inputs">Start new company analysis</Link>
+          </div>
         </div>
       </Section>
 
       <Section eyebrow="Understand -> Observe -> Hypothesize -> Test -> Decide" title="How the Lab works">
-        <div className="compoundingProcessFlow">
+        <div className="compoundingProcessFlow compoundingProcessFlowCompact">
           {LAB_FLOW.map((item, index) => (
             <div className="card compoundingProcessCard" key={item.title}>
               <span className="compoundingProcessIndex">{index + 1}</span>
@@ -55,7 +122,7 @@ export default function CompoundingExpertiseOverviewPage() {
         </div>
       </Section>
 
-      <Section title="Choose test">
+      <Section title="Choose a Canonical Test">
         <p>
           Each test isolates a different claim about Compounding Expertise. Together they are designed to show where
           the theory works, where it breaks, and where other forms of Power may dominate.
@@ -67,56 +134,77 @@ export default function CompoundingExpertiseOverviewPage() {
             not to describe actual company operations.
           </p>
         </div>
-        <ExampleSelectionTable
-          loadAction={loadSyntheticExampleAction}
-          examples={COMPOUNDING_EXAMPLES.map((example) => ({
-            id: example.id,
-            label: example.label,
-            testLabel: example.testLabel,
-            canonicalQuestion: example.canonicalQuestion,
-            principalDecision: example.principalDecision,
-            gradeObjectivity: example.gradeObjectivity,
-            typicalFeedbackSpeed: example.typicalFeedbackSpeed,
-            economicCostOfError: example.economicCostOfError,
-            caseFrequency: example.caseFrequency,
-            crossCustomerTransferPotential: example.crossCustomerTransferPotential,
-            historicalCaseDependence: example.historicalCaseDependence,
-            primaryPowerHypothesis: example.primaryPowerHypothesis,
-            whyCanonical: example.whyCanonical,
-            status: example.id !== "creative-agent"
-              ? "Company analysis + synthetic illustrative scorebook. Case rows are NOT company data."
-              : "Entirely synthetic negative control.",
-            syntheticDatasetLabel: example.syntheticDatasetLabel,
-            caseCount: example.cases.length
-          }))}
-        />
-      </Section>
-
-      <Section title="Canonical Tests">
-        <div className="compoundingCanonicalGrid">
+        <div className="compoundingCanonicalGrid compoundingCanonicalGridPrimary">
           {COMPOUNDING_EXAMPLES.map((example) => (
             <article className="card compoundingCanonicalCard" key={example.id}>
               <div className="compoundingCardHeader">
                 <div>
-                  <p className="small">{example.testLabel}</p>
+                  <p className="small">{TEST_IDENTITIES[example.id].testType}</p>
                   <h3>{example.label}</h3>
                 </div>
               </div>
-              <p><strong>Question:</strong> {example.canonicalQuestion}</p>
-              <p><strong>Principal decision:</strong> {example.principalDecision}</p>
-              <p><strong>Grade / feedback / stakes:</strong> {example.gradeObjectivity} · {example.typicalFeedbackSpeed} · {example.economicCostOfError}</p>
-              <p><strong>Case frequency:</strong> {example.caseFrequency}</p>
-              <p><strong>Primary Power hypothesis:</strong> {example.primaryPowerHypothesis}</p>
+              <p><strong>Canonical question:</strong> {example.canonicalQuestion}</p>
+              <p><strong>What this test isolates:</strong> {TEST_IDENTITIES[example.id].isolates}</p>
+              <div className="compoundingCanonicalFacts">
+                <span><strong>Principal decision</strong>{example.principalDecision}</span>
+                <span><strong>Grade objectivity</strong>{example.gradeObjectivity}</span>
+                <span><strong>Feedback speed</strong>{example.typicalFeedbackSpeed}</span>
+                <span><strong>Case frequency</strong>{example.caseFrequency}</span>
+                <span><strong>Primary Power hypothesis</strong>{example.primaryPowerHypothesis}</span>
+                <span><strong>Synthetic case count</strong>{example.cases.length} rows</span>
+              </div>
+              <div className="compoundingEpistemicLayers">
+                <span><strong>Company basis</strong>{TEST_IDENTITIES[example.id].companyBasis}</span>
+                <span><strong>Archetype assumptions</strong>Canonical metadata is analytical test-fixture metadata, not verified company measurement.</span>
+                <span><strong>Case data</strong>{example.syntheticDatasetLabel}</span>
+              </div>
               <details className="compoundingInlineEditor">
-                <summary>Why this test exists</summary>
-                <p>{example.whyCanonical}</p>
+                <summary>Secondary detail</summary>
+                <p><strong>Economic stakes:</strong> {example.economicCostOfError}</p>
+                <p><strong>Transfer potential:</strong> {example.crossCustomerTransferPotential}</p>
+                <p><strong>Historical dependence:</strong> {example.historicalCaseDependence}</p>
                 <p><strong>Expected behavior:</strong> {example.expectedTheoreticalBehavior}</p>
                 <p><strong>Lab failure condition:</strong> {example.labFailureCondition}</p>
-                <p className="small">{example.syntheticDatasetLabel}</p>
+                <p><strong>Competing Power hypothesis:</strong> {example.competingPowerHypothesis}</p>
               </details>
+              <form action={loadSyntheticExampleAction}>
+                <input type="hidden" name="exampleId" value={example.id} />
+                <button className="btn primary" type="submit">Explore test</button>
+              </form>
             </article>
           ))}
         </div>
+        <details className="card compoundingCompareTests">
+          <summary>Compare all canonical tests</summary>
+          <div className="tableScroll compoundingCanonicalCompareTable">
+            <table className="dataTable">
+              <thead>
+                <tr>
+                  <th>Test</th>
+                  <th>Canonical question</th>
+                  <th>Grade objectivity</th>
+                  <th>Feedback</th>
+                  <th>Case frequency</th>
+                  <th>Historical dependence</th>
+                  <th>Primary Power hypothesis</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPOUNDING_EXAMPLES.map((example) => (
+                  <tr key={example.id}>
+                    <td><strong>{TEST_IDENTITIES[example.id].testType}</strong><br />{example.label}</td>
+                    <td>{example.canonicalQuestion}</td>
+                    <td>{example.gradeObjectivity}</td>
+                    <td>{example.typicalFeedbackSpeed}</td>
+                    <td>{example.caseFrequency}</td>
+                    <td>{example.historicalCaseDependence}</td>
+                    <td>{example.primaryPowerHypothesis}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
       </Section>
 
       <Section title="Research integrity">
