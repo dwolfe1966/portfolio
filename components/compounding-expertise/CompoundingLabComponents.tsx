@@ -1,17 +1,7 @@
-import Link from "next/link";
-import { LAB_WORKFLOW_STEPS, type CompoundingFramework, type Crossover, type EpistemicKind, type SimulationSeries } from "@/lib/compounding-expertise-lab";
+import { type CompoundingFramework, type Crossover, type EpistemicKind, type SimulationSeries } from "@/lib/compounding-expertise-lab";
 
-export function LabWorkflowRail({ active }: { active: string }) {
-  return (
-    <div className="compoundingWorkflowRail" aria-label="Compounding Expertise Lab workflow">
-      {LAB_WORKFLOW_STEPS.map((step) => (
-        <Link className={active === step.label ? "active" : ""} href={step.href} key={step.href}>
-          <span>{step.stage}</span>
-          <strong>{step.label}</strong>
-        </Link>
-      ))}
-    </div>
-  );
+export function LabWorkflowRail({ active: _active }: { active: string }) {
+  return null;
 }
 
 export function ProvenanceBadge({ framework }: { framework: CompoundingFramework }) {
