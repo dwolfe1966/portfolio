@@ -64,16 +64,21 @@ function conclusionCard(title: string, value: string, why: string) {
   );
 }
 
-export default async function CompoundingExpertiseMemoPage() {
+export default async function CompoundingExpertiseMemoPage({
+  searchParams
+}: {
+  searchParams: Promise<{ analysisId?: string }>;
+}) {
+  const params = await searchParams;
   const accountUserId = await currentAccountUserId();
-  const analysis = await loadCompoundingAnalysis(accountUserId);
+  const analysis = await loadCompoundingAnalysis(accountUserId, params.analysisId);
   if (!analysis) {
     return (
       <>
         <LabWorkflowRail active="Conclusion" />
         <Section title="Start with company inputs">
           <p>Create or load an analysis before generating a memo.</p>
-          <Link className="btn primary" href="/compounding-expertise/inputs">Go to inputs</Link>
+          <Link className="btn primary" href="/compounding-expertise/inputs">Go to Company Model</Link>
         </Section>
       </>
     );
@@ -215,8 +220,8 @@ export default async function CompoundingExpertiseMemoPage() {
 
       <Section title="Next">
         <div className="ctaRow">
-          <Link className="btn" href="/compounding-expertise/simulator">Back to simulator</Link>
-          <Link className="btn primary" href="/compounding-expertise/inputs">Revise analysis</Link>
+          <Link className="btn" href={`/compounding-expertise/simulator?analysisId=${analysis.id}`}>Back to Stress Test</Link>
+          <Link className="btn primary" href={`/compounding-expertise/inputs?analysisId=${analysis.id}`}>Revise analysis</Link>
         </div>
       </Section>
     </>

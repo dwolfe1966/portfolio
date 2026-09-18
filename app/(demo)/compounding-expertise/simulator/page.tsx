@@ -10,18 +10,18 @@ export const dynamic = "force-dynamic";
 export default async function CompoundingExpertiseSimulatorPage({
   searchParams
 }: {
-  searchParams: Promise<{ scorebook?: string; caseSetId?: string }>;
+  searchParams: Promise<{ scorebook?: string; caseSetId?: string; analysisId?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
-  const analysis = await loadCompoundingAnalysis(accountUserId);
+  const analysis = await loadCompoundingAnalysis(accountUserId, params.analysisId);
   if (!analysis) {
     return (
       <>
-        <LabWorkflowRail active="Simulator" />
+        <LabWorkflowRail active="Stress Test" />
         <Section title="Start with company inputs">
           <p>Create or load an analysis before running scenarios.</p>
-          <Link className="btn primary" href="/compounding-expertise/inputs">Go to inputs</Link>
+          <Link className="btn primary" href="/compounding-expertise/inputs">Go to Company Model</Link>
         </Section>
       </>
     );
@@ -41,8 +41,8 @@ export default async function CompoundingExpertiseSimulatorPage({
 
   return (
     <>
-      <LabWorkflowRail active="Simulator" />
-      <Section eyebrow="Stage 5" title="Compounding simulator">
+      <LabWorkflowRail active="Stress Test" />
+      <Section eyebrow="Stress Test · Compounding simulator" title="Stress-test the moat">
         <p>
           Compare two scenarios with a transparent toy model. Feedback delay is modeled as a maturation lag:
           new cases do not become effective graded experience until their feedback arrives.
@@ -105,7 +105,7 @@ export default async function CompoundingExpertiseSimulatorPage({
           </div>
           <div className="ctaRow">
             <button className="btn primary" type="submit">Save and continue</button>
-            <Link className="btn" href="/compounding-expertise/scorebook">Back</Link>
+            <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Back</Link>
           </div>
         </form>
       </Section>

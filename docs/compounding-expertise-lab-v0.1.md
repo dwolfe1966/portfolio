@@ -652,3 +652,97 @@ V0.3 still does not implement:
 - production source-system integrations
 - cross-app CaseSet export pipelines
 - material changes to the existing simulator mathematics
+
+## V0.3.2 Guided Analysis UX
+
+V0.3.2 keeps the V0.3 normalized schema intact and changes the user-facing experience from questionnaire-first to guided analysis. The workflow labels are now:
+
+```text
+Overview -> Company Model -> Experience -> Key Debates -> Power -> Stress Test -> Conclusion
+```
+
+The route names may remain backward compatible, but the UI language emphasizes the research task rather than the internal table names.
+
+### Active Analysis Identity
+
+Canonical examples create a new analysis and redirect with `analysisId`. V0.3.2 makes the selected `analysisId` explicit in analysis loading and preserves it through Company Model, Experience, Key Debates, Power, Stress Test, and Conclusion. The app should not infer identity from company name or latest update time when an explicit analysis has been selected.
+
+### Company Model Orientation
+
+The Company Model page now answers three questions at the top:
+
+- What am I seeing?
+- Why does it matter?
+- What should I do?
+
+The page is organized around four analytical questions rather than database entities:
+
+- What decisions create the opportunity to learn?
+- Can reality teach the system?
+- Does the company close the learning loop?
+- If it learns, can competitors reproduce it?
+
+This preserves the normalized model while making the Lab more understandable to a first-time investor or founder.
+
+### Provenance Taxonomy
+
+V0.3.2 makes synthetic fixture provenance more explicit. Metrics calculated from canonical synthetic CaseSets should be labeled as `SYNTHETIC-FIXTURE DERIVED`, not observed company evidence.
+
+The intended taxonomy is:
+
+- COMPANY OBSERVED: actual operating/company data.
+- COMPANY-DATA DERIVED: calculated from actual company or operating data.
+- PUBLICLY SOURCED: supported by external/public evidence.
+- SYNTHETIC-FIXTURE DERIVED: calculated from canonical synthetic CaseSet data.
+- ARCHETYPE ASSUMPTION: chosen to instantiate a canonical theoretical test.
+- ANALYST ASSUMPTION: entered by the analyst.
+- MODEL INFERENCE: suggested or inferred by AI.
+- UNKNOWN / DILIGENCE REQUIRED: no adequate evidence.
+
+### Diligence Map
+
+Evidence coverage is treated as a diligence map, not a completeness score. For canonical tests, the most important unknowns usually include cross-customer transferability, learning rights, whether graded outcomes improve future decisions, challenger rebuildability, and model/synthetic-data substitution risk.
+
+### Operational Workflow Vs Learning Loop
+
+The Lab now distinguishes:
+
+- Operational workflow: what happens in the business.
+- Learning loop: what turns operating experience into future expertise.
+
+The operational workflow generates experience. The learning loop determines whether that experience can compound.
+
+### Future Investment Workflow
+
+The intended future investment workflow remains:
+
+```text
+Prospective company
+-> public / company data ingestion
+-> normalized company model
+-> CaseSet / experience analysis
+-> Compounding Expertise assessment
+-> Helmer Power analysis
+-> key diligence questions
+-> stress test
+-> investment memo
+```
+
+V0.3.2 does not add automated web research. The analyst still reviews evidence, corrects model inference, adds private diligence information, identifies unknowns, runs counterfactuals, and updates beliefs.
+
+### Future DavidWolfe.app Expertise Capture
+
+Other davidwolfe.app decision applications can eventually become source systems for CE only if they close:
+
+```text
+Context -> Decision -> Action -> Outcome -> Grade
+```
+
+Examples:
+
+- Pricing: context -> price/package decision -> customer exposure -> conversion/churn/LTV -> grade.
+- Retention: customer state -> intervene/don't intervene -> action -> retained/churned/incremental value -> grade.
+- Acquisition: prospect/impression -> acquire/bid decision -> conversion -> downstream value -> grade.
+- Auction: auction context -> bid/no-bid/price -> auction result -> downstream value -> grade.
+
+Making decisions is not sufficient for Compounding Expertise. The source system must preserve enough provenance to learn from the resulting experience.

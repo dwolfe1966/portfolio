@@ -13,16 +13,21 @@ const FRAMEWORK_COPY: Record<CompoundingFramework, string> = {
   WOLFE: "David Wolfe extensions. These stress-test transferability, compressibility, causality, nonstationarity, and learning velocity."
 };
 
-export default async function CompoundingExpertiseDiagnosticPage() {
+export default async function CompoundingExpertiseDiagnosticPage({
+  searchParams
+}: {
+  searchParams: Promise<{ analysisId?: string }>;
+}) {
+  const params = await searchParams;
   const accountUserId = await currentAccountUserId();
-  const analysis = await loadCompoundingAnalysis(accountUserId);
+  const analysis = await loadCompoundingAnalysis(accountUserId, params.analysisId);
   if (!analysis) {
     return (
       <>
-        <LabWorkflowRail active="Diagnostic" />
+        <LabWorkflowRail active="Power" />
         <Section title="Start with company inputs">
           <p>Create or load an analysis before scoring dimensions.</p>
-          <Link className="btn primary" href="/compounding-expertise/inputs">Go to inputs</Link>
+          <Link className="btn primary" href="/compounding-expertise/inputs">Go to Company Model</Link>
         </Section>
       </>
     );
@@ -85,8 +90,8 @@ export default async function CompoundingExpertiseDiagnosticPage() {
 
   return (
     <>
-      <LabWorkflowRail active="Diagnostic" />
-      <Section eyebrow="Stage 4" title="Diagnostic">
+      <LabWorkflowRail active="Power" />
+      <Section eyebrow="Power · SUN + WOLFE + HELMER diagnostic" title="Where might durable Power reside?">
         <p>
           Use the scorebook and system context to assess three strategic questions. Keep evidence status visible;
           do not calculate a simplistic overall moat score.
@@ -129,7 +134,7 @@ export default async function CompoundingExpertiseDiagnosticPage() {
 
         <div className="ctaRow">
           <button className="btn primary" type="submit">Save and continue</button>
-          <Link className="btn" href="/compounding-expertise/debates">Back</Link>
+          <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}`}>Back</Link>
         </div>
       </form>
     </>

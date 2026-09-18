@@ -10,6 +10,7 @@ import {
   calculateScorebookMetrics,
   caseSetForExample,
   casesForCaseSet,
+  compoundingAnalysisAccessWhere,
   defaultAssessments,
   actionKeyFromDecision,
   decisionClassKeyForCase,
@@ -164,20 +165,31 @@ test("debate generation degrades gracefully when OpenAI is unavailable", async (
   }
 });
 
-test("V0.2 workflow places scorebook before debates and conclusion last", () => {
+test("V0.3.2 workflow uses guided user-facing labels with experience before debates", () => {
   assert.deepEqual(LAB_WORKFLOW_STEPS.map((step) => step.label), [
     "Overview",
-    "System & Environment",
-    "Scorebook",
+    "Company Model",
+    "Experience",
     "Key Debates",
-    "Diagnostic",
-    "Simulator",
+    "Power",
+    "Stress Test",
     "Conclusion"
   ]);
   assert.ok(
-    LAB_WORKFLOW_STEPS.findIndex((step) => step.label === "Scorebook") <
+    LAB_WORKFLOW_STEPS.findIndex((step) => step.label === "Experience") <
       LAB_WORKFLOW_STEPS.findIndex((step) => step.label === "Key Debates")
   );
+});
+
+test("explicit analysis access helper pins selected analysis and preserves account scope", () => {
+  assert.deepEqual(compoundingAnalysisAccessWhere("acct-1", "analysis-1"), {
+    id: "analysis-1",
+    OR: [{ accountUserId: "acct-1" }, { accountUserId: null }]
+  });
+  assert.deepEqual(compoundingAnalysisAccessWhere(null, "analysis-1"), {
+    id: "analysis-1",
+    accountUserId: null
+  });
 });
 
 test("structured inputs distinguish exogenous opportunity from endogenous capability", () => {

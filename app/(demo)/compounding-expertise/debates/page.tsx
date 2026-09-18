@@ -9,18 +9,18 @@ export const dynamic = "force-dynamic";
 export default async function CompoundingExpertiseDebatesPage({
   searchParams
 }: {
-  searchParams: Promise<{ ai?: string }>;
+  searchParams: Promise<{ ai?: string; analysisId?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
-  const analysis = await loadCompoundingAnalysis(accountUserId);
+  const analysis = await loadCompoundingAnalysis(accountUserId, params.analysisId);
   if (!analysis) {
     return (
       <>
         <LabWorkflowRail active="Key Debates" />
         <Section title="Start with company inputs">
           <p>Create or load an analysis before defining key debates.</p>
-          <Link className="btn primary" href="/compounding-expertise/inputs">Go to inputs</Link>
+          <Link className="btn primary" href="/compounding-expertise/inputs">Go to Company Model</Link>
         </Section>
       </>
     );
@@ -139,7 +139,7 @@ export default async function CompoundingExpertiseDebatesPage({
           </div>
           <div className="ctaRow">
             <button className="btn primary" type="submit">Save and continue</button>
-            <Link className="btn" href="/compounding-expertise/scorebook">Back</Link>
+            <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}`}>Back</Link>
           </div>
         </form>
       </Section>

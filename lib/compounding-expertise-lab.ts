@@ -361,6 +361,13 @@ export type EvidenceCoverageSummary = {
   unknown: number;
 };
 
+export function compoundingAnalysisAccessWhere(accountUserId: string | null, analysisId?: string | null) {
+  const access = accountUserId
+    ? { OR: [{ accountUserId }, { accountUserId: null }] }
+    : { accountUserId: null };
+  return analysisId ? { id: analysisId, ...access } : access;
+}
+
 export type DecisionSystemDerivedMetrics = {
   totalCases: number;
   resolvedCases: number;
@@ -433,11 +440,11 @@ export type StructuredInputDefinition = {
 
 export const LAB_WORKFLOW_STEPS = [
   { href: "/compounding-expertise/overview", label: "Overview", stage: "0", verb: "Understand" },
-  { href: "/compounding-expertise/inputs", label: "System & Environment", stage: "1", verb: "Understand" },
-  { href: "/compounding-expertise/scorebook", label: "Scorebook", stage: "2", verb: "Observe" },
+  { href: "/compounding-expertise/inputs", label: "Company Model", stage: "1", verb: "Understand" },
+  { href: "/compounding-expertise/scorebook", label: "Experience", stage: "2", verb: "Observe" },
   { href: "/compounding-expertise/debates", label: "Key Debates", stage: "3", verb: "Hypothesize" },
-  { href: "/compounding-expertise/diagnostic", label: "Diagnostic", stage: "4", verb: "Hypothesize" },
-  { href: "/compounding-expertise/simulator", label: "Simulator", stage: "5", verb: "Test" },
+  { href: "/compounding-expertise/diagnostic", label: "Power", stage: "4", verb: "Hypothesize" },
+  { href: "/compounding-expertise/simulator", label: "Stress Test", stage: "5", verb: "Test" },
   { href: "/compounding-expertise/memo", label: "Conclusion", stage: "6", verb: "Decide" }
 ] as const;
 

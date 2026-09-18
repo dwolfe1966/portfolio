@@ -62,9 +62,14 @@ const TEST_IDENTITIES: Record<CompoundingExampleId, { testType: string; isolates
 
 export const dynamic = "force-dynamic";
 
-export default async function CompoundingExpertiseOverviewPage() {
+export default async function CompoundingExpertiseOverviewPage({
+  searchParams
+}: {
+  searchParams: Promise<{ analysisId?: string }>;
+}) {
+  const params = await searchParams;
   const accountUserId = await currentAccountUserId();
-  const analysis = await loadCompoundingAnalysis(accountUserId);
+  const analysis = await loadCompoundingAnalysis(accountUserId, params.analysisId);
   const activeExample = canonicalExampleForCompany(analysis?.companyName);
   const activeCaseSet = analysis?.caseSets[0] ?? null;
 
@@ -104,7 +109,7 @@ export default async function CompoundingExpertiseOverviewPage() {
             </span>
           </div>
           <div className="ctaRow">
-            {analysis ? <Link className="btn primary" href="/compounding-expertise/inputs">Continue analysis</Link> : null}
+            {analysis ? <Link className="btn primary" href={`/compounding-expertise/inputs?analysisId=${analysis.id}`}>Continue analysis</Link> : null}
             <Link className="btn" href="/compounding-expertise/inputs">Start new company analysis</Link>
           </div>
         </div>

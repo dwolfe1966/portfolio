@@ -8,6 +8,7 @@ import {
   canonicalExampleForCompany,
   casesForCaseSet,
   deriveDecisionSystemMetrics,
+  scorebookRowsAreSynthetic,
   summarizeEvidenceCoverage,
   type CompanyThesisInput,
   type ScorebookCaseInput,
@@ -117,16 +118,17 @@ function evidenceLabel(status: string | null | undefined) {
 export default async function CompoundingExpertiseInputsPage({
   searchParams
 }: {
-  searchParams: Promise<{ example?: string }>;
+  searchParams: Promise<{ example?: string; analysisId?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
-  const analysis = await loadCompoundingAnalysis(accountUserId);
+  const analysis = await loadCompoundingAnalysis(accountUserId, params.analysisId);
   const canonicalExample = canonicalExampleForCompany(analysis?.companyName);
   const profile = analysis ? profileFacts(analysis) : null;
   const selectedCaseSet = analysis?.caseSets[0] ?? null;
   const scorebookRows = analysis?.scorebookCases.map(caseInput) ?? [];
   const activeRows = casesForCaseSet(scorebookRows, selectedCaseSet?.id);
+  const activeRowsAreSynthetic = activeRows.length > 0 && scorebookRowsAreSynthetic(activeRows);
   const derived = deriveDecisionSystemMetrics(activeRows);
   const evidenceCoverage = summarizeEvidenceCoverage(analysis?.evidenceRecords ?? []);
   const coverageTotal = Object.values(evidenceCoverage).reduce((sum, value) => sum + value, 0);
@@ -149,14 +151,47 @@ export default async function CompoundingExpertiseInputsPage({
   const opportunity = analysis?.environment;
   const learning = analysis?.learningArchitecture;
   const competitive = analysis?.competitiveArchitecture;
+  const loopProvenance = activeRows.length
+    ? activeRowsAreSynthetic ? "SYNTHETIC-FIXTURE DERIVED" : "COMPANY-DATA DERIVED"
+    : "UNKNOWN / DILIGENCE REQUIRED";
+  const learningLoopNodes: Array<[string, string | number | null | undefined, string]> = [
+    ["CONTEXT", activeRows.length ? `${activeRows.length}/${activeRows.length} represented` : learning?.capturesContext, loopProvenance],
+    ["DECISION", activeRows.length ? `${activeRows.filter((row) => row.agentDecision).length}/${activeRows.length} represented` : learning?.capturesAgentDecision, loopProvenance],
+    ["HUMAN", activeRows.length ? `${activeRows.filter((row) => row.humanDecision).length}/${activeRows.length} represented` : learning?.capturesHumanDecision, loopProvenance],
+    ["ACTION", activeRows.length ? `${activeRows.filter((row) => row.actionTaken).length}/${activeRows.length} represented` : learning?.capturesActionTaken, loopProvenance],
+    ["OUTCOME", activeRows.length ? `${activeRows.filter((row) => row.outcome).length}/${activeRows.length} represented` : learning?.capturesOutcome, loopProvenance],
+    ["GRADE", activeRows.length ? `${activeRows.filter((row) => row.grade !== "UNRESOLVED").length}/${activeRows.length} represented` : learning?.capturesExplicitGrade, loopProvenance],
+    ["UPDATE", learning?.usesOutcomeGradesForLearning ?? "UNKNOWN", "UNKNOWN / DILIGENCE REQUIRED"]
+  ];
 
   return (
     <>
-      <LabWorkflowRail active="System & Environment" />
-      <Section eyebrow="Stage 1" title="System & Environment">
+      <LabWorkflowRail active="Company Model" />
+      <Section eyebrow="Company Model · System & Environment" title="How could this company compound expertise?">
         <p>
           Review the system that generates experience, the environment it operates in, and the evidence behind each conclusion.
         </p>
+        <div className="card compoundingStageOrientation">
+          <div>
+            <p className="small">What am I seeing?</p>
+            <p>A structured model of the conditions that determine whether this company can turn operating experience into durable expertise.</p>
+          </div>
+          <div>
+            <p className="small">Why does it matter?</p>
+            <p>Compounding Expertise requires more than collecting data. There must be something valuable to learn, usable feedback, a company architecture that captures the feedback, and defensibility against capable challengers.</p>
+          </div>
+          <div>
+            <p className="small">What should I do?</p>
+            <p>Review the model below. Focus on what is supported by evidence, what is an assumption, and what remains unknown. Unknowns become diligence questions later.</p>
+          </div>
+        </div>
+        <div className="compoundingConceptFlow">
+          <span>Decision System</span>
+          <span>Learning Opportunity</span>
+          <span>Learning Architecture</span>
+          <span>Defensibility</span>
+        </div>
+        <a className="btn primary" href="#company-model-review">Review company model ↓</a>
         {params.example ? (
           <div className="card compoundingSyntheticBanner">
             <strong>Example loaded.</strong>
@@ -183,14 +218,25 @@ export default async function CompoundingExpertiseInputsPage({
 
       {analysis && profile ? (
         <>
+          <div id="company-model-review" />
           <Section title="Evidence coverage">
             <div className="compoundingEvidenceStrip">
-              <span><strong>{evidenceCoverage.derived}</strong> derived / observed</span>
+              <span><strong>{derived.totalCases}</strong> {activeRowsAreSynthetic ? "synthetic" : "active"} CaseSet rows</span>
               <span><strong>{evidenceCoverage.sourced}</strong> sourced</span>
-              <span><strong>{evidenceCoverage.assumed}</strong> analyst or synthetic assumptions</span>
+              <span><strong>{evidenceCoverage.assumed}</strong> archetype / analyst assumptions</span>
               <span><strong>{evidenceCoverage.inferred}</strong> inferred</span>
               <span><strong>{coverageTotal ? evidenceCoverage.unknown : 8}</strong> unknown / diligence required</span>
             </div>
+            <details className="card compoundingDisclosure">
+              <summary>Most important unknowns</summary>
+              <ul>
+                <li>Does performance improve from graded outcomes rather than merely storing cases?</li>
+                <li>Does learning transfer across customers without washing out local context?</li>
+                <li>Does the company have rights to retain, evaluate, and learn from cases?</li>
+                <li>How quickly could a capable challenger rebuild, simulate, or compress the useful expertise?</li>
+                <li>How much does foundation-model progress reduce the value of accumulated experience?</li>
+              </ul>
+            </details>
           </Section>
 
           <Section title="Company profile">
@@ -212,11 +258,15 @@ export default async function CompoundingExpertiseInputsPage({
             </div>
           </Section>
 
-          <Section title="Decision system">
+          <Section title="1. What decisions create the opportunity to learn?">
+            <p>
+              Compounding Expertise forms around repeated decision classes, not abstractly at the company level.
+              For canonical tests, this is archetype structure, not a claim about the company&apos;s actual internal process.
+            </p>
             <div className="card compoundingCanonicalPanel">
               <div className="compoundingCardHeader">
                 <div>
-                  <p className="small">Workflow</p>
+                  <p className="small">Operational workflow · archetype model</p>
                   <h3>{workflow?.name ?? "Workflow not normalized yet"}</h3>
                   <p>{workflow?.description ?? analysis.workflow}</p>
                 </div>
@@ -239,6 +289,7 @@ export default async function CompoundingExpertiseInputsPage({
                 <thead>
                   <tr>
                     <th>Decision Class</th>
+                    <th>Question</th>
                     <th>Volume</th>
                     <th>Stakes</th>
                     <th>Gradeability</th>
@@ -251,7 +302,8 @@ export default async function CompoundingExpertiseInputsPage({
                 <tbody>
                   {visibleDecisionClasses.map((decisionClass) => (
                     <tr key={decisionClass.id}>
-                      <td><strong>{decisionClass.name}</strong><br />{display(decisionClass.description)}</td>
+                      <td><strong>{decisionClass.name}</strong></td>
+                      <td>{display(decisionClass.description)}</td>
                       <td>{display(decisionClass.decisionFrequency ?? derived.observedDecisionVolume.casesPerMonth, "Unknown")}</td>
                       <td>{display(decisionClass.economicStakes)}</td>
                       <td>{display(decisionClass.gradeObjectivity)}</td>
@@ -268,6 +320,7 @@ export default async function CompoundingExpertiseInputsPage({
               <details className="card compoundingDisclosure" key={`${decisionClass.id}-detail`}>
                 <summary>{decisionClass.name}: action space and provenance</summary>
                 <p>{display(decisionClass.description)}</p>
+                <p><strong>Why this matters:</strong> High-frequency, economically meaningful decisions with observable outcomes provide favorable raw material for Compounding Expertise.</p>
                 <div className="compoundingCaseSetFacts">
                   <span><strong>Outcome observability</strong>{display(decisionClass.outcomeObservability)}</span>
                   <span><strong>Natural feedback</strong>{days(decisionClass.naturalFeedbackLatencyDays ?? derived.medianDecisionToOutcomeLatencyDays)}</span>
@@ -283,31 +336,36 @@ export default async function CompoundingExpertiseInputsPage({
             ))}
           </Section>
 
-          <Section title="Compounding Opportunity">
+          <Section title="2. Can reality teach the system?">
+            <p>
+              This section asks whether the environment naturally produces feedback that can reduce uncertainty about future decisions.
+            </p>
             <div className="compoundingProfileGrid">
               <div className="card"><strong>Case frequency</strong><p>{display(opportunity?.naturalCaseFrequency ?? analysis.caseFrequency)}</p><span className="miniTag">{evidenceLabel("ASSUMED")}</span></div>
-              <div className="card"><strong>Observed CaseSet volume</strong><p>{derived.observedDecisionVolume.count} cases{derived.observedDecisionVolume.casesPerMonth !== null ? ` / ${derived.observedDecisionVolume.casesPerMonth} per month observed` : ""}</p><span className="miniTag">DERIVED</span></div>
+              <div className="card"><strong>Synthetic CaseSet volume</strong><p>{derived.observedDecisionVolume.count} cases{derived.observedDecisionVolume.casesPerMonth !== null ? ` / ${derived.observedDecisionVolume.casesPerMonth} per month in fixture` : ""}</p><span className="miniTag">SYNTHETIC-FIXTURE DERIVED</span></div>
               <div className="card"><strong>Outcome observability</strong><p>{display(opportunity?.outcomeObservability ?? analysis.observesOutcome)}</p><span className="miniTag">ASSUMED</span></div>
               <div className="card"><strong>Outcome objectivity</strong><p>{display(opportunity?.outcomeObjectivity ?? analysis.outcomeObjectivity)}</p><span className="miniTag">ASSUMED</span></div>
-              <div className="card"><strong>Feedback latency</strong><p>{days(opportunity?.naturalFeedbackLatencyDays ?? derived.medianDecisionToOutcomeLatencyDays)}</p><span className="miniTag">{derived.medianDecisionToOutcomeLatencyDays === null ? "UNKNOWN" : "DERIVED"}</span></div>
+              <div className="card"><strong>Feedback latency</strong><p>{days(opportunity?.naturalFeedbackLatencyDays ?? derived.medianDecisionToOutcomeLatencyDays)}</p><span className="miniTag">{derived.medianDecisionToOutcomeLatencyDays === null ? "UNKNOWN" : activeRowsAreSynthetic ? "SYNTHETIC-FIXTURE DERIVED" : "COMPANY-DATA DERIVED"}</span></div>
               <div className="card"><strong>Nonstationarity</strong><p>{display(opportunity?.environmentalNonstationarity ?? analysis.environmentalChangeRate)}</p><span className="miniTag">ASSUMED</span></div>
               <div className="card"><strong>Foundation model improvement</strong><p>{display(opportunity?.foundationModelImprovementRate ?? analysis.foundationModelImprovementRate)}</p><span className="miniTag">ASSUMED</span></div>
             </div>
+            <div className="card">
+              <h3>Current interpretation</h3>
+              <p>{canonicalExample ? "Potentially favorable learning environment under the archetype. Frequent, economically meaningful decisions and relatively objective feedback would support learning, but several conditions remain archetype assumptions rather than verified company evidence." : "Interpretation depends on replacing assumptions with observed or sourced evidence. No numeric Compounding Expertise score is calculated."}</p>
+            </div>
           </Section>
 
-          <Section title="Learning architecture">
+          <Section title="3. Does the company close the learning loop?">
+            <p>The operational workflow generates experience. The learning loop determines whether that experience becomes expertise.</p>
             <div className="compoundingLearningLoop">
-              {[
-                ["CONTEXT", learning?.capturesContext],
-                ["DECISION", learning?.capturesAgentDecision],
-                ["HUMAN", learning?.capturesHumanDecision],
-                ["ACTION", learning?.capturesActionTaken],
-                ["OUTCOME", learning?.capturesOutcome],
-                ["GRADE", learning?.capturesExplicitGrade],
-                ["UPDATE", learning?.usesOutcomeGradesForLearning]
-              ].map(([label, value]) => (
-                <span key={label}><strong>{label}</strong><small>{display(value)}</small></span>
+              {learningLoopNodes.map(([label, value, provenance]) => (
+                <span key={label}><strong>{label}</strong><small>{display(value)}</small><small>{display(provenance)}</small></span>
               ))}
+            </div>
+            <div className="card">
+              <h3>Critical learning-loop question</h3>
+              <p>We can model a scorebook, but do we have evidence that graded outcomes actually improve future decisions?</p>
+              <p className="small">If cross-customer learning is unknown, the next question is whether those improvements transfer across customers.</p>
             </div>
             <div className="compoundingProfileGrid">
               <div className="card"><strong>Cross-customer pooling</strong><p>{display(learning?.pooledAcrossCustomers ?? analysis.learnsAcrossCustomers)}</p></div>
@@ -319,12 +377,42 @@ export default async function CompoundingExpertiseInputsPage({
             </div>
           </Section>
 
-          <Section title="Competitive architecture">
+          <Section title="4. If it learns, can competitors reproduce it?">
+            <p>
+              A company can possess valuable expertise without possessing durable Power. The investment question is whether the learning advantage persists against capable challengers.
+            </p>
             <div className="compoundingProfileGrid">
               <div className="card"><strong>Data advantage</strong><p>Raw cases: {display(competitive?.rawCasesExclusive ?? analysis.dataExclusivity)}<br />Outcomes: {display(competitive?.outcomesExclusive)}<br />Corrections: {display(competitive?.humanCorrectionsExclusive)}</p></div>
               <div className="card"><strong>Workflow position</strong><p>Decision: {display(competitive?.systemOfDecision ?? analysis.ownsDecisionPoint)}<br />Action: {display(competitive?.systemOfAction ?? analysis.controlsAction)}<br />Outcome capture: {display(competitive?.systemOfOutcomeCapture ?? analysis.observesOutcome)}</p></div>
               <div className="card"><strong>Rebuildability / substitution</strong><p>Public data: {display(competitive?.publicDataSubstitutionRisk)}<br />Synthetic data: {display(competitive?.syntheticDataSubstitutionRisk)}<br />Foundation model: {display(competitive?.foundationModelSubstitutionRisk ?? analysis.foundationModelDependence)}</p></div>
               <div className="card"><strong>Alternative Power</strong><p>Deterministic infrastructure: {display(competitive?.deterministicInfrastructureStrength ?? analysis.deterministicInfrastructure)}<br />Distribution: {display(competitive?.distributionAdvantage ?? analysis.distributionAdvantage)}<br />Regulatory / contractual: {display(competitive?.regulatoryBarrierStrength ?? analysis.regulatoryContractualBarriers)}</p></div>
+            </div>
+          </Section>
+
+          <Section title="What we currently think">
+            <div className="grid grid-2">
+              <div className="card">
+                <h3>Working synthesis</h3>
+                <p>
+                  {canonicalExample
+                    ? `${profile.name} is being modeled as a canonical ${canonicalExample.testLabel.toLowerCase()} for Compounding Expertise. The archetype clarifies what should be true, but synthetic fixtures and assumptions are not proof about the company.`
+                    : `${profile.name} has a structured company model, but the strength of Compounding Expertise depends on replacing assumptions and unknowns with evidence.`}
+                </p>
+              </div>
+              <div className="card">
+                <h3>What we still need to know</h3>
+                <ul>
+                  <li>Whether graded outcomes improve future decision behavior.</li>
+                  <li>Whether learning transfers across customers and case types.</li>
+                  <li>Whether learning rights and workflow position make the advantage defensible.</li>
+                  <li>Whether stronger models, synthetic data, or competitor relearning can compress the advantage.</li>
+                </ul>
+              </div>
+            </div>
+            <div className="card">
+              <h3>Next step</h3>
+              <p>Now inspect the cases that represent the proposed scorebook and ask what they actually teach.</p>
+              <Link className="btn primary" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}`}>Continue to Experience →</Link>
             </div>
           </Section>
         </>
@@ -432,7 +520,7 @@ export default async function CompoundingExpertiseInputsPage({
 
           <div className="ctaRow">
             <button className="btn primary" type="submit">Save and inspect scorebook</button>
-            <Link className="btn" href="/compounding-expertise/overview">Back to overview</Link>
+            <Link className="btn" href={analysis ? `/compounding-expertise/overview?analysisId=${analysis.id}` : "/compounding-expertise/overview"}>Back to overview</Link>
           </div>
         </form>
       </Section>

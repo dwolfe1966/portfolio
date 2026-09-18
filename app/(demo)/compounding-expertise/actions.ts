@@ -170,6 +170,16 @@ function revalidateLab() {
   ].forEach((path) => revalidatePath(path));
 }
 
+function labPath(path: string, analysisId?: string | null, extra?: Record<string, string | null | undefined>) {
+  const params = new URLSearchParams();
+  if (analysisId) params.set("analysisId", analysisId);
+  Object.entries(extra ?? {}).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 export async function saveAnalysisAction(formData: FormData) {
   const accountUserId = await currentAccountUserId();
   const id = text(formData.get("analysisId"));
@@ -184,7 +194,7 @@ export async function saveAnalysisAction(formData: FormData) {
 
   await ensureAnalysisDefaults(analysis.id);
   revalidateLab();
-  redirect("/compounding-expertise/scorebook");
+  redirect(labPath("/compounding-expertise/scorebook", analysis.id));
 }
 
 export async function loadSyntheticExampleAction(formData?: FormData) {
@@ -399,7 +409,7 @@ export async function saveDebatesAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect("/compounding-expertise/diagnostic");
+  redirect(labPath("/compounding-expertise/diagnostic", analysisId));
 }
 
 export async function generateDebatesAction(formData: FormData) {
@@ -450,7 +460,7 @@ export async function generateDebatesAction(formData: FormData) {
   });
 
   revalidateLab();
-  redirect(`/compounding-expertise/debates?ai=${result.ok ? "generated" : "fallback"}`);
+  redirect(labPath("/compounding-expertise/debates", analysisId, { ai: result.ok ? "generated" : "fallback" }));
 }
 
 export async function saveDiagnosticAction(formData: FormData) {
@@ -481,7 +491,7 @@ export async function saveDiagnosticAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect("/compounding-expertise/simulator");
+  redirect(labPath("/compounding-expertise/simulator", analysisId));
 }
 
 export async function saveScorebookAction(formData: FormData) {
@@ -544,7 +554,7 @@ export async function saveScorebookAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect(`/compounding-expertise/debates${caseSetIds.find(Boolean) ? `?caseSetId=${caseSetIds.find(Boolean)}` : ""}`);
+  redirect(labPath("/compounding-expertise/debates", analysisId, { caseSetId: caseSetIds.find(Boolean) }));
 }
 
 export async function saveCaseSetAction(formData: FormData) {
@@ -580,7 +590,7 @@ export async function saveCaseSetAction(formData: FormData) {
     : await db.compoundingExpertiseCaseSet.create({ data });
 
   revalidateLab();
-  redirect(`/compounding-expertise/scorebook?caseSetId=${saved.id}`);
+  redirect(labPath("/compounding-expertise/scorebook", analysisId, { caseSetId: saved.id }));
 }
 
 export async function applyScorebookDerivedValuesAction(formData: FormData) {
@@ -605,7 +615,7 @@ export async function applyScorebookDerivedValuesAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect("/compounding-expertise/simulator?scorebook=applied");
+  redirect(labPath("/compounding-expertise/simulator", analysisId, { scorebook: "applied", caseSetId }));
 }
 
 export async function saveScenariosAction(formData: FormData) {
@@ -632,5 +642,5 @@ export async function saveScenariosAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect("/compounding-expertise/memo");
+  redirect(labPath("/compounding-expertise/memo", analysisId));
 }

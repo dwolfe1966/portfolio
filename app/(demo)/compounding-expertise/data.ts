@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { ACCOUNT_SESSION_COOKIE, verifyAccountSessionToken } from "@/lib/account-session";
+import { compoundingAnalysisAccessWhere } from "@/lib/compounding-expertise-lab";
 
 export type CompoundingAnalysisRecord = Awaited<ReturnType<typeof loadCompoundingAnalysis>>;
 
@@ -9,11 +10,9 @@ export async function currentAccountUserId() {
   return verifyAccountSessionToken(cookieStore.get(ACCOUNT_SESSION_COOKIE)?.value)?.userId ?? null;
 }
 
-export async function loadCompoundingAnalysis(accountUserId: string | null) {
+export async function loadCompoundingAnalysis(accountUserId: string | null, analysisId?: string | null) {
   return db.compoundingExpertiseAnalysis.findFirst({
-    where: accountUserId
-      ? { OR: [{ accountUserId }, { accountUserId: null }] }
-      : { accountUserId: null },
+    where: compoundingAnalysisAccessWhere(accountUserId, analysisId),
     include: {
       keyDebates: { orderBy: { createdAt: "asc" } },
       dimensionAssessments: { orderBy: [{ framework: "asc" }, { dimension: "asc" }] },
