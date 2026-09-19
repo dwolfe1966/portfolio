@@ -3489,6 +3489,75 @@ button {
   font-size: 10px;
   text-transform: uppercase;
 }
+.compoundingDatasetActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.compoundingDatasetActions .btn:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+.compoundingExperienceTable {
+  overflow-x: auto;
+}
+.compoundingExperienceTable .dataTable {
+  min-width: 1120px;
+  border-collapse: collapse;
+}
+.compoundingExperienceTable th,
+.compoundingExperienceTable td {
+  border: 1px solid color-mix(in srgb, var(--demo-divider) 72%, var(--demo-text) 28%);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.compoundingExperienceTable th {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.compoundingCaseDetailDisclosure summary {
+  cursor: pointer;
+  color: var(--demo-text);
+  font-weight: 800;
+}
+.compoundingCaseDetail {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+  min-width: 720px;
+}
+.compoundingCaseSequence {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap: 8px;
+}
+.compoundingCaseSequence span {
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+}
+.compoundingCaseSequence strong {
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.compoundingCaseSequence small {
+  color: var(--demo-text);
+  font-size: 12px;
+}
+.compoundingCaseSequence em {
+  color: var(--demo-text-muted);
+  font-size: 10px;
+  font-style: normal;
+}
 .compoundingEvidenceStrip,
 .compoundingLearningLoop,
 .compoundingWorkflowMap,
@@ -5220,8 +5289,11 @@ button {
   .compoundingQuestionSummary,
   .compoundingQuestionGrid,
   .compoundingCausalChain,
+  .compoundingCaseSequence,
   .compoundingProfileGrid,
   .compoundingCaseSetFacts { grid-template-columns: 1fr; }
+  .compoundingDatasetActions { flex-direction: column; }
+  .compoundingCaseDetail { min-width: 0; }
   .connectionChooserGrid,
   .connectionInventoryGrid,
   .lifecycleOpsGrid,

@@ -6,12 +6,16 @@ import {
   ENDOGENOUS_INPUTS,
   EXOGENOUS_INPUTS,
   LAB_WORKFLOW_STEPS,
+  SCOREBOOK_CASE_FIELD_CLASSIFICATION,
   apparentPowerLocations,
+  buildCaseDetailSequence,
   calculateScorebookMetrics,
   caseSetForExample,
   casesForCaseSet,
   compoundingAnalysisAccessWhere,
   defaultAssessments,
+  deriveCaseFeedbackLatencyDays,
+  deriveCaseResolvedStatus,
   actionKeyFromDecision,
   decisionClassKeyForCase,
   deriveDecisionSystemMetrics,
@@ -289,6 +293,32 @@ test("feedback latency and simulator-derived values use only observed graded row
   assert.equal(derived.startingGradedCases, 2);
   assert.equal(derived.feedbackDelayDays, 4.5);
   assert.equal(derived.feedbackDelaySampleSize, 2);
+});
+
+test("case detail helpers classify raw and CE-derived fields", () => {
+  assert.ok(SCOREBOOK_CASE_FIELD_CLASSIFICATION.sourceRawFields.includes("decisionAt"));
+  assert.ok(SCOREBOOK_CASE_FIELD_CLASSIFICATION.sourceRawFields.includes("outcomeAt"));
+  assert.ok(SCOREBOOK_CASE_FIELD_CLASSIFICATION.ceDerivedFields.includes("feedbackLatencyDays"));
+  assert.ok(SCOREBOOK_CASE_FIELD_CLASSIFICATION.ceDerivedFields.includes("resolvedStatus"));
+  assert.equal(deriveCaseFeedbackLatencyDays(scorebookRows[0]), 3);
+  assert.equal(deriveCaseResolvedStatus(scorebookRows[0]), "resolved");
+  assert.equal(deriveCaseResolvedStatus(scorebookRows[2]), "unresolved");
+});
+
+test("case detail sequence preserves context to grade inspection order with incomplete cases", () => {
+  const sequence = buildCaseDetailSequence(scorebookRows[2]);
+
+  assert.deepEqual(sequence.map((step) => step.label), [
+    "Context",
+    "Agent Decision",
+    "Human Intervention",
+    "Action Taken",
+    "Outcome",
+    "Grade"
+  ]);
+  assert.equal(sequence.every((step) => step.fieldType === "SOURCE / RAW FIELD"), true);
+  assert.equal(sequence.find((step) => step.label === "Outcome")?.value, null);
+  assert.equal(sequence.find((step) => step.label === "Grade")?.value, "UNRESOLVED");
 });
 
 test("human override calculations are descriptive and sample-sized", () => {

@@ -1603,6 +1603,59 @@ function feedbackLatencyDays(row: ScorebookCaseInput) {
   return (outcomeAt.getTime() - decisionAt.getTime()) / (24 * 60 * 60 * 1000);
 }
 
+export const SCOREBOOK_CASE_FIELD_CLASSIFICATION = {
+  sourceRawFields: [
+    "externalCaseId",
+    "customerSegment",
+    "caseType",
+    "context",
+    "agentDecision",
+    "agentConfidence",
+    "humanDecision",
+    "humanOverride",
+    "actionTaken",
+    "outcome",
+    "outcomeValue",
+    "grade",
+    "gradeConfidence",
+    "decisionAt",
+    "actionAt",
+    "outcomeAt",
+    "isEdgeCase",
+    "isSynthetic",
+    "sourceLabel",
+    "sourceRecordId",
+    "sourceRecordType",
+    "sourceRecordRoute",
+    "notes"
+  ],
+  ceDerivedFields: [
+    "feedbackLatencyDays",
+    "resolvedStatus",
+    "decisionClassLabel",
+    "flags"
+  ]
+} as const;
+
+export function deriveCaseFeedbackLatencyDays(row: ScorebookCaseInput) {
+  return feedbackLatencyDays(row);
+}
+
+export function deriveCaseResolvedStatus(row: ScorebookCaseInput) {
+  return Boolean(row.outcome || row.outcomeAt || row.grade !== "UNRESOLVED") ? "resolved" : "unresolved";
+}
+
+export function buildCaseDetailSequence(row: ScorebookCaseInput) {
+  return [
+    { label: "Context", value: row.context, fieldType: "SOURCE / RAW FIELD" },
+    { label: "Agent Decision", value: row.agentDecision, fieldType: "SOURCE / RAW FIELD" },
+    { label: "Human Intervention", value: row.humanDecision ?? (row.humanOverride ? "Override captured without final decision" : "No override captured"), fieldType: "SOURCE / RAW FIELD" },
+    { label: "Action Taken", value: row.actionTaken, fieldType: "SOURCE / RAW FIELD" },
+    { label: "Outcome", value: row.outcome, fieldType: "SOURCE / RAW FIELD" },
+    { label: "Grade", value: row.grade, fieldType: "SOURCE / RAW FIELD" }
+  ] as const;
+}
+
 function actionLatencyDays(row: ScorebookCaseInput) {
   const decisionAt = asDate(row.decisionAt);
   const actionAt = asDate(row.actionAt);

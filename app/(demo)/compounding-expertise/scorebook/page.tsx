@@ -2,8 +2,12 @@ import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
 import {
+  SCOREBOOK_CASE_FIELD_CLASSIFICATION,
+  buildCaseDetailSequence,
   calculateScorebookMetrics,
   casesForCaseSet,
+  deriveCaseFeedbackLatencyDays,
+  deriveCaseResolvedStatus,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
   sourceRouteIsSafe,
@@ -75,7 +79,42 @@ function displayDate(value: Date | string | null | undefined) {
   return date || "Unavailable";
 }
 
+function displayValue(value: string | number | boolean | null | undefined) {
+  if (value === null || value === undefined || value === "") return "Unavailable";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
+}
+
+function latencyLabel(row: ScorebookCaseInput) {
+  const latency = deriveCaseFeedbackLatencyDays(row);
+  return latency === null ? "Unavailable" : `${latency} days`;
+}
+
+function rowFlags(row: ScorebookCaseInput) {
+  return [
+    row.humanOverride ? "override" : null,
+    row.isEdgeCase ? "edge" : null,
+    row.grade === "UNRESOLVED" ? "unresolved" : null,
+    row.isSynthetic ? "synthetic" : null
+  ].filter((item): item is string => Boolean(item));
+}
+
 function matches(row: ScorebookCaseInput, filters: Record<string, string>) {
+  if (filters.q) {
+    const haystack = [
+      row.externalCaseId,
+      row.customerSegment,
+      row.caseType,
+      row.context,
+      row.agentDecision,
+      row.humanDecision,
+      row.actionTaken,
+      row.outcome,
+      row.grade,
+      row.sourceLabel
+    ].join(" ").toLowerCase();
+    if (!haystack.includes(filters.q.toLowerCase())) return false;
+  }
   if (filters.segment && row.customerSegment !== filters.segment) return false;
   if (filters.caseType && row.caseType !== filters.caseType) return false;
   if (filters.grade && row.grade !== filters.grade) return false;
@@ -96,6 +135,70 @@ function metricCard(label: string, value: string, sample: string) {
       <p className="small">{label}</p>
       <h3>{value}</h3>
       <p className="small">{sample}</p>
+    </div>
+  );
+}
+
+function CaseDetail({
+  row,
+  decisionClassName,
+  caseSet
+}: {
+  row: ScorebookCaseInput;
+  decisionClassName: string;
+  caseSet: NonNullable<Awaited<ReturnType<typeof loadCompoundingAnalysis>>>["caseSets"][number] | null;
+}) {
+  const sequence = buildCaseDetailSequence(row);
+  return (
+    <div className="compoundingCaseDetail">
+      <div className="compoundingCaseSequence">
+        {sequence.map((step) => (
+          <span key={step.label}>
+            <strong>{step.label}</strong>
+            <small>{displayValue(step.value)}</small>
+            <em>{step.fieldType}</em>
+          </span>
+        ))}
+      </div>
+      <div className="grid grid-3">
+        <div className="card compact">
+          <p className="small">CE-derived fields</p>
+          <p><strong>Feedback latency:</strong> {latencyLabel(row)}</p>
+          <p><strong>Resolved status:</strong> {deriveCaseResolvedStatus(row)}</p>
+          <p><strong>Decision class label:</strong> {decisionClassName}</p>
+          <p><strong>Flags:</strong> {rowFlags(row).join(", ") || "none"}</p>
+        </div>
+        <div className="card compact">
+          <p className="small">Source / raw attributes</p>
+          <p><strong>Human override:</strong> {displayValue(row.humanOverride)}</p>
+          <p><strong>Edge case:</strong> {displayValue(row.isEdgeCase)}</p>
+          <p><strong>Economic value:</strong> {money(row.outcomeValue ?? null)}</p>
+          <p><strong>Grade confidence:</strong> {displayValue(row.gradeConfidence)}</p>
+        </div>
+        <div className="card compact">
+          <p className="small">Provenance</p>
+          <p><strong>CaseSet:</strong> {caseSet?.name ?? "All scorebook rows"}</p>
+          <p><strong>Source type/system:</strong> {caseSet ? `${caseSet.sourceType} / ${caseSet.sourceSystemLabel ?? "Unspecified system"}` : row.sourceRecordType ?? "Manual / mixed"}</p>
+          <p><strong>Record:</strong> {displayValue(row.sourceRecordId)}</p>
+          <p><strong>Route:</strong> {displayValue(row.sourceRecordRoute ?? caseSet?.sourceRoute)}</p>
+          <p><strong>Model / policy:</strong> {caseSet ? `${caseSet.modelVersion ?? "No model"} / ${caseSet.policyVersion ?? "No policy"}` : "Unavailable"}</p>
+          <p><strong>Experiment / run:</strong> {caseSet ? `${caseSet.experimentId ?? caseSet.sourceRunLabel ?? "Unavailable"}` : "Unavailable"}</p>
+          <p><strong>Status:</strong> {row.isSynthetic ? "Synthetic illustrative data" : "Company / sourced / user-entered"}</p>
+        </div>
+      </div>
+      <details className="compoundingInlineEditor">
+        <summary>Raw field inventory</summary>
+        <div className="grid grid-2">
+          <div className="card compact">
+            <h3>Source / raw fields</h3>
+            <p>{SCOREBOOK_CASE_FIELD_CLASSIFICATION.sourceRawFields.join(", ")}</p>
+          </div>
+          <div className="card compact">
+            <h3>CE-derived fields</h3>
+            <p>{SCOREBOOK_CASE_FIELD_CLASSIFICATION.ceDerivedFields.join(", ")}</p>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }
@@ -190,25 +293,37 @@ export default async function CompoundingExpertiseScorebookPage({
   const caseTypes = uniq(activeRows.map((row) => row.caseType));
   const allSynthetic = scorebookRowsAreSynthetic(activeRows);
   const safeSourceRoute = selectedCaseSet && sourceRouteIsSafe(selectedCaseSet.sourceRoute) ? selectedCaseSet.sourceRoute : null;
+  const decisionClassNames = new Map(
+    analysis.workflows.flatMap((workflow) => workflow.decisionClasses.map((decisionClass) => [decisionClass.id, decisionClass.name] as const))
+  );
 
   return (
     <>
       <LabWorkflowRail active="Experience" analysisId={analysis?.id} />
-      <Section eyebrow="Experience · CaseSets / Scorebook" title="Show me the experience">
-        <p>
-          Compounding Expertise is evaluated over bodies of experience. A Case Set is a defined collection of cases
-          generated by a model, policy, experiment, customer cohort, time window, simulation, or imported dataset.
-          A Case Set becomes scorebook-like only when it contains decisions, actions, outcomes, grades, and provenance.
-        </p>
+      <Section eyebrow="Experience · CaseSets / Scorebook" title="What operating experience is available?">
+        <div className="card compoundingStageOrientation">
+          <div>
+            <p className="small">What am I seeing?</p>
+            <p>The operating experience available to the company.</p>
+          </div>
+          <div>
+            <p className="small">Why does it matter?</p>
+            <p>Compounding Expertise requires more than data volume; decisions must connect to actions, outcomes, and meaningful grades.</p>
+          </div>
+          <div>
+            <p className="small">What should I do?</p>
+            <p>Inspect summary statistics, then examine overrides, failures, edge cases, and unresolved cases to understand what the dataset actually teaches.</p>
+          </div>
+        </div>
         <div className="card compoundingCaseSetPanel">
           <div className="compoundingCardHeader">
             <div>
-              <p className="small">Active Case Set</p>
+              <p className="small">Active CaseSet</p>
               <h3>{selectedCaseSet?.name ?? "All scorebook rows"}</h3>
               <p>{selectedCaseSet?.description ?? "Rows are not yet assigned to a specific CaseSet."}</p>
             </div>
             {analysis.caseSets.length > 1 ? (
-              <form className="compoundingCaseSetSelector">
+              <form className="compoundingCaseSetSelector" id="case-set-selector">
                 <input type="hidden" name="analysisId" value={analysis.id} />
                 <label>
                   Case Set
@@ -225,10 +340,12 @@ export default async function CompoundingExpertiseScorebookPage({
           <div className="compoundingCaseSetFacts">
             <span><strong>Source</strong>{selectedCaseSet?.sourceSystemLabel ?? "Manual / mixed"}</span>
             <span><strong>Cases</strong>{activeRows.length} active rows{selectedCaseSet ? ` / ${selectedCaseSet.caseCount} declared` : ""}</span>
-            <span><strong>Generated</strong>{displayDate(selectedCaseSet?.generatedAt ?? selectedCaseSet?.importedAt)}</span>
+            <span><strong>Status</strong>{allSynthetic ? "Synthetic illustrative data" : selectedCaseSet?.isSynthetic ? "Synthetic" : "Company / sourced / user-entered"}</span>
             <span><strong>Provenance</strong>{selectedCaseSet?.provenanceLabel ?? "No CaseSet provenance recorded"}</span>
             <span><strong>Time window</strong>{selectedCaseSet ? `${displayDate(selectedCaseSet.timeWindowStart)} -> ${displayDate(selectedCaseSet.timeWindowEnd)}` : "Unavailable"}</span>
             <span><strong>Model / policy</strong>{selectedCaseSet ? `${selectedCaseSet.modelVersion ?? "No model"} / ${selectedCaseSet.policyVersion ?? "No policy"}` : "Unavailable"}</span>
+            <span><strong>Experiment / run</strong>{selectedCaseSet ? `${selectedCaseSet.experimentId ?? selectedCaseSet.sourceRunLabel ?? "Unavailable"}` : "Unavailable"}</span>
+            <span><strong>Generated / imported</strong>{displayDate(selectedCaseSet?.generatedAt ?? selectedCaseSet?.importedAt)}</span>
           </div>
           {selectedCaseSet ? (
             <details className="compoundingInlineEditor">
@@ -261,9 +378,14 @@ export default async function CompoundingExpertiseScorebookPage({
           ) : null}
           {safeSourceRoute ? <Link className="btn" href={safeSourceRoute}>Open source system</Link> : null}
         </div>
+        <div className="compoundingDatasetActions">
+          <Link className="btn" href={`/compounding-expertise/overview?analysisId=${analysis.id}`}>Use / load canonical sample</Link>
+          <button className="btn" type="button" disabled title="External import is planned for a later pass">Upload / import dataset</button>
+          <a className="btn" href="#case-set-selector">Choose existing CaseSet</a>
+        </div>
         {allSynthetic ? (
           <div className="card compoundingSyntheticBanner">
-            <strong>SYNTHETIC ILLUSTRATIVE DATA - NOT COMPANY DATA</strong>
+            <strong>SYNTHETIC ILLUSTRATIVE DATA — NOT COMPANY DATA</strong>
             <p>
               Every current row in this CaseSet is marked synthetic. Use this fixture to test the theory,
               not to describe real company operations.
@@ -285,29 +407,43 @@ export default async function CompoundingExpertiseScorebookPage({
         </form>
       </Section>
 
-      <Section title="Derived scorebook evidence">
+      <Section title="Dataset Summary">
         <div className="grid grid-4">
           {metricCard("Total cases", String(metrics.totalCases), selectedCaseSet ? selectedCaseSet.name : "All rows")}
-          {metricCard("Graded cases", pct(metrics.gradeCoverage), `n=${metrics.gradedCases}/${metrics.totalCases}`)}
-          {metricCard("Human override rate", pct(metrics.humanOverrideRate), `n=${metrics.humanOverrideValue.count}/${metrics.totalCases}`)}
-          {metricCard("Median feedback latency", metrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${metrics.medianFeedbackLatencyDays} days`, `n=${metrics.feedbackLatencySampleSize}`)}
-          {metricCard("Edge-case share", pct(metrics.edgeCaseShare), `n=${activeRows.filter((row) => row.isEdgeCase).length}/${metrics.totalCases}`)}
           {metricCard("Outcome completion", pct(metrics.outcomeCompletionRate), `n=${metrics.resolvedCases}/${metrics.totalCases}`)}
-          {metricCard("Agent correctness", pct(metrics.agentCorrectnessRate), `n=${metrics.gradedCases} resolvable grades`)}
-          {metricCard("Economic outcome", money(metrics.totalOutcomeValue), `avg ${money(metrics.averageOutcomeValue)}; n=${metrics.outcomeValueSampleSize}`)}
+          {metricCard("Grade coverage", pct(metrics.gradeCoverage), `n=${metrics.gradedCases}/${metrics.totalCases}`)}
+          {metricCard("Median feedback latency", metrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${metrics.medianFeedbackLatencyDays} days`, `n=${metrics.feedbackLatencySampleSize}`)}
+          {metricCard("Human overrides", `${metrics.humanOverrideValue.count}`, `${pct(metrics.humanOverrideRate)} of cases`)}
+          {metricCard("Edge cases", `${activeRows.filter((row) => row.isEdgeCase).length}`, `${pct(metrics.edgeCaseShare)} of cases`)}
         </div>
-      </Section>
-
-      <Section title="Why this matters">
-        <div className="card">
+        <details className="card compoundingDisclosure">
+          <summary>Secondary statistics</summary>
+          <div className="grid grid-3">
+            {metricCard("Agent correctness", pct(metrics.agentCorrectnessRate), `n=${metrics.gradedCases} resolvable grades`)}
+            {metricCard("Economic outcome", money(metrics.totalOutcomeValue), `avg ${money(metrics.averageOutcomeValue)}; n=${metrics.outcomeValueSampleSize}`)}
+            {metricCard("Synthetic rows", String(metrics.syntheticCaseCount), `n=${metrics.syntheticCaseCount}/${metrics.totalCases}`)}
+          </div>
+        </details>
+        <div className="card compact">
           <p>
             A large dataset is not necessarily expertise. We are looking for cases that reduce uncertainty about future decisions.
           </p>
         </div>
-      </Section>
-
-      <Section title="Human override value">
-        <div className="card">
+        <details className="card compoundingDisclosure">
+          <summary>Future information diagnostics</summary>
+          <p className="small">
+            This page keeps the case and DecisionClass links needed for future information-theoretic work, but does not calculate those metrics yet.
+          </p>
+          <div className="compoundingActionPills">
+            <span>redundancy</span>
+            <span>marginal information gain</span>
+            <span>conditional entropy</span>
+            <span>cross-customer transfer</span>
+            <span>compressibility</span>
+          </div>
+        </details>
+        <details className="card compoundingDisclosure">
+          <summary>Human override value</summary>
           <p>
             Overrides where the human final decision differs from the agent decision:
             <strong> {metrics.humanOverrideValue.count}</strong> ({pct(metrics.humanOverrideValue.shareOfCases)} of cases).
@@ -321,13 +457,14 @@ export default async function CompoundingExpertiseScorebookPage({
             Override economic outcome where available: {money(metrics.humanOverrideValue.totalOutcomeValue)}
             {" "}across n={metrics.humanOverrideValue.outcomeValueSampleSize}. This is observational, not causal proof of human value.
           </p>
-        </div>
+        </details>
       </Section>
 
       <Section title="Filters">
         <form className="grid grid-4">
           <input type="hidden" name="analysisId" value={analysis.id} />
           {selectedCaseSet ? <input type="hidden" name="caseSetId" value={selectedCaseSet.id} /> : null}
+          <label>Search<input name="q" defaultValue={params.q ?? ""} placeholder="case id, decision, outcome..." /></label>
           <label>Customer segment<select name="segment" defaultValue={params.segment ?? ""}><option value="">All</option>{segments.map((item) => <option key={item}>{item}</option>)}</select></label>
           <label>Case type<select name="caseType" defaultValue={params.caseType ?? ""}><option value="">All</option>{caseTypes.map((item) => <option key={item}>{item}</option>)}</select></label>
           <label>Grade<select name="grade" defaultValue={params.grade ?? ""}><option value="">All</option>{GRADES.map((grade) => <option key={grade} value={grade}>{grade.replaceAll("_", " ")}</option>)}</select></label>
@@ -342,58 +479,107 @@ export default async function CompoundingExpertiseScorebookPage({
         </form>
       </Section>
 
-      <Section title="Editable cases">
-        <form action={saveScorebookAction}>
-          <input type="hidden" name="analysisId" value={analysis.id} />
-          <div className="tableScroll compoundingScorebookTable">
-            <table className="dataTable compoundingGroupedTable">
-              <thead>
-                <tr>
-                  <th rowSpan={2}>Row</th>
-                  <th colSpan={4}>Case</th>
-                  <th colSpan={2}>Agent</th>
-                  <th colSpan={2}>Human</th>
-                  <th colSpan={2}>Action</th>
-                  <th colSpan={4}>Reality</th>
-                  <th colSpan={9}>Learning / provenance</th>
-                </tr>
-                <tr>
-                  <th>ID</th>
-                  <th>Customer</th>
-                  <th>Type</th>
-                  <th>Context</th>
-                  <th>Decision</th>
-                  <th>Confidence</th>
-                  <th>Final decision</th>
-                  <th>Override</th>
-                  <th>Action taken</th>
-                  <th>Action date</th>
-                  <th>Outcome</th>
-                  <th>Economic value</th>
-                  <th>Decision date</th>
-                  <th>Outcome date</th>
-                  <th>Grade</th>
-                  <th>Grade confidence</th>
-                  <th>Edge case</th>
-                  <th>Provenance</th>
-                  <th>Source label</th>
-                  <th>Source record id</th>
-                  <th>Source record type</th>
-                  <th>Source record route</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((row) => <ScorebookRow key={row.id} row={row} />)}
-                <ScorebookRow row={{ caseSetId: selectedCaseSet?.id ?? null, externalCaseId: "", sourceLabel: "User-entered scorebook row", grade: "UNRESOLVED", isSynthetic: false, humanOverride: false, isEdgeCase: false }} blank />
-              </tbody>
-            </table>
-          </div>
-          <div className="ctaRow">
-            <button className="btn primary" type="submit">Save scorebook</button>
-            <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Continue to key debates</Link>
-          </div>
-        </form>
+      <Section title="Cases">
+        <div className="tableScroll compoundingExperienceTable">
+          <table className="dataTable">
+            <thead>
+              <tr>
+                <th>Case ID</th>
+                <th>Decision class</th>
+                <th>Agent decision</th>
+                <th>Human decision</th>
+                <th>Action taken</th>
+                <th>Outcome</th>
+                <th>Grade</th>
+                <th>Feedback latency</th>
+                <th>Flags</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((row) => {
+                const decisionClassName = row.decisionClassId ? decisionClassNames.get(row.decisionClassId) ?? "Unmapped decision class" : "Unmapped decision class";
+                return (
+                  <tr key={row.id ?? row.externalCaseId}>
+                    <td>
+                      <details className="compoundingCaseDetailDisclosure">
+                        <summary>{row.externalCaseId}</summary>
+                        <CaseDetail row={row} decisionClassName={decisionClassName} caseSet={selectedCaseSet} />
+                      </details>
+                    </td>
+                    <td>{decisionClassName}</td>
+                    <td>{displayValue(row.agentDecision)}</td>
+                    <td>{displayValue(row.humanDecision)}</td>
+                    <td>{displayValue(row.actionTaken)}</td>
+                    <td>{displayValue(row.outcome)}</td>
+                    <td>{row.grade.replaceAll("_", " ")}</td>
+                    <td>{latencyLabel(row)}</td>
+                    <td>{rowFlags(row).map((flag) => <span className="miniTag" key={flag}>{flag}</span>)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="card compact">
+          <h3>What should I inspect next?</h3>
+          <p>Start with human overrides, incorrect or partially correct grades, edge cases, and unresolved cases. Those rows reveal what the dataset actually teaches.</p>
+        </div>
+        <details className="card compoundingDisclosure">
+          <summary>Edit dataset mode</summary>
+          <form action={saveScorebookAction}>
+            <input type="hidden" name="analysisId" value={analysis.id} />
+            <div className="tableScroll compoundingScorebookTable">
+              <table className="dataTable compoundingGroupedTable">
+                <thead>
+                  <tr>
+                    <th rowSpan={2}>Row</th>
+                    <th colSpan={4}>Case</th>
+                    <th colSpan={2}>Agent</th>
+                    <th colSpan={2}>Human</th>
+                    <th colSpan={2}>Action</th>
+                    <th colSpan={4}>Reality</th>
+                    <th colSpan={9}>Learning / provenance</th>
+                  </tr>
+                  <tr>
+                    <th>ID</th>
+                    <th>Customer</th>
+                    <th>Type</th>
+                    <th>Context</th>
+                    <th>Decision</th>
+                    <th>Confidence</th>
+                    <th>Final decision</th>
+                    <th>Override</th>
+                    <th>Action taken</th>
+                    <th>Action date</th>
+                    <th>Outcome</th>
+                    <th>Economic value</th>
+                    <th>Decision date</th>
+                    <th>Outcome date</th>
+                    <th>Grade</th>
+                    <th>Grade confidence</th>
+                    <th>Edge case</th>
+                    <th>Provenance</th>
+                    <th>Source label</th>
+                    <th>Source record id</th>
+                    <th>Source record type</th>
+                    <th>Source record route</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((row) => <ScorebookRow key={row.id} row={row} />)}
+                  <ScorebookRow row={{ caseSetId: selectedCaseSet?.id ?? null, externalCaseId: "", sourceLabel: "User-entered scorebook row", grade: "UNRESOLVED", isSynthetic: false, humanOverride: false, isEdgeCase: false }} blank />
+                </tbody>
+              </table>
+            </div>
+            <div className="ctaRow">
+              <button className="btn primary" type="submit">Save dataset edits</button>
+            </div>
+          </form>
+        </details>
+        <div className="ctaRow">
+          <Link className="btn primary" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Continue to Key Debates</Link>
+        </div>
       </Section>
 
       <Section title="Simulator bridge">
