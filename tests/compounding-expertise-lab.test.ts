@@ -5,12 +5,14 @@ import {
   COMPETITIVE_INPUTS,
   ENDOGENOUS_INPUTS,
   EXOGENOUS_INPUTS,
+  GUIDED_PROVENANCE_LABELS,
   LAB_WORKFLOW_STEPS,
   SCOREBOOK_CASE_FIELD_CLASSIFICATION,
   apparentPowerLocations,
   buildCaseDetailSequence,
   calculateScorebookMetrics,
   caseSetForExample,
+  caseSetDerivedProvenanceLabel,
   casesForCaseSet,
   compoundingAnalysisAccessWhere,
   defaultAssessments,
@@ -205,6 +207,14 @@ test("structured inputs distinguish exogenous opportunity from endogenous capabi
   assert.ok(EXOGENOUS_INPUTS.some((input) => input.key === "caseFrequency"));
   assert.ok(ENDOGENOUS_INPUTS.some((input) => input.key === "controlsAction"));
   assert.ok(COMPETITIVE_INPUTS.some((input) => input.key === "rebuildability"));
+});
+
+test("guided provenance taxonomy separates synthetic fixture derivation from company evidence", () => {
+  assert.ok(GUIDED_PROVENANCE_LABELS.includes("DERIVED — SYNTHETIC FIXTURE"));
+  assert.ok(GUIDED_PROVENANCE_LABELS.includes("OBSERVED — COMPANY DATA"));
+  assert.equal(caseSetDerivedProvenanceLabel({ hasRows: true, rowsAreSynthetic: true }), "DERIVED — SYNTHETIC FIXTURE");
+  assert.equal(caseSetDerivedProvenanceLabel({ hasRows: true, rowsAreSynthetic: false }), "DERIVED — COMPANY DATA");
+  assert.equal(caseSetDerivedProvenanceLabel({ hasRows: false, rowsAreSynthetic: false }), "UNKNOWN / DILIGENCE REQUIRED");
 });
 
 const scorebookRows: ScorebookCaseInput[] = [

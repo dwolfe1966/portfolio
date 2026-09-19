@@ -6,12 +6,14 @@ import {
   COMPETITIVE_INPUTS,
   ENDOGENOUS_INPUTS,
   EXOGENOUS_INPUTS,
+  caseSetDerivedProvenanceLabel,
   canonicalExampleForCompany,
   casesForCaseSet,
   deriveDecisionSystemMetrics,
   scorebookRowsAreSynthetic,
   summarizeEvidenceCoverage,
   type CompanyThesisInput,
+  type GuidedProvenanceLabel,
   type ScorebookCaseInput,
   type StructuredInputDefinition
 } from "@/lib/compounding-expertise-lab";
@@ -109,16 +111,52 @@ function caseInput(row: NonNullable<Awaited<ReturnType<typeof loadCompoundingAna
 
 function evidenceLabel(status: string | null | undefined) {
   const normalized = String(status ?? "UNKNOWN").toUpperCase();
-  if (normalized === "OBSERVED" || normalized === "DERIVED") return "DERIVED";
-  if (normalized === "SOURCED") return "SOURCED";
-  if (normalized === "ASSUMED") return "ASSUMED";
-  if (normalized === "INFERRED") return "INFERRED";
-  return "UNKNOWN";
+  if (normalized === "OBSERVED") return "OBSERVED — COMPANY DATA";
+  if (normalized === "DERIVED") return "DERIVED — COMPANY DATA";
+  if (normalized === "SOURCED") return "SOURCED — EXTERNAL EVIDENCE";
+  if (normalized === "ASSUMED") return "ANALYST ASSUMPTION";
+  if (normalized === "INFERRED") return "MODEL INFERENCE";
+  return "UNKNOWN / DILIGENCE REQUIRED";
 }
 
 function includesAny(value: string | number | null | undefined, terms: string[]) {
   const normalized = String(value ?? "").toUpperCase();
   return terms.some((term) => normalized.includes(term));
+}
+
+function captureState(value: string | number | null | undefined) {
+  const normalized = String(value ?? "").toUpperCase();
+  if (!normalized || normalized.includes("UNKNOWN")) return "UNKNOWN";
+  if (normalized.includes("0/") || normalized.includes("NO") || normalized.includes("NOT CAPTURED")) return "NOT CAPTURED";
+  if (normalized.includes("PARTIAL") || normalized.includes("SAMPLE") || normalized.includes("EXCEPTION")) return "PARTIAL";
+  return "CAPTURED";
+}
+
+function questionConfidence(provenance: string) {
+  if (provenance.includes("SYNTHETIC") || provenance.includes("ARCHETYPE")) return "ASSUMPTION-DOMINATED";
+  if (provenance.includes("UNKNOWN")) return "DILIGENCE REQUIRED";
+  return "EVIDENCE-SUPPORTED";
+}
+
+function criticalUnknowns({
+  learning,
+  competitive
+}: {
+  learning: NonNullable<Awaited<ReturnType<typeof loadCompoundingAnalysis>>>["learningArchitecture"] | null | undefined;
+  competitive: NonNullable<Awaited<ReturnType<typeof loadCompoundingAnalysis>>>["competitiveArchitecture"] | null | undefined;
+}) {
+  const unknowns = [
+    ["cross-customer transfer", learning?.pooledAcrossCustomers],
+    ["contractual learning rights", learning?.canTrainAcrossCustomers],
+    ["actual grade → update loop", learning?.usesOutcomeGradesForLearning],
+    ["deployment of learned improvements", learning?.deploymentCadence],
+    ["challenger rebuildability", competitive?.competitorRelearningDifficulty],
+    ["foundation-model substitution risk", competitive?.foundationModelSubstitutionRisk]
+  ];
+  return unknowns
+    .filter(([, value]) => includesAny(value, ["UNKNOWN", ""]))
+    .map(([label]) => label)
+    .slice(0, 5);
 }
 
 function QuestionNarrative({
@@ -159,6 +197,7 @@ function QuestionNarrative({
           <p className="small">Current interpretation</p>
           <h3>{currentInterpretation}</h3>
           <span className="miniTag">{provenance}</span>
+          <span className="miniTag">{questionConfidence(provenance)}</span>
         </div>
       </div>
       <div className="compoundingQuestionGrid">
@@ -230,18 +269,34 @@ export default async function CompoundingExpertiseInputsPage({
   const opportunity = analysis?.environment;
   const learning = analysis?.learningArchitecture;
   const competitive = analysis?.competitiveArchitecture;
-  const loopProvenance = activeRows.length
-    ? activeRowsAreSynthetic ? "SYNTHETIC-FIXTURE DERIVED" : "COMPANY-DATA DERIVED"
-    : "UNKNOWN / DILIGENCE REQUIRED";
-  const learningLoopNodes: Array<[string, string | number | null | undefined, string]> = [
-    ["CONTEXT", activeRows.length ? `${activeRows.length}/${activeRows.length} represented` : learning?.capturesContext, loopProvenance],
-    ["DECISION", activeRows.length ? `${activeRows.filter((row) => row.agentDecision).length}/${activeRows.length} represented` : learning?.capturesAgentDecision, loopProvenance],
-    ["HUMAN", activeRows.length ? `${activeRows.filter((row) => row.humanDecision).length}/${activeRows.length} represented` : learning?.capturesHumanDecision, loopProvenance],
-    ["ACTION", activeRows.length ? `${activeRows.filter((row) => row.actionTaken).length}/${activeRows.length} represented` : learning?.capturesActionTaken, loopProvenance],
-    ["OUTCOME", activeRows.length ? `${activeRows.filter((row) => row.outcome).length}/${activeRows.length} represented` : learning?.capturesOutcome, loopProvenance],
-    ["GRADE", activeRows.length ? `${activeRows.filter((row) => row.grade !== "UNRESOLVED").length}/${activeRows.length} represented` : learning?.capturesExplicitGrade, loopProvenance],
-    ["UPDATE", learning?.usesOutcomeGradesForLearning ?? "UNKNOWN", "UNKNOWN / DILIGENCE REQUIRED"],
-    ["DEPLOYMENT", learning?.deploymentCadence ?? analysis?.deploysImprovementsQuickly ?? "UNKNOWN", "UNKNOWN / DILIGENCE REQUIRED"]
+  const loopProvenance = caseSetDerivedProvenanceLabel({ hasRows: activeRows.length > 0, rowsAreSynthetic: activeRowsAreSynthetic });
+  const loopNode = (
+    label: string,
+    represented: number | null,
+    denominator: number,
+    fallback: string | number | null | undefined,
+    provenance: GuidedProvenanceLabel,
+    meaning: string
+  ) => {
+    const value = represented === null ? fallback : `${represented}/${denominator} cases represented`;
+    return {
+      label,
+      value,
+      state: captureState(value),
+      provenance,
+      meaning,
+      coverage: represented === null ? null : `${represented}/${denominator} active CaseSet rows`
+    };
+  };
+  const learningLoopNodes = [
+    loopNode("CONTEXT", activeRows.length ? activeRows.length : null, activeRows.length, learning?.capturesContext, loopProvenance, "Can the system retain the facts and context needed to learn from a case?"),
+    loopNode("DECISION", activeRows.length ? activeRows.filter((row) => row.agentDecision).length : null, activeRows.length, learning?.capturesAgentDecision, loopProvenance, "Is the agent recommendation or decision represented?"),
+    loopNode("HUMAN", activeRows.length ? activeRows.filter((row) => row.humanDecision).length : null, activeRows.length, learning?.capturesHumanDecision, loopProvenance, "Are human interventions and corrections captured?"),
+    loopNode("ACTION", activeRows.length ? activeRows.filter((row) => row.actionTaken).length : null, activeRows.length, learning?.capturesActionTaken, loopProvenance, "Is the action actually taken distinct from the recommendation?"),
+    loopNode("OUTCOME", activeRows.length ? activeRows.filter((row) => row.outcome).length : null, activeRows.length, learning?.capturesOutcome, loopProvenance, "Can the company observe what happened after the action?"),
+    loopNode("GRADE", activeRows.length ? activeRows.filter((row) => row.grade !== "UNRESOLVED").length : null, activeRows.length, learning?.capturesExplicitGrade, loopProvenance, "Is the decision graded against an outcome or standard?"),
+    loopNode("UPDATE", null, activeRows.length, learning?.usesOutcomeGradesForLearning ?? "UNKNOWN", "UNKNOWN / DILIGENCE REQUIRED", "Do grades change future policy or model behavior?"),
+    loopNode("DEPLOYMENT", null, activeRows.length, learning?.deploymentCadence ?? analysis?.deploysImprovementsQuickly ?? "UNKNOWN", "UNKNOWN / DILIGENCE REQUIRED", "Do learned changes reach production?")
   ];
   const repeatedDecision = derived.totalCases > 0 || visibleDecisionClasses.some((item) => !includesAny(item.decisionFrequency, ["LOW", "UNKNOWN", "NOT"]));
   const meaningfulStakes = visibleDecisionClasses.some((item) => includesAny(item.economicStakes, ["HIGH", "VERY"]));
@@ -261,7 +316,7 @@ export default async function CompoundingExpertiseInputsPage({
       : gradeableDecision || observableDecision
         ? "Partial feedback environment"
         : "Weak feedback environment";
-  const loopCapturedCount = learningLoopNodes.filter(([, value]) => !includesAny(value, ["UNKNOWN", "NO", "NOT"])).length;
+  const loopCapturedCount = learningLoopNodes.filter((node) => node.state === "CAPTURED" || node.state === "PARTIAL").length;
   const updateKnown = !includesAny(learning?.usesOutcomeGradesForLearning, ["UNKNOWN", "NO", "NOT"]);
   const deployKnown = !includesAny(learning?.deploymentCadence ?? analysis?.deploysImprovementsQuickly, ["UNKNOWN", "NO", "NOT"]);
   const loopInterpretation = loopCapturedCount >= 6 && updateKnown && deployKnown
@@ -281,8 +336,9 @@ export default async function CompoundingExpertiseInputsPage({
       ? "Conditional / uncertain"
       : "Unknown";
   const modelProvenance = canonicalExample
-    ? activeRowsAreSynthetic ? "ARCHETYPE-ASSUMPTION DOMINATED + SYNTHETIC-FIXTURE DERIVED" : "ARCHETYPE-ASSUMPTION DOMINATED"
-    : activeRowsAreSynthetic ? "SYNTHETIC-FIXTURE DERIVED" : "MIXED / DILIGENCE REQUIRED";
+    ? activeRowsAreSynthetic ? "ARCHETYPE ASSUMPTION + DERIVED — SYNTHETIC FIXTURE" : "ARCHETYPE ASSUMPTION"
+    : activeRowsAreSynthetic ? "DERIVED — SYNTHETIC FIXTURE" : "MIXED / DILIGENCE REQUIRED";
+  const importantUnknowns = criticalUnknowns({ learning, competitive });
 
   return (
     <>
@@ -348,19 +404,36 @@ export default async function CompoundingExpertiseInputsPage({
               <span><strong>{activeRowsAreSynthetic ? 0 : derived.totalCases}</strong> company-observed / company-derived</span>
               <span><strong>{evidenceCoverage.sourced}</strong> externally sourced</span>
               <span><strong>{activeRowsAreSynthetic ? derived.totalCases : 0}</strong> synthetic-derived rows</span>
-              <span><strong>{evidenceCoverage.assumed}</strong> analyst / archetype assumptions</span>
+              <span><strong>{canonicalExample ? Math.max(evidenceCoverage.assumed, 1) : evidenceCoverage.assumed}</strong> archetype / analyst assumptions</span>
               <span><strong>{evidenceCoverage.inferred}</strong> model inference</span>
               <span><strong>{coverageTotal ? evidenceCoverage.unknown : 8}</strong> unknown / diligence required</span>
             </div>
             <details className="card compoundingDisclosure">
               <summary>Most important unknowns</summary>
+              <p className="small">These are not ranked with false precision. They are the missing facts most likely to change the CE/Power conclusion.</p>
               <ul>
-                <li>Does performance improve from graded outcomes rather than merely storing cases?</li>
-                <li>Does learning transfer across customers without washing out local context?</li>
-                <li>Does the company have rights to retain, evaluate, and learn from cases?</li>
-                <li>How quickly could a capable challenger rebuild, simulate, or compress the useful expertise?</li>
-                <li>How much does foundation-model progress reduce the value of accumulated experience?</li>
+                {(importantUnknowns.length ? importantUnknowns : [
+                  "measured improvement from accumulated cases",
+                  "cross-customer transfer",
+                  "contractual learning rights",
+                  "actual grade → update loop",
+                  "challenger rebuildability"
+                ]).map((item) => <li key={item}>{item}</li>)}
               </ul>
+            </details>
+            <details className="card compoundingDisclosure">
+              <summary>Provenance taxonomy</summary>
+              <div className="compoundingActionPills">
+                <span>OBSERVED — COMPANY DATA</span>
+                <span>SOURCED — EXTERNAL EVIDENCE</span>
+                <span>DERIVED — COMPANY DATA</span>
+                <span>DERIVED — SYNTHETIC FIXTURE</span>
+                <span>ANALYST ASSUMPTION</span>
+                <span>ARCHETYPE ASSUMPTION</span>
+                <span>MODEL INFERENCE</span>
+                <span>UNKNOWN / DILIGENCE REQUIRED</span>
+              </div>
+              <p className="small">Derived from synthetic fixture means the canonical sample demonstrates what a dataset could look like. It is not observed company evidence.</p>
             </details>
           </Section>
 
@@ -404,7 +477,7 @@ export default async function CompoundingExpertiseInputsPage({
               evidenceUsed={[
                 `Decision classes: ${visibleDecisionClasses.map((item) => item.name).join(", ") || "none"}.`,
                 `Action evidence: ${derived.actionDistribution.slice(0, 3).map((item) => `${item.label} (${item.count})`).join(", ") || "unavailable"}.`,
-                `CaseSet rows: ${derived.totalCases} (${activeRowsAreSynthetic ? "synthetic fixture" : "active data"}).`,
+                `CaseSet rows: ${derived.totalCases} (${activeRowsAreSynthetic ? "DERIVED — SYNTHETIC FIXTURE" : "DERIVED — COMPANY DATA"}).`,
                 canonicalExample ? "Canonical-test structure is archetype metadata, not verified company operations." : "Custom analysis values may be analyst-entered unless supported by evidence."
               ]}
               changeAnswer={[
@@ -464,7 +537,7 @@ export default async function CompoundingExpertiseInputsPage({
                       <td>{days(decisionClass.naturalFeedbackLatencyDays ?? derived.medianDecisionToOutcomeLatencyDays)}</td>
                       <td>{display(decisionClass.humanReviewMode)}</td>
                       <td>{display(decisionClass.currentAutonomyMode)}</td>
-                      <td><span className="miniTag">{decisionClasses.length ? "ASSUMED" : "LEGACY SUMMARY"}</span></td>
+                      <td><span className="miniTag">{decisionClasses.length ? "ARCHETYPE ASSUMPTION" : "ANALYST ASSUMPTION"}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -541,13 +614,13 @@ export default async function CompoundingExpertiseInputsPage({
               ))}
             </div>
             <div className="compoundingProfileGrid">
-              <div className="card"><strong>Case frequency</strong><p>{display(opportunity?.naturalCaseFrequency ?? analysis.caseFrequency)}</p><span className="miniTag">{evidenceLabel("ASSUMED")}</span></div>
-              <div className="card"><strong>Synthetic CaseSet volume</strong><p>{derived.observedDecisionVolume.count} cases{derived.observedDecisionVolume.casesPerMonth !== null ? ` / ${derived.observedDecisionVolume.casesPerMonth} per month in fixture` : ""}</p><span className="miniTag">SYNTHETIC-FIXTURE DERIVED</span></div>
-              <div className="card"><strong>Outcome observability</strong><p>{display(opportunity?.outcomeObservability ?? analysis.observesOutcome)}</p><span className="miniTag">ASSUMED</span></div>
-              <div className="card"><strong>Outcome objectivity</strong><p>{display(opportunity?.outcomeObjectivity ?? analysis.outcomeObjectivity)}</p><span className="miniTag">ASSUMED</span></div>
-              <div className="card"><strong>Feedback latency</strong><p>{days(opportunity?.naturalFeedbackLatencyDays ?? derived.medianDecisionToOutcomeLatencyDays)}</p><span className="miniTag">{derived.medianDecisionToOutcomeLatencyDays === null ? "UNKNOWN" : activeRowsAreSynthetic ? "SYNTHETIC-FIXTURE DERIVED" : "COMPANY-DATA DERIVED"}</span></div>
-              <div className="card"><strong>Nonstationarity</strong><p>{display(opportunity?.environmentalNonstationarity ?? analysis.environmentalChangeRate)}</p><span className="miniTag">ASSUMED</span></div>
-              <div className="card"><strong>Foundation model improvement</strong><p>{display(opportunity?.foundationModelImprovementRate ?? analysis.foundationModelImprovementRate)}</p><span className="miniTag">ASSUMED</span></div>
+              <div className="card"><strong>Case frequency</strong><p>{display(opportunity?.naturalCaseFrequency ?? analysis.caseFrequency)}</p><span className="miniTag">{canonicalExample ? "ARCHETYPE ASSUMPTION" : evidenceLabel("ASSUMED")}</span></div>
+              <div className="card"><strong>{activeRowsAreSynthetic ? "Synthetic CaseSet volume" : "Active CaseSet volume"}</strong><p>{derived.observedDecisionVolume.count} cases{derived.observedDecisionVolume.casesPerMonth !== null ? ` / ${derived.observedDecisionVolume.casesPerMonth} per month in active CaseSet` : ""}</p><span className="miniTag">{loopProvenance}</span></div>
+              <div className="card"><strong>Outcome observability</strong><p>{display(opportunity?.outcomeObservability ?? analysis.observesOutcome)}</p><span className="miniTag">{canonicalExample ? "ARCHETYPE ASSUMPTION" : evidenceLabel("ASSUMED")}</span></div>
+              <div className="card"><strong>Outcome objectivity</strong><p>{display(opportunity?.outcomeObjectivity ?? analysis.outcomeObjectivity)}</p><span className="miniTag">{canonicalExample ? "ARCHETYPE ASSUMPTION" : evidenceLabel("ASSUMED")}</span></div>
+              <div className="card"><strong>Feedback latency</strong><p>{days(opportunity?.naturalFeedbackLatencyDays ?? derived.medianDecisionToOutcomeLatencyDays)}</p><span className="miniTag">{derived.medianDecisionToOutcomeLatencyDays === null ? "UNKNOWN / DILIGENCE REQUIRED" : loopProvenance}</span></div>
+              <div className="card"><strong>Nonstationarity</strong><p>{display(opportunity?.environmentalNonstationarity ?? analysis.environmentalChangeRate)}</p><span className="miniTag">{canonicalExample ? "ARCHETYPE ASSUMPTION" : evidenceLabel("ASSUMED")}</span></div>
+              <div className="card"><strong>Foundation model improvement</strong><p>{display(opportunity?.foundationModelImprovementRate ?? analysis.foundationModelImprovementRate)}</p><span className="miniTag">{canonicalExample ? "ARCHETYPE ASSUMPTION" : evidenceLabel("ASSUMED")}</span></div>
             </div>
             <div className="card">
               <h3>Current interpretation</h3>
@@ -569,7 +642,7 @@ export default async function CompoundingExpertiseInputsPage({
               currentInterpretation={loopInterpretation}
               provenance={modelProvenance}
               whyThisAnswer={[
-                `${loopCapturedCount} of ${learningLoopNodes.length} learning-loop nodes have some represented or assumed status.`,
+                `${loopCapturedCount} of ${learningLoopNodes.length} learning-loop nodes are captured or partially captured.`,
                 updateKnown ? "Update behavior is represented." : "Update behavior remains unverified.",
                 deployKnown ? "Deployment cadence is represented." : "Deployment of learned improvements remains unverified.",
                 activeRowsAreSynthetic ? "The CaseSet demonstrates what a closed-loop dataset could look like, not that the real company operates one." : "The active CaseSet provides the current coverage evidence."
@@ -592,18 +665,14 @@ export default async function CompoundingExpertiseInputsPage({
             >
             <p>The operational workflow generates experience. The learning loop determines whether that experience becomes expertise.</p>
             <div className="compoundingLearningLoop">
-              {learningLoopNodes.map(([label, value, provenance]) => (
-                <span key={label}>
-                  <strong>{label}</strong>
-                  <small>{display(value)}</small>
-                  <small>{display(provenance)}</small>
-                  <em>
-                    {label === "UPDATE"
-                      ? "Do grades change future policy or model behavior?"
-                      : label === "DEPLOYMENT"
-                        ? "Do learned changes reach production?"
-                        : `${label.toLowerCase()} evidence captured in the loop.`}
-                  </em>
+              {learningLoopNodes.map((node) => (
+                <span key={node.label}>
+                  <strong>{node.label}</strong>
+                  <small>{node.state}</small>
+                  <small>{display(node.value)}</small>
+                  {node.coverage ? <small>{node.coverage}</small> : null}
+                  <small>{node.provenance}</small>
+                  <em>{node.meaning}</em>
                 </span>
               ))}
             </div>
@@ -668,6 +737,25 @@ export default async function CompoundingExpertiseInputsPage({
                 <li>Competitors cannot cheaply compress, simulate, infer, or relearn the useful expertise.</li>
               </ol>
             </div>
+            <div className="grid grid-2">
+              <div className="card">
+                <h3>Current evidence for this company</h3>
+                <ul>
+                  <li>{activeRowsAreSynthetic ? "Synthetic fixture rows demonstrate a possible scorebook shape, not observed company performance." : `${derived.totalCases} active CaseSet rows are available for inspection.`}</li>
+                  <li>Workflow position is modeled as {display(competitive?.systemOfDecision ?? analysis.ownsDecisionPoint)} for decisions and {display(competitive?.systemOfAction ?? analysis.controlsAction)} for actions.</li>
+                  <li>Learning rights are currently {display(learning?.canTrainAcrossCustomers ?? analysis.contractualLearningRights)}.</li>
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Missing evidence</h3>
+                <ul>
+                  <li>Observed cross-customer transfer, not just plausible transfer.</li>
+                  <li>Contractual proof of case, correction, outcome, and derived-feature usage rights.</li>
+                  <li>Benchmark showing how quickly a capable challenger could relearn or simulate the useful expertise.</li>
+                  <li>Evidence that stronger foundation models do not compress the advantage.</li>
+                </ul>
+              </div>
+            </div>
             <div className="compoundingProfileGrid">
               <div className="card"><strong>Data advantage</strong><p>Raw cases: {display(competitive?.rawCasesExclusive ?? analysis.dataExclusivity)}<br />Outcomes: {display(competitive?.outcomesExclusive)}<br />Corrections: {display(competitive?.humanCorrectionsExclusive)}</p></div>
               <div className="card"><strong>Workflow position</strong><p>Decision: {display(competitive?.systemOfDecision ?? analysis.ownsDecisionPoint)}<br />Action: {display(competitive?.systemOfAction ?? analysis.controlsAction)}<br />Outcome capture: {display(competitive?.systemOfOutcomeCapture ?? analysis.observesOutcome)}</p></div>
@@ -688,17 +776,19 @@ export default async function CompoundingExpertiseInputsPage({
                 </p>
                 {activeRowsAreSynthetic ? (
                   <p className="small">
-                    The synthetic CaseSet demonstrates what a scorebook could look like; it does not establish that the real company operates this learning loop.
+                    The synthetic CaseSet demonstrates what a scorebook could look like; it does not establish that the real company operates this learning loop. Treat it as DERIVED — SYNTHETIC FIXTURE, not observed company evidence.
                   </p>
                 ) : null}
               </div>
               <div className="card">
                 <h3>What we still need to know</h3>
                 <ul>
-                  <li>Whether graded outcomes improve future decision behavior.</li>
-                  <li>Whether learning transfers across customers and case types.</li>
-                  <li>Whether learning rights and workflow position make the advantage defensible.</li>
-                  <li>Whether stronger models, synthetic data, or competitor relearning can compress the advantage.</li>
+                  {(importantUnknowns.length ? importantUnknowns : [
+                    "whether graded outcomes improve future decision behavior",
+                    "whether learning transfers across customers and case types",
+                    "whether learning rights and workflow position make the advantage defensible",
+                    "whether stronger models, synthetic data, or competitor relearning can compress the advantage"
+                  ]).map((item) => <li key={item}>{item}</li>)}
                 </ul>
               </div>
             </div>

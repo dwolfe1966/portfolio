@@ -22,6 +22,37 @@ export type CompoundingEvidenceType =
   | "UNKNOWN";
 export type CompoundingEpistemicStatus = "OBSERVED" | "DERIVED" | "SOURCED" | "ASSUMED" | "INFERRED" | "UNKNOWN";
 export type CompoundingFieldConfidence = "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN";
+export type GuidedProvenanceLabel =
+  | "OBSERVED — COMPANY DATA"
+  | "SOURCED — EXTERNAL EVIDENCE"
+  | "DERIVED — COMPANY DATA"
+  | "DERIVED — SYNTHETIC FIXTURE"
+  | "ANALYST ASSUMPTION"
+  | "ARCHETYPE ASSUMPTION"
+  | "MODEL INFERENCE"
+  | "UNKNOWN / DILIGENCE REQUIRED";
+
+export const GUIDED_PROVENANCE_LABELS: readonly GuidedProvenanceLabel[] = [
+  "OBSERVED — COMPANY DATA",
+  "SOURCED — EXTERNAL EVIDENCE",
+  "DERIVED — COMPANY DATA",
+  "DERIVED — SYNTHETIC FIXTURE",
+  "ANALYST ASSUMPTION",
+  "ARCHETYPE ASSUMPTION",
+  "MODEL INFERENCE",
+  "UNKNOWN / DILIGENCE REQUIRED"
+] as const;
+
+export function caseSetDerivedProvenanceLabel({
+  hasRows,
+  rowsAreSynthetic
+}: {
+  hasRows: boolean;
+  rowsAreSynthetic: boolean;
+}): GuidedProvenanceLabel {
+  if (!hasRows) return "UNKNOWN / DILIGENCE REQUIRED";
+  return rowsAreSynthetic ? "DERIVED — SYNTHETIC FIXTURE" : "DERIVED — COMPANY DATA";
+}
 
 export type CompanyThesisInput = {
   companyName: string;
