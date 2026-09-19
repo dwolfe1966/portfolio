@@ -746,3 +746,19 @@ Examples:
 - Auction: auction context -> bid/no-bid/price -> auction result -> downstream value -> grade.
 
 Making decisions is not sufficient for Compounding Expertise. The source system must preserve enough provenance to learn from the resulting experience.
+
+### Company Model Reasoning Grammar
+
+The Company Model page now presents each analytical section as a guided reasoning block:
+
+- question
+- why it matters
+- possible answers
+- current interpretation
+- why the Lab chose that interpretation
+- evidence and assumptions used
+- what would change the answer
+- implication for Compounding Expertise and potential Helmer Power
+- edit/review path for the assumptions driving the answer
+
+This keeps the normalized V0.3 model visible without forcing the user to read the page as a database form. It also makes clear that canonical-test conclusions are often archetype-assumption dominated and that synthetic fixtures are not observed company evidence.

@@ -75,7 +75,7 @@ export default async function CompoundingExpertiseMemoPage({
   if (!analysis) {
     return (
       <>
-        <LabWorkflowRail active="Conclusion" />
+        <LabWorkflowRail active="Conclusion" analysisId={params.analysisId} />
         <Section title="Start with company inputs">
           <p>Create or load an analysis before generating a memo.</p>
           <Link className="btn primary" href="/compounding-expertise/inputs">Go to Company Model</Link>
@@ -110,7 +110,7 @@ export default async function CompoundingExpertiseMemoPage({
 
   return (
     <>
-      <LabWorkflowRail active="Conclusion" />
+      <LabWorkflowRail active="Conclusion" analysisId={analysis?.id} />
       <Section eyebrow="Stage 6" title="Conclusion">
         <p>
           The conclusion preserves uncertainty. It should show what is believed, what is assumed,

@@ -75,7 +75,7 @@ export default async function CompoundingExpertiseOverviewPage({
 
   return (
     <>
-      <LabWorkflowRail active="Overview" />
+      <LabWorkflowRail active="Overview" analysisId={analysis?.id} />
       <Section eyebrow="Compounding Expertise Lab" title="Does experience become a moat?">
         <p>
           Compounding Expertise Lab tests whether an AI company can turn repeated real-world decisions and outcomes

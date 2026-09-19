@@ -169,7 +169,7 @@ export default async function CompoundingExpertiseScorebookPage({
   if (!analysis) {
     return (
       <>
-        <LabWorkflowRail active="Experience" />
+        <LabWorkflowRail active="Experience" analysisId={params.analysisId} />
         <Section title="Start with company inputs">
           <p>Create or load an analysis before inspecting the scorebook.</p>
           <Link className="btn primary" href="/compounding-expertise/inputs">Go to Company Model</Link>
@@ -193,7 +193,7 @@ export default async function CompoundingExpertiseScorebookPage({
 
   return (
     <>
-      <LabWorkflowRail active="Experience" />
+      <LabWorkflowRail active="Experience" analysisId={analysis?.id} />
       <Section eyebrow="Experience · CaseSets / Scorebook" title="Show me the experience">
         <p>
           Compounding Expertise is evaluated over bodies of experience. A Case Set is a defined collection of cases

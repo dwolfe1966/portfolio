@@ -24,7 +24,7 @@ export default async function CompoundingExpertiseDiagnosticPage({
   if (!analysis) {
     return (
       <>
-        <LabWorkflowRail active="Power" />
+        <LabWorkflowRail active="Power" analysisId={params.analysisId} />
         <Section title="Start with company inputs">
           <p>Create or load an analysis before scoring dimensions.</p>
           <Link className="btn primary" href="/compounding-expertise/inputs">Go to Company Model</Link>
@@ -90,7 +90,7 @@ export default async function CompoundingExpertiseDiagnosticPage({
 
   return (
     <>
-      <LabWorkflowRail active="Power" />
+      <LabWorkflowRail active="Power" analysisId={analysis?.id} />
       <Section eyebrow="Power · SUN + WOLFE + HELMER diagnostic" title="Where might durable Power reside?">
         <p>
           Use the scorebook and system context to assess three strategic questions. Keep evidence status visible;

@@ -3560,6 +3560,111 @@ button {
   font-weight: 700;
   text-transform: uppercase;
 }
+.compoundingWorkflowNav {
+  margin: 0 0 16px;
+}
+.compoundingWorkflowDesktop {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+.compoundingWorkflowDesktop a,
+.compoundingWorkflowFullList a {
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  color: var(--demo-text);
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  text-decoration: none;
+}
+.compoundingWorkflowDesktop a.active,
+.compoundingWorkflowFullList a.active {
+  border-color: var(--demo-accent);
+  background: color-mix(in srgb, var(--demo-accent) 14%, transparent);
+}
+.compoundingWorkflowDesktop span {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+}
+.compoundingWorkflowDesktop small,
+.compoundingWorkflowFullList small {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+.compoundingWorkflowDesktop strong,
+.compoundingWorkflowFullList strong {
+  font-size: 12px;
+}
+.compoundingWorkflowCompact {
+  display: none;
+}
+.compoundingWorkflowFullList {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.compoundingQuestionShell {
+  display: grid;
+  gap: 14px;
+}
+.compoundingQuestionSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, .8fr);
+  gap: 16px;
+}
+.compoundingQuestionSummary h3 {
+  margin: 0;
+}
+.compoundingQuestionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.compoundingQuestionGrid .card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.compoundingQuestionGrid h3 {
+  margin: 0;
+}
+.compoundingQuestionGrid ul,
+.compoundingQuestionGrid ol {
+  margin: 0;
+  padding-left: 18px;
+}
+.compoundingCausalChain {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.compoundingCausalChain span {
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+}
+.compoundingCausalChain strong {
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.compoundingCausalChain small {
+  color: var(--demo-text);
+  font-weight: 800;
+}
+.compoundingCausalChain em,
+.compoundingLearningLoop em {
+  color: var(--demo-text-muted);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+}
 .compoundingProfileGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -5083,6 +5188,40 @@ button {
 }
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .compoundingWorkflowDesktop { display: none; }
+  .compoundingWorkflowCompact {
+    border: 1px solid var(--demo-divider);
+    border-radius: 8px;
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+  }
+  .compoundingWorkflowCompact > span {
+    color: var(--demo-text);
+    font-weight: 800;
+  }
+  .compoundingWorkflowCompact > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .compoundingWorkflowCompact a {
+    color: var(--demo-text);
+    font-size: 12px;
+    text-decoration: none;
+  }
+  .compoundingWorkflowCompact summary {
+    cursor: pointer;
+    color: var(--demo-text-muted);
+    font-size: 12px;
+  }
+  .compoundingStageOrientation,
+  .compoundingConceptFlow,
+  .compoundingQuestionSummary,
+  .compoundingQuestionGrid,
+  .compoundingCausalChain,
+  .compoundingProfileGrid,
+  .compoundingCaseSetFacts { grid-template-columns: 1fr; }
   .connectionChooserGrid,
   .connectionInventoryGrid,
   .lifecycleOpsGrid,

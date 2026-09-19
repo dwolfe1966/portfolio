@@ -1,7 +1,53 @@
-import { type CompoundingFramework, type Crossover, type EpistemicKind, type SimulationSeries } from "@/lib/compounding-expertise-lab";
+import Link from "next/link";
+import { LAB_WORKFLOW_STEPS, type CompoundingFramework, type Crossover, type EpistemicKind, type SimulationSeries } from "@/lib/compounding-expertise-lab";
 
-export function LabWorkflowRail({ active: _active }: { active: string }) {
-  return null;
+export function LabWorkflowRail({
+  active,
+  analysisId
+}: {
+  active: string;
+  analysisId?: string | null;
+}) {
+  const activeIndex = Math.max(0, LAB_WORKFLOW_STEPS.findIndex((step) => step.label === active));
+  const activeStep = LAB_WORKFLOW_STEPS[activeIndex] ?? LAB_WORKFLOW_STEPS[0];
+  const compactStepLabel = activeIndex === 0
+    ? "Overview"
+    : `Step ${activeIndex} of ${LAB_WORKFLOW_STEPS.length - 1} — ${activeStep.label}`;
+  const previous = LAB_WORKFLOW_STEPS[activeIndex - 1] ?? null;
+  const next = LAB_WORKFLOW_STEPS[activeIndex + 1] ?? null;
+  const href = (path: string) => analysisId ? `${path}?analysisId=${analysisId}` : path;
+
+  return (
+    <nav className="compoundingWorkflowNav" aria-label="Compounding Expertise workflow">
+      <div className="compoundingWorkflowCompact">
+        <span>{compactStepLabel}</span>
+        <div>
+          {previous ? <Link href={href(previous.href)}>← {previous.label}</Link> : <span />}
+          {next ? <Link href={href(next.href)}>{next.label} →</Link> : <span />}
+        </div>
+        <details>
+          <summary>View full workflow</summary>
+          <div className="compoundingWorkflowFullList">
+            {LAB_WORKFLOW_STEPS.map((step) => (
+              <Link className={step.label === active ? "active" : ""} href={href(step.href)} key={step.href}>
+                <small>{step.verb}</small>
+                <strong>{step.label}</strong>
+              </Link>
+            ))}
+          </div>
+        </details>
+      </div>
+      <div className="compoundingWorkflowDesktop">
+        {LAB_WORKFLOW_STEPS.map((step, index) => (
+          <Link className={step.label === active ? "active" : ""} href={href(step.href)} key={step.href}>
+            <span>{index + 1}</span>
+            <small>{step.verb}</small>
+            <strong>{step.label}</strong>
+          </Link>
+        ))}
+      </div>
+    </nav>
+  );
 }
 
 export function ProvenanceBadge({ framework }: { framework: CompoundingFramework }) {
