@@ -141,9 +141,9 @@ function questionConfidence(provenance: string) {
 
 function gateState(answer: string) {
   const normalized = answer.toUpperCase();
-  if (normalized.includes("STRONG") || normalized.includes("CLOSED") || normalized.includes("DIFFICULT")) return "favorable";
+  if (normalized.includes("STRONG") || normalized.includes("CLOSED") || normalized.includes("DIFFICULT") || normalized.includes("HIGH") || normalized.includes("HARD") || normalized === "YES") return "favorable";
   if (normalized.includes("CONDITIONAL") || normalized.includes("PARTIAL")) return "mixed";
-  if (normalized.includes("WEAK") || normalized.includes("OPEN") || normalized.includes("EASY")) return "weak";
+  if (normalized.includes("WEAK") || normalized.includes("OPEN") || normalized.includes("EASY") || normalized.includes("LOW") || normalized === "NO") return "weak";
   return "unknown";
 }
 
@@ -199,26 +199,31 @@ function QuestionNarrative({
   editHref?: string;
   children: ReactNode;
 }) {
+  const evidenceChain = keyEvidence ?? evidenceUsed.slice(0, 4);
   return (
     <div className="compoundingQuestionShell">
-      <div className={`card compoundingQuestionSummary compoundingGateState-${gateState(currentInterpretation)}`}>
-        <div>
-          <p className="small">Question</p>
-          <h3>{questionLabel ?? title}</h3>
+      <div className={`card compoundingGateDetailHeader compoundingGateState-${gateState(currentInterpretation)}`}>
+        <div className="compoundingGateQuestion">
+          <span>{questionLabel ?? title}</span>
+          <h3>{title}</h3>
         </div>
-        <div>
-          <p className="small">Current answer</p>
-          <h3>{currentInterpretation}</h3>
-          <span className="miniTag">{provenance}</span>
-          <span className="miniTag">{questionConfidence(provenance)}</span>
+        <div className="compoundingGateAnswer">
+          <span>Current answer</span>
+          <strong>{currentInterpretation}</strong>
+          <small>{provenance}</small>
+          <small>{questionConfidence(provenance)}</small>
         </div>
       </div>
-      <div className="card compoundingGateEssentials">
-        <div>
-          <p className="small">Key evidence chain</p>
-          <ul>{(keyEvidence ?? evidenceUsed.slice(0, 4)).map((item) => <li key={item}>{item}</li>)}</ul>
+      <div className="compoundingGateDefaultView">
+        <div className="compoundingGateEvidenceChain" aria-label={`${questionLabel ?? title} key evidence chain`}>
+          {evidenceChain.map((item, index) => (
+            <span key={item}>
+              <strong>{index + 1}</strong>
+              <small>{item}</small>
+            </span>
+          ))}
         </div>
-        <div>
+        <div className="card compoundingGateImplication">
           <p className="small">CE / Power implication</p>
           <p>{implication}</p>
           {helmerConnection ? <p className="small">{helmerConnection}</p> : null}
@@ -227,7 +232,7 @@ function QuestionNarrative({
       </div>
       {children}
       <details className="card compoundingDisclosure">
-        <summary>Why it matters, possible answers, evidence inventory, and change tests</summary>
+        <summary>Open detailed reasoning, possible answers, evidence inventory, and change tests</summary>
         <div className="compoundingQuestionDetailsGrid">
           <div>
             <h3>Why it matters</h3>
@@ -463,37 +468,7 @@ export default async function CompoundingExpertiseInputsPage({
                 "challenger rebuildability"
               ]).join(" · ")}
             </p>
-          </>
-        ) : null}
-        {params.example ? (
-          <div className="card compoundingSyntheticBanner">
-            <strong>Example loaded.</strong>
-            <p>
-              Bundled scorebook rows are synthetic illustrative data, not company data.
-              Inspect the Scorebook page before treating any diagnostic as evidence.
-            </p>
-          </div>
-        ) : null}
-        {canonicalExample ? (
-          <div className="card compoundingCanonicalPanel">
-            <p className="small">Why this is a canonical test</p>
-            <h3>{canonicalExample.testLabel}: {canonicalExample.label}</h3>
-            <p><strong>Canonical question:</strong> {canonicalExample.canonicalQuestion}</p>
-            <p><strong>Why selected:</strong> {canonicalExample.whyCanonical}</p>
-            <p><strong>Expected theoretical behavior:</strong> {canonicalExample.expectedTheoreticalBehavior}</p>
-            <p><strong>Lab failure condition:</strong> {canonicalExample.labFailureCondition}</p>
-            <p><strong>Primary Power hypothesis:</strong> {canonicalExample.primaryPowerHypothesis}</p>
-            <p><strong>Competing Power hypothesis:</strong> {canonicalExample.competingPowerHypothesis}</p>
-            <p className="small">This is explanatory metadata, not evidence about the company.</p>
-          </div>
-        ) : null}
-      </Section>
-
-      {analysis && profile ? (
-        <>
-          <div id="company-model-review" />
-          <Section title="Evidence coverage">
-            <details className="card compoundingDisclosure">
+            <details className="card compoundingDisclosure compoundingEvidenceInventory">
               <summary>View evidence</summary>
               <div className="compoundingEvidenceStrip">
                 <span><strong>{activeRowsAreSynthetic ? 0 : derived.totalCases}</strong> company-observed / company-derived</span>
@@ -526,8 +501,35 @@ export default async function CompoundingExpertiseInputsPage({
               </div>
               <p className="small">Derived from synthetic fixture means the canonical sample demonstrates what a dataset could look like. It is not observed company evidence.</p>
             </details>
-          </Section>
+          </>
+        ) : null}
+        {params.example ? (
+          <div className="card compoundingSyntheticBanner">
+            <strong>Example loaded.</strong>
+            <p>
+              Bundled scorebook rows are synthetic illustrative data, not company data.
+              Inspect the Scorebook page before treating any diagnostic as evidence.
+            </p>
+          </div>
+        ) : null}
+        {canonicalExample ? (
+          <div className="card compoundingCanonicalPanel">
+            <p className="small">Why this is a canonical test</p>
+            <h3>{canonicalExample.testLabel}: {canonicalExample.label}</h3>
+            <p><strong>Canonical question:</strong> {canonicalExample.canonicalQuestion}</p>
+            <p><strong>Why selected:</strong> {canonicalExample.whyCanonical}</p>
+            <p><strong>Expected theoretical behavior:</strong> {canonicalExample.expectedTheoreticalBehavior}</p>
+            <p><strong>Lab failure condition:</strong> {canonicalExample.labFailureCondition}</p>
+            <p><strong>Primary Power hypothesis:</strong> {canonicalExample.primaryPowerHypothesis}</p>
+            <p><strong>Competing Power hypothesis:</strong> {canonicalExample.competingPowerHypothesis}</p>
+            <p className="small">This is explanatory metadata, not evidence about the company.</p>
+          </div>
+        ) : null}
+      </Section>
 
+        {analysis && profile ? (
+        <>
+          <div id="company-model-review" />
           <Section title="Company profile">
             <div className="card compoundingProfilePanel">
               <div>

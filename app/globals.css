@@ -3737,11 +3737,16 @@ button {
 }
 .compoundingGateHero {
   align-items: center;
+  background: color-mix(in srgb, var(--demo-surface) 92%, transparent);
+  border: 1px solid var(--demo-divider);
+  border-radius: 12px;
   display: flex;
   gap: 16px;
   justify-content: space-between;
+  padding: 16px;
 }
 .compoundingGateHero h3 {
+  font-size: clamp(18px, 2vw, 24px);
   margin: 0;
 }
 .compoundingGateBoard {
@@ -3755,9 +3760,15 @@ button {
   color: inherit;
   display: grid;
   gap: 8px;
-  min-height: 190px;
+  grid-template-rows: auto auto auto 1fr auto;
+  min-height: 210px;
   padding: 14px;
   text-decoration: none;
+  transition: border-color .16s ease, transform .16s ease, background .16s ease;
+}
+.compoundingGateCard:hover {
+  background: color-mix(in srgb, var(--demo-accent) 7%, transparent);
+  transform: translateY(-1px);
 }
 .compoundingGateCard span {
   align-items: center;
@@ -3772,6 +3783,10 @@ button {
 }
 .compoundingGateCard strong {
   font-size: 15px;
+}
+.compoundingGateCard small {
+  color: var(--demo-text-muted);
+  line-height: 1.35;
 }
 .compoundingGateCard em,
 .compoundingGateCard i,
@@ -3799,20 +3814,86 @@ button {
   border-color: rgba(148, 163, 184, .55) !important;
 }
 .compoundingCurrentThesis {
+  border-left: 4px solid var(--demo-accent);
   display: grid;
   gap: 6px;
 }
 .compoundingQuestionShell {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
+.compoundingGateDetailHeader,
 .compoundingQuestionSummary {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(260px, .8fr);
   gap: 16px;
 }
-.compoundingQuestionSummary h3 {
+.compoundingGateDetailHeader {
+  align-items: center;
+}
+.compoundingQuestionSummary h3,
+.compoundingGateDetailHeader h3 {
   margin: 0;
+}
+.compoundingGateQuestion,
+.compoundingGateAnswer {
+  display: grid;
+  gap: 6px;
+}
+.compoundingGateQuestion span,
+.compoundingGateAnswer span {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.compoundingGateAnswer strong {
+  font-size: 18px;
+}
+.compoundingGateAnswer small {
+  color: var(--demo-text-muted);
+  font-size: 12px;
+}
+.compoundingGateDefaultView {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+}
+.compoundingGateEvidenceChain {
+  display: grid;
+  gap: 8px;
+}
+.compoundingGateEvidenceChain span {
+  align-items: start;
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 10px;
+}
+.compoundingGateEvidenceChain strong {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--demo-text-muted);
+  display: inline-flex;
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+.compoundingGateEvidenceChain small {
+  color: var(--demo-text);
+  line-height: 1.35;
+}
+.compoundingGateImplication {
+  align-content: start;
+  display: grid;
+  gap: 8px;
 }
 .compoundingGateEssentials {
   display: grid;
@@ -3828,6 +3909,9 @@ button {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.compoundingEvidenceInventory {
+  margin-top: 10px;
 }
 .compoundingQuestionGrid {
   display: grid;
@@ -5472,6 +5556,8 @@ button {
   .compoundingStageOrientation,
   .compoundingConceptFlow,
   .compoundingQuestionSummary,
+  .compoundingGateDetailHeader,
+  .compoundingGateDefaultView,
   .compoundingQuestionGrid,
   .compoundingQuestionDetailsGrid,
   .compoundingGateEssentials,
