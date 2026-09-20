@@ -399,7 +399,12 @@ export default async function CompoundingExpertiseInputsPage({
 
   return (
     <>
-      <LabWorkflowRail active="Company Model" analysisId={analysis?.id} />
+      <LabWorkflowRail
+        active="Company Model"
+        analysisId={analysis?.id}
+        activeAnalysisLabel={analysis?.companyName}
+        activeAnalysisDetail={canonicalExample ? `${canonicalExample.testLabel}: ${canonicalExample.label}` : "Selected company analysis"}
+      />
       <Section eyebrow="System & Environment" title="How could this company compound expertise?">
         <p>
           This page tests whether the company operates a decision system capable of converting repeated experience into durable expertise.

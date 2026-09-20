@@ -110,7 +110,12 @@ export default async function CompoundingExpertiseMemoPage({
 
   return (
     <>
-      <LabWorkflowRail active="Conclusion" analysisId={analysis?.id} />
+      <LabWorkflowRail
+        active="Conclusion"
+        analysisId={analysis?.id}
+        activeAnalysisLabel={analysis?.companyName}
+        activeAnalysisDetail={selectedCaseSet?.name ?? "Selected company analysis"}
+      />
       <Section eyebrow="Stage 6" title="Conclusion">
         <p>
           The conclusion preserves uncertainty. It should show what is believed, what is assumed,

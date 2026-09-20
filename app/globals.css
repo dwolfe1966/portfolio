@@ -3655,7 +3655,41 @@ button {
   text-transform: uppercase;
 }
 .compoundingWorkflowNav {
+  display: grid;
+  gap: 10px;
   margin: 0 0 16px;
+}
+.compoundingActiveAnalysisChip {
+  align-items: center;
+  background: color-mix(in srgb, var(--demo-surface) 90%, transparent);
+  border: 1px solid var(--demo-divider);
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+.compoundingActiveAnalysisChip span {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.compoundingActiveAnalysisChip strong {
+  color: var(--demo-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.compoundingActiveAnalysisChip small {
+  color: var(--demo-text-muted);
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .compoundingWorkflowDesktop {
   display: grid;
@@ -5426,6 +5460,14 @@ button {
     cursor: pointer;
     color: var(--demo-text-muted);
     font-size: 12px;
+  }
+  .compoundingActiveAnalysisChip {
+    align-items: flex-start;
+    display: grid;
+    gap: 4px;
+  }
+  .compoundingActiveAnalysisChip small {
+    margin-left: 0;
   }
   .compoundingStageOrientation,
   .compoundingConceptFlow,

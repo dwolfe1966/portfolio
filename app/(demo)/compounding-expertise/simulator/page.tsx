@@ -41,7 +41,12 @@ export default async function CompoundingExpertiseSimulatorPage({
 
   return (
     <>
-      <LabWorkflowRail active="Stress Test" analysisId={analysis?.id} />
+      <LabWorkflowRail
+        active="Stress Test"
+        analysisId={analysis?.id}
+        activeAnalysisLabel={analysis?.companyName}
+        activeAnalysisDetail={selectedCaseSet?.name ?? "Selected company analysis"}
+      />
       <Section eyebrow="Stress Test · Compounding simulator" title="Stress-test the moat">
         <p>
           Compare two scenarios with a transparent toy model. Feedback delay is modeled as a maturation lag:

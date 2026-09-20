@@ -299,7 +299,12 @@ export default async function CompoundingExpertiseScorebookPage({
 
   return (
     <>
-      <LabWorkflowRail active="Experience" analysisId={analysis?.id} />
+      <LabWorkflowRail
+        active="Experience"
+        analysisId={analysis?.id}
+        activeAnalysisLabel={analysis?.companyName}
+        activeAnalysisDetail={selectedCaseSet?.name ?? "Selected company analysis"}
+      />
       <Section eyebrow="Experience · CaseSets / Scorebook" title="What operating experience is available?">
         <div className="card compoundingStageOrientation">
           <div>

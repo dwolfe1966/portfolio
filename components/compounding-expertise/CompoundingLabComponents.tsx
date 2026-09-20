@@ -3,10 +3,14 @@ import { LAB_WORKFLOW_STEPS, type CompoundingFramework, type Crossover, type Epi
 
 export function LabWorkflowRail({
   active,
-  analysisId
+  analysisId,
+  activeAnalysisLabel,
+  activeAnalysisDetail
 }: {
   active: string;
   analysisId?: string | null;
+  activeAnalysisLabel?: string | null;
+  activeAnalysisDetail?: string | null;
 }) {
   const activeIndex = Math.max(0, LAB_WORKFLOW_STEPS.findIndex((step) => step.label === active));
   const activeStep = LAB_WORKFLOW_STEPS[activeIndex] ?? LAB_WORKFLOW_STEPS[0];
@@ -19,6 +23,13 @@ export function LabWorkflowRail({
 
   return (
     <nav className="compoundingWorkflowNav" aria-label="Compounding Expertise workflow">
+      {activeAnalysisLabel ? (
+        <div className="compoundingActiveAnalysisChip" aria-label="Current analysis">
+          <span>Current analysis</span>
+          <strong>{activeAnalysisLabel}</strong>
+          {activeAnalysisDetail ? <small>{activeAnalysisDetail}</small> : null}
+        </div>
+      ) : null}
       <div className="compoundingWorkflowCompact">
         <span>{compactStepLabel}</span>
         <div>

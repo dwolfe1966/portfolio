@@ -90,7 +90,12 @@ export default async function CompoundingExpertiseDiagnosticPage({
 
   return (
     <>
-      <LabWorkflowRail active="Power" analysisId={analysis?.id} />
+      <LabWorkflowRail
+        active="Power"
+        analysisId={analysis?.id}
+        activeAnalysisLabel={analysis?.companyName}
+        activeAnalysisDetail="Selected company analysis"
+      />
       <Section eyebrow="Power · SUN + WOLFE + HELMER diagnostic" title="Where might durable Power reside?">
         <p>
           Use the scorebook and system context to assess three strategic questions. Keep evidence status visible;

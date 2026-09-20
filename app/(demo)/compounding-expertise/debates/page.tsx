@@ -46,7 +46,12 @@ export default async function CompoundingExpertiseDebatesPage({
 
   return (
     <>
-      <LabWorkflowRail active="Key Debates" analysisId={analysis?.id} />
+      <LabWorkflowRail
+        active="Key Debates"
+        analysisId={analysis?.id}
+        activeAnalysisLabel={analysis?.companyName}
+        activeAnalysisDetail="Selected company analysis"
+      />
       <Section eyebrow="Stage 3" title="What must be true?">
         <p>
           These are the 2-4 uncertainties that most determine whether this company can develop durable Compounding Expertise.
