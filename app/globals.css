@@ -3586,6 +3586,31 @@ button {
 .compoundingLearningLoop span {
   min-width: 118px;
 }
+.compoundingLearningLoop span {
+  position: relative;
+}
+.compoundingLearningLoop span::after {
+  color: var(--demo-text-muted);
+  content: "→";
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.compoundingLearningLoop span:last-child::after {
+  content: "";
+}
+.compoundingLearningLoop .compoundingLoopNode-unknown,
+.compoundingLearningLoop .compoundingLoopNode-not-captured {
+  border-color: rgba(248, 113, 113, .7);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, .14);
+}
+.compoundingLearningLoop .compoundingLoopNode-partial {
+  border-color: rgba(251, 191, 36, .75);
+}
+.compoundingLearningLoop .compoundingLoopNode-captured {
+  border-color: rgba(16, 185, 129, .65);
+}
 .compoundingWorkflowMap small,
 .compoundingLearningLoop small {
   display: block;
@@ -3676,6 +3701,73 @@ button {
   gap: 6px;
   margin-top: 8px;
 }
+.compoundingGateHero {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+.compoundingGateHero h3 {
+  margin: 0;
+}
+.compoundingGateBoard {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.compoundingGateCard {
+  border: 1px solid var(--demo-divider);
+  border-radius: 10px;
+  color: inherit;
+  display: grid;
+  gap: 8px;
+  min-height: 190px;
+  padding: 14px;
+  text-decoration: none;
+}
+.compoundingGateCard span {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  display: inline-flex;
+  font-family: var(--demo-mono);
+  font-size: 11px;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+.compoundingGateCard strong {
+  font-size: 15px;
+}
+.compoundingGateCard em,
+.compoundingGateCard i,
+.compoundingDefensibilityTests em {
+  color: var(--demo-text-muted);
+  font-style: normal;
+}
+.compoundingGateCard em {
+  color: var(--demo-text);
+  font-weight: 800;
+}
+.compoundingGateState-favorable {
+  border-color: rgba(16, 185, 129, .65) !important;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, .16);
+}
+.compoundingGateState-mixed {
+  border-color: rgba(251, 191, 36, .7) !important;
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, .15);
+}
+.compoundingGateState-weak {
+  border-color: rgba(248, 113, 113, .65) !important;
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, .14);
+}
+.compoundingGateState-unknown {
+  border-color: rgba(148, 163, 184, .55) !important;
+}
+.compoundingCurrentThesis {
+  display: grid;
+  gap: 6px;
+}
 .compoundingQuestionShell {
   display: grid;
   gap: 14px;
@@ -3687,6 +3779,21 @@ button {
 }
 .compoundingQuestionSummary h3 {
   margin: 0;
+}
+.compoundingGateEssentials {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.compoundingGateEssentials ul,
+.compoundingQuestionDetailsGrid ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.compoundingQuestionDetailsGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .compoundingQuestionGrid {
   display: grid;
@@ -3711,21 +3818,46 @@ button {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
-.compoundingCausalChain span {
+.compoundingGateChain,
+.compoundingFeedbackFunnel {
+  display: grid;
+  gap: 8px;
+}
+.compoundingGateChain-4,
+.compoundingFeedbackFunnel {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.compoundingCausalChain span,
+.compoundingGateChain span,
+.compoundingFeedbackFunnel span,
+.compoundingDefensibilityTests span {
   border: 1px solid var(--demo-divider);
   border-radius: 8px;
   display: grid;
   gap: 5px;
   padding: 10px;
 }
-.compoundingCausalChain strong {
+.compoundingCausalChain strong,
+.compoundingGateChain strong,
+.compoundingFeedbackFunnel strong,
+.compoundingDefensibilityTests strong {
   font-family: var(--demo-mono);
   font-size: 10px;
   text-transform: uppercase;
 }
-.compoundingCausalChain small {
+.compoundingCausalChain small,
+.compoundingGateChain small,
+.compoundingFeedbackFunnel small,
+.compoundingDefensibilityTests small {
   color: var(--demo-text);
   font-weight: 800;
+}
+.compoundingGateChain a,
+.compoundingDefensibilityTests a,
+.compoundingProfileGrid a {
+  color: var(--demo-accent);
+  font-size: 12px;
+  text-decoration: none;
 }
 .compoundingCausalChain em,
 .compoundingLearningLoop em {
@@ -3743,6 +3875,17 @@ button {
   display: grid;
   align-content: start;
   gap: 6px;
+}
+.compoundingDefensibilityTests {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.compoundingNextStep {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
 }
 .compoundingProfileGrid .card strong {
   color: var(--demo-text);
@@ -5288,10 +5431,35 @@ button {
   .compoundingConceptFlow,
   .compoundingQuestionSummary,
   .compoundingQuestionGrid,
+  .compoundingQuestionDetailsGrid,
+  .compoundingGateEssentials,
+  .compoundingGateChain-4,
+  .compoundingFeedbackFunnel,
+  .compoundingDefensibilityTests,
   .compoundingCausalChain,
   .compoundingCaseSequence,
   .compoundingProfileGrid,
   .compoundingCaseSetFacts { grid-template-columns: 1fr; }
+  .compoundingGateHero,
+  .compoundingNextStep {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .compoundingGateBoard {
+    display: flex;
+    margin-inline: -16px;
+    overflow-x: auto;
+    padding: 0 16px 8px;
+    scroll-snap-type: x proximity;
+  }
+  .compoundingGateCard {
+    flex: 0 0 min(82vw, 320px);
+    min-height: 170px;
+    scroll-snap-align: start;
+  }
+  .compoundingLearningLoop span::after {
+    content: "";
+  }
   .compoundingDatasetActions { flex-direction: column; }
   .compoundingCaseDetail { min-width: 0; }
   .connectionChooserGrid,

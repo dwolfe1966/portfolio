@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   COMPOUNDING_EXAMPLES,
   COMPETITIVE_INPUTS,
+  COMPANY_MODEL_GATES,
   ENDOGENOUS_INPUTS,
   EXOGENOUS_INPUTS,
   GUIDED_PROVENANCE_LABELS,
@@ -185,6 +186,16 @@ test("V0.3.2 workflow uses guided user-facing labels with experience before deba
     LAB_WORKFLOW_STEPS.findIndex((step) => step.label === "Experience") <
       LAB_WORKFLOW_STEPS.findIndex((step) => step.label === "Key Debates")
   );
+});
+
+test("Company Model IA exposes four ordered gates for guided review", () => {
+  assert.deepEqual(COMPANY_MODEL_GATES.map((gate) => gate.label), [
+    "Decision Opportunity",
+    "Feedback",
+    "Learning Loop",
+    "Defensibility"
+  ]);
+  assert.deepEqual(COMPANY_MODEL_GATES.map((gate) => gate.sequence), ["1", "2", "3", "4"]);
 });
 
 test("explicit analysis access helper pins selected analysis and preserves account scope", () => {

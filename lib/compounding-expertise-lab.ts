@@ -479,6 +479,13 @@ export const LAB_WORKFLOW_STEPS = [
   { href: "/compounding-expertise/memo", label: "Conclusion", stage: "6", verb: "Decide" }
 ] as const;
 
+export const COMPANY_MODEL_GATES = [
+  { id: "decision", label: "Decision Opportunity", shortLabel: "Decision Opportunity", sequence: "1" },
+  { id: "feedback", label: "Feedback", shortLabel: "Feedback", sequence: "2" },
+  { id: "learning-loop", label: "Learning Loop", shortLabel: "Learning Loop", sequence: "3" },
+  { id: "defensibility", label: "Defensibility", shortLabel: "Defensibility", sequence: "4" }
+] as const;
+
 export const EXOGENOUS_INPUTS: StructuredInputDefinition[] = [
   { key: "economicCostWrongDecision", label: "Economic cost of a wrong decision", description: "How much value is at stake when the product is wrong?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
   { key: "outcomeObjectivity", label: "Outcome objectivity", description: "Can outcomes be graded objectively rather than by taste or politics?", options: ["Unknown", "Subjective", "Mixed", "Objective / deterministic"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
