@@ -17,11 +17,21 @@ import {
   casesForCaseSet,
   compoundingAnalysisAccessWhere,
   defaultAssessments,
+  applyExperienceSlice,
+  deriveActionDistribution,
   deriveCaseFeedbackLatencyDays,
+  deriveCaseInspectionReasons,
   deriveCaseResolvedStatus,
   actionKeyFromDecision,
   decisionClassKeyForCase,
   deriveDecisionSystemMetrics,
+  deriveExperienceCanCannot,
+  deriveExperienceCoverage,
+  deriveExperienceInsights,
+  deriveExperienceSnapshot,
+  deriveFeedbackLatencyDistribution,
+  deriveGradeDistribution,
+  deriveInterestingSlices,
   detectCrossover,
   exampleById,
   explainSimulatorComparison,
@@ -303,6 +313,84 @@ test("case metric calculations preserve missing and unresolved outcomes", () => 
   assert.equal(metrics.outcomeCompletionRate, 0.6667);
   assert.equal(metrics.gradeCoverage, 0.6667);
   assert.equal(metrics.agentCorrectnessRate, 1);
+});
+
+const experienceRows: ScorebookCaseInput[] = [
+  { ...scorebookRows[0], id: "a-1", caseSetId: "set-a", externalCaseId: "a-1", actionTaken: "approve", outcomeValue: 100, grade: "CORRECT", decisionAt: new Date("2026-02-01T00:00:00Z"), outcomeAt: new Date("2026-02-04T00:00:00Z") },
+  { ...scorebookRows[1], id: "a-2", caseSetId: "set-a", externalCaseId: "a-2", actionTaken: "approve", outcomeValue: 900, grade: "INCORRECT", decisionAt: new Date("2026-02-02T00:00:00Z"), outcomeAt: new Date("2026-02-20T00:00:00Z") },
+  { ...scorebookRows[2], id: "a-3", caseSetId: "set-a", externalCaseId: "a-3", actionTaken: null, outcomeValue: null, grade: "UNRESOLVED", decisionAt: new Date("2026-02-03T00:00:00Z"), outcomeAt: null },
+  { ...scorebookRows[0], id: "a-4", caseSetId: "set-a", externalCaseId: "a-4", actionTaken: "escalate", outcomeValue: 5000, grade: "PARTIALLY_CORRECT", isEdgeCase: true, humanOverride: false, humanDecision: "escalate", decisionAt: new Date("2026-02-04T00:00:00Z"), outcomeAt: new Date("2026-03-20T00:00:00Z") },
+  { ...scorebookRows[0], id: "b-1", caseSetId: "set-b", externalCaseId: "b-1", actionTaken: "deny", outcomeValue: 50, grade: "CORRECT", isSynthetic: false, sourceLabel: "company row" }
+];
+
+test("Experience Snapshot and diagnostics use only active CaseSet rows", () => {
+  const active = casesForCaseSet(experienceRows, "set-a");
+  const snapshot = deriveExperienceSnapshot(active);
+  const gradeDistribution = deriveGradeDistribution(active);
+  const actionDistribution = deriveActionDistribution(active);
+
+  assert.equal(snapshot.totalCases, 4);
+  assert.equal(snapshot.outcomesObserved, 3);
+  assert.equal(snapshot.gradedCases, 3);
+  assert.equal(snapshot.provenance, "DERIVED — SYNTHETIC FIXTURE");
+  assert.equal(gradeDistribution.find((item) => item.label === "INCORRECT")?.count, 1);
+  assert.equal(gradeDistribution.find((item) => item.label === "UNRESOLVED")?.count, 1);
+  assert.equal(actionDistribution[0].label, "approve");
+  assert.equal(actionDistribution[0].count, 2);
+});
+
+test("Experience feedback latency buckets are deterministic and include unavailable rows", () => {
+  const buckets = deriveFeedbackLatencyDistribution(casesForCaseSet(experienceRows, "set-a"));
+  assert.equal(buckets.find((bucket) => bucket.key === "0_7")?.count, 1);
+  assert.equal(buckets.find((bucket) => bucket.key === "15_30")?.count, 1);
+  assert.equal(buckets.find((bucket) => bucket.key === "31_PLUS")?.count, 1);
+  assert.equal(buckets.find((bucket) => bucket.key === "UNAVAILABLE")?.count, 1);
+});
+
+test("Experience interesting slices identify override, error, edge, unresolved, longest-feedback, and high-impact cases", () => {
+  const active = casesForCaseSet(experienceRows, "set-a");
+  const slices = deriveInterestingSlices(active);
+  assert.equal(slices.find((slice) => slice.key === "human-overrides")?.count, 1);
+  assert.equal(slices.find((slice) => slice.key === "agent-errors")?.count, 1);
+  assert.equal(slices.find((slice) => slice.key === "edge-cases")?.count, 2);
+  assert.equal(slices.find((slice) => slice.key === "unresolved")?.count, 1);
+  assert.equal(applyExperienceSlice(active, "longest-feedback")[0].externalCaseId, "a-4");
+  assert.equal(applyExperienceSlice(active, "highest-impact")[0].externalCaseId, "a-4");
+});
+
+test("Experience insights are deterministic and avoid unsupported causal claims", () => {
+  const insights = deriveExperienceInsights(casesForCaseSet(experienceRows, "set-a"));
+  const text = insights.map((insight) => `${insight.statement} ${insight.support}`).join(" ");
+  assert.match(text, /Outcome representation|Most cases are graded|Human intervention|synthetic fixture/i);
+  assert.doesNotMatch(text, /causes future performance|durable Power|substantial expertise/i);
+});
+
+test("Experience quality dimensions remain separate and preserve synthetic provenance", () => {
+  const active = casesForCaseSet(experienceRows, "set-a");
+  const quality = deriveExperienceCoverage(active, deriveExperienceSnapshot(active).provenance);
+  assert.deepEqual(quality.map((item) => item.label), [
+    "Outcome completeness",
+    "Grade coverage",
+    "Feedback timing",
+    "Decision/action coverage",
+    "Provenance quality"
+  ]);
+  assert.equal(quality.every((item) => item.provenance === "DERIVED — SYNTHETIC FIXTURE"), true);
+});
+
+test("Experience can/cannot-tell-us distinction preserves synthetic fixture caveat", () => {
+  const result = deriveExperienceCanCannot(casesForCaseSet(experienceRows, "set-a"));
+  assert.ok(result.canTellUs.some((item) => item.includes("grade coverage")));
+  assert.ok(result.cannotTellUs.some((item) => item.includes("future performance improvement")));
+  assert.ok(result.cannotTellUs.some((item) => item.includes("not company evidence")));
+});
+
+test("case inspection reasons flag deterministic row attributes without information-value labels", () => {
+  const reasons = deriveCaseInspectionReasons(experienceRows[1]);
+  assert.ok(reasons.includes("Human override"));
+  assert.ok(reasons.includes("Agent incorrect"));
+  assert.ok(reasons.includes("Economic value recorded"));
+  assert.equal(reasons.some((reason) => reason.toLowerCase().includes("information")), false);
 });
 
 test("feedback latency and simulator-derived values use only observed graded rows", () => {

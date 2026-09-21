@@ -3499,6 +3499,124 @@ button {
   cursor: not-allowed;
   opacity: .55;
 }
+.compoundingExperienceSnapshot {
+  display: grid;
+  gap: 14px;
+}
+.compoundingExperienceFunnel {
+  align-items: stretch;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.compoundingExperienceFunnel span {
+  align-content: center;
+  border: 1px solid var(--demo-divider);
+  border-radius: 10px;
+  display: grid;
+  gap: 4px;
+  min-height: 92px;
+  padding: 12px;
+  position: relative;
+}
+.compoundingExperienceFunnel span:not(:last-child)::after {
+  color: var(--demo-text-muted);
+  content: "→";
+  font-size: 20px;
+  position: absolute;
+  right: -17px;
+  top: 32px;
+  z-index: 1;
+}
+.compoundingExperienceFunnel strong {
+  font-size: 28px;
+}
+.compoundingExperienceFunnel small {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.compoundingSnapshotStats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.compoundingDiagnosticsGrid {
+  margin-top: 12px;
+}
+.compoundingBarList,
+.compoundingInsightList {
+  display: grid;
+  gap: 8px;
+}
+.compoundingBarList span,
+.compoundingInsightList span,
+.compoundingSliceCard {
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 9px;
+}
+.compoundingBarList span {
+  position: relative;
+}
+.compoundingBarList strong,
+.compoundingSliceCard strong {
+  color: var(--demo-text);
+  font-size: 13px;
+}
+.compoundingBarList small,
+.compoundingInsightList small,
+.compoundingSliceCard small {
+  color: var(--demo-text-muted);
+  font-size: 12px;
+}
+.compoundingBarList i {
+  background: var(--demo-accent);
+  border-radius: 999px;
+  display: block;
+  height: 5px;
+  min-width: 3px;
+}
+.compoundingInsightList span {
+  border-left-width: 4px;
+}
+.compoundingInsight-pattern {
+  border-left-color: rgba(16, 185, 129, .75) !important;
+}
+.compoundingInsight-caution {
+  border-left-color: rgba(251, 191, 36, .85) !important;
+}
+.compoundingInsight-gap {
+  border-left-color: rgba(148, 163, 184, .85) !important;
+}
+.compoundingExperienceQuality {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.compoundingSliceGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.compoundingSliceCard {
+  color: inherit;
+  text-decoration: none;
+}
+.compoundingSliceCard:hover {
+  border-color: var(--demo-accent);
+}
+.compoundingSliceCard span {
+  color: var(--demo-accent);
+  font-weight: 800;
+}
+.compoundingSliceCard.isDisabled {
+  opacity: .55;
+}
 .compoundingExperienceTable {
   overflow-x: auto;
 }
@@ -5553,6 +5671,9 @@ button {
   .compoundingActiveAnalysisChip small {
     margin-left: 0;
   }
+  .compoundingExperienceFunnel,
+  .compoundingSnapshotStats,
+  .compoundingSliceGrid,
   .compoundingStageOrientation,
   .compoundingConceptFlow,
   .compoundingQuestionSummary,
@@ -5568,6 +5689,9 @@ button {
   .compoundingCaseSequence,
   .compoundingProfileGrid,
   .compoundingCaseSetFacts { grid-template-columns: 1fr; }
+  .compoundingExperienceFunnel span:not(:last-child)::after {
+    content: "";
+  }
   .compoundingGateHero,
   .compoundingNextStep {
     align-items: flex-start;

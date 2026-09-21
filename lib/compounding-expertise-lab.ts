@@ -459,6 +459,58 @@ export type ScorebookDerivedSimulatorValues = {
   feedbackDelaySampleSize: number;
 };
 
+export type ExperienceSnapshot = {
+  totalCases: number;
+  outcomesObserved: number;
+  gradedCases: number;
+  outcomeCompletionRate: number | null;
+  gradeCoverage: number | null;
+  medianFeedbackLatencyDays: number | null;
+  feedbackLatencySampleSize: number;
+  humanOverrideCount: number;
+  humanOverrideRate: number | null;
+  edgeCaseCount: number;
+  edgeCaseRate: number | null;
+  provenance: GuidedProvenanceLabel;
+};
+
+export type ExperienceDistributionItem = {
+  label: string;
+  count: number;
+  share: number | null;
+};
+
+export type FeedbackLatencyBucket = ExperienceDistributionItem & {
+  key: "0_7" | "8_14" | "15_30" | "31_PLUS" | "UNAVAILABLE";
+};
+
+export type ExperienceInsight = {
+  tone: "pattern" | "caution" | "gap";
+  statement: string;
+  support: string;
+};
+
+export type InterestingSlice = {
+  key: "human-overrides" | "agent-errors" | "edge-cases" | "unresolved" | "longest-feedback" | "highest-impact";
+  label: string;
+  count: number;
+  query: Record<string, string>;
+  enabled: boolean;
+  description: string;
+};
+
+export type ExperienceQualityDimension = {
+  label: string;
+  value: string;
+  sample: string;
+  provenance: GuidedProvenanceLabel;
+};
+
+export type ExperienceCanCannot = {
+  canTellUs: string[];
+  cannotTellUs: string[];
+};
+
 export type EpistemicKind = "OBSERVED_DERIVED" | "SOURCED" | "ENDOGENOUS_ASSUMPTION" | "EXOGENOUS_ASSUMPTION" | "UNKNOWN";
 
 export type StructuredInputDefinition = {
@@ -1769,6 +1821,238 @@ export function scorebookDerivedSimulatorValues(rows: ScorebookCaseInput[]): Sco
     feedbackDelayDays: median(latencyValues),
     feedbackDelaySampleSize: latencyValues.length
   };
+}
+
+export function deriveExperienceSnapshot(rows: ScorebookCaseInput[]): ExperienceSnapshot {
+  const metrics = calculateScorebookMetrics(rows);
+  const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
+  return {
+    totalCases: metrics.totalCases,
+    outcomesObserved: metrics.resolvedCases,
+    gradedCases: metrics.gradedCases,
+    outcomeCompletionRate: metrics.outcomeCompletionRate,
+    gradeCoverage: metrics.gradeCoverage,
+    medianFeedbackLatencyDays: metrics.medianFeedbackLatencyDays,
+    feedbackLatencySampleSize: metrics.feedbackLatencySampleSize,
+    humanOverrideCount: metrics.humanOverrideValue.count,
+    humanOverrideRate: metrics.humanOverrideRate,
+    edgeCaseCount: rows.filter((row) => row.isEdgeCase).length,
+    edgeCaseRate: metrics.edgeCaseShare,
+    provenance: caseSetDerivedProvenanceLabel({ hasRows: rows.length > 0, rowsAreSynthetic })
+  };
+}
+
+export function deriveGradeDistribution(rows: ScorebookCaseInput[]): ExperienceDistributionItem[] {
+  const orderedGrades: CompoundingCaseGrade[] = ["CORRECT", "PARTIALLY_CORRECT", "INCORRECT", "UNRESOLVED"];
+  return orderedGrades.map((grade) => ({
+    label: grade,
+    count: rows.filter((row) => row.grade === grade).length,
+    share: ratio(rows.filter((row) => row.grade === grade).length, rows.length)
+  }));
+}
+
+export function deriveActionDistribution(rows: ScorebookCaseInput[], limit = 5): ExperienceDistributionItem[] {
+  const values = rows
+    .map((row) => row.actionTaken || row.agentDecision)
+    .filter((value): value is string => Boolean(value));
+  return distribution(values, rows.length).slice(0, limit);
+}
+
+export function deriveFeedbackLatencyDistribution(rows: ScorebookCaseInput[]): FeedbackLatencyBucket[] {
+  const buckets: FeedbackLatencyBucket[] = [
+    { key: "0_7", label: "0-7 days", count: 0, share: null },
+    { key: "8_14", label: "8-14 days", count: 0, share: null },
+    { key: "15_30", label: "15-30 days", count: 0, share: null },
+    { key: "31_PLUS", label: "31+ days", count: 0, share: null },
+    { key: "UNAVAILABLE", label: "unresolved / unavailable", count: 0, share: null }
+  ];
+
+  rows.forEach((row) => {
+    const latency = feedbackLatencyDays(row);
+    if (latency === null) buckets[4].count += 1;
+    else if (latency <= 7) buckets[0].count += 1;
+    else if (latency <= 14) buckets[1].count += 1;
+    else if (latency <= 30) buckets[2].count += 1;
+    else buckets[3].count += 1;
+  });
+
+  return buckets.map((bucket) => ({ ...bucket, share: ratio(bucket.count, rows.length) }));
+}
+
+export function deriveExperienceInsights(rows: ScorebookCaseInput[]): ExperienceInsight[] {
+  const metrics = calculateScorebookMetrics(rows);
+  const insights: ExperienceInsight[] = [];
+  const totalCases = metrics.totalCases;
+  if (totalCases === 0) return [{ tone: "gap", statement: "No cases are available in this CaseSet.", support: "0 active CaseSet rows." }];
+
+  if (metrics.outcomeCompletionRate !== null && metrics.outcomeCompletionRate >= 0.8) {
+    insights.push({ tone: "pattern", statement: "Outcome representation is relatively complete.", support: `${metrics.resolvedCases} of ${totalCases} cases include an outcome, outcome date, or resolvable grade.` });
+  } else if (metrics.outcomeCompletionRate !== null && metrics.outcomeCompletionRate < 0.5) {
+    insights.push({ tone: "gap", statement: "Outcome representation is incomplete.", support: `${metrics.resolvedCases} of ${totalCases} cases include an outcome, outcome date, or resolvable grade.` });
+  }
+
+  if (metrics.gradeCoverage !== null && metrics.gradeCoverage >= 0.8) {
+    insights.push({ tone: "pattern", statement: "Most cases are graded.", support: `${metrics.gradedCases} of ${totalCases} cases have correct, partially correct, or incorrect grades.` });
+  } else if (metrics.gradeCoverage !== null && metrics.gradeCoverage < 0.5) {
+    insights.push({ tone: "gap", statement: "Grade coverage is limited.", support: `${metrics.gradedCases} of ${totalCases} cases have resolvable grades.` });
+  }
+
+  if (metrics.humanOverrideRate !== null && metrics.humanOverrideValue.count > 0) {
+    insights.push({ tone: "pattern", statement: "Human intervention is meaningfully represented.", support: `${metrics.humanOverrideValue.count} of ${totalCases} cases (${Math.round(metrics.humanOverrideRate * 100)}%) contain a human override where the final decision differs from the agent decision.` });
+  }
+
+  const unresolvedCount = rows.filter((row) => deriveCaseResolvedStatus(row) === "unresolved").length;
+  if (unresolvedCount > 0 && ratio(unresolvedCount, totalCases)! >= 0.2) {
+    insights.push({ tone: "caution", statement: "Unresolved cases are a material slice of the dataset.", support: `${unresolvedCount} of ${totalCases} cases are unresolved or missing outcome/grade evidence.` });
+  }
+
+  const edgeCaseCount = rows.filter((row) => row.isEdgeCase).length;
+  if (edgeCaseCount > 0 && ratio(edgeCaseCount, totalCases)! >= 0.15) {
+    insights.push({ tone: "pattern", statement: "Edge cases are visible enough to inspect separately.", support: `${edgeCaseCount} of ${totalCases} cases (${Math.round((edgeCaseCount / totalCases) * 100)}%) are marked edge cases.` });
+  }
+
+  const actionDistribution = deriveActionDistribution(rows, 1);
+  const topAction = actionDistribution[0];
+  if (topAction?.share !== null && topAction.share >= 0.5) {
+    insights.push({ tone: "pattern", statement: "A small number of actions dominate the dataset.", support: `${topAction.label} appears in ${topAction.count} of ${totalCases} cases (${Math.round(topAction.share * 100)}%).` });
+  }
+
+  if (metrics.medianFeedbackLatencyDays !== null) {
+    const statement = metrics.medianFeedbackLatencyDays <= 14
+      ? "Feedback is relatively fast under the fixed descriptive threshold."
+      : metrics.medianFeedbackLatencyDays > 30
+        ? "Feedback is relatively slow under the fixed descriptive threshold."
+        : "Feedback timing is moderate under the fixed descriptive threshold.";
+    insights.push({ tone: "pattern", statement, support: `Median decision-to-outcome latency is ${metrics.medianFeedbackLatencyDays} days across n=${metrics.feedbackLatencySampleSize}.` });
+  }
+
+  if (scorebookRowsAreSynthetic(rows)) {
+    insights.push({ tone: "caution", statement: "This is a synthetic fixture.", support: "These descriptive patterns test the analytical framework; they are not evidence about actual company operations." });
+  }
+
+  return insights.length ? insights.slice(0, 6) : [{ tone: "gap", statement: "No strong descriptive pattern is evident from this CaseSet.", support: `${totalCases} active CaseSet rows were inspected deterministically.` }];
+}
+
+export function deriveInterestingSlices(rows: ScorebookCaseInput[]): InterestingSlice[] {
+  const latencyRows = rows.filter((row) => feedbackLatencyDays(row) !== null);
+  const valueRows = rows.filter((row) => typeof row.outcomeValue === "number" && Number.isFinite(row.outcomeValue));
+  return [
+    {
+      key: "human-overrides",
+      label: "Human overrides",
+      count: rows.filter((row) => row.humanOverride && row.humanDecision && row.humanDecision !== row.agentDecision).length,
+      query: { override: "yes" },
+      enabled: rows.some((row) => row.humanOverride && row.humanDecision && row.humanDecision !== row.agentDecision),
+      description: "Cases where humans changed the agent decision."
+    },
+    {
+      key: "agent-errors",
+      label: "Agent errors / incorrect grades",
+      count: rows.filter((row) => row.grade === "INCORRECT").length,
+      query: { grade: "INCORRECT" },
+      enabled: rows.some((row) => row.grade === "INCORRECT"),
+      description: "Rows explicitly graded incorrect."
+    },
+    {
+      key: "edge-cases",
+      label: "Edge cases",
+      count: rows.filter((row) => row.isEdgeCase).length,
+      query: { edge: "yes" },
+      enabled: rows.some((row) => row.isEdgeCase),
+      description: "Cases marked as edge cases."
+    },
+    {
+      key: "unresolved",
+      label: "Unresolved cases",
+      count: rows.filter((row) => deriveCaseResolvedStatus(row) === "unresolved").length,
+      query: { resolved: "unresolved" },
+      enabled: rows.some((row) => deriveCaseResolvedStatus(row) === "unresolved"),
+      description: "Rows missing an outcome and resolvable grade."
+    },
+    {
+      key: "longest-feedback",
+      label: "Longest feedback",
+      count: Math.min(5, latencyRows.length),
+      query: { slice: "longest-feedback" },
+      enabled: latencyRows.length > 0,
+      description: "Cases with the longest decision-to-outcome latency."
+    },
+    {
+      key: "highest-impact",
+      label: "Highest economic impact",
+      count: Math.min(5, valueRows.length),
+      query: { slice: "highest-impact" },
+      enabled: valueRows.length > 0,
+      description: "Cases with the largest absolute recorded economic outcome."
+    }
+  ];
+}
+
+export function applyExperienceSlice(rows: ScorebookCaseInput[], slice: string | null | undefined) {
+  if (slice === "longest-feedback") {
+    return [...rows]
+      .filter((row) => feedbackLatencyDays(row) !== null)
+      .sort((a, b) => (feedbackLatencyDays(b) ?? -1) - (feedbackLatencyDays(a) ?? -1))
+      .slice(0, 5);
+  }
+  if (slice === "highest-impact") {
+    return [...rows]
+      .filter((row) => typeof row.outcomeValue === "number" && Number.isFinite(row.outcomeValue))
+      .sort((a, b) => Math.abs(b.outcomeValue ?? 0) - Math.abs(a.outcomeValue ?? 0))
+      .slice(0, 5);
+  }
+  return rows;
+}
+
+export function deriveExperienceCoverage(rows: ScorebookCaseInput[], provenance: GuidedProvenanceLabel): ExperienceQualityDimension[] {
+  const metrics = calculateScorebookMetrics(rows);
+  const actionCount = rows.filter((row) => row.actionTaken).length;
+  return [
+    { label: "Outcome completeness", value: metrics.outcomeCompletionRate === null ? "Unavailable" : `${Math.round(metrics.outcomeCompletionRate * 100)}%`, sample: `${metrics.resolvedCases}/${metrics.totalCases} cases`, provenance },
+    { label: "Grade coverage", value: metrics.gradeCoverage === null ? "Unavailable" : `${Math.round(metrics.gradeCoverage * 100)}%`, sample: `${metrics.gradedCases}/${metrics.totalCases} cases`, provenance },
+    { label: "Feedback timing", value: metrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${metrics.medianFeedbackLatencyDays} day median`, sample: `available for ${metrics.feedbackLatencySampleSize}/${metrics.totalCases}`, provenance },
+    { label: "Decision/action coverage", value: metrics.totalCases === 0 ? "Unavailable" : `${Math.round((actionCount / metrics.totalCases) * 100)}%`, sample: `${actionCount}/${metrics.totalCases} cases with action taken`, provenance },
+    { label: "Provenance quality", value: provenance, sample: scorebookRowsAreSynthetic(rows) ? "Synthetic fixture; not company data" : "Active CaseSet rows", provenance }
+  ];
+}
+
+export function deriveExperienceCanCannot(rows: ScorebookCaseInput[]): ExperienceCanCannot {
+  const baseCanTellUs = [
+    "whether decisions, actions, outcomes, and grades are represented",
+    "grade coverage and outcome completion",
+    "feedback latency where timestamps exist",
+    "human override frequency",
+    "descriptive grade, action, and decision distributions"
+  ];
+  const cannotTellUs = [
+    "whether accumulated cases cause future performance improvement",
+    "whether learning transfers across customers",
+    "whether the company has contractual rights to pool or use experience",
+    "whether the expertise is hard for competitors to reproduce",
+    "whether historical experience is compressible into a reproducible policy",
+    "whether a Compounding Expertise mechanism creates durable Power"
+  ];
+  return {
+    canTellUs: scorebookRowsAreSynthetic(rows)
+      ? [...baseCanTellUs, "how the analytical framework behaves on a synthetic fixture"]
+      : baseCanTellUs,
+    cannotTellUs: scorebookRowsAreSynthetic(rows)
+      ? [...cannotTellUs, "actual company behavior; this CaseSet is a framework test fixture, not company evidence"]
+      : cannotTellUs
+  };
+}
+
+export function deriveCaseInspectionReasons(row: ScorebookCaseInput): string[] {
+  const reasons = [
+    row.humanOverride ? "Human override" : null,
+    row.grade === "INCORRECT" ? "Agent incorrect" : null,
+    row.grade === "PARTIALLY_CORRECT" ? "Partially correct grade" : null,
+    row.isEdgeCase ? "Edge case" : null,
+    typeof row.outcomeValue === "number" && Number.isFinite(row.outcomeValue) ? "Economic value recorded" : null,
+    feedbackLatencyDays(row) !== null && feedbackLatencyDays(row)! > 30 ? "Long feedback" : null,
+    deriveCaseResolvedStatus(row) === "unresolved" ? "Unresolved" : null
+  ];
+  return reasons.filter((reason): reason is string => Boolean(reason));
 }
 
 export function deriveDecisionSystemMetrics(rows: ScorebookCaseInput[]): DecisionSystemDerivedMetrics {

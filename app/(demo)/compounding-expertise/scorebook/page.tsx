@@ -3,11 +3,21 @@ import { Section } from "@/components/site/Section";
 import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
 import {
   SCOREBOOK_CASE_FIELD_CLASSIFICATION,
+  applyExperienceSlice,
   buildCaseDetailSequence,
   calculateScorebookMetrics,
   casesForCaseSet,
   deriveCaseFeedbackLatencyDays,
+  deriveCaseInspectionReasons,
   deriveCaseResolvedStatus,
+  deriveActionDistribution,
+  deriveExperienceCanCannot,
+  deriveExperienceCoverage,
+  deriveExperienceInsights,
+  deriveExperienceSnapshot,
+  deriveFeedbackLatencyDistribution,
+  deriveGradeDistribution,
+  deriveInterestingSlices,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
   sourceRouteIsSafe,
@@ -93,8 +103,10 @@ function latencyLabel(row: ScorebookCaseInput) {
 function rowFlags(row: ScorebookCaseInput) {
   return [
     row.humanOverride ? "override" : null,
+    row.grade === "INCORRECT" ? "incorrect" : null,
+    row.grade === "PARTIALLY_CORRECT" ? "partial" : null,
     row.isEdgeCase ? "edge" : null,
-    row.grade === "UNRESOLVED" ? "unresolved" : null,
+    deriveCaseResolvedStatus(row) === "unresolved" ? "unresolved" : null,
     row.isSynthetic ? "synthetic" : null
   ].filter((item): item is string => Boolean(item));
 }
@@ -139,6 +151,25 @@ function metricCard(label: string, value: string, sample: string) {
   );
 }
 
+function barWidth(share: number | null) {
+  return `${Math.max(3, Math.round((share ?? 0) * 100))}%`;
+}
+
+function sliceHref({
+  analysisId,
+  caseSetId,
+  query
+}: {
+  analysisId: string;
+  caseSetId?: string | null;
+  query: Record<string, string>;
+}) {
+  const params = new URLSearchParams({ analysisId });
+  if (caseSetId) params.set("caseSetId", caseSetId);
+  Object.entries(query).forEach(([key, value]) => params.set(key, value));
+  return `/compounding-expertise/scorebook?${params.toString()}#case-explorer`;
+}
+
 function CaseDetail({
   row,
   decisionClassName,
@@ -149,6 +180,7 @@ function CaseDetail({
   caseSet: NonNullable<Awaited<ReturnType<typeof loadCompoundingAnalysis>>>["caseSets"][number] | null;
 }) {
   const sequence = buildCaseDetailSequence(row);
+  const reasons = deriveCaseInspectionReasons(row);
   return (
     <div className="compoundingCaseDetail">
       <div className="compoundingCaseSequence">
@@ -161,6 +193,14 @@ function CaseDetail({
         ))}
       </div>
       <div className="grid grid-3">
+        <div className="card compact">
+          <p className="small">Why this case may matter</p>
+          {reasons.length ? (
+            <div className="compoundingActionPills">{reasons.map((reason) => <span key={reason}>{reason}</span>)}</div>
+          ) : (
+            <p>No deterministic inspection flag was found.</p>
+          )}
+        </div>
         <div className="card compact">
           <p className="small">CE-derived fields</p>
           <p><strong>Feedback latency:</strong> {latencyLabel(row)}</p>
@@ -286,9 +326,17 @@ export default async function CompoundingExpertiseScorebookPage({
     ? analysis.caseSets.find((caseSet) => caseSet.id === params.caseSetId) ?? null
     : analysis.caseSets[0] ?? null;
   const activeRows = casesForCaseSet(rows, selectedCaseSet?.id);
-  const filtered = activeRows.filter((row) => matches(row, params as Record<string, string>));
+  const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   const metrics = calculateScorebookMetrics(activeRows);
   const derived = scorebookDerivedSimulatorValues(activeRows);
+  const snapshot = deriveExperienceSnapshot(activeRows);
+  const gradeDistribution = deriveGradeDistribution(activeRows);
+  const actionDistribution = deriveActionDistribution(activeRows);
+  const feedbackLatencyDistribution = deriveFeedbackLatencyDistribution(activeRows);
+  const experienceInsights = deriveExperienceInsights(activeRows);
+  const interestingSlices = deriveInterestingSlices(activeRows);
+  const experienceQuality = deriveExperienceCoverage(activeRows, snapshot.provenance);
+  const canCannot = deriveExperienceCanCannot(activeRows);
   const segments = uniq(activeRows.map((row) => row.customerSegment));
   const caseTypes = uniq(activeRows.map((row) => row.caseType));
   const allSynthetic = scorebookRowsAreSynthetic(activeRows);
@@ -399,27 +447,100 @@ export default async function CompoundingExpertiseScorebookPage({
         ) : null}
       </Section>
 
-      <Section title="Create CaseSet">
-        <form action={saveCaseSetAction} className="compoundingFormGrid">
-          <input type="hidden" name="analysisId" value={analysis.id} />
-          <label>Name<input name="name" placeholder="Q1 production decisions, treatment run, synthetic benchmark..." /></label>
-          <label>Source type<input name="sourceType" defaultValue="MANUAL" /></label>
-          <label className="span-2">Description<textarea name="description" rows={3} placeholder="What body of experience does this CaseSet represent?" /></label>
-          <label>Source system label<input name="sourceSystemLabel" placeholder="Manual, Pricing, CSV, etc." /></label>
-          <label>Synthetic status<select name="isSynthetic" defaultValue="0"><option value="0">Observed / user-entered</option><option value="1">Synthetic</option></select></label>
-          <label className="span-2">Provenance<textarea name="provenanceLabel" rows={2} defaultValue="User-entered CaseSet" /></label>
-          <button className="btn" type="submit">Create CaseSet</button>
-        </form>
-      </Section>
-
-      <Section title="Dataset Summary">
-        <div className="grid grid-4">
-          {metricCard("Total cases", String(metrics.totalCases), selectedCaseSet ? selectedCaseSet.name : "All rows")}
-          {metricCard("Outcome completion", pct(metrics.outcomeCompletionRate), `n=${metrics.resolvedCases}/${metrics.totalCases}`)}
-          {metricCard("Grade coverage", pct(metrics.gradeCoverage), `n=${metrics.gradedCases}/${metrics.totalCases}`)}
-          {metricCard("Median feedback latency", metrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${metrics.medianFeedbackLatencyDays} days`, `n=${metrics.feedbackLatencySampleSize}`)}
-          {metricCard("Human overrides", `${metrics.humanOverrideValue.count}`, `${pct(metrics.humanOverrideRate)} of cases`)}
-          {metricCard("Edge cases", `${activeRows.filter((row) => row.isEdgeCase).length}`, `${pct(metrics.edgeCaseShare)} of cases`)}
+      <Section title="Experience Snapshot">
+        <div className="card compoundingExperienceSnapshot">
+          <div>
+            <p className="small">Experience funnel</p>
+            <div className="compoundingExperienceFunnel" aria-label="Outcome and grade funnel">
+              <span>
+                <strong>{snapshot.totalCases}</strong>
+                <small>Total cases</small>
+              </span>
+              <span>
+                <strong>{snapshot.outcomesObserved}</strong>
+                <small>Outcomes observed</small>
+              </span>
+              <span>
+                <strong>{snapshot.gradedCases}</strong>
+                <small>Cases graded</small>
+              </span>
+            </div>
+          </div>
+          <div className="compoundingSnapshotStats">
+            {metricCard("Outcome completion", pct(snapshot.outcomeCompletionRate), `n=${snapshot.outcomesObserved}/${snapshot.totalCases}`)}
+            {metricCard("Grade coverage", pct(snapshot.gradeCoverage), `n=${snapshot.gradedCases}/${snapshot.totalCases}`)}
+            {metricCard("Median feedback latency", snapshot.medianFeedbackLatencyDays === null ? "Unavailable" : `${snapshot.medianFeedbackLatencyDays} days`, `n=${snapshot.feedbackLatencySampleSize}`)}
+            {metricCard("Human override rate", pct(snapshot.humanOverrideRate), `n=${snapshot.humanOverrideCount}/${snapshot.totalCases}`)}
+            {metricCard("Edge-case rate", pct(snapshot.edgeCaseRate), `n=${snapshot.edgeCaseCount}/${snapshot.totalCases}`)}
+          </div>
+          <p className="miniTag">{snapshot.provenance}</p>
+        </div>
+        <div className="grid grid-3 compoundingDiagnosticsGrid">
+          <div className="card">
+            <h3>Grade distribution</h3>
+            <div className="compoundingBarList">
+              {gradeDistribution.map((item) => (
+                <span key={item.label}>
+                  <strong>{item.label.replaceAll("_", " ")}</strong>
+                  <small>{item.count} · {pct(item.share)}</small>
+                  <i style={{ width: barWidth(item.share) }} />
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <h3>Action / decision distribution</h3>
+            <div className="compoundingBarList">
+              {actionDistribution.length ? actionDistribution.map((item) => (
+                <span key={item.label}>
+                  <strong>{item.label}</strong>
+                  <small>{item.count} · {pct(item.share)}</small>
+                  <i style={{ width: barWidth(item.share) }} />
+                </span>
+              )) : <p className="small">No actions or agent decisions are represented.</p>}
+            </div>
+          </div>
+          <div className="card">
+            <h3>Feedback latency</h3>
+            <p className="small">Median: {snapshot.medianFeedbackLatencyDays === null ? "Unavailable" : `${snapshot.medianFeedbackLatencyDays} days`}</p>
+            <div className="compoundingBarList">
+              {feedbackLatencyDistribution.map((item) => (
+                <span key={item.key}>
+                  <strong>{item.label}</strong>
+                  <small>{item.count} · {pct(item.share)}</small>
+                  <i style={{ width: barWidth(item.share) }} />
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="card compoundingExperienceInsights">
+          <h3>What stands out</h3>
+          <div className="compoundingInsightList">
+            {experienceInsights.map((insight) => (
+              <span className={`compoundingInsight-${insight.tone}`} key={`${insight.statement}-${insight.support}`}>
+                <strong>{insight.statement}</strong>
+                <small>{insight.support}</small>
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="card compoundingExperienceQuality">
+          <h3>Experience quality</h3>
+          <p className="small">This is descriptive dataset quality, not a Compounding Expertise score.</p>
+          <div className="compoundingCaseSetFacts">
+            {experienceQuality.map((item) => (
+              <span key={item.label}>
+                <strong>{item.label}</strong>
+                {item.value}
+                <small>{item.sample}</small>
+                <small>{item.provenance}</small>
+              </span>
+            ))}
+          </div>
+          <p className="small">
+            A complete scorebook can still fail to create Compounding Expertise if grades do not improve future behavior or if the resulting expertise is easily reproduced.
+          </p>
         </div>
         <details className="card compoundingDisclosure">
           <summary>Secondary statistics</summary>
@@ -465,7 +586,46 @@ export default async function CompoundingExpertiseScorebookPage({
         </details>
       </Section>
 
-      <Section title="Filters">
+      <Section title="Investigate">
+        <p>Use these deterministic slices to jump into the same Case Explorer below. Counts are calculated from the active CaseSet only.</p>
+        <div className="compoundingSliceGrid">
+          {interestingSlices.map((slice) => {
+            const href = sliceHref({ analysisId: analysis.id, caseSetId: selectedCaseSet?.id, query: slice.query });
+            return slice.enabled ? (
+              <Link className="card compoundingSliceCard" href={href} key={slice.key}>
+                <strong>{slice.label}</strong>
+                <span>{slice.count} cases</span>
+                <small>{slice.description}</small>
+              </Link>
+            ) : (
+              <span className="card compoundingSliceCard isDisabled" key={slice.key}>
+                <strong>{slice.label}</strong>
+                <span>0 cases</span>
+                <small>{slice.description}</small>
+              </span>
+            );
+          })}
+        </div>
+      </Section>
+
+      <Section title="Create CaseSet">
+        <details className="card compoundingDisclosure">
+          <summary>Create a new CaseSet</summary>
+          <form action={saveCaseSetAction} className="compoundingFormGrid">
+            <input type="hidden" name="analysisId" value={analysis.id} />
+            <label>Name<input name="name" placeholder="Q1 production decisions, treatment run, synthetic benchmark..." /></label>
+            <label>Source type<input name="sourceType" defaultValue="MANUAL" /></label>
+            <label className="span-2">Description<textarea name="description" rows={3} placeholder="What body of experience does this CaseSet represent?" /></label>
+            <label>Source system label<input name="sourceSystemLabel" placeholder="Manual, Pricing, CSV, etc." /></label>
+            <label>Synthetic status<select name="isSynthetic" defaultValue="0"><option value="0">Observed / user-entered</option><option value="1">Synthetic</option></select></label>
+            <label className="span-2">Provenance<textarea name="provenanceLabel" rows={2} defaultValue="User-entered CaseSet" /></label>
+            <button className="btn" type="submit">Create CaseSet</button>
+          </form>
+        </details>
+      </Section>
+
+      <div id="case-explorer" />
+      <Section title="Case Explorer filters">
         <form className="grid grid-4">
           <input type="hidden" name="analysisId" value={analysis.id} />
           {selectedCaseSet ? <input type="hidden" name="caseSetId" value={selectedCaseSet.id} /> : null}
@@ -484,7 +644,11 @@ export default async function CompoundingExpertiseScorebookPage({
         </form>
       </Section>
 
-      <Section title="Cases">
+      <Section title="Inspect individual cases">
+        <p>
+          This is the atomic object of Compounding Expertise: Context → Agent → Human → Action → Outcome → Grade.
+          {params.slice ? ` Current slice: ${params.slice.replaceAll("-", " ")}.` : ""}
+        </p>
         <div className="tableScroll compoundingExperienceTable">
           <table className="dataTable">
             <thead>
@@ -582,8 +746,29 @@ export default async function CompoundingExpertiseScorebookPage({
             </div>
           </form>
         </details>
+        <div className="grid grid-2">
+          <div className="card">
+            <h3>What this CaseSet tells us</h3>
+            <ul>{canCannot.canTellUs.map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+          <div className="card">
+            <h3>What this CaseSet cannot tell us</h3>
+            <ul>{canCannot.cannotTellUs.map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+        </div>
+        {allSynthetic ? (
+          <div className="card compoundingSyntheticBanner">
+            <strong>This CaseSet tests the analytical framework. It is not evidence about the actual company.</strong>
+          </div>
+        ) : null}
         <div className="ctaRow">
-          <Link className="btn primary" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Continue to Key Debates</Link>
+          <div>
+            <h3>Next: What would change the thesis?</h3>
+            <p className="small">
+              Experience describes what the available cases contain. Debates asks which unresolved propositions determine whether that experience becomes durable Compounding Expertise.
+            </p>
+          </div>
+          <Link className="btn primary" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Continue to Key Debates →</Link>
         </div>
       </Section>
 
