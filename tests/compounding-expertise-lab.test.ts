@@ -36,6 +36,8 @@ import {
   deriveCanonicalDebateProfile,
   deriveDebateAssessment,
   deriveDebateCandidates,
+  deriveDebateEvidenceRegistry,
+  deriveHighestValueDiligenceQueue,
   detectCrossover,
   exampleById,
   explainSimulatorComparison,
@@ -474,7 +476,28 @@ test("multiple customer segments cannot establish transfer", () => {
 
   assert.equal(assessment.assessment, "UNPROVEN");
   assert.match(assessment.assessmentReason, /not cross-customer performance transfer/i);
-  assert.ok(assessment.evidenceFor.some((item) => item.limitation.includes("Multiple customer segments do not establish transfer") || item.limitation.includes("Synthetic fixture")));
+  assert.ok(assessment.evidenceFor.some((item) => item.direction === "CONTEXT-DESCRIPTIVE"));
+  assert.equal(assessment.evidenceFor.some((item) => item.direction === "SUPPORTS"), false);
+});
+
+test("V0.4.1 debate evidence registry separates context from support and strips missing links", () => {
+  const registry = deriveDebateEvidenceRegistry({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    analysisId: "analysis-1",
+    caseSetId: "set-a"
+  });
+  const transfer = registry.CROSS_CUSTOMER_TRANSFER;
+
+  assert.equal(transfer.assessment, "UNPROVEN");
+  assert.equal(transfer.evidenceFor.length, 0);
+  assert.ok(transfer.contextEvidence.some((item) => item.value.includes("customer segments represented")));
+  assert.ok(transfer.contextEvidence.every((item) => item.direction === "CONTEXT-DESCRIPTIVE"));
+  assert.ok(transfer.missingEvidence.every((item) => item.direction === "MISSING"));
+  assert.ok(transfer.missingEvidence.every((item) => item.href === undefined));
+  assert.match(transfer.evidenceCoverage, /context/);
+  assert.match(transfer.tenSecondSummary, /UNPROVEN/);
 });
 
 test("high case volume cannot establish marginal information value", () => {
@@ -518,6 +541,20 @@ test("investor belief remains separate from CE assessment", () => {
   assert.equal(transfer?.investorBelief, 70);
   assert.match(transfer?.investorBeliefDivergence ?? "", /more positive than the currently available evidence/i);
   assert.equal(transfer?.evidenceFor.some((item) => item.value.includes("70")), false);
+  assert.equal("recommendedProbability" in (transfer ?? {}), false);
+});
+
+test("highest-value diligence queue prioritizes unresolved high-impact debates", () => {
+  const candidates = deriveDebateCandidates({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a")
+  });
+  const queue = deriveHighestValueDiligenceQueue(candidates, 3);
+
+  assert.equal(queue.length, 3);
+  assert.ok(queue.every((item) => item.test.length > 0));
+  assert.ok(queue.every((item) => item.href.startsWith("#debate-")));
 });
 
 test("feedback latency and simulator-derived values use only observed graded rows", () => {

@@ -521,8 +521,8 @@ export type DebateAssessmentCategory =
 
 export type DebateEvidenceConfidence = "HIGH" | "MEDIUM" | "LOW";
 export type DebateThesisImpact = "VERY HIGH" | "HIGH" | "MEDIUM";
-export type DebateEvidenceDirection = "SUPPORTING" | "DESCRIPTIVE" | "AGAINST" | "MISSING";
-export type DebateEvidenceStrength = "DIRECT" | "INDIRECT" | "DESCRIPTIVE" | "MISSING";
+export type DebateEvidenceDirection = "SUPPORTS" | "CONTRADICTS" | "CONTEXT-DESCRIPTIVE" | "MISSING";
+export type DebateEvidenceStrength = "DIRECT" | "INDIRECT" | "CONTEXT" | "MISSING";
 export type DebateFamily =
   | "EXPERIENCE_CAPTURE"
   | "LEARNING_CAUSALITY"
@@ -552,10 +552,14 @@ export type DerivedDebateCandidate = {
   assessment: DebateAssessmentCategory;
   confidence: DebateEvidenceConfidence;
   assessmentReason: string;
+  tenSecondSummary: string;
+  evidenceCoverage: string;
   thesisImpact: DebateThesisImpact;
   evidenceFor: DebateEvidenceItem[];
   evidenceAgainst: DebateEvidenceItem[];
+  contextEvidence: DebateEvidenceItem[];
   missingEvidence: DebateEvidenceItem[];
+  highestValueDiligence: string;
   ifTrue: string;
   ifFalse: string;
   bestNextTest: string;
@@ -2173,7 +2177,7 @@ export function deriveCanonicalDebateProfile(analysis: CompanyThesisInput): Deba
 }
 
 function debateTemplate(family: DebateFamily) {
-  const templates: Record<DebateFamily, Omit<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "missingEvidence" | "investorBelief" | "investorBeliefDivergence">> = {
+  const templates: Record<DebateFamily, Omit<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "tenSecondSummary" | "evidenceCoverage" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "highestValueDiligence" | "investorBelief" | "investorBeliefDivergence">> = {
     EXPERIENCE_CAPTURE: {
       family,
       title: "Experience capture",
@@ -2298,8 +2302,8 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
     forEvidence.push(evidenceItem({
       source: "Experience → active CaseSet",
       value,
-      direction: rowsAreSynthetic ? "DESCRIPTIVE" : "SUPPORTING",
-      strength: rowsAreSynthetic ? "DESCRIPTIVE" : "INDIRECT",
+      direction: "CONTEXT-DESCRIPTIVE",
+      strength: "CONTEXT",
       provenance,
       href: experienceHref,
       interpretation,
@@ -2313,7 +2317,6 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
       direction: "MISSING",
       strength: "MISSING",
       provenance: "UNKNOWN / DILIGENCE REQUIRED",
-      href: source.startsWith("Experience") ? experienceHref : companyModelHref,
       interpretation,
       limitation: "Missing evidence cannot support the proposition."
     }));
@@ -2322,6 +2325,16 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   if (family === "EXPERIENCE_CAPTURE") {
     addExperienceDescriptive(`${metrics.gradedCases}/${metrics.totalCases} graded cases; ${metrics.resolvedCases}/${metrics.totalCases} outcomes represented.`, "Shows whether the active CaseSet is scorebook-like.", "Completeness alone does not prove learning improves future decisions.");
     if (metrics.gradeCoverage !== null && metrics.gradeCoverage >= 0.75 && metrics.outcomeCompletionRate !== null && metrics.outcomeCompletionRate >= 0.75 && !rowsAreSynthetic) {
+      forEvidence.push(evidenceItem({
+        source: "Experience → active CaseSet",
+        value: "Company CaseSet rows have high outcome and grade representation.",
+        direction: "SUPPORTS",
+        strength: "INDIRECT",
+        provenance,
+        href: experienceHref,
+        interpretation: "Supports production experience capture when the active CaseSet is actual company data.",
+        limitation: "Still does not prove that captured grades improve future behavior."
+      }));
       return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Company/data rows show relatively complete outcome and grade representation.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
     }
     if (metrics.totalCases === 0) addMissing("Experience → active CaseSet", "No active CaseSet rows.", "No scorebook-like body of experience is available.");
@@ -2353,8 +2366,8 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   if (family === "REBUILDABILITY_COMPRESSION") {
     const difficulty = input.competitiveArchitecture?.competitorRelearningDifficulty ?? input.analysis.rebuildability;
     const foundationRisk = input.competitiveArchitecture?.foundationModelSubstitutionRisk ?? input.analysis.foundationModelDependence;
-    if (difficulty) forEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Relearning difficulty: ${difficulty}`, direction: "DESCRIPTIVE", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Frames the rebuildability hypothesis.", limitation: "Assumption is not a challenger benchmark." }));
-    if (valueIncludes(foundationRisk, ["HIGH", "FAST"])) againstEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Foundation-model substitution risk: ${foundationRisk}`, direction: "AGAINST", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "A high substitution risk weakens durable CE Power.", limitation: "Still requires direct benchmark evidence." }));
+    if (difficulty) forEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Relearning difficulty: ${difficulty}`, direction: "CONTEXT-DESCRIPTIVE", strength: "CONTEXT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Frames the rebuildability hypothesis.", limitation: "Assumption is not a challenger benchmark." }));
+    if (valueIncludes(foundationRisk, ["HIGH", "FAST"])) againstEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Foundation-model substitution risk: ${foundationRisk}`, direction: "CONTRADICTS", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "A high substitution risk weakens durable CE Power.", limitation: "Still requires direct benchmark evidence." }));
     addMissing("Future challenger benchmark", "No compression/relearning benchmark.", "Need evidence that a capable challenger cannot reproduce performance cheaply.");
     return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "Without a challenger, relearning, or compression benchmark, durability remains unproven.", evidenceFor: forEvidence, evidenceAgainst: againstEvidence, missingEvidence: missing };
   }
@@ -2362,7 +2375,7 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   if (family === "LEARNING_RIGHTS") {
     const rights = input.learningArchitecture?.canTrainAcrossCustomers ?? input.analysis.contractualLearningRights;
     const hasSource = sourcedSupport(input.evidenceRecords, ["right", "contract", "train", "retain"]);
-    if (rights) forEvidence.push(evidenceItem({ source: "Company Model → Learning rights", value: `Learning rights: ${rights}`, direction: valueIncludes(rights, ["YES", "ALLOW"]) ? "SUPPORTING" : "DESCRIPTIVE", strength: hasSource ? "DIRECT" : "INDIRECT", provenance: hasSource ? "SOURCED — EXTERNAL EVIDENCE" : "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Rights determine whether experience can be retained and reused.", limitation: hasSource ? "Review scope of allowed uses." : "Analyst assumption is not contractual evidence." }));
+    if (rights) forEvidence.push(evidenceItem({ source: "Company Model → Learning rights", value: `Learning rights: ${rights}`, direction: valueIncludes(rights, ["YES", "ALLOW"]) && hasSource ? "SUPPORTS" : "CONTEXT-DESCRIPTIVE", strength: hasSource ? "DIRECT" : "CONTEXT", provenance: hasSource ? "SOURCED — EXTERNAL EVIDENCE" : "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Rights determine whether experience can be retained and reused.", limitation: hasSource ? "Review scope of allowed uses." : "Analyst assumption is not contractual evidence." }));
     if (valueIncludes(rights, ["NO", "RESTRICT"])) return { assessment: "LEANING AGAINST", confidence: hasSource ? "MEDIUM" : "LOW", assessmentReason: "Current rights signal appears restrictive.", evidenceFor: [], evidenceAgainst: forEvidence, missingEvidence: [] };
     if (valueIncludes(rights, ["YES", "ALLOW"]) && hasSource) return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Sourced rights evidence supports retention/use, subject to scope review.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: [] };
     addMissing("Contracts / data governance", "No sourced contractual rights evidence.", "Need retention, derived-feature, evaluation, and cross-customer training rights.");
@@ -2376,13 +2389,65 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   }
 
   const deterministic = input.competitiveArchitecture?.deterministicInfrastructureStrength ?? input.analysis.deterministicInfrastructure;
-  if (deterministic) forEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Deterministic infrastructure: ${deterministic}`, direction: "DESCRIPTIVE", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "May indicate Power outside CE.", limitation: "Does not itself prove a Helmer mechanism." }));
+  if (deterministic) forEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Deterministic infrastructure: ${deterministic}`, direction: "CONTEXT-DESCRIPTIVE", strength: "CONTEXT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "May indicate Power outside CE.", limitation: "Does not itself prove a Helmer mechanism." }));
   addMissing("Strategic evidence", "No adoption/process/switching evidence.", "Need direct evidence for Process Power, switching costs, or infrastructure dependence.");
   return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "Alternative Power may be plausible but is not established by the current CE evidence model.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
 }
 
+export function deriveDebateEvidenceRegistry(input: DebateEngineInput): Record<DebateFamily, Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceCoverage" | "tenSecondSummary" | "highestValueDiligence">> {
+  const families: DebateFamily[] = [
+    "EXPERIENCE_CAPTURE",
+    "LEARNING_CAUSALITY",
+    "CROSS_CUSTOMER_TRANSFER",
+    "MARGINAL_INFORMATION_VALUE",
+    "REBUILDABILITY_COMPRESSION",
+    "LEARNING_RIGHTS",
+    "ECONOMIC_MATERIALITY",
+    "ALTERNATIVE_POWER"
+  ];
+
+  return families.reduce<Record<DebateFamily, Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceCoverage" | "tenSecondSummary" | "highestValueDiligence">>>((registry, family) => {
+    const raw = deriveDebateAssessment(input, family);
+    const evidenceFor = raw.evidenceFor.filter((item) => item.direction === "SUPPORTS");
+    const contextEvidence = raw.evidenceFor.filter((item) => item.direction === "CONTEXT-DESCRIPTIVE");
+    const evidenceAgainst = raw.evidenceAgainst.filter((item) => item.direction === "CONTRADICTS");
+    const missingEvidence = raw.missingEvidence.map((item) => ({ ...item, href: undefined }));
+    const evidenceCoverage = `${evidenceFor.length} supports · ${evidenceAgainst.length} contradicts · ${contextEvidence.length} context · ${missingEvidence.length} missing`;
+    const highestValueDiligence = missingEvidence[0]?.interpretation || debateTemplate(family).bestNextTest;
+    const tenSecondSummary = `${raw.assessment} / ${raw.confidence} confidence. ${raw.assessmentReason}`;
+    registry[family] = {
+      ...raw,
+      evidenceFor,
+      evidenceAgainst,
+      contextEvidence,
+      missingEvidence,
+      evidenceCoverage,
+      tenSecondSummary,
+      highestValueDiligence
+    };
+    return registry;
+  }, {} as Record<DebateFamily, Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceCoverage" | "tenSecondSummary" | "highestValueDiligence">>);
+}
+
+export function deriveHighestValueDiligenceQueue(candidates: DerivedDebateCandidate[], limit = 5) {
+  const impactOrder: Record<DebateThesisImpact, number> = { "VERY HIGH": 0, HIGH: 1, MEDIUM: 2 };
+  return candidates
+    .filter((candidate) => candidate.missingEvidence.length > 0 || candidate.assessment === "UNPROVEN" || candidate.assessment === "UNKNOWN")
+    .sort((a, b) => impactOrder[a.thesisImpact] - impactOrder[b.thesisImpact] || b.missingEvidence.length - a.missingEvidence.length || a.title.localeCompare(b.title))
+    .slice(0, limit)
+    .map((candidate) => ({
+      family: candidate.family,
+      title: candidate.title,
+      thesisImpact: candidate.thesisImpact,
+      test: candidate.bestNextTest,
+      reason: candidate.highestValueDiligence,
+      href: `#debate-${candidate.family}`
+    }));
+}
+
 export function deriveDebateCandidates(input: DebateEngineInput, take = 5): DerivedDebateCandidate[] {
   const profile = deriveCanonicalDebateProfile(input.analysis);
+  const registry = deriveDebateEvidenceRegistry(input);
   const families = new Set<DebateFamily>();
   for (const debate of input.debates) {
     const family = debateFamilyFromQuestion(debate.question);
@@ -2392,7 +2457,7 @@ export function deriveDebateCandidates(input: DebateEngineInput, take = 5): Deri
   const candidates = [...families].slice(0, take).map((family) => {
     const template = debateTemplate(family);
     const sourceDebate = input.debates.find((debate) => debateFamilyFromQuestion(debate.question) === family);
-    const assessment = deriveDebateAssessment(input, family);
+    const assessment = registry[family];
     const investorBelief = sourceDebate?.probability ?? null;
     const divergence = investorBelief !== null && assessment.assessment === "UNPROVEN" && investorBelief >= 60
       ? "Your belief is more positive than the currently available evidence. Capture the private diligence or meeting evidence that supports it."

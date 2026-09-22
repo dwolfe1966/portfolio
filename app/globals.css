@@ -4261,6 +4261,15 @@ button {
 .compoundingDebateSummaryTable {
   overflow-x: auto;
 }
+.compoundingDebateSummaryCards {
+  display: none;
+  gap: 10px;
+}
+.compoundingDebateSummaryCard,
+.compoundingDiligenceItem {
+  color: var(--demo-text);
+  text-decoration: none;
+}
 .compoundingDebateSummaryTable .dataTable {
   min-width: 980px;
   border-collapse: collapse;
@@ -4295,6 +4304,9 @@ button {
 .compoundingDebateAnalysisCard {
   scroll-margin-top: 96px;
 }
+.compoundingTenSecondSummary {
+  border-color: color-mix(in srgb, var(--demo-accent) 44%, var(--demo-divider) 56%);
+}
 .compoundingEvidenceList {
   display: grid;
   gap: 8px;
@@ -4305,17 +4317,25 @@ button {
 .compoundingEvidenceItem {
   border-left-width: 4px;
 }
-.compoundingEvidenceItem-supporting {
+.compoundingEvidenceItem-supports {
   border-left-color: rgba(16, 185, 129, .75) !important;
 }
-.compoundingEvidenceItem-descriptive {
+.compoundingEvidenceItem-context-descriptive {
   border-left-color: rgba(59, 130, 246, .7) !important;
 }
-.compoundingEvidenceItem-against {
+.compoundingEvidenceItem-contradicts {
   border-left-color: rgba(248, 113, 113, .75) !important;
 }
 .compoundingEvidenceItem-missing {
   border-left-color: rgba(148, 163, 184, .85) !important;
+}
+@media (max-width: 760px) {
+  .compoundingDebateSummaryCards {
+    display: grid;
+  }
+  .compoundingDebateSummaryTable {
+    display: none;
+  }
 }
 .compoundingAssessmentCard summary {
   display: flex;

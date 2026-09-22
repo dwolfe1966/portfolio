@@ -4,6 +4,7 @@ import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingL
 import {
   casesForCaseSet,
   deriveDebateCandidates,
+  deriveHighestValueDiligenceQueue,
   type DebateEvidenceItem,
   type KeyDebateInput,
   type ScorebookCaseInput
@@ -47,8 +48,11 @@ function caseInput(row: NonNullable<Awaited<ReturnType<typeof loadCompoundingAna
   };
 }
 
-function evidenceCount(items: DebateEvidenceItem[]) {
-  return items.length;
+function directionLabel(direction: DebateEvidenceItem["direction"]) {
+  if (direction === "CONTEXT-DESCRIPTIVE") return "CONTEXT";
+  if (direction === "SUPPORTS") return "SUPPORTS";
+  if (direction === "CONTRADICTS") return "CONTRADICTS";
+  return "MISSING";
 }
 
 function evidenceList(title: string, items: DebateEvidenceItem[]) {
@@ -59,7 +63,7 @@ function evidenceList(title: string, items: DebateEvidenceItem[]) {
         <div className={`card compact compoundingEvidenceItem compoundingEvidenceItem-${item.direction.toLowerCase()}`} key={`${item.source}-${item.value}-${item.direction}`}>
           <div className="compoundingCardHeader">
             <div>
-              <p className="small">{item.direction} · {item.strength}</p>
+              <p className="small">{directionLabel(item.direction)} · {item.strength}</p>
               <strong>{item.source}</strong>
             </div>
             <span className="miniTag">{item.provenance}</span>
@@ -161,6 +165,7 @@ export default async function CompoundingExpertiseDebatesPage({
     competitiveArchitecture: analysis.competitiveArchitecture,
     evidenceRecords: analysis.evidenceRecords
   });
+  const diligenceQueue = deriveHighestValueDiligenceQueue(candidates);
 
   return (
     <>
@@ -182,7 +187,7 @@ export default async function CompoundingExpertiseDebatesPage({
           </div>
           <div>
             <p className="small">What should I do?</p>
-            <p>Compare CE&apos;s evidence assessment with your own belief, inspect supporting and missing evidence, and identify the next test most likely to change your mind.</p>
+            <p>Compare CE&apos;s categorical evidence assessment with your own belief, inspect typed evidence, and identify the next test most likely to change your mind.</p>
           </div>
         </div>
         {params.ai ? (
@@ -199,6 +204,22 @@ export default async function CompoundingExpertiseDebatesPage({
       </Section>
 
       <Section title="Debate control surface">
+        <div className="compoundingDebateSummaryCards">
+          {candidates.map((candidate, index) => (
+            <a className="card compact compoundingDebateSummaryCard" href={`#debate-${candidate.family}`} key={candidate.family}>
+              <div className="compoundingCardHeader">
+                <div>
+                  <p className="small">Debate {index + 1}</p>
+                  <strong>{candidate.title}</strong>
+                </div>
+                <span className="miniTag">{candidate.thesisImpact} impact</span>
+              </div>
+              <p>{candidate.tenSecondSummary}</p>
+              <p className="small">{candidate.evidenceCoverage}</p>
+              <p className="small">Your belief: {candidate.investorBelief === null ? "not set" : `${candidate.investorBelief}%`}</p>
+            </a>
+          ))}
+        </div>
         <div className="tableScroll compoundingDebateSummaryTable">
           <table className="dataTable">
             <thead>
@@ -217,13 +238,28 @@ export default async function CompoundingExpertiseDebatesPage({
                   <td><a href={`#debate-${candidate.family}`}>{index + 1}. {candidate.title}</a></td>
                   <td>{candidate.assessment}</td>
                   <td>{candidate.confidence}</td>
-                  <td>{evidenceCount(candidate.evidenceFor)} supporting/descriptive · {evidenceCount(candidate.missingEvidence)} missing</td>
+                  <td>{candidate.evidenceCoverage}</td>
                   <td>{candidate.thesisImpact}</td>
                   <td>{candidate.investorBelief === null ? "—" : `${candidate.investorBelief}%`}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </Section>
+
+      <Section title="Highest-value diligence queue">
+        <div className="grid grid-2">
+          {diligenceQueue.map((item) => (
+            <a className="card compact compoundingDiligenceItem" href={item.href} key={item.family}>
+              <div className="compoundingCardHeader">
+                <strong>{item.title}</strong>
+                <span className="miniTag">{item.thesisImpact} impact</span>
+              </div>
+              <p>{item.test}</p>
+              <p className="small">{item.reason}</p>
+            </a>
+          ))}
         </div>
       </Section>
 
@@ -245,6 +281,11 @@ export default async function CompoundingExpertiseDebatesPage({
                   </div>
                 </div>
                 <p><strong>Why load-bearing:</strong> {candidate.whyLoadBearing}</p>
+                <div className="card compact compoundingTenSecondSummary">
+                  <p className="small">10-second debate summary</p>
+                  <p>{candidate.tenSecondSummary}</p>
+                  <p className="small">{candidate.evidenceCoverage}</p>
+                </div>
                 <div className="grid grid-3">
                   <div className="card compact">
                     <p className="small">CE recommended evidence assessment</p>
@@ -262,8 +303,9 @@ export default async function CompoundingExpertiseDebatesPage({
                   </div>
                 </div>
                 <div className="grid grid-3">
-                  {evidenceList("Evidence for", candidate.evidenceFor)}
-                  {evidenceList("Evidence against / alternatives", candidate.evidenceAgainst)}
+                  {evidenceList("Evidence that supports", candidate.evidenceFor)}
+                  {evidenceList("Evidence that contradicts / alternatives", candidate.evidenceAgainst)}
+                  {evidenceList("Context, not proof", candidate.contextEvidence)}
                   {evidenceList("Missing evidence", candidate.missingEvidence)}
                 </div>
                 <div className="grid grid-2">
