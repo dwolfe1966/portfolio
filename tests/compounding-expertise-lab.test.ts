@@ -7,6 +7,7 @@ import {
   ENDOGENOUS_INPUTS,
   EXOGENOUS_INPUTS,
   GUIDED_PROVENANCE_LABELS,
+  INITIAL_DEBATES,
   LAB_WORKFLOW_STEPS,
   SCOREBOOK_CASE_FIELD_CLASSIFICATION,
   apparentPowerLocations,
@@ -32,6 +33,9 @@ import {
   deriveFeedbackLatencyDistribution,
   deriveGradeDistribution,
   deriveInterestingSlices,
+  deriveCanonicalDebateProfile,
+  deriveDebateAssessment,
+  deriveDebateCandidates,
   detectCrossover,
   exampleById,
   explainSimulatorComparison,
@@ -391,6 +395,129 @@ test("case inspection reasons flag deterministic row attributes without informat
   assert.ok(reasons.includes("Agent incorrect"));
   assert.ok(reasons.includes("Economic value recorded"));
   assert.equal(reasons.some((reason) => reason.toLowerCase().includes("information")), false);
+});
+
+const debateAnalysis = {
+  companyName: "Casap archetype review",
+  productDescription: "Dispute resolution workflow",
+  targetCustomer: "Financial operations teams",
+  workflow: "intake -> evidence -> decision -> outcome",
+  decisionDescription: "Resolve disputes",
+  thesis: "Scorebook experience may compound.",
+  learnsAcrossCustomers: "Yes",
+  contractualLearningRights: "Unknown",
+  updatesModelPolicyRegularly: "Unknown",
+  deploysImprovementsQuickly: "Unknown",
+  rebuildability: "Hard",
+  foundationModelDependence: "High"
+};
+
+test("debate candidate derivation creates load-bearing evidence-to-belief debates", () => {
+  const candidates = deriveDebateCandidates({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    analysisId: "analysis-1",
+    caseSetId: "set-a"
+  });
+
+  assert.ok(candidates.length >= 3);
+  assert.ok(candidates.some((candidate) => candidate.family === "CROSS_CUSTOMER_TRANSFER"));
+  assert.ok(candidates.every((candidate) => !("recommendedProbability" in candidate)));
+  assert.ok(candidates.every((candidate) => candidate.ifTrue && candidate.ifFalse && candidate.bestNextTest));
+});
+
+test("canonical profiles produce meaningfully different debate sets", () => {
+  const casap = deriveCanonicalDebateProfile({ ...debateAnalysis, companyName: "Casap archetype review" });
+  const listen = deriveCanonicalDebateProfile({ ...debateAnalysis, companyName: "Listen Labs", productCategory: "AI-assisted research" });
+  const maybern = deriveCanonicalDebateProfile({ ...debateAnalysis, companyName: "Maybern", productCategory: "Deterministic finance infrastructure" });
+
+  assert.notDeepEqual(casap, listen);
+  assert.notDeepEqual(casap, maybern);
+  assert.ok(maybern.includes("ALTERNATIVE_POWER"));
+});
+
+test("synthetic evidence cannot establish company propositions and preserves links/provenance", () => {
+  const assessment = deriveDebateAssessment({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    analysisId: "analysis-1",
+    caseSetId: "set-a"
+  }, "EXPERIENCE_CAPTURE");
+
+  assert.equal(assessment.assessment, "UNPROVEN");
+  assert.equal(assessment.confidence, "LOW");
+  assert.equal(assessment.evidenceFor[0].provenance, "DERIVED — SYNTHETIC FIXTURE");
+  assert.match(assessment.evidenceFor[0].href ?? "", /analysisId=analysis-1/);
+  assert.match(assessment.evidenceFor[0].href ?? "", /caseSetId=set-a/);
+});
+
+test("grade coverage cannot establish learning causality", () => {
+  const assessment = deriveDebateAssessment({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a")
+  }, "LEARNING_CAUSALITY");
+
+  assert.equal(assessment.assessment, "UNPROVEN");
+  assert.match(assessment.assessmentReason, /Grade coverage is descriptive/i);
+  assert.ok(assessment.missingEvidence.some((item) => item.source.includes("UPDATE")));
+});
+
+test("multiple customer segments cannot establish transfer", () => {
+  const assessment = deriveDebateAssessment({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a")
+  }, "CROSS_CUSTOMER_TRANSFER");
+
+  assert.equal(assessment.assessment, "UNPROVEN");
+  assert.match(assessment.assessmentReason, /not cross-customer performance transfer/i);
+  assert.ok(assessment.evidenceFor.some((item) => item.limitation.includes("Multiple customer segments do not establish transfer") || item.limitation.includes("Synthetic fixture")));
+});
+
+test("high case volume cannot establish marginal information value", () => {
+  const rows = Array.from({ length: 60 }, (_, index) => ({
+    ...scorebookRows[0],
+    externalCaseId: `volume-${index}`,
+    caseSetId: "volume-set"
+  }));
+  const assessment = deriveDebateAssessment({ analysis: debateAnalysis, debates: INITIAL_DEBATES, rows }, "MARGINAL_INFORMATION_VALUE");
+
+  assert.equal(assessment.assessment, "UNPROVEN");
+  assert.match(assessment.assessmentReason, /high volume alone is insufficient/i);
+});
+
+test("absence of challenger benchmark leaves rebuildability unproven", () => {
+  const assessment = deriveDebateAssessment({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    competitiveArchitecture: { competitorRelearningDifficulty: "Hard", foundationModelSubstitutionRisk: "High" }
+  }, "REBUILDABILITY_COMPRESSION");
+
+  assert.equal(assessment.assessment, "UNPROVEN");
+  assert.equal(assessment.confidence, "LOW");
+  assert.ok(assessment.missingEvidence.some((item) => item.source.includes("challenger")));
+});
+
+test("investor belief remains separate from CE assessment", () => {
+  const candidates = deriveDebateCandidates({
+    analysis: debateAnalysis,
+    debates: [{
+      ...INITIAL_DEBATES[1],
+      question: "Does experience transfer across customers?",
+      probability: 70
+    }],
+    rows: casesForCaseSet(experienceRows, "set-a")
+  });
+  const transfer = candidates.find((candidate) => candidate.family === "CROSS_CUSTOMER_TRANSFER");
+
+  assert.equal(transfer?.assessment, "UNPROVEN");
+  assert.equal(transfer?.investorBelief, 70);
+  assert.match(transfer?.investorBeliefDivergence ?? "", /more positive than the currently available evidence/i);
+  assert.equal(transfer?.evidenceFor.some((item) => item.value.includes("70")), false);
 });
 
 test("feedback latency and simulator-derived values use only observed graded rows", () => {

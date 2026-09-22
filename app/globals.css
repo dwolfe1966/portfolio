@@ -4258,12 +4258,64 @@ button {
   display: grid;
   gap: 12px;
 }
+.compoundingDebateSummaryTable {
+  overflow-x: auto;
+}
+.compoundingDebateSummaryTable .dataTable {
+  min-width: 980px;
+  border-collapse: collapse;
+}
+.compoundingDebateSummaryTable th,
+.compoundingDebateSummaryTable td {
+  border: 1px solid color-mix(in srgb, var(--demo-divider) 72%, var(--demo-text) 28%);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.compoundingDebateSummaryTable th {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.compoundingDebateSummaryTable a {
+  color: var(--demo-text);
+  font-weight: 800;
+  text-decoration: none;
+}
 .compoundingDebateCard,
 .compoundingAssessmentCard,
 .compoundingScenarioCard,
 .compoundingExampleCard {
   display: grid;
   gap: 12px;
+}
+.compoundingDebateAnalysisCard {
+  scroll-margin-top: 96px;
+}
+.compoundingEvidenceList {
+  display: grid;
+  gap: 8px;
+}
+.compoundingEvidenceList h4 {
+  margin: 0;
+}
+.compoundingEvidenceItem {
+  border-left-width: 4px;
+}
+.compoundingEvidenceItem-supporting {
+  border-left-color: rgba(16, 185, 129, .75) !important;
+}
+.compoundingEvidenceItem-descriptive {
+  border-left-color: rgba(59, 130, 246, .7) !important;
+}
+.compoundingEvidenceItem-against {
+  border-left-color: rgba(248, 113, 113, .75) !important;
+}
+.compoundingEvidenceItem-missing {
+  border-left-color: rgba(148, 163, 184, .85) !important;
 }
 .compoundingAssessmentCard summary {
   display: flex;

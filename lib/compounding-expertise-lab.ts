@@ -511,6 +511,88 @@ export type ExperienceCanCannot = {
   cannotTellUs: string[];
 };
 
+export type DebateAssessmentCategory =
+  | "SUPPORTED"
+  | "LEANING SUPPORTED"
+  | "UNPROVEN"
+  | "LEANING AGAINST"
+  | "CONTRADICTED"
+  | "UNKNOWN";
+
+export type DebateEvidenceConfidence = "HIGH" | "MEDIUM" | "LOW";
+export type DebateThesisImpact = "VERY HIGH" | "HIGH" | "MEDIUM";
+export type DebateEvidenceDirection = "SUPPORTING" | "DESCRIPTIVE" | "AGAINST" | "MISSING";
+export type DebateEvidenceStrength = "DIRECT" | "INDIRECT" | "DESCRIPTIVE" | "MISSING";
+export type DebateFamily =
+  | "EXPERIENCE_CAPTURE"
+  | "LEARNING_CAUSALITY"
+  | "CROSS_CUSTOMER_TRANSFER"
+  | "MARGINAL_INFORMATION_VALUE"
+  | "REBUILDABILITY_COMPRESSION"
+  | "LEARNING_RIGHTS"
+  | "ECONOMIC_MATERIALITY"
+  | "ALTERNATIVE_POWER";
+
+export type DebateEvidenceItem = {
+  source: string;
+  value: string;
+  direction: DebateEvidenceDirection;
+  strength: DebateEvidenceStrength;
+  provenance: GuidedProvenanceLabel;
+  href?: string;
+  interpretation: string;
+  limitation: string;
+};
+
+export type DerivedDebateCandidate = {
+  family: DebateFamily;
+  title: string;
+  proposition: string;
+  whyLoadBearing: string;
+  assessment: DebateAssessmentCategory;
+  confidence: DebateEvidenceConfidence;
+  assessmentReason: string;
+  thesisImpact: DebateThesisImpact;
+  evidenceFor: DebateEvidenceItem[];
+  evidenceAgainst: DebateEvidenceItem[];
+  missingEvidence: DebateEvidenceItem[];
+  ifTrue: string;
+  ifFalse: string;
+  bestNextTest: string;
+  increaseBelief: string;
+  decreaseBelief: string;
+  investorBelief: number | null;
+  investorBeliefDivergence: string | null;
+  sourceDebate?: KeyDebateInput;
+};
+
+export type DebateEngineInput = {
+  analysis: CompanyThesisInput;
+  debates: KeyDebateInput[];
+  rows: ScorebookCaseInput[];
+  analysisId?: string | null;
+  caseSetId?: string | null;
+  learningArchitecture?: {
+    pooledAcrossCustomers?: string | null;
+    capturesOutcome?: string | null;
+    capturesExplicitGrade?: string | null;
+    usesOutcomeGradesForLearning?: string | null;
+    deploymentCadence?: string | null;
+    canTrainAcrossCustomers?: string | null;
+    canUseForEvaluation?: string | null;
+    canRetainCases?: string | null;
+    contractualRestrictions?: string | null;
+  } | null;
+  competitiveArchitecture?: {
+    competitorRelearningDifficulty?: string | null;
+    foundationModelSubstitutionRisk?: string | null;
+    syntheticDataSubstitutionRisk?: string | null;
+    deterministicInfrastructureStrength?: string | null;
+    switchingCosts?: string | null;
+  } | null;
+  evidenceRecords?: Array<{ epistemicStatus: string; evidenceType?: string | null; fieldKey?: string | null }> | null;
+};
+
 export type EpistemicKind = "OBSERVED_DERIVED" | "SOURCED" | "ENDOGENOUS_ASSUMPTION" | "EXOGENOUS_ASSUMPTION" | "UNKNOWN";
 
 export type StructuredInputDefinition = {
@@ -2053,6 +2135,283 @@ export function deriveCaseInspectionReasons(row: ScorebookCaseInput): string[] {
     deriveCaseResolvedStatus(row) === "unresolved" ? "Unresolved" : null
   ];
   return reasons.filter((reason): reason is string => Boolean(reason));
+}
+
+function valueIncludes(value: string | null | undefined, terms: string[]) {
+  const normalized = String(value ?? "").toUpperCase();
+  return terms.some((term) => normalized.includes(term.toUpperCase()));
+}
+
+function analysisHref(path: string, analysisId?: string | null, caseSetId?: string | null, anchor?: string) {
+  const params = new URLSearchParams();
+  if (analysisId) params.set("analysisId", analysisId);
+  if (caseSetId) params.set("caseSetId", caseSetId);
+  const query = params.toString();
+  return `${path}${query ? `?${query}` : ""}${anchor ? `#${anchor}` : ""}`;
+}
+
+function debateFamilyFromQuestion(question: string): DebateFamily | null {
+  const text = question.toLowerCase();
+  if (text.includes("capture") || text.includes("workflow") || text.includes("decision") && text.includes("outcome")) return "EXPERIENCE_CAPTURE";
+  if (text.includes("improve future") || text.includes("causal") || text.includes("update") || text.includes("learning loop")) return "LEARNING_CAUSALITY";
+  if (text.includes("cross-customer") || text.includes("transfer")) return "CROSS_CUSTOMER_TRANSFER";
+  if (text.includes("marginal") || text.includes("additional graded") || text.includes("incremental")) return "MARGINAL_INFORMATION_VALUE";
+  if (text.includes("compress") || text.includes("simulate") || text.includes("relearn") || text.includes("challenger") || text.includes("rebuild")) return "REBUILDABILITY_COMPRESSION";
+  if (text.includes("rights") || text.includes("contract") || text.includes("legally")) return "LEARNING_RIGHTS";
+  if (text.includes("economic") || text.includes("value") || text.includes("matter")) return "ECONOMIC_MATERIALITY";
+  if (text.includes("deterministic") || text.includes("process power") || text.includes("switching")) return "ALTERNATIVE_POWER";
+  return null;
+}
+
+export function deriveCanonicalDebateProfile(analysis: CompanyThesisInput): DebateFamily[] {
+  const name = `${analysis.companyName} ${analysis.productCategory} ${analysis.thesis}`.toLowerCase();
+  if (name.includes("listen")) return ["EXPERIENCE_CAPTURE", "LEARNING_CAUSALITY", "CROSS_CUSTOMER_TRANSFER", "MARGINAL_INFORMATION_VALUE"];
+  if (name.includes("aaru") || name.includes("model-first")) return ["REBUILDABILITY_COMPRESSION", "MARGINAL_INFORMATION_VALUE", "CROSS_CUSTOMER_TRANSFER", "LEARNING_CAUSALITY"];
+  if (name.includes("maybern") || name.includes("deterministic")) return ["ALTERNATIVE_POWER", "ECONOMIC_MATERIALITY", "LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"];
+  if (name.includes("creative") || name.includes("marketing")) return ["LEARNING_CAUSALITY", "MARGINAL_INFORMATION_VALUE", "CROSS_CUSTOMER_TRANSFER", "REBUILDABILITY_COMPRESSION"];
+  return ["LEARNING_CAUSALITY", "CROSS_CUSTOMER_TRANSFER", "MARGINAL_INFORMATION_VALUE", "REBUILDABILITY_COMPRESSION", "LEARNING_RIGHTS"];
+}
+
+function debateTemplate(family: DebateFamily) {
+  const templates: Record<DebateFamily, Omit<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "missingEvidence" | "investorBelief" | "investorBeliefDivergence">> = {
+    EXPERIENCE_CAPTURE: {
+      family,
+      title: "Experience capture",
+      proposition: "Does the product naturally capture decision → action → outcome → grade?",
+      whyLoadBearing: "Compounding Expertise requires a scorebook-like loop, not merely activity or stored data.",
+      thesisImpact: "HIGH",
+      ifTrue: "A complete capture loop makes later learning and diligence tests feasible.",
+      ifFalse: "The company may have data, but not the graded operating experience required for Compounding Expertise.",
+      bestNextTest: "Audit production records for decision, action, outcome, and grade completeness by decision class.",
+      increaseBelief: "Most meaningful decisions have linked actions, outcomes, and explicit grades in the product workflow.",
+      decreaseBelief: "Decisions, actions, outcomes, or grades live outside the product or require manual backfill."
+    },
+    LEARNING_CAUSALITY: {
+      family,
+      title: "Learning causality",
+      proposition: "Do accumulated grades actually improve future decisions?",
+      whyLoadBearing: "A scorebook only matters strategically if grades change future behavior and improve decisions.",
+      thesisImpact: "VERY HIGH",
+      ifTrue: "The scorebook becomes a plausible mechanism for improving future decisions.",
+      ifFalse: "The dataset may be useful for reporting, but it does not establish Compounding Expertise.",
+      bestNextTest: "Compare performance before and after incorporating graded cases while controlling for foundation-model changes.",
+      increaseBelief: "A measured performance lift appears after grade-driven updates are deployed.",
+      decreaseBelief: "Performance does not improve after updates, or gains are explained by non-scorebook factors."
+    },
+    CROSS_CUSTOMER_TRANSFER: {
+      family,
+      title: "Cross-customer transfer",
+      proposition: "Does experience from one customer improve decisions for another?",
+      whyLoadBearing: "Cross-customer transfer is central to network-like compounding rather than isolated customer-specific learning.",
+      thesisImpact: "VERY HIGH",
+      ifTrue: "Additional customers may generate experience that improves value for other customers, making Network Economies more plausible.",
+      ifFalse: "Expertise may remain customer-specific; CE may exist locally, but the cross-customer compounding mechanism weakens.",
+      bestNextTest: "Compare held-out customer performance using customer-only history versus pooled cross-customer experience.",
+      increaseBelief: "Pooled cross-customer experience improves held-out customer decisions beyond local history.",
+      decreaseBelief: "Customer-specific models or policies outperform pooled learning with little transfer benefit."
+    },
+    MARGINAL_INFORMATION_VALUE: {
+      family,
+      title: "Marginal information value",
+      proposition: "Do additional graded cases continue to add useful decision-relevant information?",
+      whyLoadBearing: "High case volume does not matter if new cases are redundant or quickly exhausted.",
+      thesisImpact: "HIGH",
+      ifTrue: "Ongoing operation continues adding useful expertise rather than merely accumulating redundant logs.",
+      ifFalse: "The scorebook may plateau; historical cases may be compressible into rules, policies, or small calibration sets.",
+      bestNextTest: "Measure incremental performance gain from successive case cohorts after policy and model baselines are included.",
+      increaseBelief: "Recent cohorts continue improving decision quality or edge-case handling.",
+      decreaseBelief: "Performance plateaus quickly or new cases duplicate already-known lessons."
+    },
+    REBUILDABILITY_COMPRESSION: {
+      family,
+      title: "Rebuildability / compression",
+      proposition: "Could a capable challenger compress, infer, simulate, or relearn the useful scorebook knowledge?",
+      whyLoadBearing: "Valuable learning is not durable Power if competitors can cheaply reproduce it.",
+      thesisImpact: "VERY HIGH",
+      ifTrue: "If hard to rebuild, historical and ongoing experience may create durable separation.",
+      ifFalse: "The scorebook may be valuable operationally but unlikely to constitute durable Power.",
+      bestNextTest: "Give a challenger policy documentation plus limited calibration data and measure the performance gap versus the incumbent.",
+      increaseBelief: "A challenger remains materially behind after access to policy docs, public data, synthetic cases, and limited calibration.",
+      decreaseBelief: "A challenger reaches similar performance with compressed rules, simulated examples, or short relearning."
+    },
+    LEARNING_RIGHTS: {
+      family,
+      title: "Learning rights / privileged access",
+      proposition: "Can the company legally and operationally retain and exploit the experience?",
+      whyLoadBearing: "Rights and access determine whether captured experience can become a reusable learning asset.",
+      thesisImpact: "HIGH",
+      ifTrue: "The company may be able to pool and reuse experience in ways challengers or customers cannot easily replicate.",
+      ifFalse: "The company may observe cases but lack the rights to retain, pool, train on, or evaluate with them.",
+      bestNextTest: "Review contractual and data-governance rights for retention, derived features, evaluation, and cross-customer training.",
+      increaseBelief: "Contracts explicitly allow retention, derived features, evaluation, and cross-customer learning.",
+      decreaseBelief: "Customer contracts restrict retention, pooling, model training, or evaluation reuse."
+    },
+    ECONOMIC_MATERIALITY: {
+      family,
+      title: "Economic materiality",
+      proposition: "Does improved decision quality create enough economic value to matter?",
+      whyLoadBearing: "Compounding Expertise matters only if being right has meaningful economic consequences.",
+      thesisImpact: "HIGH",
+      ifTrue: "Decision improvement can translate into economically meaningful customer or company value.",
+      ifFalse: "Even real learning may be strategically weak if the value per better decision is small.",
+      bestNextTest: "Quantify economic outcome per correct, incorrect, overridden, and unresolved case.",
+      increaseBelief: "Outcome values show meaningful gains or avoided losses from better decisions.",
+      decreaseBelief: "Economic outcomes are small, noisy, or disconnected from decision quality."
+    },
+    ALTERNATIVE_POWER: {
+      family,
+      title: "Alternative Power",
+      proposition: "Does durable Power reside somewhere other than Compounding Expertise?",
+      whyLoadBearing: "A company can be attractive because of Process Power, switching costs, deterministic infrastructure, or distribution even if CE is modest.",
+      thesisImpact: "MEDIUM",
+      ifTrue: "The investment thesis may shift from CE to another Helmer mechanism.",
+      ifFalse: "The thesis depends more directly on proving the CE mechanism.",
+      bestNextTest: "Map which Helmer mechanism is supported by actual adoption, process, integration, or switching evidence.",
+      increaseBelief: "Customer behavior and operations show strong switching costs, Process Power, or infrastructure dependence.",
+      decreaseBelief: "Alternative Power claims are not supported beyond product aspiration."
+    }
+  };
+  return templates[family];
+}
+
+function evidenceItem(input: DebateEvidenceItem): DebateEvidenceItem {
+  return input;
+}
+
+function sourcedSupport(records: DebateEngineInput["evidenceRecords"], fieldTerms: string[]) {
+  return (records ?? []).some((record) => {
+    const haystack = `${record.fieldKey ?? ""} ${record.evidenceType ?? ""}`.toLowerCase();
+    return record.epistemicStatus?.toUpperCase() === "SOURCED" && fieldTerms.some((term) => haystack.includes(term));
+  });
+}
+
+export function deriveDebateAssessment(input: DebateEngineInput, family: DebateFamily): Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "missingEvidence"> {
+  const metrics = calculateScorebookMetrics(input.rows);
+  const rowsAreSynthetic = scorebookRowsAreSynthetic(input.rows);
+  const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic });
+  const companyModelHref = analysisHref("/compounding-expertise/inputs", input.analysisId, null, "company-model-review");
+  const experienceHref = analysisHref("/compounding-expertise/scorebook", input.analysisId, input.caseSetId, "case-explorer");
+  const forEvidence: DebateEvidenceItem[] = [];
+  const againstEvidence: DebateEvidenceItem[] = [];
+  const missing: DebateEvidenceItem[] = [];
+  const addExperienceDescriptive = (value: string, interpretation: string, limitation: string) => {
+    forEvidence.push(evidenceItem({
+      source: "Experience → active CaseSet",
+      value,
+      direction: rowsAreSynthetic ? "DESCRIPTIVE" : "SUPPORTING",
+      strength: rowsAreSynthetic ? "DESCRIPTIVE" : "INDIRECT",
+      provenance,
+      href: experienceHref,
+      interpretation,
+      limitation: rowsAreSynthetic ? "Synthetic fixture rows do not establish actual company behavior." : limitation
+    }));
+  };
+  const addMissing = (source: string, value: string, interpretation: string) => {
+    missing.push(evidenceItem({
+      source,
+      value,
+      direction: "MISSING",
+      strength: "MISSING",
+      provenance: "UNKNOWN / DILIGENCE REQUIRED",
+      href: source.startsWith("Experience") ? experienceHref : companyModelHref,
+      interpretation,
+      limitation: "Missing evidence cannot support the proposition."
+    }));
+  };
+
+  if (family === "EXPERIENCE_CAPTURE") {
+    addExperienceDescriptive(`${metrics.gradedCases}/${metrics.totalCases} graded cases; ${metrics.resolvedCases}/${metrics.totalCases} outcomes represented.`, "Shows whether the active CaseSet is scorebook-like.", "Completeness alone does not prove learning improves future decisions.");
+    if (metrics.gradeCoverage !== null && metrics.gradeCoverage >= 0.75 && metrics.outcomeCompletionRate !== null && metrics.outcomeCompletionRate >= 0.75 && !rowsAreSynthetic) {
+      return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Company/data rows show relatively complete outcome and grade representation.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    }
+    if (metrics.totalCases === 0) addMissing("Experience → active CaseSet", "No active CaseSet rows.", "No scorebook-like body of experience is available.");
+    return { assessment: rowsAreSynthetic ? "UNPROVEN" : "UNPROVEN", confidence: rowsAreSynthetic ? "LOW" : "MEDIUM", assessmentReason: rowsAreSynthetic ? "The active CaseSet demonstrates a possible scorebook shape, not actual company capture." : "The evidence is descriptive and does not yet establish natural production capture.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+  }
+
+  if (family === "LEARNING_CAUSALITY") {
+    const update = input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly;
+    const deploy = input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly;
+    addExperienceDescriptive(`${metrics.gradedCases}/${metrics.totalCases} graded cases.`, "Grades exist to learn from if connected to updates.", "Grade coverage does not establish that grades improve future decisions.");
+    if (!valueIncludes(update, ["YES", "REGULAR", "DAILY", "WEEKLY"])) addMissing("Company Model → Learning Loop → UPDATE", String(update ?? "Unknown"), "No evidence currently shows that grades alter future model or policy behavior.");
+    if (!valueIncludes(deploy, ["YES", "FAST", "DAILY", "WEEKLY"])) addMissing("Company Model → Learning Loop → DEPLOY", String(deploy ?? "Unknown"), "No evidence currently shows learned improvements reach production.");
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "Grade coverage is descriptive; no controlled performance-over-time evidence proves accumulated grades improve future decisions.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+  }
+
+  if (family === "CROSS_CUSTOMER_TRANSFER") {
+    const segmentCount = new Set(input.rows.map((row) => row.customerSegment).filter(Boolean)).size;
+    addExperienceDescriptive(`${segmentCount} customer segments represented.`, "Shows cross-customer opportunity or dataset heterogeneity.", "Multiple customer segments do not establish transfer.");
+    addMissing("Company Model / future experiment", "No held-out customer comparison.", "Need customer-only versus pooled-experience performance comparison.");
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "The active evidence may show multiple segments or pooling architecture, but not cross-customer performance transfer.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+  }
+
+  if (family === "MARGINAL_INFORMATION_VALUE") {
+    addExperienceDescriptive(`${metrics.totalCases} total cases.`, "Shows case volume available for analysis.", "Case volume does not establish marginal information value.");
+    addMissing("Experience / future experiment", "No cohort learning curve.", "Need incremental performance gain from successive case cohorts.");
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "No learning-curve or incremental-cohort evidence is available; high volume alone is insufficient.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+  }
+
+  if (family === "REBUILDABILITY_COMPRESSION") {
+    const difficulty = input.competitiveArchitecture?.competitorRelearningDifficulty ?? input.analysis.rebuildability;
+    const foundationRisk = input.competitiveArchitecture?.foundationModelSubstitutionRisk ?? input.analysis.foundationModelDependence;
+    if (difficulty) forEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Relearning difficulty: ${difficulty}`, direction: "DESCRIPTIVE", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Frames the rebuildability hypothesis.", limitation: "Assumption is not a challenger benchmark." }));
+    if (valueIncludes(foundationRisk, ["HIGH", "FAST"])) againstEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Foundation-model substitution risk: ${foundationRisk}`, direction: "AGAINST", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "A high substitution risk weakens durable CE Power.", limitation: "Still requires direct benchmark evidence." }));
+    addMissing("Future challenger benchmark", "No compression/relearning benchmark.", "Need evidence that a capable challenger cannot reproduce performance cheaply.");
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "Without a challenger, relearning, or compression benchmark, durability remains unproven.", evidenceFor: forEvidence, evidenceAgainst: againstEvidence, missingEvidence: missing };
+  }
+
+  if (family === "LEARNING_RIGHTS") {
+    const rights = input.learningArchitecture?.canTrainAcrossCustomers ?? input.analysis.contractualLearningRights;
+    const hasSource = sourcedSupport(input.evidenceRecords, ["right", "contract", "train", "retain"]);
+    if (rights) forEvidence.push(evidenceItem({ source: "Company Model → Learning rights", value: `Learning rights: ${rights}`, direction: valueIncludes(rights, ["YES", "ALLOW"]) ? "SUPPORTING" : "DESCRIPTIVE", strength: hasSource ? "DIRECT" : "INDIRECT", provenance: hasSource ? "SOURCED — EXTERNAL EVIDENCE" : "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Rights determine whether experience can be retained and reused.", limitation: hasSource ? "Review scope of allowed uses." : "Analyst assumption is not contractual evidence." }));
+    if (valueIncludes(rights, ["NO", "RESTRICT"])) return { assessment: "LEANING AGAINST", confidence: hasSource ? "MEDIUM" : "LOW", assessmentReason: "Current rights signal appears restrictive.", evidenceFor: [], evidenceAgainst: forEvidence, missingEvidence: [] };
+    if (valueIncludes(rights, ["YES", "ALLOW"]) && hasSource) return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Sourced rights evidence supports retention/use, subject to scope review.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: [] };
+    addMissing("Contracts / data governance", "No sourced contractual rights evidence.", "Need retention, derived-feature, evaluation, and cross-customer training rights.");
+    return { assessment: rights ? "UNPROVEN" : "UNKNOWN", confidence: "LOW", assessmentReason: "Learning rights are not yet established by sourced contractual evidence.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+  }
+
+  if (family === "ECONOMIC_MATERIALITY") {
+    if (metrics.outcomeValueSampleSize > 0) addExperienceDescriptive(`${metrics.outcomeValueSampleSize}/${metrics.totalCases} cases include outcome value; total ${metrics.totalOutcomeValue}.`, "Shows economic outcome fields are represented.", "Economic values alone do not prove improved decisions caused value.");
+    else addMissing("Experience → economic outcomes", "No outcome value rows.", "Need economic outcome values tied to decisions and grades.");
+    return { assessment: metrics.outcomeValueSampleSize > 0 && !rowsAreSynthetic ? "LEANING SUPPORTED" : "UNPROVEN", confidence: metrics.outcomeValueSampleSize > 0 ? "MEDIUM" : "LOW", assessmentReason: rowsAreSynthetic ? "Synthetic economic values cannot establish real company materiality." : "Economic outcome rows are descriptive and need causal connection to decision quality.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+  }
+
+  const deterministic = input.competitiveArchitecture?.deterministicInfrastructureStrength ?? input.analysis.deterministicInfrastructure;
+  if (deterministic) forEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Deterministic infrastructure: ${deterministic}`, direction: "DESCRIPTIVE", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "May indicate Power outside CE.", limitation: "Does not itself prove a Helmer mechanism." }));
+  addMissing("Strategic evidence", "No adoption/process/switching evidence.", "Need direct evidence for Process Power, switching costs, or infrastructure dependence.");
+  return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "Alternative Power may be plausible but is not established by the current CE evidence model.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+}
+
+export function deriveDebateCandidates(input: DebateEngineInput, take = 5): DerivedDebateCandidate[] {
+  const profile = deriveCanonicalDebateProfile(input.analysis);
+  const families = new Set<DebateFamily>();
+  for (const debate of input.debates) {
+    const family = debateFamilyFromQuestion(debate.question);
+    if (family) families.add(family);
+  }
+  profile.forEach((family) => families.add(family));
+  const candidates = [...families].slice(0, take).map((family) => {
+    const template = debateTemplate(family);
+    const sourceDebate = input.debates.find((debate) => debateFamilyFromQuestion(debate.question) === family);
+    const assessment = deriveDebateAssessment(input, family);
+    const investorBelief = sourceDebate?.probability ?? null;
+    const divergence = investorBelief !== null && assessment.assessment === "UNPROVEN" && investorBelief >= 60
+      ? "Your belief is more positive than the currently available evidence. Capture the private diligence or meeting evidence that supports it."
+      : investorBelief !== null && ["SUPPORTED", "LEANING SUPPORTED"].includes(assessment.assessment) && investorBelief <= 40
+        ? "Your belief is more skeptical than the current evidence model. Note the concern or alternative explanation."
+        : null;
+    return {
+      ...template,
+      ...assessment,
+      proposition: sourceDebate?.question || template.proposition,
+      investorBelief,
+      investorBeliefDivergence: divergence,
+      sourceDebate
+    };
+  });
+  return candidates.sort((a, b) => {
+    const impactOrder: Record<DebateThesisImpact, number> = { "VERY HIGH": 0, HIGH: 1, MEDIUM: 2 };
+    return impactOrder[a.thesisImpact] - impactOrder[b.thesisImpact] || a.title.localeCompare(b.title);
+  });
 }
 
 export function deriveDecisionSystemMetrics(rows: ScorebookCaseInput[]): DecisionSystemDerivedMetrics {
