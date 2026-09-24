@@ -60,6 +60,7 @@ import {
   sourceRouteIsSafe,
   summarizeConclusion,
   validateAssessment,
+  validateScenario,
   validateProbability,
   type DimensionAssessmentInput,
   type ScorebookCaseInput
@@ -940,6 +941,19 @@ test("scorebook-derived simulator values remain limited to supported fields", ()
     .map((definition) => definition.key)
     .sort();
   assert.deepEqual(derivedKeys, ["feedbackDelayDays", "startingCases"]);
+});
+
+test("Stress Test decimal inputs accept persisted non-step-aligned assumption values", () => {
+  const learningEfficiency = SIMULATOR_PARAMETER_DEFINITIONS.find((definition) => definition.key === "learningEfficiency");
+  const informationValue = SIMULATOR_PARAMETER_DEFINITIONS.find((definition) => definition.key === "informationValue");
+  const transferability = SIMULATOR_PARAMETER_DEFINITIONS.find((definition) => definition.key === "transferability");
+  const staleness = SIMULATOR_PARAMETER_DEFINITIONS.find((definition) => definition.key === "stalenessRate");
+
+  assert.equal(learningEfficiency?.step, 0.01);
+  assert.equal(informationValue?.step, 0.01);
+  assert.equal(transferability?.step, 0.01);
+  assert.equal(staleness?.step, 0.001);
+  assert.equal(validateScenario({ ...baseScenario, learningEfficiency: 0.38, informationValue: 0.24, transferability: 0.37, stalenessRate: 0.012 }).ok, true);
 });
 
 test("conclusion handles insufficient evidence without manufacturing Power", () => {

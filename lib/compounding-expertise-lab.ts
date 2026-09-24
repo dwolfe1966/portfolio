@@ -1193,7 +1193,7 @@ export const SIMULATOR_PARAMETER_DEFINITIONS: SimulatorParameterDefinition[] = [
     help: "How effectively the system converts graded experience into improved expertise.",
     min: 0,
     max: 1,
-    step: 0.05
+    step: 0.01
   },
   {
     key: "informationValue",
@@ -1203,7 +1203,7 @@ export const SIMULATOR_PARAMETER_DEFINITIONS: SimulatorParameterDefinition[] = [
     help: "How much non-redundant learning a typical case contributes. This remains a scenario assumption until the Shannon layer exists.",
     min: 0,
     max: 1,
-    step: 0.05
+    step: 0.01
   },
   {
     key: "transferability",
@@ -1213,7 +1213,7 @@ export const SIMULATOR_PARAMETER_DEFINITIONS: SimulatorParameterDefinition[] = [
     help: "How much learning from prior cases applies to future/customer contexts.",
     min: 0,
     max: 1,
-    step: 0.05
+    step: 0.01
   },
   {
     key: "baseCapability",
@@ -1233,7 +1233,7 @@ export const SIMULATOR_PARAMETER_DEFINITIONS: SimulatorParameterDefinition[] = [
     help: "How quickly accumulated experience loses relevance.",
     min: 0,
     max: 1,
-    step: 0.005
+    step: 0.001
   }
 ];
 
