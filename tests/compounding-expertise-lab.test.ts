@@ -39,6 +39,7 @@ import {
   deriveDebateEvidenceDashboard,
   deriveDebateEvidenceRegistry,
   deriveHighestValueDiligenceQueue,
+  derivePowerMap,
   detectCrossover,
   exampleById,
   explainSimulatorComparison,
@@ -645,6 +646,143 @@ test("highest-value diligence queue prioritizes unresolved high-impact debates",
   assert.equal(queue.length, 3);
   assert.ok(queue.every((item) => item.test.length > 0));
   assert.ok(queue.every((item) => item.href.startsWith("#debate-")));
+});
+
+test("Power Map keeps multiple customers as context, not Network Economies proof", () => {
+  const powerMap = derivePowerMap({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a")
+  });
+  const network = powerMap.powers.find((power) => power.key === "network_economies");
+
+  assert.equal(network?.thesisStrength, "UNPROVEN");
+  assert.equal(network?.evidenceStrength, "NONE");
+  assert.ok(network?.evidenceFor.some((item) => item.direction === "CONTEXT-DESCRIPTIVE"));
+  assert.equal(powerMap.hasOverallMoatScore, false);
+});
+
+test("supported cross-customer transfer strengthens Network Economies without numeric moat score", () => {
+  const powerMap = derivePowerMap({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    evidenceRecords: [{
+      entityType: "experiment",
+      fieldKey: "cross_customer_transfer",
+      evidenceType: "EXPERIMENT",
+      epistemicStatus: "SOURCED",
+      valueSnapshot: "Measured pooled cross-customer holdout improved accuracy.",
+      sourceLabel: "Holdout experiment",
+      confidence: "HIGH",
+      derivationMethod: "Experiment result"
+    }]
+  });
+  const network = powerMap.powers.find((power) => power.key === "network_economies");
+
+  assert.equal(network?.thesisStrength, "MODERATE");
+  assert.equal(network?.evidenceStrength, "LOW");
+  assert.equal("overallScore" in powerMap, false);
+});
+
+test("closed learning loop alone does not establish Process Power without reproducibility evidence", () => {
+  const powerMap = derivePowerMap({
+    analysis: { ...debateAnalysis, updatesModelPolicyRegularly: "Yes", deploysImprovementsQuickly: "Yes", rebuildability: "Easy" },
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    learningArchitecture: { usesOutcomeGradesForLearning: "Yes", deploymentCadence: "Weekly" }
+  });
+  const process = powerMap.powers.find((power) => power.key === "process_power");
+
+  assert.equal(process?.thesisStrength, "WEAK");
+  assert.notEqual(process?.evidenceStrength, "HIGH");
+});
+
+test("customer-specific accumulated state can support Switching Costs", () => {
+  const powerMap = derivePowerMap({
+    analysis: { ...debateAnalysis, switchingCostsAssumption: "High", workflowEmbeddedness: "High" },
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    competitiveArchitecture: { switchingCosts: "High", integrationDepth: "High" }
+  });
+  const switching = powerMap.powers.find((power) => power.key === "switching_costs");
+
+  assert.equal(switching?.thesisStrength, "MODERATE");
+  assert.equal(switching?.evidenceStrength, "LOW");
+});
+
+test("proprietary data alone does not establish Cornered Resource", () => {
+  const powerMap = derivePowerMap({
+    analysis: { ...debateAnalysis, dataExclusivity: "High", rebuildability: "Easy" },
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    competitiveArchitecture: { crossCustomerPoolExclusive: "High", competitorRelearningDifficulty: "Easy" }
+  });
+  const cornered = powerMap.powers.find((power) => power.key === "cornered_resource");
+
+  assert.equal(cornered?.thesisStrength, "WEAK");
+  assert.equal(cornered?.evidenceStrength, "NONE");
+});
+
+test("company size alone does not establish Scale Economies", () => {
+  const powerMap = derivePowerMap({
+    analysis: { ...debateAnalysis, companyName: "LargeCo" },
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a")
+  });
+  const scale = powerMap.powers.find((power) => power.key === "scale_economies");
+
+  assert.equal(scale?.thesisStrength, "UNPROVEN");
+  assert.equal(scale?.evidenceStrength, "NONE");
+});
+
+test("CE can map to different Helmer Powers or remain a capability advantage", () => {
+  const switchingMap = derivePowerMap({
+    analysis: { ...debateAnalysis, switchingCostsAssumption: "High", workflowEmbeddedness: "High" },
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    competitiveArchitecture: { switchingCosts: "High", integrationDepth: "High" }
+  });
+  const unprovenMap = derivePowerMap({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: []
+  });
+
+  assert.ok(switchingMap.ceMechanism.classifications.includes("REINFORCES SWITCHING COSTS") || switchingMap.ceMechanism.classifications.includes("CAPABILITY ADVANTAGE ONLY"));
+  assert.ok(unprovenMap.ceMechanism.classifications.includes("UNPROVEN MECHANISM"));
+});
+
+test("CE-derived and analyst Power assessments remain separate", () => {
+  const powerMap = derivePowerMap({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    assessments: [{
+      framework: "HELMER",
+      dimension: "network_economies",
+      score: 5,
+      confidence: "HIGH",
+      evidenceStatus: "ASSUMED",
+      rationale: "Investor believes network effects are likely."
+    }]
+  });
+  const network = powerMap.powers.find((power) => power.key === "network_economies");
+
+  assert.equal(network?.thesisStrength, "UNPROVEN");
+  assert.equal(network?.analystAssessment?.score, 5);
+  assert.equal(network?.analystDiverges, true);
+});
+
+test("synthetic evidence cannot demonstrate actual company Power", () => {
+  const powerMap = derivePowerMap({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a")
+  });
+
+  assert.ok(powerMap.powers.every((power) => power.evidenceStrength !== "HIGH"));
+  assert.match(powerMap.conclusion, /hypothesis|No durable Power|evidence/i);
 });
 
 test("feedback latency and simulator-derived values use only observed graded rows", () => {

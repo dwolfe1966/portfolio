@@ -4374,6 +4374,77 @@ button {
 .compoundingInvestorPosition textarea {
   width: 100%;
 }
+.compoundingPowerConclusion {
+  display: grid;
+  gap: 10px;
+}
+.compoundingPowerFingerprint,
+.compoundingPowerCardGrid,
+.compoundingMechanismMap {
+  display: grid;
+  gap: 10px;
+}
+.compoundingPowerFingerprintRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(240px, 1.6fr);
+  gap: 14px;
+  align-items: center;
+  color: var(--demo-text);
+  text-decoration: none;
+}
+.compoundingPowerBars {
+  display: grid;
+  gap: 8px;
+}
+.compoundingPowerBarLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.compoundingPowerBar {
+  height: 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--demo-divider) 78%, transparent);
+  overflow: hidden;
+}
+.compoundingPowerBar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--demo-accent);
+}
+.compoundingPowerBar-evidence span {
+  background: #34d399;
+}
+.compoundingMechanismMap {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.compoundingMechanismEdge {
+  display: grid;
+  gap: 6px;
+  text-align: center;
+}
+.compoundingMechanismEdge span {
+  color: var(--demo-accent);
+  font-size: 20px;
+}
+.compoundingPowerCard {
+  display: grid;
+  gap: 12px;
+  scroll-margin-top: 96px;
+}
+.compoundingSubdimensionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+.compoundingAnalystSummary {
+  border-style: dashed;
+}
 .compoundingEvidenceList {
   display: grid;
   gap: 8px;
@@ -4402,6 +4473,9 @@ button {
   }
   .compoundingDebateSummaryTable {
     display: none;
+  }
+  .compoundingPowerFingerprintRow {
+    grid-template-columns: 1fr;
   }
 }
 .compoundingAssessmentCard summary {
