@@ -4679,6 +4679,110 @@ button {
 .compoundingSimulatorGroups .small {
   grid-column: 1 / -1;
 }
+.compoundingStudioIntro,
+.compoundingScenarioStudioForm,
+.compoundingSaveScenarioForm {
+  display: grid;
+  gap: 12px;
+}
+.compoundingScenarioFlow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.compoundingScenarioFlow span {
+  display: grid;
+  place-items: center;
+  min-height: 64px;
+  border: 1px solid color-mix(in srgb, var(--demo-divider) 78%, var(--demo-accent) 22%);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--demo-text);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+.compoundingScenarioTemplateGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 12px;
+}
+.compoundingScenarioTemplate {
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+}
+.compoundingScenarioTemplate.selected {
+  border-color: color-mix(in srgb, var(--demo-accent) 62%, var(--demo-divider));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--demo-accent) 45%, transparent);
+}
+.compoundingScenarioTemplate h3 {
+  margin-top: 8px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+.compoundingScenarioDiffTable {
+  overflow-x: auto;
+}
+.compoundingScenarioDiffTable .dataTable {
+  min-width: 860px;
+  border-collapse: collapse;
+}
+.compoundingScenarioDiffTable th,
+.compoundingScenarioDiffTable td {
+  border: 1px solid color-mix(in srgb, var(--demo-divider) 76%, var(--demo-text) 24%);
+  padding: 10px;
+  vertical-align: top;
+}
+.compoundingScenarioDiffTable th {
+  color: var(--demo-text-muted);
+  font-family: var(--demo-mono);
+  font-size: 10px;
+  text-align: left;
+  text-transform: uppercase;
+}
+.compoundingScenarioDiffTable td > span,
+.compoundingScenarioDiffTable td > small {
+  display: block;
+  margin-top: 4px;
+  color: var(--demo-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.compoundingScenarioDiffTable tr.differs td {
+  background: color-mix(in srgb, var(--demo-accent) 8%, transparent);
+}
+.compoundingScenarioDiffTable input {
+  width: 100%;
+  min-width: 120px;
+}
+.compoundingParameterGroups,
+.compoundingScenarioResultGrid,
+.compoundingDriverGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.compoundingScenarioResultGrid .card {
+  display: grid;
+  gap: 6px;
+}
+.compoundingScenarioResultGrid .card span:not(.badge) {
+  color: var(--demo-text);
+  font-size: 20px;
+  font-weight: 900;
+}
+.compoundingScenarioOutcome {
+  grid-column: span 2;
+}
+.compoundingScenarioOutcome h3 {
+  margin: 0;
+  font-size: 26px;
+}
+.compoundingScenarioImplication {
+  display: grid;
+  gap: 12px;
+}
 .compoundingConclusionCard {
   display: grid;
   gap: 8px;
@@ -6034,6 +6138,11 @@ button {
   .compoundingCaseSetFacts,
   .compoundingProfileGrid,
   .compoundingStructuredGrid,
+  .compoundingScenarioFlow,
+  .compoundingScenarioTemplateGrid,
+  .compoundingParameterGroups,
+  .compoundingScenarioResultGrid,
+  .compoundingDriverGrid,
   .compoundingSimulatorGroups fieldset,
   .compoundingAssessmentGrid,
   .compoundingFrameworkIntro,

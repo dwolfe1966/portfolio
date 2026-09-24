@@ -40,10 +40,17 @@ import {
   deriveDebateEvidenceRegistry,
   deriveHighestValueDiligenceQueue,
   derivePowerMap,
+  applyStressTestTemplate,
+  classifyStressTestResult,
   detectCrossover,
+  deriveStressTestDrivers,
+  deriveStressTestPowerImplication,
   exampleById,
   explainSimulatorComparison,
+  getStressTestTemplate,
   normalizedModelForExample,
+  SIMULATOR_PARAMETER_DEFINITIONS,
+  STRESS_TEST_TEMPLATES,
   normalizeAssessment,
   summarizeEvidenceCoverage,
   scorebookDerivedSimulatorValues,
@@ -841,6 +848,98 @@ test("simulator explanation preserves toy-model framing", () => {
 
   assert.match(explanation, /exploratory scenario/i);
   assert.ok(explanation.includes("base/foundation-model capability") || explanation.includes("starting graded cases"));
+});
+
+test("Stress Test canonical templates apply deterministic non-persisted scenario presets", () => {
+  assert.deepEqual(STRESS_TEST_TEMPLATES.map((template) => template.id), [
+    "baseline",
+    "better_foundation_model",
+    "faster_learner",
+    "transfer_breakdown",
+    "feedback_delay",
+    "experience_staleness",
+    "continuous_capture",
+    "custom"
+  ]);
+
+  const baseline = [
+    { ...baseScenario, id: "persisted-a", name: "Incumbent / Company", startingCases: 1000, casesPerMonth: 100 },
+    { ...baseScenario, id: "persisted-b", name: "Challenger / Alternative", startingCases: 100, casesPerMonth: 50 }
+  ];
+  const betterModel = applyStressTestTemplate(baseline, "better_foundation_model");
+  assert.equal(betterModel[0].id, "persisted-a");
+  assert.equal(betterModel[1].id, "persisted-b");
+  assert.ok(betterModel[1].baseCapability > baseline[1].baseCapability);
+  assert.equal(baseline[1].baseCapability, 2);
+
+  const fasterLearner = applyStressTestTemplate(baseline, "faster_learner");
+  assert.ok(fasterLearner[1].learningEfficiency > baseline[1].learningEfficiency);
+  const transferBreakdown = applyStressTestTemplate(baseline, "transfer_breakdown");
+  assert.ok(transferBreakdown[0].transferability < baseline[0].transferability);
+  const feedbackDelay = applyStressTestTemplate(baseline, "feedback_delay");
+  assert.ok(feedbackDelay[0].feedbackDelayDays > baseline[0].feedbackDelayDays);
+  const staleness = applyStressTestTemplate(baseline, "experience_staleness");
+  assert.ok(staleness[0].stalenessRate > baseline[0].stalenessRate);
+  const capture = applyStressTestTemplate(baseline, "continuous_capture");
+  assert.ok(capture[0].casesPerMonth > capture[1].casesPerMonth);
+  assert.equal(getStressTestTemplate("custom").name, "Custom");
+});
+
+test("Stress Test result classifications and crossover metrics are deterministic", () => {
+  const persistsSeries = simulateComparison([
+    { ...baseScenario, name: "Incumbent / Company", startingCases: 20000, baseCapability: 2.2, learningEfficiency: 0.7 },
+    { ...baseScenario, name: "Challenger / Alternative", startingCases: 200, baseCapability: 1.4, learningEfficiency: 0.3 }
+  ], 36);
+  const persists = classifyStressTestResult(persistsSeries, detectCrossover(persistsSeries[0], persistsSeries[1]));
+  assert.equal(persists.classification, "ADVANTAGE_PERSISTS");
+  assert.equal(typeof persists.month12Gap, "number");
+  assert.equal(typeof persists.month36Gap, "number");
+
+  const compressSeries = simulateComparison([
+    { ...baseScenario, name: "Incumbent / Company", startingCases: 50000, baseCapability: 2.4, learningEfficiency: 0.6 },
+    { ...baseScenario, name: "Challenger / Alternative", startingCases: 100, baseCapability: 2.6, learningEfficiency: 0.9 }
+  ], 36);
+  const compressCrossover = detectCrossover(compressSeries[0], compressSeries[1]);
+  const compress = classifyStressTestResult(compressSeries, compressCrossover);
+  assert.ok(["ADVANTAGE_COMPRESSES", "CHALLENGER_CATCHES_UP", "CHALLENGER_OVERTAKES"].includes(compress.classification));
+  assert.equal(compress.crossoverMonth, compressCrossover?.month ?? null);
+
+  const noInitialSeries = simulateComparison([
+    { ...baseScenario, name: "Incumbent / Company" },
+    { ...baseScenario, name: "Challenger / Alternative" }
+  ], 36);
+  const noInitial = classifyStressTestResult(noInitialSeries, detectCrossover(noInitialSeries[0], noInitialSeries[1]));
+  assert.equal(noInitial.classification, "NO_MATERIAL_INITIAL_ADVANTAGE");
+});
+
+test("Stress Test drivers, implications, and parameter epistemics preserve toy-model limits", () => {
+  const scenarios = applyStressTestTemplate([
+    { ...baseScenario, name: "Incumbent / Company", startingCases: 10000, baseCapability: 1.8 },
+    { ...baseScenario, name: "Challenger / Alternative", startingCases: 500, baseCapability: 1.9 }
+  ], "better_foundation_model");
+  const series = simulateComparison(scenarios, 36);
+  const result = classifyStressTestResult(series, detectCrossover(series[0], series[1]));
+  const drivers = deriveStressTestDrivers(series, result);
+  const implication = deriveStressTestPowerImplication("better_foundation_model", result);
+
+  assert.ok(drivers.length >= 1 && drivers.length <= 4);
+  assert.ok(drivers.some((driver) => /Base capability|Starting experience|Learning efficiency/.test(driver.title)));
+  assert.doesNotMatch(drivers.map((driver) => driver.detail).join(" "), /forecast/i);
+  assert.match(implication, /scenario|model|historical|experience|Power/i);
+  assert.doesNotMatch(implication, /empirical evidence proves/i);
+
+  const startingCases = SIMULATOR_PARAMETER_DEFINITIONS.find((definition) => definition.key === "startingCases");
+  const informationValue = SIMULATOR_PARAMETER_DEFINITIONS.find((definition) => definition.key === "informationValue");
+  assert.equal(startingCases?.epistemic, "OBSERVED / DERIVED");
+  assert.match(informationValue?.help ?? "", /Shannon layer/i);
+});
+
+test("scorebook-derived simulator values remain limited to supported fields", () => {
+  const derivedKeys = SIMULATOR_PARAMETER_DEFINITIONS
+    .filter((definition) => definition.epistemic === "OBSERVED / DERIVED")
+    .map((definition) => definition.key)
+    .sort();
+  assert.deepEqual(derivedKeys, ["feedbackDelayDays", "startingCases"]);
 });
 
 test("conclusion handles insufficient evidence without manufacturing Power", () => {

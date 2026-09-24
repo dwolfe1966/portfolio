@@ -148,6 +148,60 @@ export type SimulationSeries = {
   points: SimulationPoint[];
 };
 
+export type StressTestTemplateId =
+  | "baseline"
+  | "better_foundation_model"
+  | "faster_learner"
+  | "transfer_breakdown"
+  | "feedback_delay"
+  | "experience_staleness"
+  | "continuous_capture"
+  | "custom";
+
+export type StressTestTemplate = {
+  id: StressTestTemplateId;
+  name: string;
+  question: string;
+  changedVariables: string[];
+  whyMatters: string;
+};
+
+export type StressTestResultClassification =
+  | "ADVANTAGE_PERSISTS"
+  | "ADVANTAGE_COMPRESSES"
+  | "CHALLENGER_CATCHES_UP"
+  | "CHALLENGER_OVERTAKES"
+  | "NO_MATERIAL_INITIAL_ADVANTAGE";
+
+export type StressTestResultSummary = {
+  classification: StressTestResultClassification;
+  label: string;
+  initialGap: number;
+  month12Gap: number;
+  month36Gap: number;
+  incumbentFinalExpertise: number;
+  challengerFinalExpertise: number;
+  gapDirection: "widening" | "compressing" | "reversed" | "stable";
+  crossoverMonth: number | null;
+};
+
+export type StressTestDriver = {
+  title: string;
+  detail: string;
+  magnitude: number;
+};
+
+export type SimulatorParameterDefinition = {
+  key: keyof Omit<SimulationScenarioInput, "id" | "name">;
+  label: string;
+  group: "Experience advantage" | "Learning dynamics" | "Competitive / environmental conditions";
+  epistemic: "OBSERVED / DERIVED" | "ENDOGENOUS ASSUMPTION" | "EXOGENOUS ASSUMPTION";
+  help: string;
+  min: number;
+  max?: number;
+  step: number;
+};
+
 export type Crossover = {
   month: number;
   from: string;
@@ -1041,6 +1095,145 @@ export const DEFAULT_SCENARIOS: SimulationScenarioInput[] = [
     learningEfficiency: 0.75,
     stalenessRate: 0.012,
     baseCapability: 2.9
+  }
+];
+
+export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
+  {
+    id: "baseline",
+    name: "Baseline",
+    question: "What happens under the current assumptions?",
+    changedVariables: ["No template changes"],
+    whyMatters: "Provides the reference case before changing competitive conditions."
+  },
+  {
+    id: "better_foundation_model",
+    name: "Better foundation model",
+    question: "Can a challenger compress the incumbent's historical experience advantage with higher base model capability?",
+    changedVariables: ["Challenger base capability increases"],
+    whyMatters: "Tests whether frontier-model progress reduces the value of proprietary accumulated experience."
+  },
+  {
+    id: "faster_learner",
+    name: "Faster learner",
+    question: "Can a challenger catch up by extracting more learning from each case?",
+    changedVariables: ["Challenger learning efficiency increases"],
+    whyMatters: "Tests whether better learning velocity can offset a smaller starting scorebook."
+  },
+  {
+    id: "transfer_breakdown",
+    name: "Transfer breakdown",
+    question: "What if accumulated experience transfers poorly across customers or contexts?",
+    changedVariables: ["Incumbent transferability decreases"],
+    whyMatters: "Tests whether the experience advantage depends on learning that generalizes beyond the original cases."
+  },
+  {
+    id: "feedback_delay",
+    name: "Feedback delay",
+    question: "What if real-world outcomes take longer to arrive and grade?",
+    changedVariables: ["Incumbent feedback delay increases"],
+    whyMatters: "Tests whether compounding slows when experience matures late."
+  },
+  {
+    id: "experience_staleness",
+    name: "Experience staleness",
+    question: "What if historical experience loses relevance quickly?",
+    changedVariables: ["Incumbent staleness increases"],
+    whyMatters: "Tests whether historical advantage is durable when the environment changes."
+  },
+  {
+    id: "continuous_capture",
+    name: "Continuous capture advantage",
+    question: "What if the incumbent continuously generates graded experience faster than challengers?",
+    changedVariables: ["Incumbent cases per month increases relative to challenger"],
+    whyMatters: "Tests whether owning the ongoing experience-generation loop matters more than the static historical scorebook."
+  },
+  {
+    id: "custom",
+    name: "Custom",
+    question: "Create your own competitive scenario.",
+    changedVariables: ["User-defined"],
+    whyMatters: "Use when the canonical stress tests do not match the question you want to ask."
+  }
+];
+
+export const SIMULATOR_PARAMETER_DEFINITIONS: SimulatorParameterDefinition[] = [
+  {
+    key: "startingCases",
+    label: "Starting graded cases",
+    group: "Experience advantage",
+    epistemic: "OBSERVED / DERIVED",
+    help: "How much matured experience the system begins with.",
+    min: 0,
+    step: 1
+  },
+  {
+    key: "casesPerMonth",
+    label: "Cases / month",
+    group: "Experience advantage",
+    epistemic: "ENDOGENOUS ASSUMPTION",
+    help: "How quickly new potentially learnable experience is generated.",
+    min: 0,
+    step: 1
+  },
+  {
+    key: "feedbackDelayDays",
+    label: "Feedback delay",
+    group: "Learning dynamics",
+    epistemic: "OBSERVED / DERIVED",
+    help: "How long before a decision produces an outcome that can be graded.",
+    min: 0,
+    step: 1
+  },
+  {
+    key: "learningEfficiency",
+    label: "Learning efficiency",
+    group: "Learning dynamics",
+    epistemic: "ENDOGENOUS ASSUMPTION",
+    help: "How effectively the system converts graded experience into improved expertise.",
+    min: 0,
+    max: 1,
+    step: 0.05
+  },
+  {
+    key: "informationValue",
+    label: "Information value / case",
+    group: "Learning dynamics",
+    epistemic: "EXOGENOUS ASSUMPTION",
+    help: "How much non-redundant learning a typical case contributes. This remains a scenario assumption until the Shannon layer exists.",
+    min: 0,
+    max: 1,
+    step: 0.05
+  },
+  {
+    key: "transferability",
+    label: "Transferability",
+    group: "Learning dynamics",
+    epistemic: "EXOGENOUS ASSUMPTION",
+    help: "How much learning from prior cases applies to future/customer contexts.",
+    min: 0,
+    max: 1,
+    step: 0.05
+  },
+  {
+    key: "baseCapability",
+    label: "Base capability",
+    group: "Competitive / environmental conditions",
+    epistemic: "EXOGENOUS ASSUMPTION",
+    help: "Capability available without proprietary accumulated experience, for example from the underlying frontier model.",
+    min: 0,
+    max: 5,
+    step: 0.1
+  },
+  {
+    key: "stalenessRate",
+    label: "Monthly staleness",
+    group: "Competitive / environmental conditions",
+    epistemic: "EXOGENOUS ASSUMPTION",
+    help: "How quickly accumulated experience loses relevance.",
+    min: 0,
+    max: 1,
+    step: 0.005
   }
 ];
 
@@ -3231,6 +3424,185 @@ export function explainSimulatorComparison(series: SimulationSeries[], crossover
     return `${crossover.to} overtakes ${crossover.from} around month ${crossover.month} in this toy model because ${reasonText}. This is an exploratory scenario, not a forecast.`;
   }
   return `${leader.scenario.name} remains ahead over the modeled horizon primarily because of ${reasonText}. This is an exploratory scenario, not a forecast.`;
+}
+
+export function getStressTestTemplate(id: string | null | undefined): StressTestTemplate {
+  return STRESS_TEST_TEMPLATES.find((template) => template.id === id) ?? STRESS_TEST_TEMPLATES[0];
+}
+
+export function applyStressTestTemplate(
+  scenarios: SimulationScenarioInput[],
+  templateId: string | null | undefined
+): SimulationScenarioInput[] {
+  const sanitized = scenarios.slice(0, 2).map((scenario) => sanitizeScenario(scenario));
+  const [rawIncumbent, rawChallenger] = sanitized.length >= 2 ? sanitized : DEFAULT_SCENARIOS;
+  const incumbent: SimulationScenarioInput = { ...rawIncumbent, name: rawIncumbent.name || "Incumbent / Company" };
+  const challenger: SimulationScenarioInput = { ...rawChallenger, name: rawChallenger.name || "Challenger / Alternative" };
+  const template = getStressTestTemplate(templateId);
+
+  if (template.id === "baseline" || template.id === "custom") return [incumbent, challenger];
+  if (template.id === "better_foundation_model") {
+    return [incumbent, { ...challenger, baseCapability: clamp(Math.max(challenger.baseCapability, incumbent.baseCapability + 0.7), 0, 5) }];
+  }
+  if (template.id === "faster_learner") {
+    return [incumbent, { ...challenger, learningEfficiency: clamp(Math.max(challenger.learningEfficiency, incumbent.learningEfficiency + 0.2), 0, 1) }];
+  }
+  if (template.id === "transfer_breakdown") {
+    return [{ ...incumbent, transferability: clamp(Math.min(incumbent.transferability, 0.35), 0, 1) }, challenger];
+  }
+  if (template.id === "feedback_delay") {
+    return [{ ...incumbent, feedbackDelayDays: Math.max(incumbent.feedbackDelayDays, 90) }, challenger];
+  }
+  if (template.id === "experience_staleness") {
+    return [{ ...incumbent, stalenessRate: clamp(Math.max(incumbent.stalenessRate, 0.055), 0, 1) }, challenger];
+  }
+  if (template.id === "continuous_capture") {
+    return [
+      { ...incumbent, casesPerMonth: Math.max(incumbent.casesPerMonth, challenger.casesPerMonth * 2) },
+      challenger
+    ];
+  }
+  return [incumbent, challenger];
+}
+
+function pointAt(series: SimulationSeries, month: number) {
+  return series.points.find((point) => point.month === month) ?? series.points[series.points.length - 1];
+}
+
+function stressLabel(classification: StressTestResultClassification) {
+  return classification.split("_").map((word) => word[0] + word.slice(1).toLowerCase()).join(" ");
+}
+
+export function classifyStressTestResult(series: SimulationSeries[], crossover: Crossover | null): StressTestResultSummary {
+  if (series.length < 2) {
+    return {
+      classification: "NO_MATERIAL_INITIAL_ADVANTAGE",
+      label: stressLabel("NO_MATERIAL_INITIAL_ADVANTAGE"),
+      initialGap: 0,
+      month12Gap: 0,
+      month36Gap: 0,
+      incumbentFinalExpertise: 0,
+      challengerFinalExpertise: 0,
+      gapDirection: "stable",
+      crossoverMonth: null
+    };
+  }
+  const [incumbent, challenger] = series;
+  const initialGap = round(pointAt(incumbent, 0).expertise - pointAt(challenger, 0).expertise, 4);
+  const month12Gap = round(pointAt(incumbent, 12).expertise - pointAt(challenger, 12).expertise, 4);
+  const finalMonth = Math.max(incumbent.points[incumbent.points.length - 1]?.month ?? 36, challenger.points[challenger.points.length - 1]?.month ?? 36);
+  const month36Gap = round(pointAt(incumbent, finalMonth).expertise - pointAt(challenger, finalMonth).expertise, 4);
+  const incumbentFinalExpertise = pointAt(incumbent, finalMonth).expertise;
+  const challengerFinalExpertise = pointAt(challenger, finalMonth).expertise;
+  const materialGap = 0.1;
+  const initialAbs = Math.abs(initialGap);
+  const finalAbs = Math.abs(month36Gap);
+  let classification: StressTestResultClassification;
+
+  if (initialGap <= materialGap) classification = "NO_MATERIAL_INITIAL_ADVANTAGE";
+  else if (initialGap > materialGap && month36Gap < -materialGap) classification = "CHALLENGER_OVERTAKES";
+  else if (initialGap > materialGap && (crossover || finalAbs < materialGap)) classification = "CHALLENGER_CATCHES_UP";
+  else if (initialGap > materialGap && month36Gap > 0 && finalAbs < initialAbs * 0.6) classification = "ADVANTAGE_COMPRESSES";
+  else classification = "ADVANTAGE_PERSISTS";
+
+  const gapDirection: StressTestResultSummary["gapDirection"] =
+    initialGap > materialGap && month36Gap < -materialGap
+      ? "reversed"
+      : finalAbs < initialAbs * 0.85
+        ? "compressing"
+        : finalAbs > initialAbs * 1.15
+          ? "widening"
+          : "stable";
+
+  return {
+    classification,
+    label: stressLabel(classification),
+    initialGap,
+    month12Gap,
+    month36Gap,
+    incumbentFinalExpertise,
+    challengerFinalExpertise,
+    gapDirection,
+    crossoverMonth: crossover?.month ?? null
+  };
+}
+
+export function deriveStressTestDrivers(series: SimulationSeries[], result: StressTestResultSummary): StressTestDriver[] {
+  if (series.length < 2) return [];
+  const [incumbent, challenger] = series.map((item) => item.scenario);
+  const candidates: StressTestDriver[] = [
+    {
+      title: "Starting experience",
+      detail: `${incumbent.name} starts with ${round(incumbent.startingCases / Math.max(challenger.startingCases, 1), 2)}x the graded cases, but the model uses logarithmic returns to experience.`,
+      magnitude: Math.abs(Math.log1p(incumbent.startingCases) - Math.log1p(challenger.startingCases))
+    },
+    {
+      title: "New experience generation",
+      detail: `${incumbent.name} generates ${round(incumbent.casesPerMonth - challenger.casesPerMonth, 2)} more cases per month than ${challenger.name}.`,
+      magnitude: Math.abs(incumbent.casesPerMonth - challenger.casesPerMonth) / Math.max(incumbent.casesPerMonth, challenger.casesPerMonth, 1)
+    },
+    {
+      title: "Feedback maturation",
+      detail: `${incumbent.name} feedback delay is ${incumbent.feedbackDelayDays} days versus ${challenger.feedbackDelayDays} days for ${challenger.name}.`,
+      magnitude: Math.abs(incumbent.feedbackDelayDays - challenger.feedbackDelayDays) / Math.max(incumbent.feedbackDelayDays, challenger.feedbackDelayDays, 1)
+    },
+    {
+      title: "Learning efficiency",
+      detail: `${challenger.name} learning efficiency is ${challenger.learningEfficiency} versus ${incumbent.learningEfficiency} for ${incumbent.name}.`,
+      magnitude: Math.abs(challenger.learningEfficiency - incumbent.learningEfficiency)
+    },
+    {
+      title: "Base capability",
+      detail: `${challenger.name} base capability is ${challenger.baseCapability} versus ${incumbent.baseCapability} for ${incumbent.name}.`,
+      magnitude: Math.abs(challenger.baseCapability - incumbent.baseCapability) / 5
+    },
+    {
+      title: "Transferability",
+      detail: `${incumbent.name} transferability is ${incumbent.transferability} versus ${challenger.transferability} for ${challenger.name}.`,
+      magnitude: Math.abs(incumbent.transferability - challenger.transferability)
+    },
+    {
+      title: "Staleness",
+      detail: `${incumbent.name} monthly staleness is ${incumbent.stalenessRate} versus ${challenger.stalenessRate} for ${challenger.name}.`,
+      magnitude: Math.abs(incumbent.stalenessRate - challenger.stalenessRate) * 8
+    }
+  ];
+  const ranked = candidates
+    .filter((driver) => driver.magnitude > 0.02)
+    .sort((a, b) => b.magnitude - a.magnitude)
+    .slice(0, 4);
+  if (ranked.length > 0) return ranked;
+  return [{
+    title: "Small combined differences",
+    detail: `No single parameter dominates the ${result.label.toLowerCase()} result in this scenario model.`,
+    magnitude: 0
+  }];
+}
+
+export function deriveStressTestPowerImplication(templateId: string | null | undefined, result: StressTestResultSummary) {
+  const template = getStressTestTemplate(templateId);
+  if (template.id === "better_foundation_model" && ["CHALLENGER_CATCHES_UP", "CHALLENGER_OVERTAKES", "ADVANTAGE_COMPRESSES"].includes(result.classification)) {
+    return "Higher base capability compresses the modeled advantage, weakening a thesis that historical experience alone creates durable Power.";
+  }
+  if (template.id === "continuous_capture" && result.classification === "ADVANTAGE_PERSISTS") {
+    return "The result strengthens the scenario hypothesis that owning the ongoing experience-generation loop matters more than a static historical scorebook.";
+  }
+  if (template.id === "transfer_breakdown" && result.classification !== "ADVANTAGE_PERSISTS") {
+    return "Weak transferability reduces the plausibility of Network Economy interpretations of Compounding Expertise.";
+  }
+  if (template.id === "experience_staleness" && result.classification !== "ADVANTAGE_PERSISTS") {
+    return "Fast staleness suggests historical experience may be useful without being durable.";
+  }
+  if (template.id === "feedback_delay" && result.classification !== "ADVANTAGE_PERSISTS") {
+    return "Delayed feedback slows modeled compounding and weakens claims that experience accumulates quickly enough to defend the position.";
+  }
+  if (template.id === "faster_learner" && ["CHALLENGER_CATCHES_UP", "CHALLENGER_OVERTAKES", "ADVANTAGE_COMPRESSES"].includes(result.classification)) {
+    return "A faster learner can reduce the value of a starting scorebook advantage in this model, making learning velocity a key diligence question.";
+  }
+  if (result.classification === "ADVANTAGE_PERSISTS") {
+    return "The scenario is consistent with an experience advantage persisting under these assumptions, but it remains a scenario implication rather than empirical evidence.";
+  }
+  return "The scenario weakens a simple historical-scorebook Power thesis and points back to Debates and Power for evidence on transferability, learning causality, and defensibility.";
 }
 
 export function defaultAssessments(): DimensionAssessmentInput[] {

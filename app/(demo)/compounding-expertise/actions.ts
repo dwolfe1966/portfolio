@@ -642,5 +642,5 @@ export async function saveScenariosAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect(labPath("/compounding-expertise/memo", analysisId));
+  redirect(labPath("/compounding-expertise/simulator", analysisId, { saved: "1", caseSetId: nullableText(formData.get("caseSetId")) }));
 }

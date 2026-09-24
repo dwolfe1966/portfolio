@@ -149,16 +149,45 @@ export function SimulatorLineChart({
             strokeLinejoin="round"
           />
         ))}
+        <line
+          x1={x(12)}
+          x2={x(12)}
+          y1={padding}
+          y2={height - padding}
+          stroke="rgba(148,163,184,.32)"
+          strokeDasharray="3 6"
+        />
+        <text x={x(12) + 5} y={padding + 12} fill="rgba(226,232,240,.72)" fontSize="11">12 mo.</text>
         {crossover ? (
-          <line
-            x1={x(crossover.month)}
-            x2={x(crossover.month)}
-            y1={padding}
-            y2={height - padding}
-            stroke="rgba(251,191,36,.68)"
-            strokeDasharray="5 5"
-          />
+          <>
+            <line
+              x1={x(crossover.month)}
+              x2={x(crossover.month)}
+              y1={padding}
+              y2={height - padding}
+              stroke="rgba(251,191,36,.68)"
+              strokeDasharray="5 5"
+            />
+            <text x={x(crossover.month) + 5} y={height - padding - 8} fill="rgba(251,191,36,.92)" fontSize="11">crossover</text>
+          </>
         ) : null}
+        {series.map((item, index) => {
+          const end = item.points[item.points.length - 1];
+          if (!end) return null;
+          return (
+            <g key={`${item.scenario.name}-label`}>
+              <circle cx={x(end.month)} cy={y(end.expertise)} r="4" fill={colors[index % colors.length]} />
+              <text
+                x={Math.min(width - padding - 150, x(end.month) + 8)}
+                y={y(end.expertise) + (index === 0 ? -8 : 14)}
+                fill="rgba(248,250,252,.9)"
+                fontSize="11"
+              >
+                {item.scenario.name} · {end.expertise.toFixed(2)}
+              </text>
+            </g>
+          );
+        })}
       </svg>
       <div className="compoundingLegend">
         {series.map((item, index) => (
