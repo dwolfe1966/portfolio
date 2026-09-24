@@ -5,6 +5,9 @@ import {
   casesForCaseSet,
   deriveDebateCandidates,
   deriveHighestValueDiligenceQueue,
+  type DebateDashboardBar,
+  type DebateDashboardMetric,
+  type DebateEvidenceDashboard,
   type DebateEvidenceItem,
   type KeyDebateInput,
   type ScorebookCaseInput
@@ -74,6 +77,97 @@ function evidenceList(title: string, items: DebateEvidenceItem[]) {
           {item.href ? <Link className="btn" href={item.href}>Inspect source</Link> : null}
         </div>
       )) : <p className="small">No evidence in this category yet.</p>}
+    </div>
+  );
+}
+
+function metricCard(metric: DebateDashboardMetric) {
+  const content = (
+    <>
+      <p className="small">{metric.label}</p>
+      <strong>{metric.value}</strong>
+      {metric.sample ? <p className="small">{metric.sample}</p> : null}
+      <span className="miniTag">{metric.provenance}</span>
+    </>
+  );
+  return metric.href && !metric.unavailable
+    ? <Link className="card compact compoundingMetricCard" href={metric.href} key={metric.label}>{content}</Link>
+    : <div className={`card compact compoundingMetricCard${metric.unavailable ? " compoundingMetricCard-unavailable" : ""}`} key={metric.label}>{content}</div>;
+}
+
+function barList(bars: DebateDashboardBar[] | undefined) {
+  if (!bars?.length) return null;
+  const max = Math.max(...bars.map((bar) => bar.count), 1);
+  return (
+    <div className="compoundingEvidenceBars">
+      {bars.map((bar) => {
+        const row = (
+          <>
+            <div className="compoundingEvidenceBarMeta">
+              <strong>{bar.label}</strong>
+              <span>{bar.value}</span>
+            </div>
+            <div className="compoundingEvidenceBarTrack" aria-hidden="true">
+              <span style={{ width: `${Math.max(8, (bar.count / max) * 100)}%` }} />
+            </div>
+          </>
+        );
+        return bar.href
+          ? <Link className="compoundingEvidenceBarRow" href={bar.href} key={bar.label}>{row}</Link>
+          : <div className="compoundingEvidenceBarRow" key={bar.label}>{row}</div>;
+      })}
+    </div>
+  );
+}
+
+function evidenceDashboard(dashboard: DebateEvidenceDashboard) {
+  return (
+    <div className="compoundingEvidenceDashboard">
+      <div className="compoundingSectionHeader">
+        <div>
+          <p className="small">What the current evidence says</p>
+          <h4>{dashboard.title}</h4>
+        </div>
+        <span className="miniTag">DATA</span>
+      </div>
+      <p>{dashboard.summary}</p>
+      <div className="compoundingDashboardSections">
+        {dashboard.sections.map((section) => (
+          <div className="card compact compoundingDashboardSection" key={section.title}>
+            <h4>{section.title}</h4>
+            {section.note ? <p className="small">{section.note}</p> : null}
+            {section.metrics?.length ? <div className="compoundingDashboardMetrics">{section.metrics.map(metricCard)}</div> : null}
+            {barList(section.bars)}
+          </div>
+        ))}
+      </div>
+      <div className="card compact compoundingExternalEvidencePanel">
+        <div className="compoundingCardHeader">
+          <h4>External / market evidence</h4>
+          <span className="miniTag">Separate from CaseSet</span>
+        </div>
+        {dashboard.externalEvidence.length ? (
+          <div className="compoundingEvidenceList">
+            {dashboard.externalEvidence.map((item) => (
+              <div className={`card compact compoundingEvidenceItem compoundingEvidenceItem-${item.direction.toLowerCase()}`} key={`${item.source}-${item.value}-${item.direction}`}>
+                <div className="compoundingCardHeader">
+                  <strong>{item.source}</strong>
+                  <span className="miniTag">{directionLabel(item.direction)}</span>
+                </div>
+                <p>{item.value}</p>
+                <p className="small">{item.provenance} · {item.interpretation}</p>
+                {item.href ? <Link className="btn" href={item.href}>Inspect source</Link> : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div>
+            <p>No external evidence has been attached to this debate yet.</p>
+            <button className="btn" type="button" disabled>Add evidence</button>
+            <p className="small">Future evidence can come from company documents, public research, data rooms, experiments, benchmarks, or upstream davidwolfe.app systems.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -281,34 +375,51 @@ export default async function CompoundingExpertiseDebatesPage({
                   </div>
                 </div>
                 <p><strong>Why load-bearing:</strong> {candidate.whyLoadBearing}</p>
-                <div className="card compact compoundingTenSecondSummary">
-                  <p className="small">10-second debate summary</p>
-                  <p>{candidate.tenSecondSummary}</p>
-                  <p className="small">{candidate.evidenceCoverage}</p>
-                </div>
-                <div className="grid grid-3">
+                {evidenceDashboard(candidate.evidenceDashboard)}
+                <div className="grid grid-2">
                   <div className="card compact">
-                    <p className="small">CE recommended evidence assessment</p>
+                    <p className="small">CE interpretation</p>
                     <h3>{candidate.assessment}</h3>
                     <p>{candidate.assessmentReason}</p>
+                    <p className="small">{candidate.confidence} confidence · {candidate.thesisImpact} thesis impact</p>
                   </div>
                   <div className="card compact">
-                    <p className="small">Your belief</p>
-                    <h3>{candidate.investorBelief === null ? "Not set" : `${candidate.investorBelief}%`}</h3>
-                    {candidate.investorBeliefDivergence ? <p className="small">{candidate.investorBeliefDivergence}</p> : <p className="small">Investor belief remains separate from CE evidence.</p>}
-                  </div>
-                  <div className="card compact">
-                    <p className="small">Best next test</p>
+                    <p className="small">Next evidence / test</p>
                     <p>{candidate.bestNextTest}</p>
                   </div>
                 </div>
-                <div className="grid grid-3">
-                  {evidenceList("Evidence that supports", candidate.evidenceFor)}
-                  {evidenceList("Evidence that contradicts / alternatives", candidate.evidenceAgainst)}
-                  {evidenceList("Context, not proof", candidate.contextEvidence)}
-                  {evidenceList("Missing evidence", candidate.missingEvidence)}
+                <div className="compoundingMissingEvidenceGrid">
+                  {candidate.missingEvidence.map((item) => (
+                    <div className="card compact compoundingEvidenceItem compoundingEvidenceItem-missing" key={`${candidate.family}-${item.source}-${item.value}`}>
+                      <p className="small">Missing evidence</p>
+                      <h4>{item.value}</h4>
+                      <p><strong>Why:</strong> {item.interpretation}</p>
+                      <p><strong>Obtain via:</strong> {item.obtainVia ?? "Diligence / experiment"}</p>
+                      <p><strong>Expected evidence:</strong> {item.expectedEvidence ?? "Sourced evidence sufficient to evaluate the proposition."}</p>
+                    </div>
+                  ))}
                 </div>
-                <div className="grid grid-2">
+                <div className="card compact compoundingInvestorPosition">
+                  <p className="small">Investor position</p>
+                  <h3>{candidate.investorBelief === null ? "Not set" : `${candidate.investorBelief}%`}</h3>
+                  {candidate.investorBeliefDivergence ? <p>{candidate.investorBeliefDivergence}</p> : <p>Investor belief remains separate from CE evidence.</p>}
+                  <label>
+                    Why?
+                    <textarea rows={3} placeholder="UNSOURCED INVESTOR NOTE — this does not modify CE's assessment unless separately sourced as evidence." />
+                  </label>
+                </div>
+                <details className="compoundingInlineEditor">
+                  <summary>View full evidence ledger</summary>
+                  <div className="grid grid-2">
+                    {evidenceList("Evidence that supports", candidate.evidenceFor)}
+                    {evidenceList("Evidence that contradicts / alternatives", candidate.evidenceAgainst)}
+                    {evidenceList("Context, not proof", candidate.contextEvidence)}
+                    {evidenceList("Missing evidence", candidate.missingEvidence)}
+                  </div>
+                </details>
+                <details className="compoundingInlineEditor">
+                  <summary>If true / if false</summary>
+                  <div className="grid grid-2">
                   <div className="card compact">
                     <h4>If true</h4>
                     <p>{candidate.ifTrue}</p>
@@ -317,8 +428,11 @@ export default async function CompoundingExpertiseDebatesPage({
                     <h4>If false</h4>
                     <p>{candidate.ifFalse}</p>
                   </div>
-                </div>
-                <div className="grid grid-2">
+                  </div>
+                </details>
+                <details className="compoundingInlineEditor">
+                  <summary>What would change belief?</summary>
+                  <div className="grid grid-2">
                   <div className="card compact">
                     <h4>What would increase belief?</h4>
                     <p>{candidate.sourceDebate?.increaseBelief || candidate.increaseBelief}</p>
@@ -327,7 +441,8 @@ export default async function CompoundingExpertiseDebatesPage({
                     <h4>What would decrease belief?</h4>
                     <p>{candidate.sourceDebate?.decreaseBelief || candidate.decreaseBelief}</p>
                   </div>
-                </div>
+                  </div>
+                </details>
                 <details className="compoundingInlineEditor">
                   <summary>View argument</summary>
                   <div className="grid grid-2">

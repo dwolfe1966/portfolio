@@ -4307,6 +4307,73 @@ button {
 .compoundingTenSecondSummary {
   border-color: color-mix(in srgb, var(--demo-accent) 44%, var(--demo-divider) 56%);
 }
+.compoundingEvidenceDashboard,
+.compoundingDashboardSections,
+.compoundingDashboardSection,
+.compoundingExternalEvidencePanel {
+  display: grid;
+  gap: 10px;
+}
+.compoundingDashboardMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+.compoundingMetricCard {
+  color: var(--demo-text);
+  text-decoration: none;
+  min-height: 104px;
+}
+.compoundingMetricCard strong {
+  font-size: 18px;
+}
+.compoundingMetricCard-unavailable {
+  opacity: .78;
+  border-style: dashed;
+}
+.compoundingEvidenceBars {
+  display: grid;
+  gap: 8px;
+}
+.compoundingEvidenceBarRow {
+  display: grid;
+  gap: 6px;
+  color: var(--demo-text);
+  text-decoration: none;
+}
+.compoundingEvidenceBarMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.compoundingEvidenceBarMeta span {
+  color: var(--demo-text-muted);
+}
+.compoundingEvidenceBarTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--demo-divider) 74%, transparent);
+  overflow: hidden;
+}
+.compoundingEvidenceBarTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--demo-accent);
+}
+.compoundingMissingEvidenceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.compoundingInvestorPosition {
+  display: grid;
+  gap: 8px;
+}
+.compoundingInvestorPosition textarea {
+  width: 100%;
+}
 .compoundingEvidenceList {
   display: grid;
   gap: 8px;

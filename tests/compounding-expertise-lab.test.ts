@@ -36,6 +36,7 @@ import {
   deriveCanonicalDebateProfile,
   deriveDebateAssessment,
   deriveDebateCandidates,
+  deriveDebateEvidenceDashboard,
   deriveDebateEvidenceRegistry,
   deriveHighestValueDiligenceQueue,
   detectCrossover,
@@ -498,6 +499,95 @@ test("V0.4.1 debate evidence registry separates context from support and strips 
   assert.ok(transfer.missingEvidence.every((item) => item.href === undefined));
   assert.match(transfer.evidenceCoverage, /context/);
   assert.match(transfer.tenSecondSummary, /UNPROVEN/);
+});
+
+test("debate evidence dashboards use active CaseSet rows only", () => {
+  const dashboard = deriveDebateEvidenceDashboard({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    analysisId: "analysis-1",
+    caseSetId: "set-a"
+  }, "EXPERIENCE_CAPTURE");
+  const casesMetric = dashboard.sections.flatMap((section) => section.metrics ?? []).find((metric) => metric.label === "Cases");
+
+  assert.equal(casesMetric?.value, "4");
+  assert.match(casesMetric?.href ?? "", /analysisId=analysis-1/);
+  assert.match(casesMetric?.href ?? "", /caseSetId=set-a/);
+});
+
+test("cross-customer transfer dashboard shows segment context without inferring transfer", () => {
+  const dashboard = deriveDebateEvidenceDashboard({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    analysisId: "analysis-1",
+    caseSetId: "set-a"
+  }, "CROSS_CUSTOMER_TRANSFER");
+
+  assert.match(dashboard.summary, /context, not proof|Segment diversity is context/i);
+  assert.ok(dashboard.sections.some((section) => section.note?.includes("not establish")));
+  assert.ok(dashboard.sections.flatMap((section) => section.metrics ?? []).some((metric) => metric.label === "Pooled-vs-local transfer experiment" && metric.unavailable));
+  assert.ok(dashboard.sections.flatMap((section) => section.bars ?? []).length > 0);
+});
+
+test("learning causality dashboard does not infer causality from grades alone", () => {
+  const dashboard = deriveDebateEvidenceDashboard({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a")
+  }, "LEARNING_CAUSALITY");
+
+  assert.match(dashboard.summary, /not proof/i);
+  assert.ok(dashboard.sections.flatMap((section) => section.metrics ?? []).some((metric) => metric.label === "Before/after or treatment comparison" && metric.unavailable));
+});
+
+test("rebuildability dashboard explicitly shows missing challenger test", () => {
+  const dashboard = deriveDebateEvidenceDashboard({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    competitiveArchitecture: { competitorRelearningDifficulty: "Hard", foundationModelSubstitutionRisk: "High" }
+  }, "REBUILDABILITY_COMPRESSION");
+
+  assert.ok(dashboard.sections.flatMap((section) => section.metrics ?? []).some((metric) => metric.label === "Challenger benchmark" && metric.unavailable));
+  assert.match(dashboard.sections.map((section) => section.note ?? "").join(" "), /not been empirically tested/i);
+});
+
+test("marginal information dashboard remains pre-Shannon descriptive", () => {
+  const dashboard = deriveDebateEvidenceDashboard({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a")
+  }, "MARGINAL_INFORMATION_VALUE");
+
+  assert.match(dashboard.summary, /PRE-SHANNON DESCRIPTIVE EVIDENCE/);
+  assert.doesNotMatch(dashboard.summary, /entropy estimate|information gain estimate/i);
+});
+
+test("external debate evidence preserves source provenance and direction", () => {
+  const dashboard = deriveDebateEvidenceDashboard({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a"),
+    evidenceRecords: [{
+      entityType: "experiment",
+      fieldKey: "cross_customer_transfer",
+      evidenceType: "EXPERIMENT",
+      epistemicStatus: "SOURCED",
+      valueSnapshot: "Measured pooled cross-customer holdout improved accuracy.",
+      sourceLabel: "Holdout experiment",
+      sourceUrl: "https://example.com/holdout",
+      confidence: "HIGH",
+      derivationMethod: "Experiment result"
+    }]
+  }, "CROSS_CUSTOMER_TRANSFER");
+
+  assert.equal(dashboard.externalEvidence.length, 1);
+  assert.equal(dashboard.externalEvidence[0].source, "Holdout experiment");
+  assert.equal(dashboard.externalEvidence[0].direction, "SUPPORTS");
+  assert.equal(dashboard.externalEvidence[0].provenance, "SOURCED — EXTERNAL EVIDENCE");
+  assert.equal(dashboard.externalEvidence[0].href, "https://example.com/holdout");
 });
 
 test("high case volume cannot establish marginal information value", () => {
