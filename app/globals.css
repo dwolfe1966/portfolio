@@ -4687,7 +4687,7 @@ button {
 }
 .compoundingScenarioFlow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 .compoundingScenarioFlow span {
@@ -4721,12 +4721,58 @@ button {
   font-size: 16px;
   line-height: 1.35;
 }
+.compoundingScenarioSelector {
+  display: grid;
+  gap: 8px;
+}
+.compoundingScenarioQuestion {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.28fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  color: var(--demo-text);
+  text-decoration: none;
+}
+.compoundingScenarioQuestion.selected {
+  border-color: color-mix(in srgb, var(--demo-accent) 62%, var(--demo-divider));
+  background: color-mix(in srgb, var(--demo-accent) 9%, var(--demo-surface));
+}
+.compoundingReviewScenarioCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
+  gap: 14px;
+}
+.compoundingExperienceValues {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.compoundingExperienceValues div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 8px;
+  padding: 10px;
+}
+.compoundingExperienceValues span,
+.compoundingExperienceValues small {
+  color: var(--demo-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.compoundingExperienceValues small {
+  grid-column: 1 / -1;
+}
 .compoundingScenarioDiffTable {
   overflow-x: auto;
 }
 .compoundingScenarioDiffTable .dataTable {
   min-width: 860px;
   border-collapse: collapse;
+}
+.compoundingScenarioDiffTable.compact .dataTable {
+  min-width: 560px;
 }
 .compoundingScenarioDiffTable th,
 .compoundingScenarioDiffTable td {
@@ -4756,6 +4802,12 @@ button {
   width: 100%;
   min-width: 120px;
 }
+.compoundingPrimaryRunBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 .compoundingParameterGroups,
 .compoundingScenarioResultGrid,
 .compoundingDriverGrid {
@@ -4779,9 +4831,24 @@ button {
   margin: 0;
   font-size: 26px;
 }
+.compoundingScenarioOutcomeHero {
+  display: grid;
+  gap: 8px;
+  border-color: color-mix(in srgb, var(--demo-accent) 52%, var(--demo-divider));
+}
+.compoundingScenarioOutcomeHero h3 {
+  margin: 0;
+  font-size: clamp(28px, 5vw, 52px);
+  line-height: 1;
+}
 .compoundingScenarioImplication {
   display: grid;
   gap: 12px;
+}
+.compoundingScenarioShortcutRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .compoundingConclusionCard {
   display: grid;
@@ -6140,6 +6207,9 @@ button {
   .compoundingStructuredGrid,
   .compoundingScenarioFlow,
   .compoundingScenarioTemplateGrid,
+  .compoundingScenarioQuestion,
+  .compoundingReviewScenarioCard,
+  .compoundingExperienceValues,
   .compoundingParameterGroups,
   .compoundingScenarioResultGrid,
   .compoundingDriverGrid,

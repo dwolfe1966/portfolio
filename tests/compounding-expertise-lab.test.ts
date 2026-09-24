@@ -59,9 +59,11 @@ import {
   simulateScenario,
   sourceRouteIsSafe,
   summarizeConclusion,
+  summarizeTopStressTestDrivers,
   validateAssessment,
   validateScenario,
   validateProbability,
+  visibleStressTestChangedParameters,
   type DimensionAssessmentInput,
   type ScorebookCaseInput
 } from "@/lib/compounding-expertise-lab";
@@ -886,6 +888,16 @@ test("Stress Test canonical templates apply deterministic non-persisted scenario
   assert.equal(getStressTestTemplate("custom").name, "Custom");
 });
 
+test("Stress Test simplified UX exposes only selected scenario changes by default", () => {
+  assert.deepEqual(visibleStressTestChangedParameters("better_foundation_model").map((definition) => definition.key), ["baseCapability"]);
+  assert.deepEqual(visibleStressTestChangedParameters("faster_learner").map((definition) => definition.key), ["learningEfficiency"]);
+  assert.deepEqual(visibleStressTestChangedParameters("transfer_breakdown").map((definition) => definition.key), ["transferability"]);
+  assert.deepEqual(visibleStressTestChangedParameters("feedback_delay").map((definition) => definition.key), ["feedbackDelayDays"]);
+  assert.deepEqual(visibleStressTestChangedParameters("experience_staleness").map((definition) => definition.key), ["stalenessRate"]);
+  assert.deepEqual(visibleStressTestChangedParameters("continuous_capture").map((definition) => definition.key), ["casesPerMonth"]);
+  assert.equal(visibleStressTestChangedParameters("custom").length, SIMULATOR_PARAMETER_DEFINITIONS.length);
+});
+
 test("Stress Test result classifications and crossover metrics are deterministic", () => {
   const persistsSeries = simulateComparison([
     { ...baseScenario, name: "Incumbent / Company", startingCases: 20000, baseCapability: 2.2, learningEfficiency: 0.7 },
@@ -921,9 +933,11 @@ test("Stress Test drivers, implications, and parameter epistemics preserve toy-m
   const series = simulateComparison(scenarios, 36);
   const result = classifyStressTestResult(series, detectCrossover(series[0], series[1]));
   const drivers = deriveStressTestDrivers(series, result);
+  const topDrivers = summarizeTopStressTestDrivers(drivers);
   const implication = deriveStressTestPowerImplication("better_foundation_model", result);
 
   assert.ok(drivers.length >= 1 && drivers.length <= 4);
+  assert.ok(topDrivers.length <= 3);
   assert.ok(drivers.some((driver) => /Base capability|Starting experience|Learning efficiency/.test(driver.title)));
   assert.doesNotMatch(drivers.map((driver) => driver.detail).join(" "), /forecast/i);
   assert.match(implication, /scenario|model|historical|experience|Power/i);

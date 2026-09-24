@@ -163,6 +163,7 @@ export type StressTestTemplate = {
   name: string;
   question: string;
   changedVariables: string[];
+  changedParameterKeys: Array<keyof SimulationScenarioInput>;
   whyMatters: string;
 };
 
@@ -1104,6 +1105,7 @@ export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
     name: "Baseline",
     question: "What happens under the current assumptions?",
     changedVariables: ["No template changes"],
+    changedParameterKeys: [],
     whyMatters: "Provides the reference case before changing competitive conditions."
   },
   {
@@ -1111,6 +1113,7 @@ export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
     name: "Better foundation model",
     question: "Can a challenger compress the incumbent's historical experience advantage with higher base model capability?",
     changedVariables: ["Challenger base capability increases"],
+    changedParameterKeys: ["baseCapability"],
     whyMatters: "Tests whether frontier-model progress reduces the value of proprietary accumulated experience."
   },
   {
@@ -1118,6 +1121,7 @@ export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
     name: "Faster learner",
     question: "Can a challenger catch up by extracting more learning from each case?",
     changedVariables: ["Challenger learning efficiency increases"],
+    changedParameterKeys: ["learningEfficiency"],
     whyMatters: "Tests whether better learning velocity can offset a smaller starting scorebook."
   },
   {
@@ -1125,6 +1129,7 @@ export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
     name: "Transfer breakdown",
     question: "What if accumulated experience transfers poorly across customers or contexts?",
     changedVariables: ["Incumbent transferability decreases"],
+    changedParameterKeys: ["transferability"],
     whyMatters: "Tests whether the experience advantage depends on learning that generalizes beyond the original cases."
   },
   {
@@ -1132,6 +1137,7 @@ export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
     name: "Feedback delay",
     question: "What if real-world outcomes take longer to arrive and grade?",
     changedVariables: ["Incumbent feedback delay increases"],
+    changedParameterKeys: ["feedbackDelayDays"],
     whyMatters: "Tests whether compounding slows when experience matures late."
   },
   {
@@ -1139,6 +1145,7 @@ export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
     name: "Experience staleness",
     question: "What if historical experience loses relevance quickly?",
     changedVariables: ["Incumbent staleness increases"],
+    changedParameterKeys: ["stalenessRate"],
     whyMatters: "Tests whether historical advantage is durable when the environment changes."
   },
   {
@@ -1146,6 +1153,7 @@ export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
     name: "Continuous capture advantage",
     question: "What if the incumbent continuously generates graded experience faster than challengers?",
     changedVariables: ["Incumbent cases per month increases relative to challenger"],
+    changedParameterKeys: ["casesPerMonth"],
     whyMatters: "Tests whether owning the ongoing experience-generation loop matters more than the static historical scorebook."
   },
   {
@@ -1153,6 +1161,16 @@ export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
     name: "Custom",
     question: "Create your own competitive scenario.",
     changedVariables: ["User-defined"],
+    changedParameterKeys: [
+      "startingCases",
+      "casesPerMonth",
+      "feedbackDelayDays",
+      "transferability",
+      "informationValue",
+      "learningEfficiency",
+      "stalenessRate",
+      "baseCapability"
+    ],
     whyMatters: "Use when the canonical stress tests do not match the question you want to ask."
   }
 ];
@@ -3430,6 +3448,12 @@ export function getStressTestTemplate(id: string | null | undefined): StressTest
   return STRESS_TEST_TEMPLATES.find((template) => template.id === id) ?? STRESS_TEST_TEMPLATES[0];
 }
 
+export function visibleStressTestChangedParameters(templateId: string | null | undefined) {
+  const template = getStressTestTemplate(templateId);
+  const keys = new Set(template.changedParameterKeys);
+  return SIMULATOR_PARAMETER_DEFINITIONS.filter((definition) => keys.has(definition.key));
+}
+
 export function applyStressTestTemplate(
   scenarios: SimulationScenarioInput[],
   templateId: string | null | undefined
@@ -3577,6 +3601,10 @@ export function deriveStressTestDrivers(series: SimulationSeries[], result: Stre
     detail: `No single parameter dominates the ${result.label.toLowerCase()} result in this scenario model.`,
     magnitude: 0
   }];
+}
+
+export function summarizeTopStressTestDrivers(drivers: StressTestDriver[], limit = 3) {
+  return drivers.slice(0, Math.max(0, limit));
 }
 
 export function deriveStressTestPowerImplication(templateId: string | null | undefined, result: StressTestResultSummary) {
