@@ -167,6 +167,15 @@ export type StressTestTemplate = {
   whyMatters: string;
 };
 
+export type StressTestPrimaryChange = {
+  label: string;
+  incumbentValue: number | null;
+  challengerValue: number | null;
+  incumbentBaseline: number | null;
+  challengerBaseline: number | null;
+  summary: string;
+};
+
 export type StressTestResultClassification =
   | "ADVANTAGE_PERSISTS"
   | "ADVANTAGE_COMPRESSES"
@@ -3452,6 +3461,63 @@ export function visibleStressTestChangedParameters(templateId: string | null | u
   const template = getStressTestTemplate(templateId);
   const keys = new Set(template.changedParameterKeys);
   return SIMULATOR_PARAMETER_DEFINITIONS.filter((definition) => keys.has(definition.key));
+}
+
+function stressValueText(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "not set";
+  return Number.isInteger(value) ? `${value}` : `${round(value, 3)}`;
+}
+
+export function summarizeStressTestPrimaryChange(
+  templateId: string | null | undefined,
+  scenarios: SimulationScenarioInput[],
+  baselineScenarios: SimulationScenarioInput[]
+): StressTestPrimaryChange {
+  const template = getStressTestTemplate(templateId);
+  const definitions = visibleStressTestChangedParameters(template.id);
+  if (template.id === "custom") {
+    return {
+      label: "Custom assumptions",
+      incumbentValue: null,
+      challengerValue: null,
+      incumbentBaseline: null,
+      challengerBaseline: null,
+      summary: "Custom scenario - review the full assumptions before running."
+    };
+  }
+  if (definitions.length === 0) {
+    return {
+      label: "Baseline assumptions",
+      incumbentValue: null,
+      challengerValue: null,
+      incumbentBaseline: null,
+      challengerBaseline: null,
+      summary: "No template condition is changed."
+    };
+  }
+  const definition = definitions[0];
+  const incumbentValue = Number(scenarios[0]?.[definition.key]);
+  const challengerValue = Number(scenarios[1]?.[definition.key]);
+  const incumbentBaseline = Number(baselineScenarios[0]?.[definition.key]);
+  const challengerBaseline = Number(baselineScenarios[1]?.[definition.key]);
+  const incumbentChanged = incumbentValue !== incumbentBaseline;
+  const challengerChanged = challengerValue !== challengerBaseline;
+  const actor = incumbentChanged && !challengerChanged
+    ? scenarios[0]?.name || "Incumbent"
+    : challengerChanged && !incumbentChanged
+      ? scenarios[1]?.name || "Challenger"
+      : "Scenario";
+  const fromValue = incumbentChanged && !challengerChanged ? incumbentBaseline : challengerBaseline;
+  const toValue = incumbentChanged && !challengerChanged ? incumbentValue : challengerValue;
+
+  return {
+    label: definition.label,
+    incumbentValue,
+    challengerValue,
+    incumbentBaseline,
+    challengerBaseline,
+    summary: `${actor} ${definition.label.toLowerCase()} ${stressValueText(fromValue)} -> ${stressValueText(toValue)}`
+  };
 }
 
 export function applyStressTestTemplate(

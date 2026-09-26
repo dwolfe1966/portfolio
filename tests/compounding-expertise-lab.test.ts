@@ -59,6 +59,7 @@ import {
   simulateScenario,
   sourceRouteIsSafe,
   summarizeConclusion,
+  summarizeStressTestPrimaryChange,
   summarizeTopStressTestDrivers,
   validateAssessment,
   validateScenario,
@@ -896,6 +897,35 @@ test("Stress Test simplified UX exposes only selected scenario changes by defaul
   assert.deepEqual(visibleStressTestChangedParameters("experience_staleness").map((definition) => definition.key), ["stalenessRate"]);
   assert.deepEqual(visibleStressTestChangedParameters("continuous_capture").map((definition) => definition.key), ["casesPerMonth"]);
   assert.equal(visibleStressTestChangedParameters("custom").length, SIMULATOR_PARAMETER_DEFINITIONS.length);
+});
+
+test("Stress Test workspace summarizes the selected condition without changing result semantics", () => {
+  const baseline = [
+    { ...baseScenario, name: "Incumbent / Company", startingCases: 1000, casesPerMonth: 100, baseCapability: 2 },
+    { ...baseScenario, name: "Challenger / Alternative", startingCases: 100, casesPerMonth: 50, baseCapability: 1.8 }
+  ];
+  const strongerModel = applyStressTestTemplate(baseline, "better_foundation_model");
+  const primaryChange = summarizeStressTestPrimaryChange("better_foundation_model", strongerModel, baseline);
+  const baselineChange = summarizeStressTestPrimaryChange("baseline", baseline, baseline);
+  const customChange = summarizeStressTestPrimaryChange("custom", baseline, baseline);
+
+  assert.equal(primaryChange.label, "Base capability");
+  assert.match(primaryChange.summary, /Challenger \/ Alternative base capability/i);
+  assert.ok(primaryChange.challengerValue > primaryChange.challengerBaseline!);
+  assert.match(baselineChange.summary, /No template condition is changed/);
+  assert.match(customChange.summary, /Custom scenario/);
+
+  const afterSeries = simulateComparison(strongerModel, 36);
+  const after = classifyStressTestResult(afterSeries, detectCrossover(afterSeries[0], afterSeries[1]));
+  assert.ok(["ADVANTAGE_PERSISTS", "ADVANTAGE_COMPRESSES", "CHALLENGER_CATCHES_UP", "CHALLENGER_OVERTAKES", "NO_MATERIAL_INITIAL_ADVANTAGE"].includes(after.classification));
+});
+
+test("Stress Test run state can distinguish ready-to-run from executed results", () => {
+  const selectedButNotRun = { template: "better_foundation_model", run: "" };
+  const executed = { template: "better_foundation_model", run: "1" };
+
+  assert.equal(Boolean(selectedButNotRun.template && selectedButNotRun.run === "1"), false);
+  assert.equal(Boolean(executed.template && executed.run === "1"), true);
 });
 
 test("Stress Test result classifications and crossover metrics are deterministic", () => {

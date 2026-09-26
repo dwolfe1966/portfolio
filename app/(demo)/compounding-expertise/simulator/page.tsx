@@ -15,6 +15,7 @@ import {
   sanitizeScenario,
   scorebookDerivedSimulatorValues,
   simulateComparison,
+  summarizeStressTestPrimaryChange,
   summarizeTopStressTestDrivers,
   visibleStressTestChangedParameters,
   type ScorebookCaseInput,
@@ -83,6 +84,16 @@ function changedValue(current: number, baseline: number) {
   return `${current}`;
 }
 
+function metricCard(label: string, value: string, detail?: string) {
+  return (
+    <div className="card">
+      <strong>{label}</strong>
+      <span>{value}</span>
+      {detail ? <small>{detail}</small> : null}
+    </div>
+  );
+}
+
 export default async function CompoundingExpertiseSimulatorPage({
   searchParams
 }: {
@@ -139,6 +150,10 @@ export default async function CompoundingExpertiseSimulatorPage({
   const caseSetId = selectedCaseSet?.id;
   const canonicalTemplates = STRESS_TEST_TEMPLATES.filter((item) => item.id !== "baseline");
   const topDrivers = summarizeTopStressTestDrivers(drivers, 3);
+  const primaryChange = summarizeStressTestPrimaryChange(template.id, scenarios, persistedScenarios);
+  const conditionSummary = changedDefinitions.length === 0
+    ? "Baseline assumptions"
+    : `${primaryChange.label}: ${primaryChange.summary}`;
 
   return (
     <>
@@ -174,85 +189,77 @@ export default async function CompoundingExpertiseSimulatorPage({
         ) : null}
       </Section>
 
-      <Section eyebrow="Choose question" title="What could change the Power thesis?">
-        <div className="compoundingScenarioSelector">
-          {canonicalTemplates.map((item) => {
-            const selected = hasSelectedTemplate && item.id === template.id;
-            return (
+      {!hasSelectedTemplate ? (
+        <Section eyebrow="Choose question" title="What could change the Power thesis?">
+          <div className="compoundingScenarioSelector">
+            {canonicalTemplates.map((item) => (
               <Link
-                className={`card compoundingScenarioQuestion ${selected ? "selected" : ""}`}
+                className="card compoundingScenarioQuestion"
                 href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id)}
                 key={item.id}
               >
                 <span className="badge">{item.name}</span>
                 <strong>{item.question}</strong>
               </Link>
-            );
-          })}
-        </div>
-      </Section>
-
-      {hasSelectedTemplate ? (
-        <Section eyebrow="Review Scenario" title={template.id === "custom" ? "Custom scenario" : template.name}>
-          <form method="get" action="/compounding-expertise/simulator" className="compoundingScenarioStudioForm">
+            ))}
+          </div>
+        </Section>
+      ) : (
+        <Section eyebrow="Scenario workspace" title={template.id === "custom" ? "Custom scenario" : template.name}>
+          <form method="get" action="/compounding-expertise/simulator" className="compoundingScenarioWorkspace">
             <input type="hidden" name="analysisId" value={analysis.id} />
             <input type="hidden" name="template" value={template.id} />
             {selectedCaseSet ? <input type="hidden" name="caseSetId" value={selectedCaseSet.id} /> : null}
             <input type="hidden" name="run" value="1" />
 
-            <div className="card compoundingReviewScenarioCard">
-              <div>
-                <span className="badge">Question</span>
-                <h3>{template.question}</h3>
-              </div>
-              <p>{template.whyMatters}</p>
-              <div className="compoundingExperienceValues">
-                <div>
-                  <span>From Experience dataset</span>
-                  <strong>{derived.startingGradedCases} graded cases</strong>
-                </div>
-                <div>
-                  <span>Median feedback</span>
-                  <strong>{derived.feedbackDelayDays === null ? "Unavailable" : `${derived.feedbackDelayDays} days`}</strong>
-                </div>
-                <small>{activeRows.length > 0 && activeRows.every((row) => row.isSynthetic) ? "DERIVED — SYNTHETIC FIXTURE" : "DERIVED FROM ACTIVE CASESET"}</small>
-              </div>
-            </div>
-
-            {template.id !== "custom" ? (
-              <div className="card">
-                <h3>What changes</h3>
-                {changedDefinitions.length === 0 ? (
-                  <p>Baseline uses the current persisted assumptions. No parameters are changed.</p>
-                ) : (
-                  <div className="compoundingScenarioDiffTable compact">
-                    <table className="dataTable">
-                      <thead>
-                        <tr>
-                          <th>Assumption</th>
-                          <th>Incumbent</th>
-                          <th>Challenger</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {changedDefinitions.map((definition) => (
-                          <tr className="differs" key={definition.key}>
-                            <td>{definition.label}</td>
-                            <td>{changedValue(Number(scenarios[0][definition.key]), Number(persistedScenarios[0][definition.key]))}</td>
-                            <td>{changedValue(Number(scenarios[1][definition.key]), Number(persistedScenarios[1][definition.key]))}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+            <aside className="compoundingScenarioDock" aria-label="Scenario controls">
+              <div className="card compoundingScenarioDockCard">
+                <span className="badge">Current test</span>
+                <details className="compoundingScenarioPicker">
+                  <summary>{template.name}</summary>
+                  <div className="compoundingScenarioPickerPanel">
+                    {STRESS_TEST_TEMPLATES.map((item) => (
+                      <Link
+                        className={item.id === template.id ? "selected" : ""}
+                        href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id)}
+                        key={item.id}
+                      >
+                        <strong>{item.name}</strong>
+                        <span>{item.question}</span>
+                      </Link>
+                    ))}
                   </div>
-                )}
-                <p className="small">All other assumptions remain at baseline. Starting experience and feedback delay may be derived from the active Experience dataset when applied.</p>
+                </details>
+                <p>{template.question}</p>
               </div>
-            ) : null}
 
-            <details className="card compoundingDisclosure" open={template.id === "custom"}>
-              <summary>Edit assumptions</summary>
-              <div className="card compoundingSimulatorSourceCard">
+              <div className="card compoundingScenarioDockCard">
+                <span className="badge">Primary change</span>
+                <strong>{primaryChange.label}</strong>
+                <p>{primaryChange.summary}</p>
+              </div>
+
+              <details className="card compoundingDisclosure compoundingConditionsPanel" open={template.id === "custom"}>
+                <summary>Conditions</summary>
+                <div className="compoundingConditionsSummary">
+                  <h3>What changed</h3>
+                  {changedDefinitions.length === 0 ? (
+                    <p>Baseline uses the current persisted assumptions. No parameters are changed.</p>
+                  ) : (
+                    changedDefinitions.map((definition) => (
+                      <div className="compoundingConditionChange" key={definition.key}>
+                        <strong>{definition.label}</strong>
+                        <span>{scenarios[0].name}: {changedValue(Number(scenarios[0][definition.key]), Number(persistedScenarios[0][definition.key]))}</span>
+                        <span>{scenarios[1].name}: {changedValue(Number(scenarios[1][definition.key]), Number(persistedScenarios[1][definition.key]))}</span>
+                      </div>
+                    ))
+                  )}
+                  <p className="small">All other assumptions remain at baseline unless edited below.</p>
+                </div>
+
+                <details className="compoundingDisclosure" open={template.id === "custom"}>
+                  <summary>Edit all assumptions</summary>
+                  <div className="card compoundingSimulatorSourceCard">
                 <div>
                   <h3>From Experience dataset</h3>
                   <p>
@@ -264,9 +271,9 @@ export default async function CompoundingExpertiseSimulatorPage({
                   <p className="small">Only starting graded cases and feedback delay are derived from Experience. Information value, transferability, learning efficiency, staleness, and base capability remain assumptions.</p>
                 </div>
                 <button className="btn" type="submit" formAction={applyScorebookDerivedValuesAction} formMethod="post">Apply to persisted scenario</button>
-              </div>
+                  </div>
 
-              <div className="compoundingScenarioDiffTable">
+                  <div className="compoundingScenarioDiffTable">
                 <table className="dataTable">
                   <thead>
                     <tr>
@@ -310,9 +317,9 @@ export default async function CompoundingExpertiseSimulatorPage({
                     })}
                   </tbody>
                 </table>
-              </div>
+                  </div>
 
-              <div className="compoundingParameterGroups">
+                  <div className="compoundingParameterGroups">
                 {["Experience advantage", "Learning dynamics", "Competitive / environmental conditions"].map((group) => (
                   <div className="card" key={group}>
                     <h3>{group}</h3>
@@ -321,15 +328,95 @@ export default async function CompoundingExpertiseSimulatorPage({
                     ))}
                   </div>
                 ))}
-              </div>
-            </details>
+                  </div>
+                </details>
+              </details>
 
-            <div className="compoundingPrimaryRunBar">
               <button className="btn primary" type="submit">Run Stress Test</button>
-              <Link className="btn" href={`/compounding-expertise/simulator?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Choose another test</Link>
-            </div>
-          </form>
+              <Link className="btn" href={`/compounding-expertise/simulator?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Change test</Link>
+            </aside>
 
+            <main className="compoundingScenarioCanvas">
+              {!hasRun ? (
+                <div className="card compoundingReadyToRun">
+                  <span className="badge">Ready to run</span>
+                  <h3>{template.name}</h3>
+                  <p>{template.question}</p>
+                  <p>This scenario changes {conditionSummary}. Run the stress test to see whether the modeled advantage survives.</p>
+                  <p className="small">No result is shown until this scenario is run, so stale results from a previous test are not reused.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="card compoundingScenarioOutcomeHero">
+                    <span className="badge">Scenario Result</span>
+                    <h3>{result.label}</h3>
+                    <p>{resultSentence(result, scenarios[0].name, scenarios[1].name)}</p>
+                    <p className="small">Scenario output only. Modeled expertise index is unitless and is not a measured business metric.</p>
+                  </div>
+
+                  <div className="compoundingTrajectoryPanel">
+                    <SimulatorLineChart series={series} crossover={crossover} />
+                  </div>
+
+                  <div className="compoundingScenarioResultGrid compact">
+                    {metricCard("Initial gap", formatGap(result.initialGap), "Modeled expertise index")}
+                    {metricCard("12-month gap", formatGap(result.month12Gap), "Modeled expertise index")}
+                    {metricCard("36-month gap", formatGap(result.month36Gap), "Modeled expertise index")}
+                    {metricCard("Crossover", result.crossoverMonth === null ? "None within 36 months" : `Month ${result.crossoverMonth}`)}
+                  </div>
+
+                  <div className="card">
+                    <h3>Why?</h3>
+                    <div className="compoundingDriverGrid compact">
+                      {topDrivers.map((driver, index) => (
+                        <div className="card" key={driver.title}>
+                          <span className="badge">{index + 1}</span>
+                          <h3>{driver.title}</h3>
+                          <p>{driver.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <details className="compoundingDisclosure">
+                      <summary>View all model drivers</summary>
+                      <div className="compoundingDriverGrid">
+                        {drivers.map((driver) => (
+                          <div className="card" key={driver.title}>
+                            <h3>{driver.title}</h3>
+                            <p>{driver.detail}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                    <p className="small">Drivers within this scenario model. This is not formal causal attribution outside the toy model.</p>
+                  </div>
+
+                  <div className="card compoundingScenarioImplication">
+                    <h3>What does this imply for Power?</h3>
+                    <p>{implication}</p>
+                    <span className="badge">SCENARIO IMPLICATION — NOT EMPIRICAL EVIDENCE</span>
+                    <div className="ctaRow">
+                      <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}`}>View related Power →</Link>
+                      <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>View related Debate →</Link>
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <h3>Try another stress test</h3>
+                    <div className="compoundingScenarioShortcutRow">
+                      {canonicalTemplates.map((item) => (
+                        <Link className="btn" href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id)} key={item.id}>{item.name}</Link>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </main>
+          </form>
+        </Section>
+      )}
+
+      {hasSelectedTemplate ? (
+        <Section title="Secondary tools">
           <details className="card compoundingDisclosure">
             <summary>Save / duplicate scenario</summary>
             <form action={saveScenariosAction} className="compoundingSaveScenarioForm">
@@ -356,75 +443,7 @@ export default async function CompoundingExpertiseSimulatorPage({
               <p className="small">Persistence limitation: this version stores the current Incumbent / Challenger pair as the analysis scenario. It does not yet create named scenario sets.</p>
             </form>
           </details>
-        </Section>
-      ) : null}
 
-      {hasRun ? (
-        <>
-          <Section eyebrow="Scenario Result" title={result.label}>
-            <div className="card compoundingScenarioOutcomeHero">
-              <h3>{result.label}</h3>
-              <p>{resultSentence(result, scenarios[0].name, scenarios[1].name)}</p>
-              <p className="small">Scenario output only. Modeled expertise index is unitless and is not a measured business metric.</p>
-            </div>
-            <div className="compoundingScenarioResultGrid compact">
-              <div className="card"><strong>Initial gap</strong><span>{formatGap(result.initialGap)}</span><small>Modeled expertise index</small></div>
-              <div className="card"><strong>12-month gap</strong><span>{formatGap(result.month12Gap)}</span><small>Modeled expertise index</small></div>
-              <div className="card"><strong>36-month gap</strong><span>{formatGap(result.month36Gap)}</span><small>Modeled expertise index</small></div>
-              <div className="card"><strong>Crossover</strong><span>{result.crossoverMonth === null ? "None within 36 months" : `Month ${result.crossoverMonth}`}</span></div>
-            </div>
-          </Section>
-
-          <Section title="Trajectory">
-            <SimulatorLineChart series={series} crossover={crossover} />
-          </Section>
-
-          <Section title="Why?">
-            <div className="compoundingDriverGrid">
-              {topDrivers.map((driver, index) => (
-                <div className="card" key={driver.title}>
-                  <span className="badge">{index + 1}</span>
-                  <h3>{driver.title}</h3>
-                  <p>{driver.detail}</p>
-                </div>
-              ))}
-            </div>
-            <details className="card compoundingDisclosure">
-              <summary>View all model drivers</summary>
-              <div className="compoundingDriverGrid">
-                {drivers.map((driver) => (
-                  <div className="card" key={driver.title}>
-                    <h3>{driver.title}</h3>
-                    <p>{driver.detail}</p>
-                  </div>
-                ))}
-              </div>
-            </details>
-            <p className="small">Drivers within this scenario model. This is not formal causal attribution outside the toy model.</p>
-          </Section>
-
-          <Section title="What does this imply for Power?">
-            <div className="card compoundingScenarioImplication">
-              <p>{implication}</p>
-              <span className="badge">SCENARIO IMPLICATION — NOT EMPIRICAL EVIDENCE</span>
-              <div className="ctaRow">
-                <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}`}>View related Power →</Link>
-                <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>View related Debate →</Link>
-              </div>
-            </div>
-          </Section>
-
-          <Section title="Try another stress test">
-            <div className="compoundingScenarioShortcutRow">
-              {canonicalTemplates.map((item) => (
-                <Link className="btn" href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id)} key={item.id}>{item.name}</Link>
-              ))}
-            </div>
-          </Section>
-        </>
-      ) : null}
-
-      <Section title="Secondary tools">
         <details className="card compoundingDisclosure">
           <summary>Compare saved scenarios</summary>
           <div className="compoundingScenarioDiffTable">
@@ -467,7 +486,8 @@ E(t) = base_capability
      + learning_efficiency * information_value * transferability * ln(1 + N_eff(t))`}</pre>
           <p className="small">Exploratory toy model only. A crossover is not a real-world forecast.</p>
         </details>
-      </Section>
+        </Section>
+      ) : null}
 
       <Section title="Next: Synthesize the investment thesis">
         <div className="card">
