@@ -17,6 +17,7 @@ import {
   actionKeyFromDecision,
   decisionClassKeyForCase,
   normalizedModelForExample,
+  publicEvidenceDefaultAssessments,
   publicEvidenceAnalysisById,
   validateProbability,
   type CompoundingCaseGrade,
@@ -389,11 +390,7 @@ export async function loadPublicEvidenceAnalysisAction(formData?: FormData) {
           create: fixture.debates.map((debate) => ({ ...debate, source: debate.source }))
         },
         dimensionAssessments: {
-          create: defaultAssessments().map((assessment) => normalizeAssessment({
-            ...assessment,
-            rationale: "Public evidence analysis starts from sourced public records and explicit unknowns. No production case-level data has been loaded.",
-            evidenceStatus: "SOURCED"
-          }))
+          create: publicEvidenceDefaultAssessments()
         },
         simulationScenarios: {
           create: fixture.scenarios.map((scenario) => sanitizeScenario(scenario))

@@ -18,6 +18,7 @@ import {
   caseSetForExample,
   caseSetDerivedProvenanceLabel,
   casesForCaseSet,
+  canonicalExampleForCompany,
   compoundingAnalysisAccessWhere,
   defaultAssessments,
   applyExperienceSlice,
@@ -52,6 +53,7 @@ import {
   explainSimulatorComparison,
   getStressTestTemplate,
   normalizedModelForExample,
+  publicEvidenceDefaultAssessments,
   publicEvidenceAnalysisById,
   SIMULATOR_PARAMETER_DEFINITIONS,
   STRESS_TEST_TEMPLATES,
@@ -1278,6 +1280,10 @@ test("Casap public evidence analysis is separate from the synthetic canonical Ca
   assert.match(publicCasap.publicSourceLabel, /NO PRODUCTION CASE DATA/);
   assert.equal(syntheticCasap.cases.length > 0, true);
   assert.equal(publicCasap.normalized.evidence.some((item) => item.evidenceType === "SYNTHETIC_ASSUMPTION"), false);
+  assert.equal(canonicalExampleForCompany("Casap archetype review")?.id, "casap");
+  assert.equal(canonicalExampleForCompany(publicCasap.analysis.companyName), null);
+  assert.equal(canonicalExampleForCompany(publicCasap.label), null);
+  assert.equal(publicCasap.normalized.evidence.some((item) => /SYNTHETIC/i.test(item.valueSnapshot ?? "")), false);
 });
 
 test("Casap public evidence fixture preserves source-backed facts without manufacturing scorebook cases", () => {
@@ -1296,14 +1302,26 @@ test("Casap public evidence fixture preserves source-backed facts without manufa
   assert.equal(fixture.normalized.competitiveArchitecture.rawCasesExclusive, "UNKNOWN");
   assert.equal(fixture.normalized.competitiveArchitecture.competitorRelearningDifficulty, "UNKNOWN");
   assert.equal(fixture.normalized.environment.estimatedCasesPerPeriod, null);
+  assert.equal("caseSet" in fixture, false);
+  assert.equal("cases" in fixture, false);
+  assert.match(fixture.normalized.profile.economicsNotes ?? "", /aggregate public customer metrics/i);
+});
+
+test("Casap public analyst dimension assessments start unknown despite public evidence records", () => {
+  const assessments = publicEvidenceDefaultAssessments();
+
+  assert.ok(assessments.length > 0);
+  assert.ok(assessments.every((assessment) => assessment.evidenceStatus === "UNKNOWN"));
+  assert.ok(assessments.every((assessment) => /Public evidence analysis starts/.test(assessment.rationale)));
 });
 
 test("Casap public evidence records are sourced and include limitations", () => {
   const evidence = CASAP_PUBLIC_EVIDENCE_ANALYSIS.normalized.evidence;
   const privacy = evidence.find((item) => item.fieldKey === "learning_rights_privacy_policy");
   const compoundingClaim = evidence.find((item) => item.fieldKey === "company_claim_compounding_behavior");
+  const fileneBlog = evidence.find((item) => item.fieldKey === "filene_blog_multi_credit_union_testing");
 
-  assert.ok(evidence.length >= 7);
+  assert.ok(evidence.length >= 8);
   for (const record of evidence) {
     assert.equal(record.evidenceType, "PUBLIC_SOURCE");
     assert.equal(record.epistemicStatus, "SOURCED");
@@ -1315,6 +1333,14 @@ test("Casap public evidence records are sourced and include limitations", () => 
   assert.match(privacy!.analystNotes ?? "", /insufficient to establish contractual rights/i);
   assert.ok(compoundingClaim);
   assert.match(compoundingClaim!.analystNotes ?? "", /NOT EMPIRICAL PROOF/i);
+  assert.ok(fileneBlog);
+  assert.equal(fileneBlog!.confidence, "HIGH");
+  assert.match(fileneBlog!.sourceUrl ?? "", /filene\.org\/blog\/chartway-credit-union/);
+  assert.match(fileneBlog!.valueSnapshot ?? "", /five credit unions/i);
+  assert.match(fileneBlog!.valueSnapshot ?? "", /122% improvement/i);
+  assert.match(fileneBlog!.valueSnapshot ?? "", /63%/);
+  assert.match(fileneBlog!.analystNotes ?? "", /Does NOT establish grade-driven model improvement/i);
+  assert.match(fileneBlog!.analystNotes ?? "", /cross-customer transfer/i);
 });
 
 test("Casap public evidence keeps CE debates conservative without production cases", () => {
@@ -1347,6 +1373,31 @@ test("Casap public evidence keeps CE debates conservative without production cas
   assert.notEqual(rights!.assessment, "SUPPORTED");
   assert.ok(rebuildability);
   assert.equal(rebuildability!.assessment, "UNPROVEN");
+});
+
+test("Casap public operational results can support workflow value without establishing cross-customer transfer", () => {
+  const fixture = CASAP_PUBLIC_EVIDENCE_ANALYSIS;
+  const input = {
+    analysis: fixture.analysis,
+    debates: fixture.debates,
+    rows: [],
+    learningArchitecture: fixture.normalized.learningArchitecture,
+    competitiveArchitecture: fixture.normalized.competitiveArchitecture,
+    evidenceRecords: fixture.normalized.evidence.map((record) => ({
+      ...record,
+      entityId: record.entityKey ?? null
+    }))
+  };
+  const transfer = deriveDebateAssessment(input, "CROSS_CUSTOMER_TRANSFER");
+  const economicDashboard = deriveDebateEvidenceDashboard(input, "ECONOMIC_MATERIALITY");
+  const experienceDashboard = deriveDebateEvidenceDashboard(input, "EXPERIENCE_CAPTURE");
+
+  assert.equal(transfer.assessment, "UNPROVEN");
+  assert.equal(transfer.evidenceFor.some((item) => item.direction === "SUPPORTS"), false);
+  assert.ok(transfer.missingEvidence.some((item) => /held-out customer/i.test(item.value) || /pooled/i.test(item.expectedEvidence ?? "")));
+  assert.ok(economicDashboard.externalEvidence.some((item) => item.direction === "SUPPORTS" && /cost|loss|savings/i.test(item.value)));
+  assert.ok(experienceDashboard.externalEvidence.some((item) => item.direction === "SUPPORTS" || item.direction === "CONTEXT-DESCRIPTIVE"));
+  assert.equal(calculateScorebookMetrics([]).totalCases, 0);
 });
 
 test("source route validation rejects external or unsafe routes", () => {

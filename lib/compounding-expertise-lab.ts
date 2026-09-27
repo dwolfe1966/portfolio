@@ -1818,11 +1818,25 @@ export function exampleById(id: string | null | undefined) {
 
 export function canonicalExampleForCompany(companyName: string | null | undefined) {
   const normalized = String(companyName ?? "").toLowerCase();
+  if (PUBLIC_EVIDENCE_ANALYSES.some((analysis) =>
+    normalized === analysis.analysis.companyName.toLowerCase()
+      || normalized === analysis.label.toLowerCase()
+      || normalized.includes(analysis.id)
+      || normalized.includes("public evidence analysis")
+  )) return null;
   return COMPOUNDING_EXAMPLES.find((example) =>
     normalized.includes(example.id.replace("-labs", " labs"))
       || normalized.includes(example.companyName.toLowerCase())
       || normalized.includes(example.label.toLowerCase())
   ) ?? null;
+}
+
+export function publicEvidenceDefaultAssessments() {
+  return defaultAssessments().map((assessment) => normalizeAssessment({
+    ...assessment,
+    rationale: "Public evidence analysis starts from sourced public records and explicit unknowns. No production case-level data has been loaded.",
+    evidenceStatus: "UNKNOWN"
+  }));
 }
 
 export function caseSetForExample(example: CompoundingExample): CaseSetInput {
@@ -2220,7 +2234,7 @@ export const CASAP_PUBLIC_EVIDENCE_ANALYSIS: PublicEvidenceAnalysisFixture = {
       businessModelNotes: "Public sources reviewed here do not establish revenue, valuation, gross margin, customer count, or transaction/case volume.",
       grossMarginProfile: "UNKNOWN / DILIGENCE REQUIRED",
       economicValueUnit: "Fraud losses, dispute processing cost, writeoffs, resolution time, chargeback win rate",
-      economicsNotes: "Customer results are aggregate public claims/evaluations, not production case-level CE rows.",
+      economicsNotes: "Aggregate public customer metrics are evidence records, not production case-level CE rows.",
       marketContext: "Dispute and fraud operations for regulated financial institutions.",
       analystThesis: "Structurally plausible Compounding Expertise environment; durable CE remains unproven from public evidence alone."
     },
@@ -2427,6 +2441,16 @@ export const CASAP_PUBLIC_EVIDENCE_ANALYSIS: PublicEvidenceAnalysisFixture = {
         "HIGH",
         "Independent evidence that the product can create operational value in credit-union environments. Public summary does not provide case-level model-learning data, cross-customer holdouts, or challenger benchmarks.",
         "2026-02-26"
+      ),
+      casapPublicEvidence(
+        "company_profile",
+        "filene_blog_multi_credit_union_testing",
+        "Filene reports testing Casap with five credit unions; one institution had been live on the platform for more than a year; staff reported a 122% improvement in ease of use versus prior systems; reported dispute-processing error frequency declined 63%.",
+        "Filene blog: Chartway Credit Union saved an estimated $875K in one year testing Casap",
+        "https://www.filene.org/blog/chartway-credit-union-saved-an-estimated-875k-in-one-year-testing-a-fraud-dispute-automation-fintech-with-filab",
+        "HIGH",
+        "Independent support for operational effectiveness and workflow value across multiple credit-union environments. Does NOT establish grade-driven model improvement, learning causality, cross-customer transfer, cross-customer training rights, marginal information gain, challenger rebuildability, or durable Compounding Expertise Power.",
+        null
       ),
       casapPublicEvidence(
         "learning_architecture",
