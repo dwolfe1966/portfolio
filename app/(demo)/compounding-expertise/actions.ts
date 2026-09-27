@@ -17,6 +17,7 @@ import {
   actionKeyFromDecision,
   decisionClassKeyForCase,
   normalizedModelForExample,
+  publicEvidenceAnalysisById,
   validateProbability,
   type CompoundingCaseGrade,
   type CompoundingConfidence,
@@ -371,6 +372,142 @@ export async function loadSyntheticExampleAction(formData?: FormData) {
 
   revalidateLab();
   redirect(`/compounding-expertise/inputs?analysisId=${analysis.id}&example=${example.id}`);
+}
+
+export async function loadPublicEvidenceAnalysisAction(formData?: FormData) {
+  const accountUserId = await currentAccountUserId();
+  const workspace = await getDefaultWorkspace();
+  const fixture = publicEvidenceAnalysisById(formData ? text(formData.get("publicAnalysisId")) : "casap-public-2026-09");
+  const normalized = fixture.normalized;
+  const analysis = await db.$transaction(async (tx) => {
+    const created = await tx.compoundingExpertiseAnalysis.create({
+      data: {
+        workspaceId: workspace.id,
+        accountUserId,
+        ...fixture.analysis,
+        keyDebates: {
+          create: fixture.debates.map((debate) => ({ ...debate, source: debate.source }))
+        },
+        dimensionAssessments: {
+          create: defaultAssessments().map((assessment) => normalizeAssessment({
+            ...assessment,
+            rationale: "Public evidence analysis starts from sourced public records and explicit unknowns. No production case-level data has been loaded.",
+            evidenceStatus: "SOURCED"
+          }))
+        },
+        simulationScenarios: {
+          create: fixture.scenarios.map((scenario) => sanitizeScenario(scenario))
+        }
+      }
+    });
+
+    const profile = await tx.compoundingCompanyProfile.create({
+      data: {
+        analysisId: created.id,
+        ...normalized.profile
+      }
+    });
+    const workflow = await tx.compoundingWorkflow.create({
+      data: {
+        analysisId: created.id,
+        companyProfileId: profile.id,
+        name: normalized.workflow.name,
+        description: normalized.workflow.description,
+        position: normalized.workflow.position
+      }
+    });
+    const stageIds = new Map<string, string>();
+    for (const workflowStage of normalized.workflow.stages) {
+      const savedStage = await tx.compoundingWorkflowStage.create({
+        data: {
+          workflowId: workflow.id,
+          name: workflowStage.name,
+          description: workflowStage.description,
+          position: workflowStage.position,
+          stageType: workflowStage.stageType
+        }
+      });
+      stageIds.set(workflowStage.key, savedStage.id);
+    }
+    const decisionClassIds = new Map<string, string>();
+    for (const decisionClass of normalized.workflow.decisionClasses) {
+      const savedDecisionClass = await tx.compoundingDecisionClass.create({
+        data: {
+          analysisId: created.id,
+          workflowId: workflow.id,
+          workflowStageId: decisionClass.stageKey ? stageIds.get(decisionClass.stageKey) ?? null : null,
+          name: decisionClass.name,
+          description: decisionClass.description,
+          decisionMakerType: decisionClass.decisionMakerType,
+          decisionFrequency: decisionClass.decisionFrequency,
+          estimatedCasesPerPeriod: decisionClass.estimatedCasesPerPeriod,
+          frequencyPeriod: decisionClass.frequencyPeriod,
+          economicStakes: decisionClass.economicStakes,
+          reversibility: decisionClass.reversibility,
+          regulatoryRisk: decisionClass.regulatoryRisk,
+          operationalRisk: decisionClass.operationalRisk,
+          outcomeObservability: decisionClass.outcomeObservability,
+          gradeObjectivity: decisionClass.gradeObjectivity,
+          naturalFeedbackLatencyDays: decisionClass.naturalFeedbackLatencyDays,
+          humanReviewMode: decisionClass.humanReviewMode,
+          currentAutonomyMode: decisionClass.currentAutonomyMode
+        }
+      });
+      decisionClassIds.set(decisionClass.key, savedDecisionClass.id);
+      for (const action of normalized.workflow.actions.filter((item) => decisionClass.actionKeys.includes(item.key))) {
+        await tx.compoundingDecisionAction.create({
+          data: {
+            decisionClassId: savedDecisionClass.id,
+            key: action.key,
+            label: action.label,
+            description: action.description,
+            reversible: action.reversible ?? "UNKNOWN",
+            requiresHumanApproval: action.requiresHumanApproval ?? false,
+            economicExposure: action.economicExposure,
+            regulatoryExposure: action.regulatoryExposure
+          }
+        });
+      }
+    }
+    await tx.compoundingEnvironment.create({ data: { analysisId: created.id, ...normalized.environment } });
+    await tx.compoundingLearningArchitecture.create({ data: { analysisId: created.id, ...normalized.learningArchitecture } });
+    await tx.compoundingCompetitiveArchitecture.create({ data: { analysisId: created.id, ...normalized.competitiveArchitecture } });
+
+    for (const evidence of normalized.evidence) {
+      const entityId = evidence.entityType === "company_profile"
+        ? profile.id
+        : evidence.entityType === "workflow"
+          ? workflow.id
+          : evidence.entityType === "environment" || evidence.entityType === "learning_architecture" || evidence.entityType === "competitive_architecture"
+            ? created.id
+            : evidence.entityType === "decision_class" && evidence.entityKey
+              ? decisionClassIds.get(evidence.entityKey) ?? null
+              : null;
+      await tx.compoundingEvidence.create({
+        data: {
+          analysisId: created.id,
+          entityType: evidence.entityType,
+          entityId,
+          fieldKey: evidence.fieldKey,
+          evidenceType: evidence.evidenceType,
+          epistemicStatus: evidence.epistemicStatus,
+          valueSnapshot: evidence.valueSnapshot,
+          sourceLabel: evidence.sourceLabel,
+          sourceUrl: evidence.sourceUrl,
+          sourceRecordId: evidence.sourceRecordId,
+          sourceCaseSetId: null,
+          confidence: evidence.confidence,
+          observedAt: nullableDate(evidence.observedAt instanceof Date ? evidence.observedAt.toISOString() : evidence.observedAt ?? null),
+          derivationMethod: evidence.derivationMethod,
+          analystNotes: evidence.analystNotes
+        }
+      });
+    }
+    return created;
+  });
+
+  revalidateLab();
+  redirect(`/compounding-expertise/inputs?analysisId=${analysis.id}&publicAnalysis=${fixture.id}`);
 }
 
 export async function saveDebatesAction(formData: FormData) {

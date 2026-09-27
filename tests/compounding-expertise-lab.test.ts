@@ -4,6 +4,7 @@ import {
   COMPOUNDING_EXAMPLES,
   COMPETITIVE_INPUTS,
   COMPANY_MODEL_GATES,
+  CASAP_PUBLIC_EVIDENCE_ANALYSIS,
   ENDOGENOUS_INPUTS,
   EXOGENOUS_INPUTS,
   GUIDED_PROVENANCE_LABELS,
@@ -51,6 +52,7 @@ import {
   explainSimulatorComparison,
   getStressTestTemplate,
   normalizedModelForExample,
+  publicEvidenceAnalysisById,
   SIMULATOR_PARAMETER_DEFINITIONS,
   STRESS_TEST_TEMPLATES,
   normalizeAssessment,
@@ -1263,6 +1265,88 @@ test("canonical fixtures resolve to explicit synthetic CaseSets", () => {
     assert.match(caseSet.provenanceLabel, /SYNTHETIC ILLUSTRATIVE DATA/);
     assert.equal(sourceRouteIsSafe(caseSet.sourceRoute), true);
   }
+});
+
+test("Casap public evidence analysis is separate from the synthetic canonical Casap fixture", () => {
+  const syntheticCasap = exampleById("casap");
+  const publicCasap = publicEvidenceAnalysisById("casap-public-2026-09");
+
+  assert.equal(publicCasap.id, "casap-public-2026-09");
+  assert.notEqual(publicCasap.id, syntheticCasap.id);
+  assert.match(publicCasap.label, /Public Evidence Analysis/);
+  assert.match(publicCasap.publicSourceLabel, /PUBLIC SOURCES/);
+  assert.match(publicCasap.publicSourceLabel, /NO PRODUCTION CASE DATA/);
+  assert.equal(syntheticCasap.cases.length > 0, true);
+  assert.equal(publicCasap.normalized.evidence.some((item) => item.evidenceType === "SYNTHETIC_ASSUMPTION"), false);
+});
+
+test("Casap public evidence fixture preserves source-backed facts without manufacturing scorebook cases", () => {
+  const fixture = CASAP_PUBLIC_EVIDENCE_ANALYSIS;
+
+  assert.equal(fixture.normalized.profile.name, "Casap Technologies");
+  assert.equal(fixture.normalized.profile.revenueModel, "UNKNOWN");
+  assert.match(fixture.normalized.profile.businessModelNotes ?? "", /do not establish revenue/i);
+  assert.equal(fixture.normalized.workflow.decisionClasses.length, 3);
+  assert.ok(fixture.normalized.workflow.decisionClasses.some((item) => item.key === "fraud_likelihood"));
+  assert.ok(fixture.normalized.workflow.decisionClasses.some((item) => item.key === "dispute_next_action"));
+  assert.ok(fixture.normalized.workflow.decisionClasses.some((item) => item.key === "chargeback_likelihood_evidence"));
+  assert.equal(fixture.normalized.learningArchitecture.usesOutcomeGradesForLearning, "UNKNOWN");
+  assert.equal(fixture.normalized.learningArchitecture.deploymentCadence, "UNKNOWN");
+  assert.equal(fixture.normalized.learningArchitecture.canTrainAcrossCustomers, "UNKNOWN");
+  assert.equal(fixture.normalized.competitiveArchitecture.rawCasesExclusive, "UNKNOWN");
+  assert.equal(fixture.normalized.competitiveArchitecture.competitorRelearningDifficulty, "UNKNOWN");
+  assert.equal(fixture.normalized.environment.estimatedCasesPerPeriod, null);
+});
+
+test("Casap public evidence records are sourced and include limitations", () => {
+  const evidence = CASAP_PUBLIC_EVIDENCE_ANALYSIS.normalized.evidence;
+  const privacy = evidence.find((item) => item.fieldKey === "learning_rights_privacy_policy");
+  const compoundingClaim = evidence.find((item) => item.fieldKey === "company_claim_compounding_behavior");
+
+  assert.ok(evidence.length >= 7);
+  for (const record of evidence) {
+    assert.equal(record.evidenceType, "PUBLIC_SOURCE");
+    assert.equal(record.epistemicStatus, "SOURCED");
+    assert.ok(record.sourceLabel);
+    assert.match(record.sourceUrl ?? "", /^https:\/\//);
+    assert.ok(record.analystNotes);
+  }
+  assert.ok(privacy);
+  assert.match(privacy!.analystNotes ?? "", /insufficient to establish contractual rights/i);
+  assert.ok(compoundingClaim);
+  assert.match(compoundingClaim!.analystNotes ?? "", /NOT EMPIRICAL PROOF/i);
+});
+
+test("Casap public evidence keeps CE debates conservative without production cases", () => {
+  const fixture = CASAP_PUBLIC_EVIDENCE_ANALYSIS;
+  const input = {
+    analysis: fixture.analysis,
+    debates: fixture.debates,
+    rows: [],
+    learningArchitecture: fixture.normalized.learningArchitecture,
+    competitiveArchitecture: fixture.normalized.competitiveArchitecture,
+    evidenceRecords: fixture.normalized.evidence.map((record) => ({
+      ...record,
+      entityId: record.entityKey ?? null
+    }))
+  };
+
+  const candidates = deriveDebateCandidates(input, 8);
+  const learning = candidates.find((candidate) => candidate.family === "LEARNING_CAUSALITY");
+  const transfer = candidates.find((candidate) => candidate.family === "CROSS_CUSTOMER_TRANSFER");
+  const rights = candidates.find((candidate) => candidate.family === "LEARNING_RIGHTS");
+  const rebuildability = candidates.find((candidate) => candidate.family === "REBUILDABILITY_COMPRESSION");
+
+  assert.ok(learning);
+  assert.equal(learning!.assessment, "UNPROVEN");
+  assert.match(learning!.assessmentReason, /no controlled|Grade coverage is descriptive|future decisions/i);
+  assert.ok(transfer);
+  assert.equal(transfer!.assessment, "UNPROVEN");
+  assert.ok(transfer!.contextEvidence.every((item) => item.direction === "CONTEXT-DESCRIPTIVE"));
+  assert.ok(rights);
+  assert.notEqual(rights!.assessment, "SUPPORTED");
+  assert.ok(rebuildability);
+  assert.equal(rebuildability!.assessment, "UNPROVEN");
 });
 
 test("source route validation rejects external or unsafe routes", () => {

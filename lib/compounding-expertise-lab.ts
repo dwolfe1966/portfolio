@@ -4,6 +4,7 @@ export type CompoundingEvidenceStatus = "OBSERVED" | "SOURCED" | "ASSUMED" | "UN
 export type CompoundingDebateSource = "SUN" | "WOLFE" | "USER" | "AI";
 export type CompoundingCaseGrade = "CORRECT" | "PARTIALLY_CORRECT" | "INCORRECT" | "UNRESOLVED";
 export type CompoundingExampleId = "casap" | "listen-labs" | "aaru" | "maybern" | "creative-agent";
+export type PublicEvidenceAnalysisId = "casap-public-2026-09";
 export type CanonicalTestType =
   | "POSITIVE_TEST"
   | "BOUNDARY_TEST"
@@ -454,6 +455,16 @@ export type NormalizedExampleModel = {
   learningArchitecture: NormalizedLearningArchitectureInput;
   competitiveArchitecture: NormalizedCompetitiveArchitectureInput;
   evidence: NormalizedEvidenceInput[];
+};
+
+export type PublicEvidenceAnalysisFixture = {
+  id: PublicEvidenceAnalysisId;
+  label: string;
+  publicSourceLabel: string;
+  analysis: CompanyThesisInput;
+  normalized: NormalizedExampleModel;
+  debates: KeyDebateInput[];
+  scenarios: SimulationScenarioInput[];
 };
 
 export type EvidenceCoverageSummary = {
@@ -2067,6 +2078,394 @@ export function decisionClassKeyForCase(example: CompoundingExample, row: Scoreb
     return "recommend_resolution";
   }
   return "primary_decision";
+}
+
+const CASAP_PUBLIC_SOURCE_LABEL = "PUBLIC SOURCES - NO PRODUCTION CASE DATA";
+
+function casapPublicEvidence(
+  entityType: string,
+  fieldKey: string,
+  valueSnapshot: string,
+  sourceLabel: string,
+  sourceUrl: string,
+  confidence: CompoundingFieldConfidence,
+  analystNotes: string,
+  observedAt?: string | null,
+  entityKey?: string
+): NormalizedEvidenceInput {
+  return {
+    entityType,
+    entityKey,
+    fieldKey,
+    evidenceType: "PUBLIC_SOURCE",
+    epistemicStatus: "SOURCED",
+    valueSnapshot,
+    sourceLabel,
+    sourceUrl,
+    confidence,
+    observedAt: observedAt ?? null,
+    derivationMethod: "Public-source evidence record for the Casap Public Evidence Analysis. Treat as sourced context for diligence, not production case-level evidence.",
+    analystNotes
+  };
+}
+
+export const CASAP_PUBLIC_EVIDENCE_ANALYSIS: PublicEvidenceAnalysisFixture = {
+  id: "casap-public-2026-09",
+  label: "Casap — Public Evidence Analysis — Sep 2026",
+  publicSourceLabel: CASAP_PUBLIC_SOURCE_LABEL,
+  analysis: {
+    companyName: "Casap — Public Evidence Analysis — Sep 2026",
+    companyUrl: "https://www.casaphq.com/",
+    productCategory: "Agentic AI / dispute management / fraud operations / payment operations",
+    productDescription: "Casap provides AI agents and dispute-management software for financial institutions. Public materials describe automation across dispute and fraud workflows, including intake, investigation/evidence analysis, provisional-credit-related actions, fraud scoring, outcome prediction, chargeback filing/tracking, and consumer communication.",
+    targetCustomer: "Banks, credit unions, and fintechs.",
+    businessModel: "UNKNOWN / DILIGENCE REQUIRED",
+    workflow: "Dispute intake -> evidence / transaction-data collection -> fraud / dispute assessment -> resolution / provisional-credit / investigation decision -> chargeback preparation / filing -> merchant / network response tracking -> outcome / resolution.",
+    decisionDescription: "Public materials support fraud likelihood assessment, dispute next-action recommendations, and chargeback likelihood/evidence strategy. They do not establish internal thresholds, autonomous-action shares, or grade/update mechanics.",
+    actionSpace: "Continue investigation, request additional information, issue or progress provisional credit where appropriate, prepare/file chargeback, escalate for human review.",
+    companyStage: "Series A",
+    thesis: "Public evidence supports a structurally favorable dispute/fraud workflow, but no public production CaseSet establishes learning causality, cross-customer transfer, learning rights, or durable Compounding Expertise Power.",
+    economicCostWrongDecision: "High / sourced structural inference",
+    outcomeObjectivity: "Partial / structurally plausible",
+    naturalFeedbackTime: "UNKNOWN / DILIGENCE REQUIRED",
+    caseFrequency: "UNKNOWN / DILIGENCE REQUIRED",
+    customerCaseHeterogeneity: "UNKNOWN / DILIGENCE REQUIRED",
+    environmentalChangeRate: "UNKNOWN / DILIGENCE REQUIRED",
+    foundationModelImprovementRate: "UNKNOWN / DILIGENCE REQUIRED",
+    ownsDecisionPoint: "PARTIAL / SOURCED",
+    controlsAction: "UNKNOWN / DILIGENCE REQUIRED",
+    observesOutcome: "PARTIAL / SOURCED",
+    capturesOverrides: "UNKNOWN / DILIGENCE REQUIRED",
+    capturesGrades: "UNKNOWN / DILIGENCE REQUIRED",
+    learnsAcrossCustomers: "UNKNOWN / DILIGENCE REQUIRED",
+    contractualLearningRights: "UNKNOWN / DILIGENCE REQUIRED",
+    runsControlledExperiments: "UNKNOWN / DILIGENCE REQUIRED",
+    updatesModelPolicyRegularly: "UNKNOWN / DILIGENCE REQUIRED",
+    deploysImprovementsQuickly: "UNKNOWN / DILIGENCE REQUIRED",
+    dataExclusivity: "UNKNOWN / DILIGENCE REQUIRED",
+    workflowEmbeddedness: "PARTIAL / SOURCED",
+    switchingCostsAssumption: "UNKNOWN / DILIGENCE REQUIRED",
+    rebuildability: "UNKNOWN / DILIGENCE REQUIRED",
+    foundationModelDependence: "UNKNOWN / DILIGENCE REQUIRED",
+    deterministicInfrastructure: "PARTIAL / SOURCED",
+    distributionAdvantage: "UNKNOWN / DILIGENCE REQUIRED",
+    regulatoryContractualBarriers: "PARTIAL / SOURCED"
+  },
+  debates: [
+    {
+      question: "Do accumulated grades actually improve future Casap decisions?",
+      bullCase: "Public product materials and company claims describe AI-powered decisioning and improvement, but this is not direct empirical proof.",
+      bearCase: "No public source shows grade-to-update mechanics, update cadence, deployment cadence, or before/after performance experiments.",
+      evidenceNeeded: "Model/policy update records tied to graded outcomes and performance before/after incorporating those grades.",
+      increaseBelief: "A sourced before/after or treatment comparison shows improved dispute/fraud decisions after grade-driven updates.",
+      decreaseBelief: "Outcomes are used only for reporting, compliance, or workflow tracking rather than model/policy improvement.",
+      probability: 50,
+      source: "USER"
+    },
+    {
+      question: "Does experience from one Casap customer improve decisions for another?",
+      bullCase: "The product serves a repeated dispute/fraud workflow across financial institutions, so transfer is plausible.",
+      bearCase: "Public evidence does not include pooled-vs-local tests, held-out customer results, or contractual proof of cross-customer training rights.",
+      evidenceNeeded: "Held-out customer comparison of customer-only history versus pooled cross-customer experience.",
+      increaseBelief: "Pooled cross-customer experience improves held-out customer decisions beyond local history.",
+      decreaseBelief: "Customer-specific policies outperform pooled learning or cross-customer training is contractually unavailable.",
+      probability: 50,
+      source: "USER"
+    },
+    {
+      question: "Can Casap legally and operationally retain and exploit customer experience?",
+      bullCase: "The public privacy policy permits product improvement and aggregated analytics in some contexts.",
+      bearCase: "The same policy says third-party personal data is processed on behalf of customers and according to their instructions; this does not establish cross-customer model-training rights.",
+      evidenceNeeded: "Customer contracts and data-governance terms covering retention, derived features, evaluation, and cross-customer training.",
+      increaseBelief: "Contracts explicitly allow retention, derived-feature creation, evaluation reuse, and cross-customer training.",
+      decreaseBelief: "Contracts restrict retention, pooling, model training, or evaluation reuse.",
+      probability: 50,
+      source: "USER"
+    },
+    {
+      question: "Could a capable challenger compress, infer, simulate, or relearn Casap's useful scorebook knowledge?",
+      bullCase: "Dispute and fraud operations may require workflow context, network rules, customer history, and regulatory expertise.",
+      bearCase: "Public sources do not include challenger benchmarks, replacement-performance gaps, or tests against frontier-model plus calibration data.",
+      evidenceNeeded: "Incumbent-vs-challenger benchmark after policy docs, public data, synthetic cases, and limited calibration.",
+      increaseBelief: "A challenger remains materially behind after access to policy docs, public data, and limited calibration.",
+      decreaseBelief: "A challenger reaches similar performance with compressed rules, synthetic examples, or short relearning.",
+      probability: 50,
+      source: "USER"
+    },
+    {
+      question: "Does improved dispute/fraud decision quality create enough economic value to matter?",
+      bullCase: "Public customer stories and Filene evaluation report meaningful operational savings, lower writeoffs, faster resolution, and lower dispute costs.",
+      bearCase: "Customer results are aggregated and do not isolate model-learning causality or per-decision economic contribution.",
+      evidenceNeeded: "Case-level or cohort-level economic outcomes tied to decisions, actions, outcomes, and grades.",
+      increaseBelief: "Economic outcome values show meaningful gains from better decisions after controlling for non-CE workflow improvements.",
+      decreaseBelief: "Savings are driven by workflow automation alone or are not linked to decision quality.",
+      probability: 50,
+      source: "USER"
+    }
+  ],
+  scenarios: DEFAULT_SCENARIOS,
+  normalized: {
+    profile: {
+      name: "Casap Technologies",
+      website: "https://www.casaphq.com/",
+      industry: "Financial services operations / fraud and disputes",
+      productCategory: "Agentic AI / dispute management / fraud operations / payment operations",
+      productDescription: "AI agents and dispute-management software for banks, credit unions, and fintechs.",
+      companyStage: "Series A",
+      geography: "UNKNOWN / DILIGENCE REQUIRED",
+      customerType: "Banks, credit unions, and fintechs",
+      customerSegments: "Financial institutions; exact segment mix UNKNOWN / DILIGENCE REQUIRED",
+      revenueModel: "UNKNOWN",
+      pricingUnit: "UNKNOWN / DILIGENCE REQUIRED",
+      businessModelNotes: "Public sources reviewed here do not establish revenue, valuation, gross margin, customer count, or transaction/case volume.",
+      grossMarginProfile: "UNKNOWN / DILIGENCE REQUIRED",
+      economicValueUnit: "Fraud losses, dispute processing cost, writeoffs, resolution time, chargeback win rate",
+      economicsNotes: "Customer results are aggregate public claims/evaluations, not production case-level CE rows.",
+      marketContext: "Dispute and fraud operations for regulated financial institutions.",
+      analystThesis: "Structurally plausible Compounding Expertise environment; durable CE remains unproven from public evidence alone."
+    },
+    workflow: {
+      key: "casap_public_dispute_workflow",
+      name: "Publicly described dispute and fraud workflow",
+      description: "Public materials support a workflow from dispute intake through evidence collection, fraud/dispute assessment, resolution/provisional-credit decisions, chargeback preparation/filing, merchant/network response tracking, and outcome/resolution. This is a public-source model, not a claim about every customer deployment.",
+      position: 0,
+      stages: [
+        stage("intake", "Dispute intake", 0, "INTAKE", "Dispute or fraud claim enters the workflow."),
+        stage("evidence", "Evidence / transaction-data collection", 1, "EVIDENCE_COLLECTION", "Relevant transaction data, evidence, and member/customer context are assembled."),
+        stage("assessment", "Fraud / dispute assessment", 2, "CLASSIFICATION", "Fraud likelihood, dispute attributes, and evidence sufficiency are assessed."),
+        stage("resolution", "Resolution / investigation decision", 3, "DECISION", "The next action is selected, potentially including provisional-credit-related steps where appropriate."),
+        stage("chargeback", "Chargeback preparation / filing", 4, "EXECUTION", "Chargeback evidence is prepared, filed, or tracked where applicable."),
+        stage("response_tracking", "Merchant / network response tracking", 5, "OUTCOME", "Merchant, network, or processor responses are tracked."),
+        stage("outcome", "Outcome / resolution", 6, "OUTCOME", "The dispute or fraud claim resolves.")
+      ],
+      actions: [
+        action("CONTINUE_INVESTIGATION", "Continue investigation", "Continue investigating the dispute or fraud claim.", "UNKNOWN", true),
+        action("REQUEST_ADDITIONAL_INFORMATION", "Request additional information", "Ask the consumer/member or other source for more information.", "EASY", false),
+        action("PROGRESS_PROVISIONAL_CREDIT", "Issue/progress provisional credit where appropriate", "Proceed with provisional-credit-related action where policy and regulation allow.", "MODERATE", true),
+        action("PREPARE_FILE_CHARGEBACK", "Prepare/file chargeback", "Prepare, file, or progress a chargeback package.", "DIFFICULT", true),
+        action("ESCALATE_HUMAN_REVIEW", "Escalate for human review", "Escalate the case to a human specialist or reviewer.", "EASY", true),
+        action("OPTIMIZE_EVIDENCE", "Optimize evidence", "Select or optimize evidence for chargeback strategy.", "UNKNOWN", true)
+      ],
+      decisionClasses: [
+        decisionClass({
+          key: "fraud_likelihood",
+          stageKey: "assessment",
+          name: "Fraud likelihood / first-party fraud assessment",
+          description: "Question: How likely is this claim to represent first-party or other fraud? Public basis: Casap describes a proprietary first-party-fraud score.",
+          decisionMakerType: "HYBRID",
+          decisionFrequency: "UNKNOWN / DILIGENCE REQUIRED",
+          estimatedCasesPerPeriod: null,
+          frequencyPeriod: null,
+          economicStakes: "HIGH",
+          reversibility: "UNKNOWN",
+          regulatoryRisk: "HIGH",
+          operationalRisk: "HIGH",
+          outcomeObservability: "PARTIAL",
+          gradeObjectivity: "MIXED",
+          naturalFeedbackLatencyDays: null,
+          humanReviewMode: "UNKNOWN",
+          currentAutonomyMode: "UNKNOWN",
+          actionKeys: ["CONTINUE_INVESTIGATION", "REQUEST_ADDITIONAL_INFORMATION", "ESCALATE_HUMAN_REVIEW"]
+        }),
+        decisionClass({
+          key: "dispute_next_action",
+          stageKey: "resolution",
+          name: "Dispute next action",
+          description: "Question: What action should be taken next on this dispute? Public basis: Casap describes automated dispute lifecycle steps, but not internal thresholds or autonomous-action rates.",
+          decisionMakerType: "HYBRID",
+          decisionFrequency: "UNKNOWN / DILIGENCE REQUIRED",
+          estimatedCasesPerPeriod: null,
+          frequencyPeriod: null,
+          economicStakes: "HIGH",
+          reversibility: "UNKNOWN",
+          regulatoryRisk: "HIGH",
+          operationalRisk: "HIGH",
+          outcomeObservability: "PARTIAL",
+          gradeObjectivity: "MIXED",
+          naturalFeedbackLatencyDays: null,
+          humanReviewMode: "UNKNOWN",
+          currentAutonomyMode: "UNKNOWN",
+          actionKeys: ["CONTINUE_INVESTIGATION", "REQUEST_ADDITIONAL_INFORMATION", "PROGRESS_PROVISIONAL_CREDIT", "PREPARE_FILE_CHARGEBACK", "ESCALATE_HUMAN_REVIEW"]
+        }),
+        decisionClass({
+          key: "chargeback_likelihood_evidence",
+          stageKey: "chargeback",
+          name: "Chargeback likelihood / evidence strategy",
+          description: "Question: How likely is a chargeback to succeed and what evidence should support it? Public basis: Casap describes win-score prediction and optimized evidence.",
+          decisionMakerType: "HYBRID",
+          decisionFrequency: "UNKNOWN / DILIGENCE REQUIRED",
+          estimatedCasesPerPeriod: null,
+          frequencyPeriod: null,
+          economicStakes: "HIGH",
+          reversibility: "DIFFICULT",
+          regulatoryRisk: "HIGH",
+          operationalRisk: "HIGH",
+          outcomeObservability: "PARTIAL",
+          gradeObjectivity: "MIXED",
+          naturalFeedbackLatencyDays: null,
+          humanReviewMode: "UNKNOWN",
+          currentAutonomyMode: "UNKNOWN",
+          actionKeys: ["PREPARE_FILE_CHARGEBACK", "OPTIMIZE_EVIDENCE", "ESCALATE_HUMAN_REVIEW"]
+        })
+      ]
+    },
+    environment: {
+      naturalCaseFrequency: "UNKNOWN / DILIGENCE REQUIRED",
+      estimatedCasesPerPeriod: null,
+      frequencyPeriod: null,
+      typicalEconomicCostOfError: "High / sourced structural inference",
+      typicalValueOfCorrectDecision: "Customer stories report material savings/loss reduction, but not case-level value.",
+      outcomeObservability: "PARTIAL / SOURCED",
+      outcomeObjectivity: "PARTIAL / STRUCTURALLY PLAUSIBLE",
+      naturalFeedbackLatencyDays: null,
+      customerHeterogeneity: "UNKNOWN / DILIGENCE REQUIRED",
+      caseHeterogeneity: "UNKNOWN / DILIGENCE REQUIRED",
+      environmentalNonstationarity: "UNKNOWN / DILIGENCE REQUIRED",
+      regulatoryChangeRate: "UNKNOWN / DILIGENCE REQUIRED",
+      foundationModelImprovementRate: "UNKNOWN / DILIGENCE REQUIRED",
+      notes: "Public evidence supports a favorable repeated operational problem, but does not provide production case frequency, grade completeness, or case-level feedback latency."
+    },
+    learningArchitecture: {
+      capturesContext: "PARTIAL / SOURCED",
+      capturesAgentDecision: "PARTIAL / SOURCED",
+      capturesHumanDecision: "UNKNOWN",
+      capturesActionTaken: "PARTIAL / SOURCED",
+      capturesOutcome: "PARTIAL / SOURCED",
+      capturesExplicitGrade: "UNKNOWN",
+      outcomeCompletionMechanism: "Public sources describe tracking chargeback/dispute outcomes, but not case-level outcome completeness.",
+      gradeGenerationMethod: "UNKNOWN / DILIGENCE REQUIRED",
+      feedbackLatencyMechanism: "UNKNOWN / DILIGENCE REQUIRED",
+      pooledAcrossCustomers: "UNKNOWN",
+      customerSpecificAdaptation: "UNKNOWN",
+      usesHumanOverridesForLearning: "UNKNOWN",
+      usesOutcomeGradesForLearning: "UNKNOWN",
+      experimentationMode: "UNKNOWN",
+      modelUpdateCadence: "UNKNOWN",
+      policyUpdateCadence: "UNKNOWN",
+      deploymentMode: "UNKNOWN",
+      deploymentCadence: "UNKNOWN",
+      humanApprovalForPolicyChanges: "UNKNOWN",
+      canRetainCases: "UNKNOWN",
+      canRetainDerivedFeatures: "UNKNOWN",
+      canTrainAcrossCustomers: "UNKNOWN",
+      canUseForEvaluation: "UNKNOWN",
+      contractualRestrictions: "Privacy policy is relevant but insufficient to establish cross-customer model-training rights.",
+      notes: "No public production CaseSet, grade-to-update loop, cross-customer pooling right, or deployment cadence is established."
+    },
+    competitiveArchitecture: {
+      rawCasesExclusive: "UNKNOWN",
+      outcomesExclusive: "UNKNOWN",
+      humanCorrectionsExclusive: "UNKNOWN",
+      crossCustomerPoolExclusive: "UNKNOWN",
+      customerCanExportData: "UNKNOWN",
+      competitorCanAccessEquivalentData: "UNKNOWN",
+      systemOfRecord: "PARTIAL / SOURCED",
+      systemOfDecision: "PARTIAL / SOURCED",
+      systemOfAction: "UNKNOWN",
+      systemOfOutcomeCapture: "PARTIAL / SOURCED",
+      integrationDepth: "PARTIAL / SOURCED",
+      replacementComplexity: "UNKNOWN / DILIGENCE REQUIRED",
+      publicDataSubstitutionRisk: "UNKNOWN",
+      syntheticDataSubstitutionRisk: "UNKNOWN",
+      foundationModelSubstitutionRisk: "UNKNOWN",
+      competitorRelearningDifficulty: "UNKNOWN",
+      deterministicInfrastructureStrength: "PARTIAL / SOURCED",
+      distributionAdvantage: "UNKNOWN",
+      regulatoryBarrierStrength: "PARTIAL / SOURCED",
+      contractualBarrierStrength: "UNKNOWN",
+      notes: "Public evidence supports workflow and regulatory context. It does not prove data exclusivity, challenger difficulty, or a Cornered Resource."
+    },
+    evidence: [
+      casapPublicEvidence(
+        "company_profile",
+        "product_workflow",
+        "Purpose-built AI agents and dispute-management software for banks, credit unions, and fintechs; public materials describe dispute model/API, win-score prediction, fraud functionality, and built-in Reg E, Reg Z, Nacha, and card-network expertise.",
+        "Casap homepage / product materials",
+        "https://www.casaphq.com/",
+        "MEDIUM",
+        "Supports workflow position and operational decisioning capability. Does not establish learning causality, cross-customer transfer, grade completeness, or durable Power.",
+        null,
+        "profile"
+      ),
+      casapPublicEvidence(
+        "company_profile",
+        "funding_stage_product_strategy",
+        "$25M Series A announced August 7, 2025; $33.5M total funding; AI agents analyze evidence, predict outcomes, and automate lifecycle from intake to chargeback filing; proprietary first-party fraud score; company-reported customer results.",
+        "Casap Raises $25M Series A",
+        "https://www.casaphq.com/articles/casap-raises-25m-series-a",
+        "MEDIUM",
+        "Strong evidence for product architecture and company strategy. Customer-performance claims remain company-reported unless independently validated.",
+        "2025-08-07",
+        "profile"
+      ),
+      casapPublicEvidence(
+        "company_profile",
+        "chartway_customer_results",
+        "Company-published customer story reports estimated $875K annual savings, resolution time improved from 90 days to 12 days, 95% chargeback win rate, writeoffs down 72%, costs down 85%, and monthly capacity from 1,200 to 4,000 transactions.",
+        "Casap Chartway customer story",
+        "https://www.casaphq.com/articles/how-chartway-cut-dispute-costs-by-85-with-casap",
+        "MEDIUM",
+        "Supports economic materiality, workflow embeddedness, and operational performance at one named customer. Does not establish causal learning from accumulated cases, cross-customer transfer, or durability.",
+        "2026-02-12"
+      ),
+      casapPublicEvidence(
+        "company_profile",
+        "midsouth_customer_results",
+        "Company-published customer story reports fraud loss reduced 51%, cost per dispute reduced 90%+ from $37, chargeback floor reduced 85%, real-time merchant-response/chargeback tracking, and Visa transaction metadata used in fraud investigation.",
+        "Casap MidSouth customer story",
+        "https://www.casaphq.com/articles/how-midsouth-cut-fraud-loss-in-half-with-casap",
+        "MEDIUM",
+        "Supports economic materiality and operational workflow value at another customer. Not evidence of cross-customer learning, scorebook causality, or durable CE.",
+        "2025-03-10"
+      ),
+      casapPublicEvidence(
+        "company_profile",
+        "filene_independent_evaluation",
+        "Filene Research Institute public report summary describes testing Casap's fraud dispute platform in sandbox and live environments, with participating credit unions reporting usability, reduced manual effort, and confidence supporting compliance/dispute outcomes.",
+        "Filene Research Institute, 2025 FiLab Results: Casap",
+        "https://www.filene.org/reports/2025-filab-results-casap",
+        "HIGH",
+        "Independent evidence that the product can create operational value in credit-union environments. Public summary does not provide case-level model-learning data, cross-customer holdouts, or challenger benchmarks.",
+        "2026-02-26"
+      ),
+      casapPublicEvidence(
+        "learning_architecture",
+        "company_claim_compounding_behavior",
+        "Company funding announcement claims Casap's platform becomes more effective at fraud detection with customer interaction.",
+        "Casap October 2024 funding announcement",
+        "https://www.prnewswire.com/news-releases/casap-secures-8-5-million-in-funding-to-revolutionize-the-multi-billion-dollar-payment-disputes-process-and-fight-first-party-fraud-302288206.html",
+        "MEDIUM",
+        "COMPANY CLAIM RELEVANT TO CE THESIS - NOT EMPIRICAL PROOF. Treat as context-descriptive for learning causality and transfer until empirical evidence exists.",
+        "2024-10-28"
+      ),
+      casapPublicEvidence(
+        "learning_architecture",
+        "learning_rights_privacy_policy",
+        "Privacy policy says Casap may use collected information to develop/improve products and conduct analytics, including aggregated non-specific information. It also says third-party personal data uploaded through the service is processed on behalf of customers and according to their instructions.",
+        "Casap Privacy Policy",
+        "https://www.casaphq.com/privacy-policy",
+        "MEDIUM",
+        "Relevant to learning rights, but insufficient to establish contractual rights to pool customer case data or train cross-customer decision models.",
+        "2024-03-01"
+      ),
+      casapPublicEvidence(
+        "competitive_architecture",
+        "investor_context",
+        "Primary Venture Partners public materials identify Casap in its portfolio/insights context and state Primary led the seed round and invested in every round.",
+        "Primary Venture Partners insights",
+        "https://www.primary.vc/insights",
+        "LOW",
+        "Investor context only. Does not establish revenue, valuation, CE, durability, or case-level learning.",
+        null
+      )
+    ]
+  }
+};
+
+export const PUBLIC_EVIDENCE_ANALYSES: PublicEvidenceAnalysisFixture[] = [CASAP_PUBLIC_EVIDENCE_ANALYSIS];
+
+export function publicEvidenceAnalysisById(id: string | null | undefined) {
+  return PUBLIC_EVIDENCE_ANALYSES.find((analysis) => analysis.id === id) ?? CASAP_PUBLIC_EVIDENCE_ANALYSIS;
 }
 
 export function sourceRouteIsSafe(route: string | null | undefined) {

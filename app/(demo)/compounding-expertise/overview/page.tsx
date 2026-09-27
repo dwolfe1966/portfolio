@@ -4,9 +4,10 @@ import { IntegrityNotice, LabWorkflowRail } from "@/components/compounding-exper
 import {
   canonicalExampleForCompany,
   COMPOUNDING_EXAMPLES,
+  PUBLIC_EVIDENCE_ANALYSES,
   type CompoundingExampleId
 } from "@/lib/compounding-expertise-lab";
-import { loadSyntheticExampleAction } from "../actions";
+import { loadPublicEvidenceAnalysisAction, loadSyntheticExampleAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
 const LAB_FLOW = [
@@ -210,6 +211,44 @@ export default async function CompoundingExpertiseOverviewPage({
             </table>
           </div>
         </details>
+      </Section>
+
+      <Section eyebrow="Public evidence" title="Analyze real company">
+        <p>
+          Start from public company information, customer results, product documentation, and explicit evidence gaps.
+          These analyses do not include production case-level data unless a real CaseSet is later imported.
+        </p>
+        <div className="compoundingCanonicalGrid compoundingCanonicalGridPrimary">
+          {PUBLIC_EVIDENCE_ANALYSES.map((fixture) => (
+            <article className="card compoundingCanonicalCard" key={fixture.id}>
+              <div className="compoundingCardHeader">
+                <div>
+                  <p className="small">PUBLIC COMPANY ANALYSIS</p>
+                  <h3>{fixture.label}</h3>
+                </div>
+              </div>
+              <div className="compoundingSyntheticBanner">
+                <strong>{fixture.publicSourceLabel}</strong>
+                <p>
+                  This analysis uses sourced public records and preserves unknowns. It does not create synthetic
+                  production cases or reuse the Casap canonical fixture.
+                </p>
+              </div>
+              <div className="compoundingCanonicalFacts">
+                <span><strong>Company</strong>Casap Technologies</span>
+                <span><strong>Category</strong>{fixture.analysis.productCategory}</span>
+                <span><strong>Stage</strong>{fixture.analysis.companyStage}</span>
+                <span><strong>Experience data</strong>No production CaseSet loaded</span>
+                <span><strong>Initial CE posture</strong>Structurally plausible, empirically unproven</span>
+                <span><strong>Primary diligence gap</strong>Learning causality and cross-customer transfer</span>
+              </div>
+              <form action={loadPublicEvidenceAnalysisAction}>
+                <input type="hidden" name="publicAnalysisId" value={fixture.id} />
+                <button className="btn primary" type="submit">Analyze public evidence</button>
+              </form>
+            </article>
+          ))}
+        </div>
       </Section>
 
       <Section title="Research integrity">
