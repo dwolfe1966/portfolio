@@ -176,6 +176,14 @@ export type StressTestPrimaryChange = {
   summary: string;
 };
 
+export type StressTestRunQueryInput = {
+  analysisId: string;
+  caseSetId?: string | null;
+  templateId: string;
+  scenarios: SimulationScenarioInput[];
+  includeRun?: boolean;
+};
+
 export type StressTestResultClassification =
   | "ADVANTAGE_PERSISTS"
   | "ADVANTAGE_COMPRESSES"
@@ -1220,6 +1228,17 @@ export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
     ],
     whyMatters: "Use when the canonical stress tests do not match the question you want to ask."
   }
+];
+
+export const STRESS_TEST_SCENARIO_QUERY_KEYS: Array<keyof Omit<SimulationScenarioInput, "id" | "name">> = [
+  "startingCases",
+  "casesPerMonth",
+  "feedbackDelayDays",
+  "transferability",
+  "informationValue",
+  "learningEfficiency",
+  "stalenessRate",
+  "baseCapability"
 ];
 
 export const SIMULATOR_PARAMETER_DEFINITIONS: SimulatorParameterDefinition[] = [
@@ -3678,6 +3697,37 @@ export function summarizeStressTestPrimaryChange(
     challengerBaseline,
     summary: `${actor} ${definition.label.toLowerCase()} ${stressValueText(fromValue)} -> ${stressValueText(toValue)}`
   };
+}
+
+export function stressTestRunSearchParams({
+  analysisId,
+  caseSetId,
+  templateId,
+  scenarios,
+  includeRun = true
+}: StressTestRunQueryInput): URLSearchParams {
+  const params = new URLSearchParams({ analysisId, template: templateId });
+  if (caseSetId) params.set("caseSetId", caseSetId);
+  if (includeRun) params.set("run", "1");
+  scenarios.slice(0, 2).map((scenario) => sanitizeScenario(scenario)).forEach((scenario) => {
+    params.append("scenarioId", scenario.id ?? "");
+    params.append("name", scenario.name);
+    for (const key of STRESS_TEST_SCENARIO_QUERY_KEYS) {
+      params.append(key, `${scenario[key]}`);
+    }
+  });
+  return params;
+}
+
+export function stressTestRunHref(basePath: string, input: StressTestRunQueryInput) {
+  return `${basePath}?${stressTestRunSearchParams(input).toString()}`;
+}
+
+export function hasExplicitStressTestRunContext(params: URLSearchParams) {
+  return params.get("run") === "1"
+    && Boolean(params.get("template"))
+    && params.getAll("startingCases").length >= 2
+    && params.getAll("name").length >= 2;
 }
 
 export function applyStressTestTemplate(

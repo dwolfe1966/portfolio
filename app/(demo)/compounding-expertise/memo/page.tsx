@@ -17,6 +17,8 @@ import {
   sanitizeScenario,
   simulateComparison,
   summarizeStressTestPrimaryChange,
+  hasExplicitStressTestRunContext,
+  stressTestRunHref,
   type CompoundingFramework,
   type DebateEvidenceItem,
   type DimensionAssessmentInput,
@@ -38,6 +40,15 @@ function values(params: ConclusionSearchParams, key: string) {
 
 function value(params: ConclusionSearchParams, key: string) {
   return values(params, key)[0] ?? "";
+}
+
+function toUrlSearchParams(params: ConclusionSearchParams) {
+  const search = new URLSearchParams();
+  for (const [key, raw] of Object.entries(params)) {
+    if (Array.isArray(raw)) raw.forEach((item) => search.append(key, item));
+    else if (raw !== undefined) search.set(key, raw);
+  }
+  return search;
 }
 
 function numeric(raw: string | undefined, fallback: number) {
@@ -205,7 +216,7 @@ export default async function CompoundingExpertiseMemoPage({
     }));
   const template = getStressTestTemplate(value(params, "template"));
   const templatedScenarios = applyStressTestTemplate(persistedScenarios, template.id);
-  const hasRunContext = value(params, "run") === "1" && value(params, "template").length > 0;
+  const hasRunContext = hasExplicitStressTestRunContext(toUrlSearchParams(params));
   const scenarioRows = values(params, "startingCases").length >= 2
     ? [scenarioFromQuery(params, templatedScenarios[0], 0), scenarioFromQuery(params, templatedScenarios[1], 1)]
     : templatedScenarios;
@@ -224,6 +235,15 @@ export default async function CompoundingExpertiseMemoPage({
     : null;
   const synthesis = deriveInvestmentSynthesis({ analysis, experience, debates: candidates, powerMap, stressTest });
   const caseSetQuery = selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : "";
+  const stressTestHref = hasRunContext
+    ? stressTestRunHref("/compounding-expertise/simulator", {
+      analysisId: analysis.id,
+      caseSetId: selectedCaseSet?.id,
+      templateId: template.id,
+      scenarios: scenarioRows,
+      includeRun: true
+    })
+    : `/compounding-expertise/simulator?analysisId=${analysis.id}${caseSetQuery}`;
 
   return (
     <>
@@ -327,7 +347,7 @@ export default async function CompoundingExpertiseMemoPage({
               <span className="badge">SCENARIO IMPLICATION — NOT EMPIRICAL EVIDENCE</span>
             </>
           ) : <p>No stress test has been run for this analysis yet.</p>}
-          <Link className="btn" href={`/compounding-expertise/simulator?analysisId=${analysis.id}${caseSetQuery}`}>Inspect Stress Test →</Link>
+          <Link className="btn" href={stressTestHref}>Inspect Stress Test →</Link>
         </div>
       </Section>
 
@@ -350,7 +370,7 @@ export default async function CompoundingExpertiseMemoPage({
           <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}${caseSetQuery}`}>Inspect Experience</Link>
           <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${caseSetQuery}`}>Inspect Debates</Link>
           <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}${caseSetQuery}`}>Inspect Power</Link>
-          <Link className="btn" href={`/compounding-expertise/simulator?analysisId=${analysis.id}${caseSetQuery}`}>Inspect Stress Test</Link>
+          <Link className="btn" href={stressTestHref}>Inspect Stress Test</Link>
           <Link className="btn primary" href={`/compounding-expertise/inputs?analysisId=${analysis.id}`}>Revise analysis</Link>
         </div>
       </Section>

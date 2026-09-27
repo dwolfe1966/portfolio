@@ -63,6 +63,8 @@ import {
   summarizeConclusion,
   summarizeStressTestPrimaryChange,
   summarizeTopStressTestDrivers,
+  stressTestRunHref,
+  hasExplicitStressTestRunContext,
   validateAssessment,
   validateScenario,
   validateProbability,
@@ -1017,6 +1019,56 @@ test("Stress Test run state can distinguish ready-to-run from executed results",
 
   assert.equal(Boolean(selectedButNotRun.template && selectedButNotRun.run === "1"), false);
   assert.equal(Boolean(executed.template && executed.run === "1"), true);
+});
+
+test("Stress Test run context serializes exact scenarios for Conclusion recomputation", () => {
+  const scenarios = applyStressTestTemplate([
+    { ...baseScenario, id: "incumbent-id", name: "Incumbent / Company", startingCases: 10000, baseCapability: 2.1, learningEfficiency: 0.61 },
+    { ...baseScenario, id: "challenger-id", name: "Challenger / Alternative", startingCases: 650, baseCapability: 1.9, learningEfficiency: 0.38, informationValue: 0.24 }
+  ], "better_foundation_model");
+  const stressSeries = simulateComparison(scenarios, 36);
+  const stressResult = classifyStressTestResult(stressSeries, detectCrossover(stressSeries[0], stressSeries[1]));
+  const href = stressTestRunHref("/compounding-expertise/memo", {
+    analysisId: "analysis-123",
+    caseSetId: "case-set-456",
+    templateId: "better_foundation_model",
+    scenarios,
+    includeRun: true
+  });
+  const params = new URLSearchParams(href.split("?")[1]);
+
+  assert.equal(params.get("analysisId"), "analysis-123");
+  assert.equal(params.get("caseSetId"), "case-set-456");
+  assert.equal(params.get("template"), "better_foundation_model");
+  assert.equal(params.get("run"), "1");
+  assert.equal(hasExplicitStressTestRunContext(params), true);
+  assert.deepEqual(params.getAll("informationValue"), scenarios.map((scenario) => `${scenario.informationValue}`));
+  assert.deepEqual(params.getAll("learningEfficiency"), scenarios.map((scenario) => `${scenario.learningEfficiency}`));
+
+  const recomputedScenarios = scenarios.map((scenario, index) => ({
+    ...scenario,
+    name: params.getAll("name")[index],
+    startingCases: Number(params.getAll("startingCases")[index]),
+    casesPerMonth: Number(params.getAll("casesPerMonth")[index]),
+    feedbackDelayDays: Number(params.getAll("feedbackDelayDays")[index]),
+    transferability: Number(params.getAll("transferability")[index]),
+    informationValue: Number(params.getAll("informationValue")[index]),
+    learningEfficiency: Number(params.getAll("learningEfficiency")[index]),
+    stalenessRate: Number(params.getAll("stalenessRate")[index]),
+    baseCapability: Number(params.getAll("baseCapability")[index])
+  }));
+  const conclusionSeries = simulateComparison(recomputedScenarios, 36);
+  const conclusionResult = classifyStressTestResult(conclusionSeries, detectCrossover(conclusionSeries[0], conclusionSeries[1]));
+
+  assert.deepEqual(conclusionResult, stressResult);
+});
+
+test("Stress Test selected template without run context is not a Conclusion finding", () => {
+  const selectedOnly = new URLSearchParams({ analysisId: "analysis-123", caseSetId: "case-set-456", template: "better_foundation_model" });
+  const runWithoutValues = new URLSearchParams({ analysisId: "analysis-123", template: "better_foundation_model", run: "1" });
+
+  assert.equal(hasExplicitStressTestRunContext(selectedOnly), false);
+  assert.equal(hasExplicitStressTestRunContext(runWithoutValues), false);
 });
 
 test("Stress Test result classifications and crossover metrics are deterministic", () => {

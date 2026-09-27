@@ -17,6 +17,7 @@ import {
   simulateComparison,
   summarizeStressTestPrimaryChange,
   summarizeTopStressTestDrivers,
+  stressTestRunHref,
   visibleStressTestChangedParameters,
   type ScorebookCaseInput,
   type SimulationScenarioInput
@@ -130,7 +131,7 @@ export default async function CompoundingExpertiseSimulatorPage({
     }));
   const selectedTemplateId = value(params, "template");
   const hasSelectedTemplate = selectedTemplateId.length > 0;
-  const hasRun = value(params, "run") === "1" || values(params, "startingCases").length >= 2;
+  const hasRun = value(params, "run") === "1";
   const template = getStressTestTemplate(selectedTemplateId);
   const templatedScenarios = applyStressTestTemplate(persistedScenarios, template.id);
   const scenarios = values(params, "startingCases").length >= 2
@@ -154,6 +155,15 @@ export default async function CompoundingExpertiseSimulatorPage({
   const conditionSummary = changedDefinitions.length === 0
     ? "Baseline assumptions"
     : `${primaryChange.label}: ${primaryChange.summary}`;
+  const conclusionHref = hasRun
+    ? stressTestRunHref("/compounding-expertise/memo", {
+      analysisId: analysis.id,
+      caseSetId,
+      templateId: template.id,
+      scenarios,
+      includeRun: true
+    })
+    : `/compounding-expertise/memo?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`;
 
   return (
     <>
@@ -495,7 +505,7 @@ E(t) = base_capability
             Conclusion combines Company Model, Experience, Debates, Power, and Stress Tests into a concise statement of what appears true,
             what remains uncertain, and what evidence would most change the thesis.
           </p>
-          <Link className="btn primary" href={`/compounding-expertise/memo?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Continue to Conclusion →</Link>
+          <Link className="btn primary" href={conclusionHref}>Continue to Conclusion →</Link>
         </div>
       </Section>
     </>
