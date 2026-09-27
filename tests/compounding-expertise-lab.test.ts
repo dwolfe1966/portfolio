@@ -10,6 +10,7 @@ import {
   INITIAL_DEBATES,
   LAB_WORKFLOW_STEPS,
   SCOREBOOK_CASE_FIELD_CLASSIFICATION,
+  DEFAULT_SCENARIOS,
   apparentPowerLocations,
   buildCaseDetailSequence,
   calculateScorebookMetrics,
@@ -33,6 +34,7 @@ import {
   deriveFeedbackLatencyDistribution,
   deriveGradeDistribution,
   deriveInterestingSlices,
+  deriveInvestmentSynthesis,
   deriveCanonicalDebateProfile,
   deriveDebateAssessment,
   deriveDebateCandidates,
@@ -671,6 +673,95 @@ test("Power Map keeps multiple customers as context, not Network Economies proof
   assert.equal(network?.evidenceStrength, "NONE");
   assert.ok(network?.evidenceFor.some((item) => item.direction === "CONTEXT-DESCRIPTIVE"));
   assert.equal(powerMap.hasOverallMoatScore, false);
+});
+
+test("Conclusion investment synthesis consumes Debate Engine and Power Map without numeric moat score", () => {
+  const example = exampleById("casap");
+  assert.ok(example);
+  const normalized = normalizedModelForExample(example);
+  const rows = example.cases;
+  const debates = deriveDebateCandidates({
+    analysis: example.analysis,
+    debates: example.debates,
+    rows,
+    analysisId: "analysis-1",
+    caseSetId: "case-set-1",
+    learningArchitecture: normalized.learningArchitecture,
+    competitiveArchitecture: normalized.competitiveArchitecture,
+    evidenceRecords: []
+  });
+  const powerMap = derivePowerMap({
+    analysis: example.analysis,
+    debates: example.debates,
+    rows,
+    analysisId: "analysis-1",
+    caseSetId: "case-set-1",
+    learningArchitecture: normalized.learningArchitecture,
+    competitiveArchitecture: normalized.competitiveArchitecture,
+    evidenceRecords: [],
+    assessments: []
+  });
+  const synthesis = deriveInvestmentSynthesis({
+    analysis: example.analysis,
+    experience: deriveExperienceSnapshot(rows),
+    debates,
+    powerMap,
+    stressTest: null
+  });
+
+  assert.equal(powerMap.hasOverallMoatScore, false);
+  assert.match(synthesis.currentThesis, /SYNTHETIC EVIDENCE/);
+  assert.equal(synthesis.evidenceQuality, "LOW");
+  assert.notEqual(synthesis.primaryPowerHypothesis, "no demonstrated Power yet");
+  assert.match(synthesis.memo, /No stress test has been run/i);
+  assert.doesNotMatch(synthesis.memo, /overall .*score|moat score/i);
+});
+
+test("Conclusion synthesis keeps investor belief and scenario output separate from CE evidence", () => {
+  const example = exampleById("casap");
+  assert.ok(example);
+  const normalized = normalizedModelForExample(example);
+  const rows = example.cases;
+  const debates = deriveDebateCandidates({
+    analysis: example.analysis,
+    debates: [{ ...example.debates[0], probability: 75 }],
+    rows,
+    analysisId: "analysis-1",
+    caseSetId: "case-set-1",
+    learningArchitecture: normalized.learningArchitecture,
+    competitiveArchitecture: normalized.competitiveArchitecture,
+    evidenceRecords: []
+  });
+  const powerMap = derivePowerMap({
+    analysis: example.analysis,
+    debates: [{ ...example.debates[0], probability: 75 }],
+    rows,
+    analysisId: "analysis-1",
+    caseSetId: "case-set-1",
+    learningArchitecture: normalized.learningArchitecture,
+    competitiveArchitecture: normalized.competitiveArchitecture,
+    evidenceRecords: [],
+    assessments: []
+  });
+  const series = simulateComparison(applyStressTestTemplate(DEFAULT_SCENARIOS, "better_foundation_model"), 36);
+  const result = classifyStressTestResult(series, detectCrossover(series[0], series[1]));
+  const synthesis = deriveInvestmentSynthesis({
+    analysis: example.analysis,
+    experience: deriveExperienceSnapshot(rows),
+    debates,
+    powerMap,
+    stressTest: {
+      templateName: "Better foundation model",
+      primaryChange: "Challenger base capability 2.9 -> 3.6",
+      result,
+      implication: deriveStressTestPowerImplication("better_foundation_model", result)
+    }
+  });
+
+  assert.equal(synthesis.investorView.hasInvestorBelief, true);
+  assert.match(synthesis.investorView.summary, /Investor belief remains separate from CE evidence|more positive/i);
+  assert.match(synthesis.memo, /SCENARIO IMPLICATION — NOT EMPIRICAL EVIDENCE/);
+  assert.doesNotMatch(synthesis.evidenceBuckets.supports.map((item) => item.value).join(" "), /75%/);
 });
 
 test("supported cross-customer transfer strengthens Network Economies without numeric moat score", () => {

@@ -4950,6 +4950,56 @@ button {
   display: grid;
   gap: 8px;
 }
+.compoundingSynthesisHero {
+  display: grid;
+  gap: 10px;
+  border-color: color-mix(in srgb, var(--demo-accent) 48%, var(--demo-divider));
+}
+.compoundingSynthesisHero h3 {
+  max-width: 980px;
+  margin: 0;
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.2;
+}
+.compoundingSynthesisStateGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.compoundingSynthesisStateCard {
+  display: grid;
+  gap: 6px;
+}
+.compoundingSynthesisStateCard strong {
+  color: var(--demo-text);
+  font-size: 18px;
+  line-height: 1.2;
+}
+.compoundingEvidenceQuadrants {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.compoundingEvidenceQuadrants > div {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.compoundingEvidenceQuadrants h3 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.compoundingSynthesisEvidenceItem {
+  display: grid;
+  gap: 6px;
+}
+.compoundingExperienceMiniSummary {
+  display: grid;
+  gap: 10px;
+}
 .pricingVizGrid {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -6310,6 +6360,8 @@ button {
   .compoundingParameterGroups,
   .compoundingScenarioResultGrid,
   .compoundingDriverGrid,
+  .compoundingSynthesisStateGrid,
+  .compoundingEvidenceQuadrants,
   .compoundingSimulatorGroups fieldset,
   .compoundingAssessmentGrid,
   .compoundingFrameworkIntro,

@@ -796,6 +796,44 @@ export type DerivedPowerMap = {
   hasOverallMoatScore: false;
 };
 
+export type InvestmentSynthesisInput = {
+  analysis: CompanyThesisInput;
+  experience: ExperienceSnapshot;
+  debates: DerivedDebateCandidate[];
+  powerMap: DerivedPowerMap;
+  stressTest?: {
+    templateName: string;
+    primaryChange: string;
+    result: StressTestResultSummary;
+    implication: string;
+  } | null;
+};
+
+export type InvestmentSynthesis = {
+  ceThesis: "SUPPORTED" | "PARTIALLY SUPPORTED" | "UNPROVEN" | "CONTRADICTED" | "UNKNOWN";
+  evidenceQuality: "HIGH" | "MEDIUM" | "LOW" | "PARTIAL" | "NONE";
+  primaryPowerHypothesis: string;
+  criticalUnresolvedDependency: string;
+  currentThesis: string;
+  powerHighlights: Array<{
+    label: string;
+    thesisStrength: PowerThesisStrength;
+    evidenceStrength: PowerEvidenceStrength;
+    why: string;
+  }>;
+  evidenceBuckets: {
+    supports: DebateEvidenceItem[];
+    contradicts: DebateEvidenceItem[];
+    context: DebateEvidenceItem[];
+    limitations: DebateEvidenceItem[];
+  };
+  investorView: {
+    hasInvestorBelief: boolean;
+    summary: string;
+  };
+  memo: string;
+};
+
 export type EpistemicKind = "OBSERVED_DERIVED" | "SOURCED" | "ENDOGENOUS_ASSUMPTION" | "EXOGENOUS_ASSUMPTION" | "UNKNOWN";
 
 export type StructuredInputDefinition = {
@@ -3320,6 +3358,128 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
   ];
 
   return { powers, ceMechanism, conclusion, mechanismEdges, hasOverallMoatScore: false };
+}
+
+function evidenceQualityFromSynthesis(experience: ExperienceSnapshot, debates: DerivedDebateCandidate[], powerMap: DerivedPowerMap): InvestmentSynthesis["evidenceQuality"] {
+  if (experience.provenance === "DERIVED — SYNTHETIC FIXTURE") return "LOW";
+  if (experience.totalCases === 0 && debates.every((debate) => debate.evidenceFor.length === 0)) return "NONE";
+  if (powerMap.powers.some((power) => power.evidenceStrength === "HIGH")) return "HIGH";
+  if (powerMap.powers.some((power) => power.evidenceStrength === "MEDIUM")) return "MEDIUM";
+  if (debates.some((debate) => debate.evidenceFor.length > 0 || debate.contextEvidence.length > 0)) return "PARTIAL";
+  return "LOW";
+}
+
+function ceThesisFromDebates(debates: DerivedDebateCandidate[], powerMap: DerivedPowerMap): InvestmentSynthesis["ceThesis"] {
+  if (!debates.length) return "UNKNOWN";
+  if (debates.some((debate) => debate.assessment === "CONTRADICTED")) return "CONTRADICTED";
+  const supportedCore = debates.filter((debate) => ["EXPERIENCE_CAPTURE", "LEARNING_CAUSALITY", "CROSS_CUSTOMER_TRANSFER"].includes(debate.family) && ["SUPPORTED", "LEANING SUPPORTED"].includes(debate.assessment));
+  if (supportedCore.length >= 2 && !powerMap.ceMechanism.classifications.includes("UNPROVEN MECHANISM")) return "SUPPORTED";
+  if (debates.some((debate) => ["SUPPORTED", "LEANING SUPPORTED"].includes(debate.assessment)) || powerMap.powers.some((power) => thesisRank(power.thesisStrength) >= 2)) return "PARTIALLY SUPPORTED";
+  if (debates.some((debate) => debate.assessment === "UNPROVEN")) return "UNPROVEN";
+  return "UNKNOWN";
+}
+
+function conciseEvidence(items: DebateEvidenceItem[], limit: number) {
+  const seen = new Set<string>();
+  const result: DebateEvidenceItem[] = [];
+  for (const item of items) {
+    const key = `${item.direction}:${item.source}:${item.value}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+    if (result.length >= limit) break;
+  }
+  return result;
+}
+
+function synthesisEvidenceBuckets(debates: DerivedDebateCandidate[], experience: ExperienceSnapshot): InvestmentSynthesis["evidenceBuckets"] {
+  const supports = conciseEvidence(debates.flatMap((debate) => debate.evidenceFor), 4);
+  const contradicts = conciseEvidence(debates.flatMap((debate) => debate.evidenceAgainst), 4);
+  const context = conciseEvidence(debates.flatMap((debate) => debate.contextEvidence), 4);
+  const limitations = conciseEvidence(debates.flatMap((debate) => debate.missingEvidence), 4);
+  if (experience.provenance === "DERIVED — SYNTHETIC FIXTURE") {
+    limitations.unshift({
+      source: "Experience → active CaseSet",
+      value: "Current CaseSet is synthetic illustrative data.",
+      direction: "MISSING",
+      strength: "MISSING",
+      provenance: "DERIVED — SYNTHETIC FIXTURE",
+      interpretation: "The fixture tests the analytical framework but cannot establish company behavior.",
+      limitation: "Replace with company, sourced, or empirical operating evidence before treating this as investment evidence.",
+      obtainVia: "Company diligence / data-room export",
+      expectedEvidence: "Actual decision/action/outcome/grade rows or sourced company evidence."
+    });
+  }
+  return { supports, contradicts, context, limitations: conciseEvidence(limitations, 4) };
+}
+
+function investmentMemoText(input: InvestmentSynthesisInput, synthesis: Omit<InvestmentSynthesis, "memo">) {
+  const diligence = deriveHighestValueDiligenceQueue(input.debates, 5);
+  const experienceLine = `${input.experience.totalCases} cases; ${input.experience.gradedCases} graded; median feedback ${input.experience.medianFeedbackLatencyDays === null ? "unavailable" : `${input.experience.medianFeedbackLatencyDays}d`}; ${input.experience.humanOverrideCount} human overrides.`;
+  const stressLine = input.stressTest
+    ? `${input.stressTest.templateName}: ${input.stressTest.result.label}. ${input.stressTest.primaryChange}. 36-month modeled gap ${input.stressTest.result.month36Gap.toFixed(2)}. SCENARIO IMPLICATION — NOT EMPIRICAL EVIDENCE.`
+    : "No stress test has been run or reliably identified as current for this analysis.";
+  return [
+    `Investment Synthesis — ${input.analysis.companyName}`,
+    "",
+    `Current CE thesis: ${synthesis.ceThesis}. ${synthesis.currentThesis}`,
+    "",
+    `Power hypothesis: ${synthesis.primaryPowerHypothesis}. ${input.powerMap.conclusion}`,
+    "",
+    `Key supporting evidence: ${synthesis.evidenceBuckets.supports.length ? synthesis.evidenceBuckets.supports.map((item) => `${item.value} (${item.provenance})`).join("; ") : "No direct supporting evidence has been established yet."}`,
+    "",
+    `Contradicting / limiting evidence: ${[...synthesis.evidenceBuckets.contradicts, ...synthesis.evidenceBuckets.limitations].length ? [...synthesis.evidenceBuckets.contradicts, ...synthesis.evidenceBuckets.limitations].slice(0, 4).map((item) => `${item.value} (${item.provenance})`).join("; ") : "No explicit contradicting evidence has been attached; missing evidence remains material."}`,
+    "",
+    `Critical unresolved debates: ${input.debates.slice(0, 4).map((debate) => `${debate.title}: ${debate.assessment} / ${debate.confidence}`).join("; ") || "None generated."}`,
+    "",
+    `Highest-value diligence: ${diligence.map((item) => `${item.title} — ${item.test}`).join("; ") || "No diligence queue generated."}`,
+    "",
+    `Experience: ${experienceLine} Provenance: ${input.experience.provenance}.`,
+    "",
+    `Stress-test finding: ${stressLine}`,
+    "",
+    `Investor view: ${synthesis.investorView.summary}`,
+    "",
+    "Research integrity note: synthetic fixtures, scenario outputs, analyst beliefs, and missing evidence are not empirical company evidence. The conclusion preserves those distinctions and does not compute a single aggregate score."
+  ].join("\n");
+}
+
+export function deriveInvestmentSynthesis(input: InvestmentSynthesisInput): InvestmentSynthesis {
+  const ceThesis = ceThesisFromDebates(input.debates, input.powerMap);
+  const evidenceQuality = evidenceQualityFromSynthesis(input.experience, input.debates, input.powerMap);
+  const rankedPowers = [...input.powerMap.powers]
+    .filter((power) => power.thesisStrength !== "NONE")
+    .sort((a, b) => thesisRank(b.thesisStrength) - thesisRank(a.thesisStrength) || evidenceRank(b.evidenceStrength) - evidenceRank(a.evidenceStrength));
+  const primaryPower = rankedPowers[0];
+  const unresolved = input.debates.find((debate) => ["UNPROVEN", "UNKNOWN"].includes(debate.assessment)) ?? input.debates[0] ?? null;
+  const syntheticPrefix = input.experience.provenance === "DERIVED — SYNTHETIC FIXTURE"
+    ? "FRAMEWORK TEST — SYNTHETIC EVIDENCE. "
+    : "";
+  const currentThesis = `${syntheticPrefix}${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
+  const evidenceBuckets = synthesisEvidenceBuckets(input.debates, input.experience);
+  const investorDebates = input.debates.filter((debate) => debate.investorBelief !== null);
+  const investorView = investorDebates.length
+    ? {
+      hasInvestorBelief: true,
+      summary: investorDebates.map((debate) => `${debate.title}: ${debate.investorBelief}% investor belief; CE assessment ${debate.assessment}. ${debate.investorBeliefDivergence ?? "Investor belief remains separate from CE evidence."}`).join(" ")
+    }
+    : { hasInvestorBelief: false, summary: "No investor overrides or beliefs have been recorded." };
+  const base = {
+    ceThesis,
+    evidenceQuality,
+    primaryPowerHypothesis: primaryPower?.label ?? "No demonstrated Power yet",
+    criticalUnresolvedDependency: unresolved?.title ?? "No unresolved debate identified",
+    currentThesis,
+    powerHighlights: rankedPowers.slice(0, 4).map((power) => ({
+      label: power.label,
+      thesisStrength: power.thesisStrength,
+      evidenceStrength: power.evidenceStrength,
+      why: power.why
+    })),
+    evidenceBuckets,
+    investorView
+  };
+  return { ...base, memo: investmentMemoText(input, base) };
 }
 
 export function deriveDecisionSystemMetrics(rows: ScorebookCaseInput[]): DecisionSystemDerivedMetrics {
