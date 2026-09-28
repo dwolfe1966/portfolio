@@ -301,6 +301,46 @@ export type CaseSetInput = {
 };
 
 export type CaseSetEpistemicType = "OBSERVED" | "RECONSTRUCTED" | "SYNTHETIC";
+export type AnalyticalDatasetKind =
+  | "OBSERVED_PRODUCTION"
+  | "RECONSTRUCTED_SOURCED"
+  | "SYNTHETIC_SIMULATION"
+  | "CANONICAL_SYNTHETIC"
+  | "NONE";
+export type AnalyticalDatasetSelectionMode = "AUTO_SELECTED" | "USER_SELECTED";
+
+export type AnalyticalCaseSetLike = {
+  id?: string | null;
+  sourceType?: string | null;
+  sourceSystemKey?: string | null;
+  sourceSystemLabel?: string | null;
+  isSynthetic?: boolean | null;
+  provenanceLabel?: string | null;
+  derivationDescription?: string | null;
+  name: string;
+  description?: string | null;
+  caseCount?: number | null;
+};
+
+export type AnalyticalDatasetOption = {
+  datasetKey: string;
+  caseSetId: string | null;
+  name: string;
+  kind: AnalyticalDatasetKind;
+  caseCount: number;
+  provenanceLabel: string;
+  sourceSystemLabel?: string | null;
+  description?: string | null;
+  isVirtual: boolean;
+  caseSet?: AnalyticalCaseSetLike | null;
+};
+
+export type ResolvedAnalyticalDataset = {
+  selected: AnalyticalDatasetOption;
+  options: AnalyticalDatasetOption[];
+  selectionMode: AnalyticalDatasetSelectionMode;
+  reason: string;
+};
 
 export type NormalizedCompanyProfileInput = {
   name: string;
@@ -1999,6 +2039,114 @@ export function caseSetEpistemicType(caseSet: {
   if (caseSet.isSynthetic || combined.includes("SYNTHETIC") || combined.includes("SIMULATION")) return "SYNTHETIC";
   if (combined.includes("RECONSTRUCTED") || combined.includes("DERIVED")) return "RECONSTRUCTED";
   return "OBSERVED";
+}
+
+export function analyticalDatasetKind(caseSet: AnalyticalCaseSetLike | null | undefined): AnalyticalDatasetKind {
+  if (!caseSet) return "NONE";
+  const sourceType = String(caseSet.sourceType ?? "").toUpperCase();
+  const combined = [
+    caseSet.sourceType,
+    caseSet.sourceSystemKey,
+    caseSet.sourceSystemLabel,
+    caseSet.provenanceLabel,
+    caseSet.derivationDescription
+  ].join(" ").toUpperCase();
+  if (sourceType === "CANONICAL_SYNTHETIC") return "CANONICAL_SYNTHETIC";
+  if (sourceType === "SYNTHETIC_SIMULATION" || combined.includes("PUBLIC-EVIDENCE-GROUNDED") || combined.includes("SIMULATION")) return "SYNTHETIC_SIMULATION";
+  if (sourceType.includes("PRODUCTION") || sourceType.includes("OBSERVED") || sourceType.includes("LIVE") || combined.includes("COMPANY DATA")) return "OBSERVED_PRODUCTION";
+  const epistemicType = caseSetEpistemicType(caseSet);
+  if (epistemicType === "SYNTHETIC") return "CANONICAL_SYNTHETIC";
+  if (epistemicType === "RECONSTRUCTED") return "RECONSTRUCTED_SOURCED";
+  return "OBSERVED_PRODUCTION";
+}
+
+function analyticalDatasetPriority(kind: AnalyticalDatasetKind) {
+  if (kind === "OBSERVED_PRODUCTION") return 50;
+  if (kind === "RECONSTRUCTED_SOURCED") return 40;
+  if (kind === "SYNTHETIC_SIMULATION") return 30;
+  if (kind === "CANONICAL_SYNTHETIC") return 20;
+  return 0;
+}
+
+function analyticalDatasetOption(caseSet: AnalyticalCaseSetLike, isVirtual = false): AnalyticalDatasetOption {
+  const kind = analyticalDatasetKind(caseSet);
+  return {
+    datasetKey: caseSet.sourceSystemKey || caseSet.id || caseSet.name,
+    caseSetId: isVirtual ? null : caseSet.id ?? null,
+    name: caseSet.name,
+    kind,
+    caseCount: caseSet.caseCount ?? 0,
+    provenanceLabel: caseSet.provenanceLabel || "UNKNOWN / DILIGENCE REQUIRED",
+    sourceSystemLabel: caseSet.sourceSystemLabel,
+    description: caseSet.description,
+    isVirtual,
+    caseSet
+  };
+}
+
+// Maximize analytical usefulness subject to epistemic integrity:
+// expose the richest responsible analytical dataset available, but keep
+// provenance explicit so simulations never become empirical company evidence.
+export function resolveBestAvailableAnalyticalCaseSet({
+  caseSets,
+  requestedCaseSetId,
+  requestedDatasetKey,
+  virtualCaseSets = [],
+  includeNoCaseSet = true
+}: {
+  caseSets: AnalyticalCaseSetLike[];
+  requestedCaseSetId?: string | null;
+  requestedDatasetKey?: string | null;
+  virtualCaseSets?: AnalyticalCaseSetLike[];
+  includeNoCaseSet?: boolean;
+}): ResolvedAnalyticalDataset {
+  const persisted = caseSets.map((caseSet) => analyticalDatasetOption(caseSet, false));
+  const persistedKeys = new Set(persisted.map((option) => option.datasetKey));
+  const virtual = virtualCaseSets
+    .filter((caseSet) => !persistedKeys.has(caseSet.sourceSystemKey || caseSet.id || caseSet.name))
+    .map((caseSet) => analyticalDatasetOption(caseSet, true));
+  const noneOption: AnalyticalDatasetOption = {
+    datasetKey: "public-evidence-only",
+    caseSetId: null,
+    name: "Public evidence only / no CaseSet",
+    kind: "NONE",
+    caseCount: 0,
+    provenanceLabel: "UNKNOWN / DILIGENCE REQUIRED",
+    sourceSystemLabel: "Public evidence only",
+    description: "Restrict Experience to public/company evidence. Case-level diagnostics are unavailable.",
+    isVirtual: true,
+    caseSet: null
+  };
+  const options = [...persisted, ...virtual, ...(includeNoCaseSet ? [noneOption] : [])];
+  const explicit = requestedCaseSetId
+    ? options.find((option) => option.caseSetId === requestedCaseSetId)
+    : requestedDatasetKey
+      ? options.find((option) => option.datasetKey === requestedDatasetKey)
+      : null;
+  if (explicit) {
+    return {
+      selected: explicit,
+      options,
+      selectionMode: "USER_SELECTED",
+      reason: explicit.kind === "NONE"
+        ? "Selected by analyst to inspect public/company evidence without case-level diagnostics."
+        : "Selected by analyst."
+    };
+  }
+
+  const selected = [...options]
+    .filter((option) => option.kind !== "NONE")
+    .sort((a, b) => analyticalDatasetPriority(b.kind) - analyticalDatasetPriority(a.kind) || b.caseCount - a.caseCount || a.name.localeCompare(b.name))[0] ?? noneOption;
+  const reason = selected.kind === "OBSERVED_PRODUCTION"
+    ? "Selected automatically because production case-level data is available."
+    : selected.kind === "RECONSTRUCTED_SOURCED"
+      ? "Selected automatically because reconstructed sourced case-level data is the best available analytical dataset."
+      : selected.kind === "SYNTHETIC_SIMULATION"
+        ? "Selected automatically because no production CaseSet is available."
+        : selected.kind === "CANONICAL_SYNTHETIC"
+          ? "Selected automatically because this is a canonical synthetic theory-test analysis."
+          : "No analytical CaseSet is available.";
+  return { selected, options, selectionMode: "AUTO_SELECTED", reason };
 }
 
 export function casapPublicSimulationCaseSet(caseCount = 300): CaseSetInput {

@@ -2,6 +2,9 @@ import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
 import {
+  buildCasapPublicSimulationCases,
+  CASAP_PUBLIC_EVIDENCE_ANALYSIS,
+  CASAP_PUBLIC_SIMULATION_CASESET_KEY,
   casesForCaseSet,
   deriveDebateCandidates,
   deriveHighestValueDiligenceQueue,
@@ -216,7 +219,7 @@ function editDebateFields(debate: Partial<KeyDebateInput>, index: number) {
 export default async function CompoundingExpertiseDebatesPage({
   searchParams
 }: {
-  searchParams: Promise<{ ai?: string; analysisId?: string; caseSetId?: string }>;
+  searchParams: Promise<{ ai?: string; analysisId?: string; caseSetId?: string; dataset?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
@@ -233,11 +236,26 @@ export default async function CompoundingExpertiseDebatesPage({
     );
   }
 
+  const isCasapPublicAnalysis = analysis.companyName === CASAP_PUBLIC_EVIDENCE_ANALYSIS.analysis.companyName;
+  const virtualSimulationSelected = isCasapPublicAnalysis && params.dataset === CASAP_PUBLIC_SIMULATION_CASESET_KEY && !params.caseSetId;
+  const publicEvidenceOnlySelected = params.dataset === "public-evidence-only" && !params.caseSetId;
   const selectedCaseSet = params.caseSetId
     ? analysis.caseSets.find((caseSet) => caseSet.id === params.caseSetId) ?? null
-    : analysis.caseSets[0] ?? null;
+    : virtualSimulationSelected || publicEvidenceOnlySelected
+      ? null
+      : analysis.caseSets[0] ?? null;
   const rows = analysis.scorebookCases.map(caseInput);
-  const activeRows = casesForCaseSet(rows, selectedCaseSet?.id);
+  const activeRows = virtualSimulationSelected
+    ? buildCasapPublicSimulationCases().map((row) => ({ ...row, caseSetId: CASAP_PUBLIC_SIMULATION_CASESET_KEY }))
+    : publicEvidenceOnlySelected
+      ? []
+      : casesForCaseSet(rows, selectedCaseSet?.id);
+  const datasetSuffix = selectedCaseSet
+    ? `&caseSetId=${selectedCaseSet.id}`
+    : params.dataset
+      ? `&dataset=${params.dataset}`
+      : "";
+  const activeDatasetName = selectedCaseSet?.name ?? (virtualSimulationSelected ? "Casap Public-Evidence-Grounded Simulation V0.1" : "Selected company analysis");
   const debates: KeyDebateInput[] = analysis.keyDebates.map((debate) => ({
     id: debate.id,
     question: debate.question,
@@ -267,7 +285,7 @@ export default async function CompoundingExpertiseDebatesPage({
         active="Key Debates"
         analysisId={analysis.id}
         activeAnalysisLabel={analysis.companyName}
-        activeAnalysisDetail={selectedCaseSet?.name ?? "Selected company analysis"}
+        activeAnalysisDetail={activeDatasetName}
       />
       <Section eyebrow="Key Debates" title="What would change the thesis?">
         <div className="card compoundingStageOrientation">
@@ -491,7 +509,7 @@ export default async function CompoundingExpertiseDebatesPage({
           </details>
           <div className="ctaRow">
             <button className="btn primary" type="submit">Save debate edits</button>
-            <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Back to Experience</Link>
+            <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}${datasetSuffix}`}>Back to Experience</Link>
             <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}`}>Continue to Power</Link>
           </div>
         </form>

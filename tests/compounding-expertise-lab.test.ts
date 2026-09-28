@@ -5,6 +5,7 @@ import {
   COMPETITIVE_INPUTS,
   COMPANY_MODEL_GATES,
   CASAP_PUBLIC_EVIDENCE_ANALYSIS,
+  CASAP_PUBLIC_SIMULATION_CASESET_KEY,
   ENDOGENOUS_INPUTS,
   EXOGENOUS_INPUTS,
   GUIDED_PROVENANCE_LABELS,
@@ -69,6 +70,7 @@ import {
   SIMULATOR_PARAMETER_DEFINITIONS,
   STRESS_TEST_TEMPLATES,
   normalizeAssessment,
+  resolveBestAvailableAnalyticalCaseSet,
   summarizeEvidenceCoverage,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
@@ -1517,6 +1519,126 @@ test("Casap public evidence fixture preserves source-backed facts without manufa
   assert.equal("caseSet" in fixture, false);
   assert.equal("cases" in fixture, false);
   assert.match(fixture.normalized.profile.economicsNotes ?? "", /aggregate public customer metrics/i);
+});
+
+test("best-available analytical dataset resolver follows epistemic priority and honors explicit selection", () => {
+  const observed = {
+    id: "production-cases",
+    name: "Production CaseSet",
+    sourceType: "PRODUCTION",
+    sourceSystemKey: "prod",
+    sourceSystemLabel: "Production import",
+    isSynthetic: false,
+    provenanceLabel: "DERIVED — COMPANY DATA",
+    caseCount: 50
+  };
+  const reconstructed = {
+    id: "reconstructed-cases",
+    name: "Reconstructed CaseSet",
+    sourceType: "RECONSTRUCTED",
+    sourceSystemKey: "reconstructed",
+    sourceSystemLabel: "Data room reconstruction",
+    isSynthetic: false,
+    provenanceLabel: "DERIVED / RECONSTRUCTED — SOURCED",
+    caseCount: 75
+  };
+  const simulation = casapPublicSimulationCaseSet();
+  const canonical = caseSetForExample(exampleById("casap"));
+
+  let resolved = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: [simulation, reconstructed, observed, canonical],
+    virtualCaseSets: [],
+    includeNoCaseSet: true
+  });
+  assert.equal(resolved.selected.caseSetId, "production-cases");
+  assert.equal(resolved.selected.kind, "OBSERVED_PRODUCTION");
+  assert.equal(resolved.selectionMode, "AUTO_SELECTED");
+  assert.match(resolved.reason, /production case-level data/i);
+
+  resolved = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: [simulation, reconstructed, canonical],
+    virtualCaseSets: [],
+    includeNoCaseSet: true
+  });
+  assert.equal(resolved.selected.caseSetId, "reconstructed-cases");
+  assert.equal(resolved.selected.kind, "RECONSTRUCTED_SOURCED");
+
+  resolved = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: [],
+    virtualCaseSets: [simulation],
+    includeNoCaseSet: true
+  });
+  assert.equal(resolved.selected.datasetKey, CASAP_PUBLIC_SIMULATION_CASESET_KEY);
+  assert.equal(resolved.selected.kind, "SYNTHETIC_SIMULATION");
+  assert.equal(resolved.selected.isVirtual, true);
+  assert.equal(resolved.selected.caseSetId, null);
+
+  resolved = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: [canonical],
+    virtualCaseSets: [],
+    includeNoCaseSet: true
+  });
+  assert.equal(resolved.selected.kind, "CANONICAL_SYNTHETIC");
+
+  resolved = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: [observed],
+    requestedDatasetKey: "public-evidence-only",
+    virtualCaseSets: [simulation],
+    includeNoCaseSet: true
+  });
+  assert.equal(resolved.selected.kind, "NONE");
+  assert.equal(resolved.selectionMode, "USER_SELECTED");
+
+  resolved = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: [observed],
+    requestedCaseSetId: "missing",
+    virtualCaseSets: [simulation],
+    includeNoCaseSet: true
+  });
+  assert.equal(resolved.selected.kind, "OBSERVED_PRODUCTION");
+  assert.equal(resolved.selectionMode, "AUTO_SELECTED");
+});
+
+test("Casap public Experience defaults to virtual simulation while preserving public-evidence-only mode", () => {
+  const simulation = casapPublicSimulationCaseSet();
+
+  const defaultResolution = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: [],
+    virtualCaseSets: [simulation],
+    includeNoCaseSet: true
+  });
+  assert.equal(defaultResolution.selected.datasetKey, CASAP_PUBLIC_SIMULATION_CASESET_KEY);
+  assert.equal(defaultResolution.selected.kind, "SYNTHETIC_SIMULATION");
+  assert.equal(defaultResolution.selected.isVirtual, true);
+  assert.equal(defaultResolution.selectionMode, "AUTO_SELECTED");
+  assert.match(defaultResolution.reason, /no production CaseSet/i);
+
+  const publicOnly = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: [],
+    requestedDatasetKey: "public-evidence-only",
+    virtualCaseSets: [simulation],
+    includeNoCaseSet: true
+  });
+  assert.equal(publicOnly.selected.kind, "NONE");
+  assert.equal(publicOnly.selectionMode, "USER_SELECTED");
+  assert.equal(deriveInformationStructure([]).available, false);
+
+  const production = {
+    id: "casap-production",
+    name: "Casap production cases",
+    sourceType: "PRODUCTION",
+    sourceSystemKey: "casap-prod",
+    isSynthetic: false,
+    provenanceLabel: "DERIVED — COMPANY DATA",
+    caseCount: 12
+  };
+  const withProduction = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: [production],
+    virtualCaseSets: [simulation],
+    includeNoCaseSet: true
+  });
+  assert.equal(withProduction.selected.caseSetId, "casap-production");
+  assert.equal(withProduction.selected.kind, "OBSERVED_PRODUCTION");
 });
 
 test("Casap public simulation CaseSet is explicitly synthetic simulation, not production evidence", () => {

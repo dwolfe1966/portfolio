@@ -5,7 +5,9 @@ import {
   SCOREBOOK_CASE_FIELD_CLASSIFICATION,
   applyExperienceSlice,
   buildCaseDetailSequence,
+  buildCasapPublicSimulationCases,
   calculateScorebookMetrics,
+  casapPublicSimulationCaseSet,
   casesForCaseSet,
   deriveCaseFeedbackLatencyDays,
   deriveCaseInspectionReasons,
@@ -20,21 +22,44 @@ import {
   deriveInformationStructure,
   deriveInformationStructureDiligenceQuestions,
   deriveInterestingSlices,
-  caseSetEpistemicType,
+  resolveBestAvailableAnalyticalCaseSet,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
   scorebookRowsAreSyntheticSimulation,
   sourceRouteIsSafe,
   CASAP_PUBLIC_SIMULATION_CASESET_KEY,
+  CASAP_PUBLIC_EVIDENCE_ANALYSIS,
+  type AnalyticalDatasetOption,
+  type AnalyticalDatasetKind,
   type CompoundingCaseGrade,
   type ScorebookCaseInput
 } from "@/lib/compounding-expertise-lab";
-import { loadCasapPublicSimulationCaseSetAction, saveCaseSetAction, saveScorebookAction } from "../actions";
+import { saveCaseSetAction, saveScorebookAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
 export const dynamic = "force-dynamic";
 
 const GRADES: CompoundingCaseGrade[] = ["CORRECT", "PARTIALLY_CORRECT", "INCORRECT", "UNRESOLVED"];
+
+type ExperienceDatasetDisplay = {
+  id?: string | null;
+  name: string;
+  description?: string | null;
+  sourceType?: string | null;
+  sourceSystemLabel?: string | null;
+  sourceRoute?: string | null;
+  modelVersion?: string | null;
+  policyVersion?: string | null;
+  experimentId?: string | null;
+  sourceRunLabel?: string | null;
+  timeWindowStart?: Date | string | null;
+  timeWindowEnd?: Date | string | null;
+  generatedAt?: Date | string | null;
+  importedAt?: Date | string | null;
+  isSynthetic?: boolean | null;
+  provenanceLabel?: string | null;
+  caseCount?: number | null;
+};
 
 function caseInput(row: NonNullable<Awaited<ReturnType<typeof loadCompoundingAnalysis>>>["scorebookCases"][number]): ScorebookCaseInput {
   return {
@@ -168,6 +193,49 @@ function normalized(value: number | null) {
   return value === null ? "Unavailable" : value.toFixed(2);
 }
 
+function datasetKindLabel(kind: AnalyticalDatasetKind) {
+  switch (kind) {
+    case "OBSERVED_PRODUCTION":
+      return "PRODUCTION DATA";
+    case "RECONSTRUCTED_SOURCED":
+      return "RECONSTRUCTED DATA";
+    case "SYNTHETIC_SIMULATION":
+      return "SIMULATED";
+    case "CANONICAL_SYNTHETIC":
+      return "CANONICAL SYNTHETIC";
+    case "NONE":
+      return "PUBLIC EVIDENCE ONLY";
+  }
+}
+
+function datasetHref(analysisId: string, dataset: AnalyticalDatasetOption) {
+  const params = new URLSearchParams({ analysisId });
+  if (dataset.caseSetId) params.set("caseSetId", dataset.caseSetId);
+  else params.set("dataset", dataset.datasetKey);
+  return `/compounding-expertise/scorebook?${params.toString()}`;
+}
+
+function datasetQuerySuffix(dataset: AnalyticalDatasetOption) {
+  if (dataset.caseSetId) return `&caseSetId=${dataset.caseSetId}`;
+  if (dataset.datasetKey) return `&dataset=${dataset.datasetKey}`;
+  return "";
+}
+
+function datasetConsequences(kind: AnalyticalDatasetKind) {
+  switch (kind) {
+    case "OBSERVED_PRODUCTION":
+      return "Enables scorebook metrics, Information Structure, case inspection, and evidence-bearing downstream analysis when provenance supports it.";
+    case "RECONSTRUCTED_SOURCED":
+      return "Enables case-level analysis subject to reconstruction limits. Downstream evidence must retain reconstructed provenance.";
+    case "SYNTHETIC_SIMULATION":
+      return "Enables Experience UX, Information Structure demonstration, and diligence design. Does not establish actual company scorebook properties, learning causality, transfer, or Power.";
+    case "CANONICAL_SYNTHETIC":
+      return "Enables canonical theory-test analysis. Useful for framework validation, not empirical company evidence.";
+    case "NONE":
+      return "Uses public/company evidence only. Case-level diagnostics and Information Structure are unavailable.";
+  }
+}
+
 function InformationNoveltyChart({
   cohorts
 }: {
@@ -206,14 +274,17 @@ function InformationNoveltyChart({
 function sliceHref({
   analysisId,
   caseSetId,
+  datasetKey,
   query
 }: {
   analysisId: string;
   caseSetId?: string | null;
+  datasetKey?: string | null;
   query: Record<string, string>;
 }) {
   const params = new URLSearchParams({ analysisId });
   if (caseSetId) params.set("caseSetId", caseSetId);
+  else if (datasetKey) params.set("dataset", datasetKey);
   Object.entries(query).forEach(([key, value]) => params.set(key, value));
   return `/compounding-expertise/scorebook?${params.toString()}#case-explorer`;
 }
@@ -225,7 +296,7 @@ function CaseDetail({
 }: {
   row: ScorebookCaseInput;
   decisionClassName: string;
-  caseSet: NonNullable<Awaited<ReturnType<typeof loadCompoundingAnalysis>>>["caseSets"][number] | null;
+  caseSet: ExperienceDatasetDisplay | null;
 }) {
   const sequence = buildCaseDetailSequence(row);
   const reasons = deriveCaseInspectionReasons(row);
@@ -370,15 +441,31 @@ export default async function CompoundingExpertiseScorebookPage({
   }
 
   const rows = analysis.scorebookCases.map(caseInput);
-  const isCasapPublicAnalysis = analysis.companyName === "Casap — Public Evidence Analysis — Sep 2026";
-  const observedCaseSets = analysis.caseSets.filter((caseSet) => caseSetEpistemicType(caseSet) !== "SYNTHETIC");
-  const simulationCaseSet = analysis.caseSets.find((caseSet) => caseSet.sourceSystemKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY) ?? null;
-  const selectedCaseSet = params.caseSetId
-    ? analysis.caseSets.find((caseSet) => caseSet.id === params.caseSetId) ?? null
-    : isCasapPublicAnalysis
-      ? observedCaseSets[0] ?? null
-      : analysis.caseSets[0] ?? null;
-  const activeRows = selectedCaseSet ? casesForCaseSet(rows, selectedCaseSet.id) : isCasapPublicAnalysis ? [] : casesForCaseSet(rows, null);
+  const isCasapPublicAnalysis = analysis.companyName === CASAP_PUBLIC_EVIDENCE_ANALYSIS.analysis.companyName;
+  const hasPersistedSimulation = analysis.caseSets.some((caseSet) => caseSet.sourceSystemKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY);
+  const virtualSimulationCaseSet = isCasapPublicAnalysis && !hasPersistedSimulation ? casapPublicSimulationCaseSet() : null;
+  const datasetResolution = resolveBestAvailableAnalyticalCaseSet({
+    caseSets: analysis.caseSets,
+    requestedCaseSetId: params.caseSetId,
+    requestedDatasetKey: params.dataset,
+    virtualCaseSets: virtualSimulationCaseSet ? [virtualSimulationCaseSet] : [],
+    includeNoCaseSet: true
+  });
+  const selectedDataset = datasetResolution.selected;
+  const selectedCaseSet = selectedDataset.caseSetId
+    ? analysis.caseSets.find((caseSet) => caseSet.id === selectedDataset.caseSetId) ?? null
+    : null;
+  const selectedDatasetDisplay: ExperienceDatasetDisplay | null = selectedCaseSet ?? selectedDataset.caseSet ?? null;
+  const virtualSimulationRows = selectedDataset.isVirtual && selectedDataset.datasetKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY
+    ? buildCasapPublicSimulationCases().map((row) => ({ ...row, caseSetId: CASAP_PUBLIC_SIMULATION_CASESET_KEY }))
+    : [];
+  const activeRows = selectedCaseSet
+    ? casesForCaseSet(rows, selectedCaseSet.id)
+    : selectedDataset.kind === "SYNTHETIC_SIMULATION"
+      ? virtualSimulationRows
+      : selectedDataset.kind === "NONE"
+        ? []
+        : casesForCaseSet(rows, null);
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   const metrics = calculateScorebookMetrics(activeRows);
   const derived = scorebookDerivedSimulatorValues(activeRows);
@@ -395,8 +482,14 @@ export default async function CompoundingExpertiseScorebookPage({
   const segments = uniq(activeRows.map((row) => row.customerSegment));
   const caseTypes = uniq(activeRows.map((row) => row.caseType));
   const allSynthetic = scorebookRowsAreSynthetic(activeRows);
-  const simulationMode = Boolean(selectedCaseSet && (caseSetEpistemicType(selectedCaseSet) === "SYNTHETIC" || scorebookRowsAreSyntheticSimulation(activeRows)) && selectedCaseSet.sourceSystemKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY);
-  const safeSourceRoute = selectedCaseSet && sourceRouteIsSafe(selectedCaseSet.sourceRoute) ? selectedCaseSet.sourceRoute : null;
+  const simulationMode = selectedDataset.kind === "SYNTHETIC_SIMULATION";
+  const canonicalSyntheticMode = selectedDataset.kind === "CANONICAL_SYNTHETIC";
+  const publicEvidenceOnlyMode = selectedDataset.kind === "NONE";
+  const analyticalDatasetIsSynthetic = simulationMode || canonicalSyntheticMode || scorebookRowsAreSyntheticSimulation(activeRows);
+  const safeSourceRoute = selectedDatasetDisplay && sourceRouteIsSafe(selectedDatasetDisplay.sourceRoute) ? selectedDatasetDisplay.sourceRoute : null;
+  const selectedDatasetSuffix = datasetQuerySuffix(selectedDataset);
+  const hasObservedProductionCaseSet = datasetResolution.options.some((option) => option.kind === "OBSERVED_PRODUCTION");
+  const hasProductionCaseDataAvailable = hasObservedProductionCaseSet || selectedDataset.kind === "OBSERVED_PRODUCTION";
   const decisionClassNames = new Map(
     analysis.workflows.flatMap((workflow) => workflow.decisionClasses.map((decisionClass) => [decisionClass.id, decisionClass.name] as const))
   );
@@ -407,7 +500,7 @@ export default async function CompoundingExpertiseScorebookPage({
         active="Experience"
         analysisId={analysis?.id}
         activeAnalysisLabel={analysis?.companyName}
-        activeAnalysisDetail={selectedCaseSet?.name ?? "Selected company analysis"}
+        activeAnalysisDetail={selectedDataset.name}
       />
       <Section eyebrow="Experience · CaseSets / Scorebook" title="What operating experience is available?">
         <div className="card compoundingStageOrientation">
@@ -427,36 +520,76 @@ export default async function CompoundingExpertiseScorebookPage({
         <div className="card compoundingCaseSetPanel">
           <div className="compoundingCardHeader">
             <div>
-              <p className="small">Active CaseSet</p>
-              <h3>{selectedCaseSet?.name ?? (isCasapPublicAnalysis ? "No production CaseSet available" : "All scorebook rows")}</h3>
-              <p>{selectedCaseSet?.description ?? (isCasapPublicAnalysis ? "Public evidence is available, but no production decision → action → outcome → grade records have been loaded." : "Rows are not yet assigned to a specific CaseSet.")}</p>
+              <p className="small">Experience dataset</p>
+              <h3>{selectedDataset.name}</h3>
+              <p>{selectedDataset.description ?? (publicEvidenceOnlyMode ? "No case-level analytical dataset is selected." : "Current analytical dataset for scorebook and Information Structure analysis.")}</p>
             </div>
-            {analysis.caseSets.length > 0 ? (
-              <form className="compoundingCaseSetSelector" id="case-set-selector">
-                <input type="hidden" name="analysisId" value={analysis.id} />
-                <label>
-                  Case Set
-                  <select name="caseSetId" defaultValue={selectedCaseSet?.id ?? ""}>
-                    {isCasapPublicAnalysis ? <option value="">No production CaseSet selected</option> : null}
-                    {analysis.caseSets.map((caseSet) => (
-                      <option key={caseSet.id} value={caseSet.id}>{caseSet.name}</option>
-                    ))}
-                  </select>
-                </label>
-                <button className="btn" type="submit">Open case set</button>
-              </form>
-            ) : null}
+            <span className="miniTag">{datasetResolution.selectionMode === "AUTO_SELECTED" ? "AUTO-SELECTED" : "USER-SELECTED"}</span>
           </div>
           <div className="compoundingCaseSetFacts">
-            <span><strong>Source</strong>{selectedCaseSet?.sourceSystemLabel ?? "Manual / mixed"}</span>
-            <span><strong>Cases</strong>{activeRows.length} active rows{selectedCaseSet ? ` / ${selectedCaseSet.caseCount} declared` : ""}</span>
-            <span><strong>Status</strong>{simulationMode ? "SIMULATION MODE — NOT COMPANY DATA" : allSynthetic ? "Synthetic illustrative data" : selectedCaseSet?.isSynthetic ? "Synthetic" : "Company / sourced / user-entered"}</span>
-            <span><strong>Provenance</strong>{selectedCaseSet?.provenanceLabel ?? "No CaseSet provenance recorded"}</span>
-            <span><strong>Time window</strong>{selectedCaseSet ? `${displayDate(selectedCaseSet.timeWindowStart)} -> ${displayDate(selectedCaseSet.timeWindowEnd)}` : "Unavailable"}</span>
-            <span><strong>Model / policy</strong>{selectedCaseSet ? `${selectedCaseSet.modelVersion ?? "No model"} / ${selectedCaseSet.policyVersion ?? "No policy"}` : "Unavailable"}</span>
-            <span><strong>Experiment / run</strong>{selectedCaseSet ? `${selectedCaseSet.experimentId ?? selectedCaseSet.sourceRunLabel ?? "Unavailable"}` : "Unavailable"}</span>
-            <span><strong>Generated / imported</strong>{displayDate(selectedCaseSet?.generatedAt ?? selectedCaseSet?.importedAt)}</span>
+            <span><strong>Type</strong>{datasetKindLabel(selectedDataset.kind)}{analyticalDatasetIsSynthetic ? " · NOT COMPANY DATA" : ""}</span>
+            <span><strong>Cases</strong>{activeRows.length} active rows{selectedDataset.caseCount ? ` / ${selectedDataset.caseCount} declared` : ""}</span>
+            <span><strong>Why selected</strong>{datasetResolution.reason}</span>
+            <span><strong>Source</strong>{selectedDataset.sourceSystemLabel ?? selectedDatasetDisplay?.sourceSystemLabel ?? "Public evidence / manual"}</span>
+            <span><strong>Provenance</strong>{selectedDataset.provenanceLabel}</span>
+            <span><strong>Time window</strong>{selectedDatasetDisplay ? `${displayDate(selectedDatasetDisplay.timeWindowStart)} -> ${displayDate(selectedDatasetDisplay.timeWindowEnd)}` : "Unavailable"}</span>
+            <span><strong>Model / policy</strong>{selectedDatasetDisplay ? `${selectedDatasetDisplay.modelVersion ?? "No model"} / ${selectedDatasetDisplay.policyVersion ?? "No policy"}` : "Unavailable"}</span>
+            <span><strong>Experiment / run</strong>{selectedDatasetDisplay ? `${selectedDatasetDisplay.experimentId ?? selectedDatasetDisplay.sourceRunLabel ?? "Unavailable"}` : "Unavailable"}</span>
           </div>
+          <div className="grid grid-2">
+            <div className="card compact">
+              <p className="small">Company evidence</p>
+              <h3>{isCasapPublicAnalysis ? "PUBLIC SOURCES AVAILABLE" : hasProductionCaseDataAvailable ? "PRODUCTION CASE DATA AVAILABLE" : "COMPANY EVIDENCE STATE"}</h3>
+              <p className="small">
+                {hasProductionCaseDataAvailable
+                  ? "Production case-level records are available for this analysis."
+                  : "Public sources can inform the company model and diligence analysis. They do not provide production decision → action → outcome → grade records for scorebook or Information Structure measurement."}
+              </p>
+              {!hasProductionCaseDataAvailable ? <p className="miniTag">PRODUCTION CASE DATA NOT AVAILABLE</p> : null}
+            </div>
+            <div className="card compact">
+              <p className="small">Epistemic context</p>
+              <div className="compoundingExperienceFunnel" aria-label="Company evidence and analytical dataset ladder">
+                <span><strong>Public evidence</strong><small>available</small></span>
+                <span><strong>{simulationMode ? "Simulated cases" : datasetKindLabel(selectedDataset.kind)}</strong><small>{simulationMode ? "current dataset" : selectedDataset.kind === "NONE" ? "not selected" : "current dataset"}</small></span>
+                <span><strong>Production cases</strong><small>{hasProductionCaseDataAvailable ? "available" : "not available"}</small></span>
+              </div>
+            </div>
+          </div>
+          {simulationMode ? (
+            <details className="compoundingDisclosure">
+              <summary>Why am I seeing simulated data?</summary>
+              <p>
+                The Lab selected this evidence-grounded simulation automatically because no production CaseSet is available.
+                It maximizes analytical usefulness subject to epistemic integrity: the simulation shows what the CE machinery would measure,
+                but it does not become evidence about Casap.
+              </p>
+            </details>
+          ) : null}
+          <details className="compoundingDisclosure" id="case-set-selector">
+            <summary>Change dataset</summary>
+            <div className="grid grid-2">
+              {datasetResolution.options.map((option) => (
+                <div className="card compact" key={option.datasetKey}>
+                  <p className="small">{datasetKindLabel(option.kind)}{option.isVirtual ? " · virtual" : ""}</p>
+                  <h3>{option.name}</h3>
+                  <p>{option.caseCount} cases · {option.provenanceLabel}</p>
+                  <p className="small">{datasetConsequences(option.kind)}</p>
+                  {option.datasetKey === selectedDataset.datasetKey ? (
+                    <span className="miniTag">Currently selected</span>
+                  ) : (
+                    <Link className="btn" href={datasetHref(analysis.id, option)}>Open dataset</Link>
+                  )}
+                </div>
+              ))}
+              <div className="card compact">
+                <p className="small">Production / observed</p>
+                <h3>{hasObservedProductionCaseSet ? "Available above" : "Not connected"}</h3>
+                <p className="small">Import or connect anonymized production/data-room cases when available. This remains future infrastructure in this Lab pass.</p>
+                <button className="btn" type="button" disabled>Import / connect</button>
+              </div>
+            </div>
+          </details>
           {selectedCaseSet ? (
             <details className="compoundingInlineEditor">
               <summary>About this case set</summary>
@@ -493,22 +626,10 @@ export default async function CompoundingExpertiseScorebookPage({
           <button className="btn" type="button" disabled title="External import is planned for a later pass">Upload / import dataset</button>
           <a className="btn" href="#case-set-selector">Choose existing CaseSet</a>
         </div>
-        {isCasapPublicAnalysis && !selectedCaseSet ? (
+        {publicEvidenceOnlyMode ? (
           <div className="card compoundingSyntheticBanner">
-            <strong>No production CaseSet available</strong>
-            <p>
-              Public evidence can establish workflow structure and company claims, but case-level analysis requires decision → action → outcome → grade records.
-              Aggregate public customer metrics are evidence records, not cases.
-            </p>
-            <div className="ctaRow">
-              <form action={loadCasapPublicSimulationCaseSetAction}>
-                <input type="hidden" name="analysisId" value={analysis.id} />
-                <button className="btn primary" type="submit">Explore synthetic simulation</button>
-              </form>
-              {simulationCaseSet ? <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}&caseSetId=${simulationCaseSet.id}#information-structure`}>Open existing simulation</Link> : null}
-              <button className="btn" type="button" disabled title="Production/data-room import is planned for a later pass">Import / connect company CaseSet</button>
-            </div>
-            <p className="small">Load 300 evidence-grounded synthetic cases to explore what CE analysis would look like. This is not a substitute for real diligence.</p>
+            <strong>No case-level analytical dataset selected</strong>
+            <p>Public evidence can establish workflow structure and company claims, but scorebook and Information Structure analysis require decision → action → outcome → grade records.</p>
           </div>
         ) : null}
         {simulationMode ? (
@@ -555,11 +676,8 @@ export default async function CompoundingExpertiseScorebookPage({
             <div className="ctaRow">
               {informationStructure.available ? (
                 <a className="btn" href="#information-structure">Explore information structure ↓</a>
-              ) : isCasapPublicAnalysis ? (
-                <form action={loadCasapPublicSimulationCaseSetAction}>
-                  <input type="hidden" name="analysisId" value={analysis.id} />
-                  <button className="btn primary" type="submit">Explore synthetic simulation</button>
-                </form>
+              ) : isCasapPublicAnalysis && !simulationMode ? (
+                <Link className="btn primary" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}&dataset=${CASAP_PUBLIC_SIMULATION_CASESET_KEY}#information-structure`}>Explore synthetic simulation</Link>
               ) : (
                 <a className="btn" href="#information-structure">View evidence needed</a>
               )}
@@ -712,7 +830,7 @@ export default async function CompoundingExpertiseScorebookPage({
         <p>Use these deterministic slices to jump into the same Case Explorer below. Counts are calculated from the active CaseSet only.</p>
         <div className="compoundingSliceGrid">
           {interestingSlices.map((slice) => {
-            const href = sliceHref({ analysisId: analysis.id, caseSetId: selectedCaseSet?.id, query: slice.query });
+            const href = sliceHref({ analysisId: analysis.id, caseSetId: selectedCaseSet?.id, datasetKey: selectedCaseSet ? null : selectedDataset.datasetKey, query: slice.query });
             return slice.enabled ? (
               <Link className="card compoundingSliceCard" href={href} key={slice.key}>
                 <strong>{slice.label}</strong>
@@ -898,11 +1016,15 @@ export default async function CompoundingExpertiseScorebookPage({
               </div>
             </div>
             <div className="card">
-              <h3>What would we want to know next?</h3>
+              <h3>{simulationMode ? "Questions this simulation suggests asking" : "What would we want to know next?"}</h3>
               <ul>
                 {informationQuestions.map((item) => <li key={item}>{item}</li>)}
               </ul>
-              <p className="small">These questions route toward Marginal Information Value, Cross-Customer Transfer, Learning Causality, and Rebuildability / Compression. Information Structure alone does not answer them.</p>
+              <p className="small">
+                {simulationMode
+                  ? "These are diligence questions suggested by simulated structure, not conclusions about Casap. They route toward Marginal Information Value, Cross-Customer Transfer, Learning Causality, and Rebuildability / Compression."
+                  : "These questions route toward Marginal Information Value, Cross-Customer Transfer, Learning Causality, and Rebuildability / Compression. Information Structure alone does not answer them."}
+              </p>
             </div>
 
             <details className="card compoundingDisclosure">
@@ -943,6 +1065,7 @@ export default async function CompoundingExpertiseScorebookPage({
         <form className="grid grid-4">
           <input type="hidden" name="analysisId" value={analysis.id} />
           {selectedCaseSet ? <input type="hidden" name="caseSetId" value={selectedCaseSet.id} /> : null}
+          {!selectedCaseSet && selectedDataset.datasetKey ? <input type="hidden" name="dataset" value={selectedDataset.datasetKey} /> : null}
           <label>Search<input name="q" defaultValue={params.q ?? ""} placeholder="case id, decision, outcome..." /></label>
           <label>Customer segment<select name="segment" defaultValue={params.segment ?? ""}><option value="">All</option>{segments.map((item) => <option key={item}>{item}</option>)}</select></label>
           <label>Case type<select name="caseType" defaultValue={params.caseType ?? ""}><option value="">All</option>{caseTypes.map((item) => <option key={item}>{item}</option>)}</select></label>
@@ -953,7 +1076,7 @@ export default async function CompoundingExpertiseScorebookPage({
           <label>Source status<select name="synthetic" defaultValue={params.synthetic ?? ""}><option value="">All</option><option value="synthetic">Synthetic</option><option value="non-synthetic">User / sourced</option></select></label>
           <div className="ctaRow" style={{ alignItems: "end" }}>
             <button className="btn" type="submit">Apply filters</button>
-            <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Clear</Link>
+            <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}${selectedDatasetSuffix}`}>Clear</Link>
           </div>
         </form>
       </Section>
@@ -986,7 +1109,7 @@ export default async function CompoundingExpertiseScorebookPage({
                     <td>
                       <details className="compoundingCaseDetailDisclosure">
                         <summary>{row.externalCaseId}</summary>
-                        <CaseDetail row={row} decisionClassName={decisionClassName} caseSet={selectedCaseSet} />
+                        <CaseDetail row={row} decisionClassName={decisionClassName} caseSet={selectedDatasetDisplay} />
                       </details>
                     </td>
                     <td>{decisionClassName}</td>
@@ -1009,10 +1132,11 @@ export default async function CompoundingExpertiseScorebookPage({
         </div>
         <details className="card compoundingDisclosure">
           <summary>Edit dataset mode</summary>
-          <form action={saveScorebookAction}>
-            <input type="hidden" name="analysisId" value={analysis.id} />
-            <div className="tableScroll compoundingScorebookTable">
-              <table className="dataTable compoundingGroupedTable">
+          {selectedCaseSet ? (
+            <form action={saveScorebookAction}>
+              <input type="hidden" name="analysisId" value={analysis.id} />
+              <div className="tableScroll compoundingScorebookTable">
+                <table className="dataTable compoundingGroupedTable">
                 <thead>
                   <tr>
                     <th rowSpan={2}>Row</th>
@@ -1053,12 +1177,18 @@ export default async function CompoundingExpertiseScorebookPage({
                   {filtered.map((row) => <ScorebookRow key={row.id} row={row} />)}
                   <ScorebookRow row={{ caseSetId: selectedCaseSet?.id ?? null, externalCaseId: "", sourceLabel: "User-entered scorebook row", grade: "UNRESOLVED", isSynthetic: false, humanOverride: false, isEdgeCase: false }} blank />
                 </tbody>
-              </table>
-            </div>
-            <div className="ctaRow">
-              <button className="btn primary" type="submit">Save dataset edits</button>
-            </div>
-          </form>
+                </table>
+              </div>
+              <div className="ctaRow">
+                <button className="btn primary" type="submit">Save dataset edits</button>
+              </div>
+            </form>
+          ) : (
+            <p className="small">
+              This analytical dataset is virtual or public-evidence-only, so row editing is disabled here.
+              Import production data or open a persisted CaseSet to edit rows.
+            </p>
+          )}
         </details>
         <div className="grid grid-2">
           <div className="card">
@@ -1070,7 +1200,7 @@ export default async function CompoundingExpertiseScorebookPage({
             <ul>{canCannot.cannotTellUs.map((item) => <li key={item}>{item}</li>)}</ul>
           </div>
         </div>
-        {allSynthetic ? (
+        {allSynthetic && !simulationMode ? (
           <div className="card compoundingSyntheticBanner">
             <strong>This CaseSet tests the analytical framework. It is not evidence about the actual company.</strong>
           </div>
@@ -1082,7 +1212,7 @@ export default async function CompoundingExpertiseScorebookPage({
               Experience describes what the available cases contain. Debates asks which unresolved propositions determine whether that experience becomes durable Compounding Expertise.
             </p>
           </div>
-          <Link className="btn primary" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Continue to Key Debates →</Link>
+          <Link className="btn primary" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedDatasetSuffix}`}>Continue to Key Debates →</Link>
         </div>
       </Section>
 
