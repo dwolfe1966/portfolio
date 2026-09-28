@@ -2993,11 +2993,11 @@ export function deriveCategoricalInformation(rows: ScorebookCaseInput[], field: 
 }
 
 function informationSignatureFields(rows: ScorebookCaseInput[]) {
-  const preferred: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken", "grade"];
+  const preferred: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken"];
   return preferred.filter((field) => rows.some((row) => categoricalValue(row, field) !== null));
 }
 
-export function casePatternSignature(row: ScorebookCaseInput, fields: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken", "grade"]) {
+export function casePatternSignature(row: ScorebookCaseInput, fields: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken"]) {
   return fields.map((field) => `${field}:${categoricalValue(row, field) ?? "MISSING"}`).join(" | ");
 }
 

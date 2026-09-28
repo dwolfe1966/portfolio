@@ -172,10 +172,14 @@ function InformationNoveltyChart({
   if (!cohorts.length) return null;
   const width = 560;
   const height = 180;
-  const maxCases = Math.max(...cohorts.map((cohort) => cohort.cases * cohort.index), 1);
+  const cumulativeCaseCounts = cohorts.reduce<number[]>((counts, cohort) => {
+    counts.push((counts.at(-1) ?? 0) + cohort.cases);
+    return counts;
+  }, []);
+  const maxCases = Math.max(cumulativeCaseCounts.at(-1) ?? 0, 1);
   const maxPatterns = Math.max(...cohorts.map((cohort) => cohort.cumulativeUniquePatterns), 1);
-  const points = cohorts.map((cohort) => {
-    const accumulatedCases = cohorts.slice(0, cohort.index).reduce((sum, item) => sum + item.cases, 0);
+  const points = cohorts.map((cohort, index) => {
+    const accumulatedCases = cumulativeCaseCounts[index];
     const x = 32 + (accumulatedCases / maxCases) * (width - 64);
     const y = height - 28 - (cohort.cumulativeUniquePatterns / maxPatterns) * (height - 56);
     return `${x},${y}`;
@@ -649,7 +653,7 @@ export default async function CompoundingExpertiseScorebookPage({
         </div>
       </Section>
 
-      <Section eyebrow="Information Structure" title="How much is the system actually learning from experience?">
+      <Section eyebrow="Information Structure" title="How much distinct information does accumulated experience contain?">
         <div className="card compoundingStageOrientation">
           <div>
             <p className="small">Question</p>
@@ -657,7 +661,7 @@ export default async function CompoundingExpertiseScorebookPage({
           </div>
           <div>
             <p className="small">What this examines</p>
-            <p>Whether cases are diverse or repetitive, whether new cases expose new structural patterns, and whether recorded attributes contain information about grades.</p>
+            <p>Whether additional experience continues expanding observed information structure, or mostly repeats already represented case patterns.</p>
           </div>
           <div>
             <p className="small">Limit</p>
@@ -687,7 +691,7 @@ export default async function CompoundingExpertiseScorebookPage({
             ) : null}
             <div className="grid grid-4 compoundingDiagnosticsGrid">
               <div className="card">
-                <p className="small">Diversity</p>
+                <p className="small">Most diverse measured dimension</p>
                 <h3>{informationStructure.summary.diversity}</h3>
                 {informationStructure.diversitySummary ? (
                   <>
@@ -772,10 +776,10 @@ export default async function CompoundingExpertiseScorebookPage({
             <details className="card compoundingDisclosure">
               <summary>How Information Structure works</summary>
               <p><strong>Shannon entropy:</strong> H(X) = -sum p(x) log2 p(x). Normalized entropy divides by log2(K) when at least two categories are represented.</p>
-              <p><strong>Case-pattern signature:</strong> V0.1 uses populated categorical fields from decision class, case type, customer segment, action taken, and grade. Missing values are reported separately and are not treated as substantive categories by default.</p>
+              <p><strong>Case-pattern signature:</strong> V0.1 uses populated categorical fields from decision class, case type, customer segment, and action taken. Grade remains an outcome/target variable, not part of the structural pattern signature. Missing values are reported separately and are not treated as substantive categories by default.</p>
               <p><strong>Pattern repetition:</strong> Repeated pattern means identical under the declared V0.1 signature. It does not mean semantic duplication or zero information.</p>
               <p><strong>Structural novelty:</strong> Cases are ordered by decision date, then action date, then outcome date. Each cohort only compares against patterns observed in earlier cohorts, avoiding future leakage.</p>
-              <p><strong>Mutual information:</strong> I(X;Y) describes how much knowing a recorded categorical attribute reduces uncertainty about grade in this CaseSet. It does not imply causality, feature usefulness, model learning, economic value, generalization, or Power.</p>
+              <p><strong>Mutual information:</strong> I(X;Y) describes how much knowing a recorded categorical attribute reduces uncertainty about grade in this CaseSet. V0.1 reports empirical mutual information without finite-sample bias correction, so small or sparse samples are descriptive only. It does not imply causality, feature usefulness, model learning, economic value, generalization, or Power.</p>
               <p><strong>Sample-size conventions:</strong> n &lt; 20 is insufficient for interpretation; 20-49 is small-sample/descriptive only; n ≥ 50 permits descriptive interpretation. Fields with less than 70% coverage are marked limited coverage.</p>
               <p><strong>Future, not implemented here:</strong> strategic compressibility/reconstruction experiments, cross-customer information transfer, and nonstationarity/regime-change diagnostics.</p>
               <p>Information Structure describes statistical structure in the available CaseSet. It does not establish that the system learned from the data, that the information is economically valuable, that it is proprietary, or that competitors cannot reproduce it.</p>

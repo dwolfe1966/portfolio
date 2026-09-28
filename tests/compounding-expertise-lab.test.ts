@@ -41,6 +41,7 @@ import {
   deriveMarginalNovelty,
   deriveOutcomeInformation,
   derivePatternRepetition,
+  casePatternSignature,
   deriveInterestingSlices,
   deriveInvestmentSynthesis,
   deriveCanonicalDebateProfile,
@@ -513,6 +514,10 @@ test("Information Structure mutual information handles independence, association
 });
 
 test("Information Structure pattern repetition is deterministic and active-CaseSet isolated", () => {
+  const sameStructureCorrect = infoRow({ externalCaseId: "same-structure-correct", grade: "CORRECT" });
+  const sameStructureIncorrect = infoRow({ externalCaseId: "same-structure-incorrect", grade: "INCORRECT" });
+  assert.equal(casePatternSignature(sameStructureCorrect), casePatternSignature(sameStructureIncorrect));
+
   const allSame = Array.from({ length: 24 }, (_, index) => infoRow({ externalCaseId: `same-${index}` }));
   const same = derivePatternRepetition(allSame);
   assert.equal(same.uniquePatternCount, 1);
@@ -561,6 +566,10 @@ test("Information Structure marginal novelty uses chronological cohorts without 
   ];
   const renewal = deriveMarginalNovelty(chronologicalRows(renewalPatterns));
   assert.ok(renewal.cohorts.at(-1)!.newPatternSignatures > renewal.cohorts[1].newPatternSignatures);
+
+  const uneven = deriveMarginalNovelty(chronologicalRows(Array.from({ length: 53 }, (_, index) => `uneven-${index}`)));
+  assert.equal(uneven.cohorts.reduce((sum, cohort) => sum + cohort.cases, 0), uneven.usableChronologyCount);
+  assert.equal(uneven.usableChronologyCount, 53);
 
   const noChronology = persistent.map((row) => ({ ...row, decisionAt: null, actionAt: null, outcomeAt: null }));
   const missing = deriveMarginalNovelty(noChronology);
