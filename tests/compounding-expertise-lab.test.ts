@@ -36,6 +36,11 @@ import {
   deriveExperienceSnapshot,
   deriveFeedbackLatencyDistribution,
   deriveGradeDistribution,
+  deriveCategoricalInformation,
+  deriveInformationStructure,
+  deriveMarginalNovelty,
+  deriveOutcomeInformation,
+  derivePatternRepetition,
   deriveInterestingSlices,
   deriveInvestmentSynthesis,
   deriveCanonicalDebateProfile,
@@ -63,6 +68,7 @@ import {
   summarizeEvidenceCoverage,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
+  shannonEntropy,
   simulateComparison,
   simulateScenario,
   sourceRouteIsSafe,
@@ -71,6 +77,7 @@ import {
   summarizeTopStressTestDrivers,
   stressTestRunHref,
   hasExplicitStressTestRunContext,
+  mutualInformation,
   validateAssessment,
   validateScenario,
   validateProbability,
@@ -414,6 +421,189 @@ test("Experience can/cannot-tell-us distinction preserves synthetic fixture cave
   assert.ok(result.cannotTellUs.some((item) => item.includes("not company evidence")));
 });
 
+function infoRow(overrides: Partial<ScorebookCaseInput> = {}): ScorebookCaseInput {
+  return {
+    externalCaseId: overrides.externalCaseId ?? "info-row",
+    caseSetId: overrides.caseSetId ?? "info-set",
+    decisionClassId: overrides.decisionClassId ?? "resolve-dispute",
+    customerSegment: overrides.customerSegment ?? "segment-a",
+    caseType: overrides.caseType ?? "standard",
+    context: overrides.context ?? "Information Structure test row",
+    agentDecision: overrides.agentDecision ?? "approve",
+    agentConfidence: overrides.agentConfidence ?? 0.8,
+    humanDecision: overrides.humanDecision ?? overrides.agentDecision ?? "approve",
+    humanOverride: overrides.humanOverride ?? false,
+    actionTaken: overrides.actionTaken ?? "approve",
+    outcome: overrides.outcome ?? "resolved",
+    outcomeValue: overrides.outcomeValue ?? 100,
+    grade: overrides.grade ?? "CORRECT",
+    gradeConfidence: overrides.gradeConfidence ?? 0.9,
+    decisionAt: overrides.decisionAt ?? new Date("2026-01-01T00:00:00Z"),
+    actionAt: overrides.actionAt ?? new Date("2026-01-02T00:00:00Z"),
+    outcomeAt: overrides.outcomeAt ?? new Date("2026-01-05T00:00:00Z"),
+    isEdgeCase: overrides.isEdgeCase ?? false,
+    isSynthetic: overrides.isSynthetic ?? false,
+    sourceLabel: overrides.sourceLabel ?? "company cases",
+    notes: overrides.notes ?? null
+  };
+}
+
+function chronologicalRows(patterns: string[]) {
+  return patterns.map((pattern, index) => infoRow({
+    externalCaseId: `chrono-${index}`,
+    caseType: pattern,
+    customerSegment: `segment-${index % 2}`,
+    actionTaken: index % 2 ? "deny" : "approve",
+    grade: index % 3 === 0 ? "INCORRECT" : "CORRECT",
+    decisionAt: new Date(Date.UTC(2026, 0, index + 1)),
+    actionAt: new Date(Date.UTC(2026, 0, index + 1, 12)),
+    outcomeAt: new Date(Date.UTC(2026, 0, index + 3))
+  }));
+}
+
+test("Information Structure Shannon entropy handles canonical distributions", () => {
+  assert.equal(shannonEntropy([]), 0);
+  assert.equal(shannonEntropy([10]), 0);
+  assert.equal(shannonEntropy([5, 5]), 1);
+  assert.equal(shannonEntropy([5, 5, 5, 5]), 2);
+  assert.ok(Math.abs(shannonEntropy([9, 3]) - 0.8113) < 0.0002);
+
+  const rows = [
+    ...Array.from({ length: 5 }, (_, index) => infoRow({ externalCaseId: `a-${index}`, caseType: "a" })),
+    ...Array.from({ length: 5 }, (_, index) => infoRow({ externalCaseId: `b-${index}`, caseType: "b" }))
+  ];
+  const diagnostic = deriveCategoricalInformation(rows, "caseType");
+  assert.equal(diagnostic.entropyBits, 1);
+  assert.equal(diagnostic.normalizedEntropy, 1);
+  assert.equal(diagnostic.status, "INSUFFICIENT DATA");
+});
+
+test("Information Structure mutual information handles independence, association, and missing values", () => {
+  const independent = mutualInformation([
+    { x: "a", y: "0" },
+    { x: "a", y: "1" },
+    { x: "b", y: "0" },
+    { x: "b", y: "1" }
+  ]);
+  assert.ok(independent.mutualInformationBits < 0.0001);
+
+  const perfect = mutualInformation([
+    { x: "a", y: "0" },
+    { x: "a", y: "0" },
+    { x: "b", y: "1" },
+    { x: "b", y: "1" }
+  ]);
+  assert.equal(perfect.mutualInformationBits, perfect.outcomeEntropyBits);
+  assert.equal(perfect.normalizedInformation, 1);
+
+  const partial = mutualInformation([
+    { x: "a", y: "0" },
+    { x: "a", y: "0" },
+    { x: "a", y: "1" },
+    { x: "b", y: "1" },
+    { x: "b", y: "1" },
+    { x: null, y: "1" }
+  ]);
+  assert.ok(partial.mutualInformationBits > 0);
+  assert.equal(partial.usableCount, 5);
+
+  const zeroOutcomeEntropy = mutualInformation([{ x: "a", y: "0" }, { x: "b", y: "0" }]);
+  assert.equal(zeroOutcomeEntropy.outcomeEntropyBits, 0);
+  assert.equal(zeroOutcomeEntropy.normalizedInformation, null);
+});
+
+test("Information Structure pattern repetition is deterministic and active-CaseSet isolated", () => {
+  const allSame = Array.from({ length: 24 }, (_, index) => infoRow({ externalCaseId: `same-${index}` }));
+  const same = derivePatternRepetition(allSame);
+  assert.equal(same.uniquePatternCount, 1);
+  assert.equal(same.repeatedPatternCases, 24);
+  assert.equal(same.status, "HIGH REPETITION");
+  assert.match(same.interpretation, /structural repetition/i);
+
+  const allUnique = Array.from({ length: 24 }, (_, index) => infoRow({
+    externalCaseId: `unique-${index}`,
+    caseType: `case-type-${index}`,
+    actionTaken: `action-${index}`,
+    grade: index % 2 ? "CORRECT" : "INCORRECT"
+  }));
+  const unique = derivePatternRepetition(allUnique);
+  assert.equal(unique.uniquePatternCount, 24);
+  assert.equal(unique.repeatedPatternCases, 0);
+  assert.equal(unique.status, "LOW REPETITION");
+
+  const mixedSets = [
+    ...Array.from({ length: 10 }, (_, index) => infoRow({ externalCaseId: `a-${index}`, caseSetId: "a", caseType: "repeat" })),
+    ...Array.from({ length: 10 }, (_, index) => infoRow({ externalCaseId: `b-${index}`, caseSetId: "b", caseType: `unique-${index}` }))
+  ];
+  const activeStructure = deriveInformationStructure(casesForCaseSet(mixedSets, "a"));
+  assert.equal(activeStructure.patternRepetition.uniquePatternCount, 1);
+});
+
+test("Information Structure marginal novelty uses chronological cohorts without future leakage", () => {
+  const persistent = chronologicalRows(Array.from({ length: 50 }, (_, index) => `pattern-${index}`));
+  const persistentNovelty = deriveMarginalNovelty(persistent);
+  assert.equal(persistentNovelty.status, "NOVELTY PERSISTING");
+  assert.equal(persistentNovelty.cohorts[0].newPatternSignatures, 10);
+  assert.equal(persistentNovelty.cohorts.at(-1)!.newPatternSignatures, 10);
+
+  const saturatedPatterns = [
+    ...Array.from({ length: 10 }, (_, index) => `early-${index}`),
+    ...Array.from({ length: 40 }, (_, index) => `early-${index % 10}`)
+  ];
+  const saturation = deriveMarginalNovelty(chronologicalRows(saturatedPatterns));
+  assert.equal(saturation.status, "APPARENT SATURATION");
+  assert.equal(saturation.cohorts[0].newPatternSignatures, 10);
+  assert.equal(saturation.cohorts.at(-1)!.newPatternSignatures, 0);
+
+  const renewalPatterns = [
+    ...Array.from({ length: 30 }, (_, index) => `base-${index % 10}`),
+    ...Array.from({ length: 20 }, (_, index) => `renewal-${index}`)
+  ];
+  const renewal = deriveMarginalNovelty(chronologicalRows(renewalPatterns));
+  assert.ok(renewal.cohorts.at(-1)!.newPatternSignatures > renewal.cohorts[1].newPatternSignatures);
+
+  const noChronology = persistent.map((row) => ({ ...row, decisionAt: null, actionAt: null, outcomeAt: null }));
+  const missing = deriveMarginalNovelty(noChronology);
+  assert.equal(missing.status, "UNAVAILABLE");
+  assert.match(missing.interpretation, /chronology/i);
+});
+
+test("Information Structure Experience integration preserves provenance and no-CaseSet unavailability", () => {
+  const empty = deriveInformationStructure([]);
+  assert.equal(empty.available, false);
+  assert.equal(empty.summary.diversity, "UNAVAILABLE");
+  assert.match(empty.unavailableReason ?? "", /No production CaseSet/i);
+  assert.ok(empty.evidenceNeeded.some((item) => /case-level/i.test(item)));
+  assert.equal(empty.outcomeInformation.status, "UNAVAILABLE");
+
+  const synthetic = deriveInformationStructure(exampleById("casap").cases);
+  assert.equal(synthetic.available, true);
+  assert.equal(synthetic.provenance, "DERIVED — SYNTHETIC FIXTURE");
+  assert.equal(synthetic.sampleState, "SMALL SAMPLE / DESCRIPTIVE ONLY");
+  assert.ok(synthetic.ceInterpretation.some((item) => /not proof|not the same|not model learning|not establish/i.test(item)));
+
+  const missingFields = Array.from({ length: 30 }, (_, index) => infoRow({
+    externalCaseId: `missing-${index}`,
+    caseType: index < 10 ? "known" : "",
+    customerSegment: index < 10 ? "segment" : ""
+  }));
+  const limited = deriveCategoricalInformation(missingFields, "caseType");
+  assert.equal(limited.limitedCoverage, true);
+  assert.equal(limited.status, "INSUFFICIENT DATA");
+});
+
+test("Information Structure outcome information remains descriptive and non-causal", () => {
+  const rows = Array.from({ length: 60 }, (_, index) => infoRow({
+    externalCaseId: `mi-${index}`,
+    actionTaken: index % 2 ? "deny" : "approve",
+    grade: index % 2 ? "INCORRECT" : "CORRECT"
+  }));
+  const outcome = deriveOutcomeInformation(rows);
+  assert.equal(outcome.status, "MEASURABLE");
+  assert.ok(outcome.topAssociations.some((item) => item.xField === "actionTaken" && (item.normalizedInformation ?? 0) > 0.9));
+  assert.match(outcome.interpretation, /association, not causality/i);
+});
+
 test("case inspection reasons flag deterministic row attributes without information-value labels", () => {
   const reasons = deriveCaseInspectionReasons(experienceRows[1]);
   assert.ok(reasons.includes("Human override"));
@@ -576,15 +766,22 @@ test("rebuildability dashboard explicitly shows missing challenger test", () => 
   assert.match(dashboard.sections.map((section) => section.note ?? "").join(" "), /not been empirically tested/i);
 });
 
-test("marginal information dashboard remains pre-Shannon descriptive", () => {
+test("marginal information dashboard consumes Information Structure without resolving the debate", () => {
   const dashboard = deriveDebateEvidenceDashboard({
     analysis: debateAnalysis,
     debates: INITIAL_DEBATES,
     rows: casesForCaseSet(experienceRows, "set-a")
   }, "MARGINAL_INFORMATION_VALUE");
+  const assessment = deriveDebateAssessment({
+    analysis: debateAnalysis,
+    debates: INITIAL_DEBATES,
+    rows: casesForCaseSet(experienceRows, "set-a")
+  }, "MARGINAL_INFORMATION_VALUE");
 
-  assert.match(dashboard.summary, /PRE-SHANNON DESCRIPTIVE EVIDENCE/);
-  assert.doesNotMatch(dashboard.summary, /entropy estimate|information gain estimate/i);
+  assert.match(dashboard.summary, /Information Structure diagnostics are descriptive evidence/i);
+  assert.ok(dashboard.sections.flatMap((section) => section.metrics ?? []).some((metric) => /entropy|Pattern repetition|Structural novelty|Outcome information/i.test(metric.label)));
+  assert.equal(assessment.assessment, "UNPROVEN");
+  assert.doesNotMatch(dashboard.summary, /supported|Power/i);
 });
 
 test("external debate evidence preserves source provenance and direction", () => {

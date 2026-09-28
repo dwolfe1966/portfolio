@@ -596,6 +596,126 @@ export type ExperienceCanCannot = {
   cannotTellUs: string[];
 };
 
+export type InformationSampleState = "UNAVAILABLE" | "INSUFFICIENT DATA" | "SMALL SAMPLE / DESCRIPTIVE ONLY" | "DESCRIPTIVE";
+export type InformationDiversityLabel = "HIGH DIVERSITY" | "MODERATE DIVERSITY" | "CONCENTRATED" | "INSUFFICIENT DATA" | "UNAVAILABLE";
+export type PatternRepetitionLabel = "HIGH REPETITION" | "MODERATE REPETITION" | "LOW REPETITION" | "INSUFFICIENT DATA" | "UNAVAILABLE";
+export type MarginalNoveltyLabel = "NOVELTY PERSISTING" | "NOVELTY DECLINING" | "APPARENT SATURATION" | "INSUFFICIENT DATA" | "UNAVAILABLE";
+export type OutcomeInformationLabel = "MEASURABLE" | "SMALL SAMPLE / DESCRIPTIVE ONLY" | "SPARSE CATEGORIES — INTERPRET CAUTIOUSLY" | "INSUFFICIENT DATA" | "UNAVAILABLE";
+export type InformationStructureFieldKey =
+  | "decisionClass"
+  | "caseType"
+  | "customerSegment"
+  | "actionTaken"
+  | "grade"
+  | "humanOverride"
+  | "edgeCase";
+
+export type CategoricalInformationDiagnostic = {
+  field: InformationStructureFieldKey;
+  label: string;
+  status: InformationDiversityLabel;
+  sampleState: InformationSampleState;
+  usableCount: number;
+  totalCases: number;
+  missingShare: number | null;
+  limitedCoverage: boolean;
+  categoryCount: number;
+  entropyBits: number | null;
+  maxEntropyBits: number | null;
+  normalizedEntropy: number | null;
+  dominantCategory: string | null;
+  dominantShare: number | null;
+  interpretation: string;
+  provenance: GuidedProvenanceLabel;
+};
+
+export type PatternRepetitionDiagnostic = {
+  status: PatternRepetitionLabel;
+  sampleState: InformationSampleState;
+  totalCases: number;
+  signatureFields: string[];
+  uniquePatternCount: number;
+  repeatedPatternCases: number;
+  singletonPatterns: number;
+  repetitionShare: number | null;
+  mostCommonPatterns: Array<{ signature: string; count: number; share: number | null }>;
+  interpretation: string;
+  provenance: GuidedProvenanceLabel;
+};
+
+export type MarginalNoveltyCohort = {
+  index: number;
+  cases: number;
+  previouslyObservedPatterns: number;
+  newPatternSignatures: number;
+  noveltyRate: number | null;
+  cumulativeUniquePatterns: number;
+};
+
+export type MarginalNoveltyDiagnostic = {
+  status: MarginalNoveltyLabel;
+  sampleState: InformationSampleState;
+  totalCases: number;
+  usableChronologyCount: number;
+  chronologyCoverage: number | null;
+  cohortCount: number;
+  cohorts: MarginalNoveltyCohort[];
+  firstCohortNoveltyRate: number | null;
+  latestCohortNoveltyRate: number | null;
+  newestCohortUniqueShare: number | null;
+  interpretation: string;
+  provenance: GuidedProvenanceLabel;
+  unavailableReason?: string;
+};
+
+export type MutualInformationDiagnostic = {
+  xField: InformationStructureFieldKey;
+  xLabel: string;
+  yField: "grade";
+  yLabel: string;
+  status: OutcomeInformationLabel;
+  sampleState: InformationSampleState;
+  usableCount: number;
+  totalCases: number;
+  missingShare: number | null;
+  xCategoryCount: number;
+  yCategoryCount: number;
+  mutualInformationBits: number | null;
+  outcomeEntropyBits: number | null;
+  normalizedInformation: number | null;
+  sparseCategories: boolean;
+  interpretation: string;
+  provenance: GuidedProvenanceLabel;
+};
+
+export type InformationStructureDiagnostic = {
+  available: boolean;
+  totalCases: number;
+  provenance: GuidedProvenanceLabel;
+  sampleState: InformationSampleState;
+  rowsAreSynthetic: boolean;
+  unavailableReason?: string;
+  evidenceNeeded: string[];
+  diversity: CategoricalInformationDiagnostic[];
+  diversitySummary: CategoricalInformationDiagnostic | null;
+  patternRepetition: PatternRepetitionDiagnostic;
+  marginalNovelty: MarginalNoveltyDiagnostic;
+  outcomeInformation: {
+    status: OutcomeInformationLabel;
+    sampleState: InformationSampleState;
+    topAssociations: MutualInformationDiagnostic[];
+    interpretation: string;
+    provenance: GuidedProvenanceLabel;
+  };
+  summary: {
+    diversity: string;
+    patternRepetition: string;
+    marginalNovelty: string;
+    outcomeInformation: string;
+  };
+  ceInterpretation: string[];
+};
+
 export type DebateAssessmentCategory =
   | "SUPPORTED"
   | "LEANING SUPPORTED"
@@ -2756,6 +2876,490 @@ export function deriveScenarioGrounding(rows: ScorebookCaseInput[]): StressTestS
   return "ASSUMPTION-DRIVEN";
 }
 
+const INFORMATION_STRUCTURE_EVIDENCE_NEEDED = [
+  "Anonymized case-level records",
+  "Decision class / case type",
+  "Customer or segment identifier where legally permissible",
+  "Action taken",
+  "Outcome / grade",
+  "Event timestamps",
+  "Human override where relevant"
+];
+
+const INFORMATION_FIELD_LABELS: Record<InformationStructureFieldKey, string> = {
+  decisionClass: "Decision class",
+  caseType: "Case type",
+  customerSegment: "Customer segment",
+  actionTaken: "Action taken",
+  grade: "Grade",
+  humanOverride: "Human override",
+  edgeCase: "Edge-case flag"
+};
+
+function informationSampleState(n: number): InformationSampleState {
+  if (n <= 0) return "UNAVAILABLE";
+  if (n < 20) return "INSUFFICIENT DATA";
+  if (n < 50) return "SMALL SAMPLE / DESCRIPTIVE ONLY";
+  return "DESCRIPTIVE";
+}
+
+function categoricalValue(row: ScorebookCaseInput, field: InformationStructureFieldKey): string | null {
+  if (field === "decisionClass") return nonEmptyString(row.decisionClassId);
+  if (field === "caseType") return nonEmptyString(row.caseType);
+  if (field === "customerSegment") return nonEmptyString(row.customerSegment);
+  if (field === "actionTaken") return nonEmptyString(row.actionTaken);
+  if (field === "grade") return nonEmptyString(row.grade);
+  if (field === "humanOverride") return row.humanOverride ? "Human override" : "No human override";
+  if (field === "edgeCase") return row.isEdgeCase ? "Edge case" : "Not edge case";
+  return null;
+}
+
+function nonEmptyString(value: string | null | undefined) {
+  const trimmed = String(value ?? "").trim();
+  return trimmed ? trimmed : null;
+}
+
+function informationProvenance(rows: ScorebookCaseInput[]): GuidedProvenanceLabel {
+  return caseSetDerivedProvenanceLabel({ hasRows: rows.length > 0, rowsAreSynthetic: scorebookRowsAreSynthetic(rows) });
+}
+
+export function shannonEntropy(counts: number[]): number {
+  const total = counts.reduce((sum, count) => sum + Math.max(0, count), 0);
+  if (total <= 0) return 0;
+  const entropy = counts.reduce((sum, count) => {
+    if (count <= 0) return sum;
+    const p = count / total;
+    return sum - p * Math.log2(p);
+  }, 0);
+  return round(entropy, 4);
+}
+
+function normalizedEntropyLabel(normalizedEntropy: number | null, usableCount: number, categoryCount: number): InformationDiversityLabel {
+  if (usableCount === 0 || categoryCount <= 1) return usableCount === 0 ? "UNAVAILABLE" : "INSUFFICIENT DATA";
+  if (usableCount < 20) return "INSUFFICIENT DATA";
+  if (normalizedEntropy === null) return "UNAVAILABLE";
+  if (normalizedEntropy >= 0.8) return "HIGH DIVERSITY";
+  if (normalizedEntropy >= 0.5) return "MODERATE DIVERSITY";
+  return "CONCENTRATED";
+}
+
+export function deriveCategoricalInformation(rows: ScorebookCaseInput[], field: InformationStructureFieldKey): CategoricalInformationDiagnostic {
+  const totalCases = rows.length;
+  const provenance = informationProvenance(rows);
+  const usableValues = rows.map((row) => categoricalValue(row, field)).filter((value): value is string => Boolean(value));
+  const usableCount = usableValues.length;
+  const missingShare = ratio(totalCases - usableCount, totalCases);
+  const limitedCoverage = totalCases > 0 && usableCount / totalCases < 0.7;
+  const counts = new Map<string, number>();
+  usableValues.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
+  const ordered = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const categoryCount = ordered.length;
+  const entropyBits = categoryCount > 0 ? shannonEntropy(ordered.map(([, count]) => count)) : null;
+  const maxEntropyBits = categoryCount > 1 ? round(Math.log2(categoryCount), 4) : categoryCount === 1 ? 0 : null;
+  const normalizedEntropy = maxEntropyBits && maxEntropyBits > 0 && entropyBits !== null ? round(entropyBits / maxEntropyBits, 4) : null;
+  const dominantCategory = ordered[0]?.[0] ?? null;
+  const dominantShare = ordered[0] ? ratio(ordered[0][1], usableCount) : null;
+  const sampleState = informationSampleState(usableCount);
+  const status = limitedCoverage
+    ? "INSUFFICIENT DATA"
+    : normalizedEntropyLabel(normalizedEntropy, usableCount, categoryCount);
+  const label = INFORMATION_FIELD_LABELS[field];
+  const interpretation = totalCases === 0
+    ? `${label} diversity is unavailable because no active CaseSet rows exist.`
+    : limitedCoverage
+      ? `${label} has limited field coverage: ${usableCount} of ${totalCases} rows contain this field.`
+      : categoryCount <= 1
+        ? `${label} is represented by ${categoryCount} populated category across ${usableCount} usable rows.`
+        : `${label} spans ${categoryCount} categories; the largest category (${dominantCategory}) contains ${Math.round((dominantShare ?? 0) * 100)}% of usable rows.`;
+
+  return {
+    field,
+    label,
+    status,
+    sampleState,
+    usableCount,
+    totalCases,
+    missingShare,
+    limitedCoverage,
+    categoryCount,
+    entropyBits,
+    maxEntropyBits,
+    normalizedEntropy,
+    dominantCategory,
+    dominantShare,
+    interpretation,
+    provenance
+  };
+}
+
+function informationSignatureFields(rows: ScorebookCaseInput[]) {
+  const preferred: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken", "grade"];
+  return preferred.filter((field) => rows.some((row) => categoricalValue(row, field) !== null));
+}
+
+export function casePatternSignature(row: ScorebookCaseInput, fields: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken", "grade"]) {
+  return fields.map((field) => `${field}:${categoricalValue(row, field) ?? "MISSING"}`).join(" | ");
+}
+
+export function derivePatternRepetition(rows: ScorebookCaseInput[]): PatternRepetitionDiagnostic {
+  const totalCases = rows.length;
+  const provenance = informationProvenance(rows);
+  const signatureFields = informationSignatureFields(rows);
+  if (totalCases === 0 || signatureFields.length === 0) {
+    return {
+      status: "UNAVAILABLE",
+      sampleState: "UNAVAILABLE",
+      totalCases,
+      signatureFields: signatureFields.map((field) => INFORMATION_FIELD_LABELS[field]),
+      uniquePatternCount: 0,
+      repeatedPatternCases: 0,
+      singletonPatterns: 0,
+      repetitionShare: null,
+      mostCommonPatterns: [],
+      interpretation: "Pattern repetition is unavailable because no case-level categorical signature can be derived.",
+      provenance
+    };
+  }
+
+  const signatures = rows.map((row) => casePatternSignature(row, signatureFields));
+  const counts = new Map<string, number>();
+  signatures.forEach((signature) => counts.set(signature, (counts.get(signature) ?? 0) + 1));
+  const ordered = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const repeatedPatternCases = ordered.filter(([, count]) => count > 1).reduce((sum, [, count]) => sum + count, 0);
+  const singletonPatterns = ordered.filter(([, count]) => count === 1).length;
+  const repetitionShare = ratio(repeatedPatternCases, totalCases);
+  const sampleState = informationSampleState(totalCases);
+  const status: PatternRepetitionLabel = totalCases < 20
+    ? "INSUFFICIENT DATA"
+    : (repetitionShare ?? 0) >= 0.7
+      ? "HIGH REPETITION"
+      : (repetitionShare ?? 0) >= 0.4
+        ? "MODERATE REPETITION"
+        : "LOW REPETITION";
+
+  return {
+    status,
+    sampleState,
+    totalCases,
+    signatureFields: signatureFields.map((field) => INFORMATION_FIELD_LABELS[field]),
+    uniquePatternCount: ordered.length,
+    repeatedPatternCases,
+    singletonPatterns,
+    repetitionShare,
+    mostCommonPatterns: ordered.slice(0, 5).map(([signature, count]) => ({ signature, count, share: ratio(count, totalCases) })),
+    interpretation: `${repeatedPatternCases} of ${totalCases} cases share a V0.1 case-pattern signature with at least one other case. This estimates structural repetition, not information worthlessness.`,
+    provenance
+  };
+}
+
+function caseEventDate(row: ScorebookCaseInput) {
+  return asDate(row.decisionAt) ?? asDate(row.actionAt) ?? asDate(row.outcomeAt);
+}
+
+export function deriveMarginalNovelty(rows: ScorebookCaseInput[]): MarginalNoveltyDiagnostic {
+  const totalCases = rows.length;
+  const provenance = informationProvenance(rows);
+  const signatureFields = informationSignatureFields(rows);
+  const orderedRows = rows
+    .map((row, index) => ({ row, index, date: caseEventDate(row) }))
+    .filter((item): item is { row: ScorebookCaseInput; index: number; date: Date } => item.date !== null)
+    .sort((a, b) => a.date.getTime() - b.date.getTime() || a.index - b.index);
+  const usableChronologyCount = orderedRows.length;
+  const chronologyCoverage = ratio(usableChronologyCount, totalCases);
+  const sampleState = informationSampleState(usableChronologyCount);
+
+  if (totalCases === 0) {
+    return {
+      status: "UNAVAILABLE",
+      sampleState: "UNAVAILABLE",
+      totalCases,
+      usableChronologyCount,
+      chronologyCoverage,
+      cohortCount: 0,
+      cohorts: [],
+      firstCohortNoveltyRate: null,
+      latestCohortNoveltyRate: null,
+      newestCohortUniqueShare: null,
+      interpretation: "Marginal novelty is unavailable because no active CaseSet rows exist.",
+      provenance,
+      unavailableReason: "No active CaseSet rows."
+    };
+  }
+
+  if (signatureFields.length === 0 || usableChronologyCount < 20 || (chronologyCoverage ?? 0) < 0.7) {
+    const chronologyUnavailable = (chronologyCoverage ?? 0) < 0.7 || signatureFields.length === 0;
+    return {
+      status: chronologyUnavailable ? "UNAVAILABLE" : "INSUFFICIENT DATA",
+      sampleState,
+      totalCases,
+      usableChronologyCount,
+      chronologyCoverage,
+      cohortCount: 0,
+      cohorts: [],
+      firstCohortNoveltyRate: null,
+      latestCohortNoveltyRate: null,
+      newestCohortUniqueShare: null,
+      interpretation: chronologyUnavailable
+        ? "Marginal novelty unavailable — reliable case chronology required."
+        : "Marginal novelty needs at least 20 chronologically ordered cases for V0.1 interpretation.",
+      provenance,
+      unavailableReason: chronologyUnavailable ? "Reliable chronology coverage is below the 70% V0.1 threshold." : "Fewer than 20 chronological cases."
+    };
+  }
+
+  const cohortCount = usableChronologyCount >= 25 ? 5 : 4;
+  const seenPatterns = new Set<string>();
+  const cohorts: MarginalNoveltyCohort[] = [];
+  for (let index = 0; index < cohortCount; index += 1) {
+    const start = Math.floor((index * usableChronologyCount) / cohortCount);
+    const end = Math.floor(((index + 1) * usableChronologyCount) / cohortCount);
+    const cohortRows = orderedRows.slice(start, end).map((item) => item.row);
+    const cohortSignatures = new Set(cohortRows.map((row) => casePatternSignature(row, signatureFields)));
+    const newPatterns = [...cohortSignatures].filter((signature) => !seenPatterns.has(signature));
+    cohorts.push({
+      index: index + 1,
+      cases: cohortRows.length,
+      previouslyObservedPatterns: seenPatterns.size,
+      newPatternSignatures: newPatterns.length,
+      noveltyRate: ratio(newPatterns.length, cohortRows.length),
+      cumulativeUniquePatterns: seenPatterns.size + newPatterns.length
+    });
+    cohortSignatures.forEach((signature) => seenPatterns.add(signature));
+  }
+
+  const firstCohortNoveltyRate = cohorts[0]?.noveltyRate ?? null;
+  const latestCohortNoveltyRate = cohorts.at(-1)?.noveltyRate ?? null;
+  const newestCohortUniqueShare = ratio(cohorts.at(-1)?.newPatternSignatures ?? 0, seenPatterns.size);
+  const decline = firstCohortNoveltyRate !== null && latestCohortNoveltyRate !== null ? firstCohortNoveltyRate - latestCohortNoveltyRate : 0;
+  const status: MarginalNoveltyLabel = usableChronologyCount < 50
+    ? "INSUFFICIENT DATA"
+    : latestCohortNoveltyRate !== null && latestCohortNoveltyRate <= 0.1 && decline >= 0.3
+      ? "APPARENT SATURATION"
+      : decline >= 0.25
+        ? "NOVELTY DECLINING"
+        : "NOVELTY PERSISTING";
+  const interpretation = status === "INSUFFICIENT DATA"
+    ? `V0.1 calculated cohort novelty from ${usableChronologyCount} chronological cases, but treats the sample as descriptive only.`
+    : status === "NOVELTY DECLINING"
+      ? `The first cohort introduced ${Math.round((firstCohortNoveltyRate ?? 0) * 100)} new patterns per 100 cases; the latest introduced ${Math.round((latestCohortNoveltyRate ?? 0) * 100)} per 100.`
+      : status === "APPARENT SATURATION"
+        ? `Recent cohorts add few previously unseen structural patterns under the V0.1 signature. This does not mean the company stopped learning.`
+        : `Recent cohorts continue introducing previously unseen structural patterns under the V0.1 signature.`;
+
+  return {
+    status,
+    sampleState,
+    totalCases,
+    usableChronologyCount,
+    chronologyCoverage,
+    cohortCount,
+    cohorts,
+    firstCohortNoveltyRate,
+    latestCohortNoveltyRate,
+    newestCohortUniqueShare,
+    interpretation,
+    provenance
+  };
+}
+
+export function mutualInformation(pairs: Array<{ x: string | null | undefined; y: string | null | undefined }>) {
+  const usable = pairs
+    .map((pair) => ({ x: nonEmptyString(pair.x), y: nonEmptyString(pair.y) }))
+    .filter((pair): pair is { x: string; y: string } => Boolean(pair.x && pair.y));
+  const n = usable.length;
+  if (n === 0) return { mutualInformationBits: 0, outcomeEntropyBits: 0, normalizedInformation: null, usableCount: 0, xCategoryCount: 0, yCategoryCount: 0, sparseCategories: false };
+  const xCounts = new Map<string, number>();
+  const yCounts = new Map<string, number>();
+  const jointCounts = new Map<string, number>();
+  usable.forEach(({ x, y }) => {
+    xCounts.set(x, (xCounts.get(x) ?? 0) + 1);
+    yCounts.set(y, (yCounts.get(y) ?? 0) + 1);
+    jointCounts.set(`${x}\u0000${y}`, (jointCounts.get(`${x}\u0000${y}`) ?? 0) + 1);
+  });
+  let mi = 0;
+  jointCounts.forEach((count, key) => {
+    const [x, y] = key.split("\u0000");
+    const pxy = count / n;
+    const px = (xCounts.get(x) ?? 0) / n;
+    const py = (yCounts.get(y) ?? 0) / n;
+    if (pxy > 0 && px > 0 && py > 0) mi += pxy * Math.log2(pxy / (px * py));
+  });
+  const outcomeEntropyBits = shannonEntropy([...yCounts.values()]);
+  return {
+    mutualInformationBits: round(mi, 4),
+    outcomeEntropyBits,
+    normalizedInformation: outcomeEntropyBits > 0 ? round(mi / outcomeEntropyBits, 4) : null,
+    usableCount: n,
+    xCategoryCount: xCounts.size,
+    yCategoryCount: yCounts.size,
+    sparseCategories: [...jointCounts.values()].some((count) => count < 3) || jointCounts.size > Math.max(1, n / 2)
+  };
+}
+
+export function deriveOutcomeInformation(rows: ScorebookCaseInput[]): InformationStructureDiagnostic["outcomeInformation"] {
+  const totalCases = rows.length;
+  const provenance = informationProvenance(rows);
+  if (totalCases === 0) {
+    return {
+      status: "UNAVAILABLE",
+      sampleState: "UNAVAILABLE",
+      topAssociations: [],
+      interpretation: "Outcome information is unavailable because no active CaseSet rows exist.",
+      provenance
+    };
+  }
+
+  const candidates: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken", "humanOverride", "edgeCase"];
+  const diagnostics = candidates.map((field): MutualInformationDiagnostic => {
+    const pairs = rows.map((row) => ({ x: categoricalValue(row, field), y: row.grade }));
+    const result = mutualInformation(pairs);
+    const missingShare = ratio(totalCases - result.usableCount, totalCases);
+    const limitedCoverage = totalCases > 0 && result.usableCount / totalCases < 0.7;
+    const sampleState = informationSampleState(result.usableCount);
+    const status: OutcomeInformationLabel = result.usableCount === 0
+      ? "UNAVAILABLE"
+      : result.usableCount < 20 || result.yCategoryCount <= 1 || result.xCategoryCount <= 1
+        ? "INSUFFICIENT DATA"
+        : result.sparseCategories || limitedCoverage
+          ? "SPARSE CATEGORIES — INTERPRET CAUTIOUSLY"
+          : result.usableCount < 50
+            ? "SMALL SAMPLE / DESCRIPTIVE ONLY"
+            : "MEASURABLE";
+    return {
+      xField: field,
+      xLabel: INFORMATION_FIELD_LABELS[field],
+      yField: "grade",
+      yLabel: "Grade",
+      status,
+      sampleState,
+      usableCount: result.usableCount,
+      totalCases,
+      missingShare,
+      xCategoryCount: result.xCategoryCount,
+      yCategoryCount: result.yCategoryCount,
+      mutualInformationBits: result.usableCount > 0 ? result.mutualInformationBits : null,
+      outcomeEntropyBits: result.usableCount > 0 ? result.outcomeEntropyBits : null,
+      normalizedInformation: result.normalizedInformation,
+      sparseCategories: result.sparseCategories || limitedCoverage,
+      interpretation: result.normalizedInformation !== null
+        ? `Knowing ${INFORMATION_FIELD_LABELS[field].toLowerCase()} reduces observed grade uncertainty by ${Math.round(result.normalizedInformation * 100)}% in this CaseSet.`
+        : `${INFORMATION_FIELD_LABELS[field]} cannot currently be compared with grade uncertainty.`,
+      provenance
+    };
+  });
+  const eligible = diagnostics
+    .filter((item) => item.mutualInformationBits !== null && item.usableCount >= 20 && item.xCategoryCount > 1 && item.yCategoryCount > 1)
+    .sort((a, b) => (b.normalizedInformation ?? 0) - (a.normalizedInformation ?? 0) || a.xLabel.localeCompare(b.xLabel))
+    .slice(0, 3);
+  const first = eligible[0];
+  const status: OutcomeInformationLabel = !first
+    ? "INSUFFICIENT DATA"
+    : first.sparseCategories
+      ? "SPARSE CATEGORIES — INTERPRET CAUTIOUSLY"
+      : first.usableCount < 50
+        ? "SMALL SAMPLE / DESCRIPTIVE ONLY"
+        : "MEASURABLE";
+
+  return {
+    status,
+    sampleState: first?.sampleState ?? informationSampleState(totalCases),
+    topAssociations: eligible,
+    interpretation: first
+      ? "Some recorded categorical attributes are descriptively associated with reduced grade uncertainty. This is association, not causality."
+      : "Insufficient data for reliable outcome-information comparison.",
+    provenance
+  };
+}
+
+export function deriveInformationStructureInterpretation(structure: InformationStructureDiagnostic): string[] {
+  if (!structure.available) {
+    return [
+      "Information Structure is a diligence gap: aggregate evidence cannot substitute for case-level records.",
+      "Public customer outcomes may support workflow or economic value, but they cannot estimate diversity, repetition, novelty, or outcome information."
+    ];
+  }
+  const statements: string[] = [];
+  const diversity = structure.diversitySummary;
+  if (diversity && diversity.status !== "UNAVAILABLE" && diversity.status !== "INSUFFICIENT DATA") {
+    statements.push(`The CaseSet spans ${diversity.categoryCount} observed ${diversity.label.toLowerCase()} categories, with ${diversity.status.toLowerCase()} under the V0.1 entropy convention.`);
+  }
+  if (structure.marginalNovelty.status === "NOVELTY DECLINING" || structure.marginalNovelty.status === "APPARENT SATURATION") {
+    statements.push("Recent cohorts are adding fewer new structural patterns. This is relevant to Marginal Information Value, but does not establish low predictive or economic value.");
+  } else if (structure.marginalNovelty.status === "NOVELTY PERSISTING") {
+    statements.push("New cohorts continue introducing previously unseen structural patterns. This is consistent with continued information entering the scorebook, not proof of learning causality.");
+  }
+  if (structure.outcomeInformation.topAssociations.length > 0) {
+    statements.push("Some recorded case attributes are associated with reduced uncertainty about grades. This establishes descriptive predictive structure, not model learning or causal value.");
+  }
+  statements.push("Information exists is not the same as proprietary learning, performance improvement, challenger resistance, or durable Power.");
+  return statements;
+}
+
+export function deriveInformationStructure(rows: ScorebookCaseInput[]): InformationStructureDiagnostic {
+  const totalCases = rows.length;
+  const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
+  const provenance = informationProvenance(rows);
+  if (totalCases === 0) {
+    const emptyPattern = derivePatternRepetition(rows);
+    const emptyNovelty = deriveMarginalNovelty(rows);
+    const emptyOutcome = deriveOutcomeInformation(rows);
+    const unavailable: InformationStructureDiagnostic = {
+      available: false,
+      totalCases,
+      provenance,
+      sampleState: "UNAVAILABLE",
+      rowsAreSynthetic,
+      unavailableReason: "No production CaseSet is available for this analysis. Public aggregate evidence cannot be used to estimate case diversity, pattern repetition, marginal novelty, or outcome information.",
+      evidenceNeeded: INFORMATION_STRUCTURE_EVIDENCE_NEEDED,
+      diversity: [],
+      diversitySummary: null,
+      patternRepetition: emptyPattern,
+      marginalNovelty: emptyNovelty,
+      outcomeInformation: emptyOutcome,
+      summary: {
+        diversity: "UNAVAILABLE",
+        patternRepetition: "UNAVAILABLE",
+        marginalNovelty: "UNAVAILABLE",
+        outcomeInformation: "UNAVAILABLE"
+      },
+      ceInterpretation: []
+    };
+    return { ...unavailable, ceInterpretation: deriveInformationStructureInterpretation(unavailable) };
+  }
+
+  const diversityFields: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken", "grade"];
+  const diversity = diversityFields
+    .map((field) => deriveCategoricalInformation(rows, field))
+    .filter((item) => item.usableCount > 0);
+  const diversitySummary = [...diversity]
+    .filter((item) => item.categoryCount > 1)
+    .sort((a, b) => (b.normalizedEntropy ?? -1) - (a.normalizedEntropy ?? -1) || b.usableCount - a.usableCount)[0] ?? diversity[0] ?? null;
+  const patternRepetition = derivePatternRepetition(rows);
+  const marginalNovelty = deriveMarginalNovelty(rows);
+  const outcomeInformation = deriveOutcomeInformation(rows);
+  const diagnostic: InformationStructureDiagnostic = {
+    available: true,
+    totalCases,
+    provenance,
+    sampleState: informationSampleState(totalCases),
+    rowsAreSynthetic,
+    evidenceNeeded: [],
+    diversity,
+    diversitySummary,
+    patternRepetition,
+    marginalNovelty,
+    outcomeInformation,
+    summary: {
+      diversity: diversitySummary?.status ?? "UNAVAILABLE",
+      patternRepetition: patternRepetition.status,
+      marginalNovelty: marginalNovelty.status,
+      outcomeInformation: outcomeInformation.status
+    },
+    ceInterpretation: []
+  };
+  return { ...diagnostic, ceInterpretation: deriveInformationStructureInterpretation(diagnostic) };
+}
+
 export function deriveExperienceSnapshot(rows: ScorebookCaseInput[]): ExperienceSnapshot {
   const metrics = calculateScorebookMetrics(rows);
   const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
@@ -2857,6 +3461,23 @@ export function deriveExperienceInsights(rows: ScorebookCaseInput[]): Experience
         ? "Feedback is relatively slow under the fixed descriptive threshold."
         : "Feedback timing is moderate under the fixed descriptive threshold.";
     insights.push({ tone: "pattern", statement, support: `Median decision-to-outcome latency is ${metrics.medianFeedbackLatencyDays} days across n=${metrics.feedbackLatencySampleSize}.` });
+  }
+
+  const informationStructure = deriveInformationStructure(rows);
+  if (informationStructure.sampleState === "DESCRIPTIVE") {
+    if (informationStructure.marginalNovelty.status === "NOVELTY DECLINING" || informationStructure.marginalNovelty.status === "APPARENT SATURATION") {
+      insights.push({
+        tone: "caution",
+        statement: "Recent cohorts are introducing fewer new structural patterns.",
+        support: `First cohort novelty ${percentLabel(informationStructure.marginalNovelty.firstCohortNoveltyRate)}; latest cohort ${percentLabel(informationStructure.marginalNovelty.latestCohortNoveltyRate)}.`
+      });
+    } else if (informationStructure.patternRepetition.repetitionShare !== null && informationStructure.patternRepetition.repetitionShare >= 0.75) {
+      insights.push({
+        tone: "caution",
+        statement: "Many cases repeat previously represented structural patterns.",
+        support: `${informationStructure.patternRepetition.repeatedPatternCases} of ${totalCases} cases share a V0.1 pattern signature with another case.`
+      });
+    }
   }
 
   if (scorebookRowsAreSynthetic(rows)) {
@@ -3431,24 +4052,49 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
   }
 
   if (family === "MARGINAL_INFORMATION_VALUE") {
+    const informationStructure = deriveInformationStructure(input.rows);
+    const diversitySummary = informationStructure.diversitySummary;
+    const topOutcomeAssociation = informationStructure.outcomeInformation.topAssociations[0];
     return {
       family,
       title: "Marginal information value evidence dashboard",
-      summary: "PRE-SHANNON DESCRIPTIVE EVIDENCE only. These are precursors, not entropy or marginal-information estimates.",
+      summary: "Information Structure diagnostics are descriptive evidence about the active CaseSet, not proof that additional cases improve future performance.",
       externalEvidence,
       sections: [
         {
-          title: "Pre-Shannon descriptive evidence",
-          note: "Do not infer entropy, information gain, redundancy, or compressibility yet.",
+          title: "Information Structure context",
+          note: "NEW INFORMATION ENTERS THE SCOREBOOK is not the same as THE SYSTEM LEARNS FROM THAT INFORMATION.",
           metrics: [
             { label: "Total cases", value: String(metrics.totalCases), provenance, href: experienceHref },
-            { label: "Edge-case share", value: percentLabel(metrics.edgeCaseShare), sample: `${edgeCaseCount}/${metrics.totalCases}`, provenance, href: experienceHref },
-            { label: "Customer segment diversity", value: String(new Set(input.rows.map((row) => row.customerSegment).filter(Boolean)).size), provenance, href: experienceHref },
-            { label: "Decision-class diversity", value: decisionClassCount ? String(decisionClassCount) : "Unavailable", provenance, href: experienceHref, unavailable: decisionClassCount === 0 },
-            missingMetric("Case volume over time"),
+            informationStructure.available && diversitySummary
+              ? { label: `${diversitySummary.label} entropy`, value: diversitySummary.entropyBits === null ? "Unavailable" : `${round(diversitySummary.entropyBits, 2)} bits`, sample: `${diversitySummary.status}; n=${diversitySummary.usableCount}/${metrics.totalCases}`, provenance, href: experienceHref }
+              : missingMetric("Diversity entropy"),
+            informationStructure.available
+              ? { label: "Pattern repetition", value: percentLabel(informationStructure.patternRepetition.repetitionShare), sample: `${informationStructure.patternRepetition.repeatedPatternCases}/${metrics.totalCases} repeated-pattern cases`, provenance, href: experienceHref }
+              : missingMetric("Pattern repetition"),
+            informationStructure.available
+              ? { label: "Structural novelty", value: informationStructure.marginalNovelty.status, sample: informationStructure.marginalNovelty.latestCohortNoveltyRate === null ? "Reliable chronology required" : `latest cohort ${percentLabel(informationStructure.marginalNovelty.latestCohortNoveltyRate)}`, provenance, href: experienceHref }
+              : missingMetric("Structural novelty"),
+            topOutcomeAssociation
+              ? { label: `${topOutcomeAssociation.xLabel} → grade`, value: topOutcomeAssociation.normalizedInformation === null ? "Unavailable" : `${Math.round(topOutcomeAssociation.normalizedInformation * 100)}% uncertainty reduction`, sample: `${round(topOutcomeAssociation.mutualInformationBits ?? 0, 2)} bits; ${topOutcomeAssociation.status}`, provenance, href: experienceHref }
+              : missingMetric("Outcome information"),
             missingMetric("Marginal-information experiment")
           ],
-          bars: deriveActionDistribution(input.rows, 5).map((item) => ({ label: item.label, value: `${item.count} cases`, count: item.count, share: item.share, href: experienceHref }))
+          bars: informationStructure.marginalNovelty.cohorts.map((cohort) => ({
+            label: `Cohort ${cohort.index}`,
+            value: `${cohort.newPatternSignatures} new patterns · novelty ${percentLabel(cohort.noveltyRate)}`,
+            count: cohort.newPatternSignatures,
+            share: cohort.noveltyRate,
+            href: experienceHref
+          }))
+        },
+        {
+          title: "Interpretation limits",
+          note: "Entropy, repetition, novelty, and mutual information do not establish learning causality, cross-customer transfer, compressibility, or durable Power.",
+          metrics: [
+            { label: "Learning-causality separation", value: "Context only", sample: "Information Structure evaluates scorebook contents, not whether the system learned from them.", provenance, href: companyHref },
+            { label: "Power separation", value: "No direct Power inference", sample: "Information exists is not the same as proprietary, performance-improving, irreproducible information.", provenance, href: companyHref }
+          ]
         }
       ]
     };

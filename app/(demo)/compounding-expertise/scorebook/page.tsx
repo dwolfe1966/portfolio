@@ -17,6 +17,7 @@ import {
   deriveExperienceSnapshot,
   deriveFeedbackLatencyDistribution,
   deriveGradeDistribution,
+  deriveInformationStructure,
   deriveInterestingSlices,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
@@ -153,6 +154,45 @@ function metricCard(label: string, value: string, sample: string) {
 
 function barWidth(share: number | null) {
   return `${Math.max(3, Math.round((share ?? 0) * 100))}%`;
+}
+
+function bits(value: number | null) {
+  return value === null ? "Unavailable" : `${value.toFixed(2)} bits`;
+}
+
+function normalized(value: number | null) {
+  return value === null ? "Unavailable" : value.toFixed(2);
+}
+
+function InformationNoveltyChart({
+  cohorts
+}: {
+  cohorts: ReturnType<typeof deriveInformationStructure>["marginalNovelty"]["cohorts"];
+}) {
+  if (!cohorts.length) return null;
+  const width = 560;
+  const height = 180;
+  const maxCases = Math.max(...cohorts.map((cohort) => cohort.cases * cohort.index), 1);
+  const maxPatterns = Math.max(...cohorts.map((cohort) => cohort.cumulativeUniquePatterns), 1);
+  const points = cohorts.map((cohort) => {
+    const accumulatedCases = cohorts.slice(0, cohort.index).reduce((sum, item) => sum + item.cases, 0);
+    const x = 32 + (accumulatedCases / maxCases) * (width - 64);
+    const y = height - 28 - (cohort.cumulativeUniquePatterns / maxPatterns) * (height - 56);
+    return `${x},${y}`;
+  }).join(" ");
+  return (
+    <svg className="compoundingInfoChart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Cumulative unique case patterns by accumulated cases">
+      <line x1="32" y1={height - 28} x2={width - 24} y2={height - 28} stroke="currentColor" strokeOpacity="0.25" />
+      <line x1="32" y1="20" x2="32" y2={height - 28} stroke="currentColor" strokeOpacity="0.25" />
+      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+      {cohorts.map((cohort, index) => {
+        const [x, y] = points.split(" ")[index].split(",").map(Number);
+        return <circle key={cohort.index} cx={x} cy={y} r="4" fill="currentColor" />;
+      })}
+      <text x="34" y="18" fontSize="11" fill="currentColor">Observed pattern space</text>
+      <text x={width - 190} y={height - 8} fontSize="11" fill="currentColor">Accumulated cases</text>
+    </svg>
+  );
 }
 
 function sliceHref({
@@ -337,6 +377,7 @@ export default async function CompoundingExpertiseScorebookPage({
   const interestingSlices = deriveInterestingSlices(activeRows);
   const experienceQuality = deriveExperienceCoverage(activeRows, snapshot.provenance);
   const canCannot = deriveExperienceCanCannot(activeRows);
+  const informationStructure = deriveInformationStructure(activeRows);
   const segments = uniq(activeRows.map((row) => row.customerSegment));
   const caseTypes = uniq(activeRows.map((row) => row.caseType));
   const allSynthetic = scorebookRowsAreSynthetic(activeRows);
@@ -606,6 +647,141 @@ export default async function CompoundingExpertiseScorebookPage({
             );
           })}
         </div>
+      </Section>
+
+      <Section eyebrow="Information Structure" title="How much is the system actually learning from experience?">
+        <div className="card compoundingStageOrientation">
+          <div>
+            <p className="small">Question</p>
+            <p>A large scorebook is not necessarily an informative scorebook.</p>
+          </div>
+          <div>
+            <p className="small">What this examines</p>
+            <p>Whether cases are diverse or repetitive, whether new cases expose new structural patterns, and whether recorded attributes contain information about grades.</p>
+          </div>
+          <div>
+            <p className="small">Limit</p>
+            <p>These diagnostics do not establish learning causality, model improvement, cross-customer transfer, or durable Power.</p>
+          </div>
+        </div>
+
+        {!informationStructure.available ? (
+          <div className="card compoundingSyntheticBanner">
+            <strong>Information Structure unavailable</strong>
+            <p>{informationStructure.unavailableReason}</p>
+            <p className="small">
+              Public customer outcomes and external evidence can describe workflow or economic value, but they cannot substitute for case-level data when estimating information structure.
+            </p>
+            <h3>Evidence needed</h3>
+            <ul>
+              {informationStructure.evidenceNeeded.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </div>
+        ) : (
+          <>
+            {informationStructure.rowsAreSynthetic ? (
+              <div className="card compoundingSyntheticBanner">
+                <strong>DERIVED — SYNTHETIC FIXTURE</strong>
+                <p>Illustrative diagnostic calculated from synthetic fixture cases. Not evidence about the actual company.</p>
+              </div>
+            ) : null}
+            <div className="grid grid-4 compoundingDiagnosticsGrid">
+              <div className="card">
+                <p className="small">Diversity</p>
+                <h3>{informationStructure.summary.diversity}</h3>
+                {informationStructure.diversitySummary ? (
+                  <>
+                    <p>{informationStructure.diversitySummary.interpretation}</p>
+                    <p className="small">
+                      Entropy {bits(informationStructure.diversitySummary.entropyBits)} · max {bits(informationStructure.diversitySummary.maxEntropyBits)} · normalized {normalized(informationStructure.diversitySummary.normalizedEntropy)} · n={informationStructure.diversitySummary.usableCount}
+                    </p>
+                    <p className="miniTag">{informationStructure.diversitySummary.provenance}</p>
+                  </>
+                ) : <p>No populated categorical diversity dimension is available.</p>}
+              </div>
+              <div className="card">
+                <p className="small">Pattern repetition</p>
+                <h3>{informationStructure.patternRepetition.status}</h3>
+                <p>{informationStructure.patternRepetition.interpretation}</p>
+                <p className="small">
+                  {informationStructure.patternRepetition.uniquePatternCount} unique patterns · {informationStructure.patternRepetition.singletonPatterns} singleton patterns · repeated-pattern share {pct(informationStructure.patternRepetition.repetitionShare)}
+                </p>
+                <p className="miniTag">{informationStructure.patternRepetition.provenance}</p>
+              </div>
+              <div className="card">
+                <p className="small">Structural novelty</p>
+                <h3>{informationStructure.marginalNovelty.status}</h3>
+                <p>{informationStructure.marginalNovelty.interpretation}</p>
+                <p className="small">
+                  First cohort {pct(informationStructure.marginalNovelty.firstCohortNoveltyRate)} · latest cohort {pct(informationStructure.marginalNovelty.latestCohortNoveltyRate)} · chronology n={informationStructure.marginalNovelty.usableChronologyCount}/{informationStructure.totalCases}
+                </p>
+                <p className="miniTag">{informationStructure.marginalNovelty.provenance}</p>
+              </div>
+              <div className="card">
+                <p className="small">Outcome information</p>
+                <h3>{informationStructure.outcomeInformation.status}</h3>
+                <p>{informationStructure.outcomeInformation.interpretation}</p>
+                {informationStructure.outcomeInformation.topAssociations[0] ? (
+                  <p className="small">
+                    Top association: {informationStructure.outcomeInformation.topAssociations[0].xLabel} → Grade · {bits(informationStructure.outcomeInformation.topAssociations[0].mutualInformationBits)} · {pct(informationStructure.outcomeInformation.topAssociations[0].normalizedInformation)} observed uncertainty reduction
+                  </p>
+                ) : <p className="small">Insufficient data for reliable comparison.</p>}
+                <p className="miniTag">DESCRIPTIVE ASSOCIATION — NOT CAUSAL EVIDENCE</p>
+              </div>
+            </div>
+
+            {informationStructure.marginalNovelty.cohorts.length ? (
+              <div className="card">
+                <h3>Accumulated experience → observed pattern space</h3>
+                <InformationNoveltyChart cohorts={informationStructure.marginalNovelty.cohorts} />
+                <div className="compoundingBarList">
+                  {informationStructure.marginalNovelty.cohorts.map((cohort) => (
+                    <span key={cohort.index}>
+                      <strong>Cohort {cohort.index}</strong>
+                      <small>{cohort.cases} cases · {cohort.newPatternSignatures} new patterns · novelty {pct(cohort.noveltyRate)}</small>
+                      <i style={{ width: barWidth(cohort.noveltyRate) }} />
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="grid grid-2">
+              <div className="card">
+                <h3>Most outcome-informative recorded dimensions</h3>
+                {informationStructure.outcomeInformation.topAssociations.length ? (
+                  <div className="compoundingBarList">
+                    {informationStructure.outcomeInformation.topAssociations.map((item) => (
+                      <span key={item.xField}>
+                        <strong>{item.xLabel} → Grade</strong>
+                        <small>{pct(item.normalizedInformation)} observed grade-uncertainty reduction · {bits(item.mutualInformationBits)} · n={item.usableCount}</small>
+                        <i style={{ width: barWidth(item.normalizedInformation) }} />
+                      </span>
+                    ))}
+                  </div>
+                ) : <p>Insufficient data for reliable comparison.</p>}
+              </div>
+              <div className="card">
+                <h3>What this means for CE</h3>
+                <ul>
+                  {informationStructure.ceInterpretation.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </div>
+            </div>
+
+            <details className="card compoundingDisclosure">
+              <summary>How Information Structure works</summary>
+              <p><strong>Shannon entropy:</strong> H(X) = -sum p(x) log2 p(x). Normalized entropy divides by log2(K) when at least two categories are represented.</p>
+              <p><strong>Case-pattern signature:</strong> V0.1 uses populated categorical fields from decision class, case type, customer segment, action taken, and grade. Missing values are reported separately and are not treated as substantive categories by default.</p>
+              <p><strong>Pattern repetition:</strong> Repeated pattern means identical under the declared V0.1 signature. It does not mean semantic duplication or zero information.</p>
+              <p><strong>Structural novelty:</strong> Cases are ordered by decision date, then action date, then outcome date. Each cohort only compares against patterns observed in earlier cohorts, avoiding future leakage.</p>
+              <p><strong>Mutual information:</strong> I(X;Y) describes how much knowing a recorded categorical attribute reduces uncertainty about grade in this CaseSet. It does not imply causality, feature usefulness, model learning, economic value, generalization, or Power.</p>
+              <p><strong>Sample-size conventions:</strong> n &lt; 20 is insufficient for interpretation; 20-49 is small-sample/descriptive only; n ≥ 50 permits descriptive interpretation. Fields with less than 70% coverage are marked limited coverage.</p>
+              <p><strong>Future, not implemented here:</strong> strategic compressibility/reconstruction experiments, cross-customer information transfer, and nonstationarity/regime-change diagnostics.</p>
+              <p>Information Structure describes statistical structure in the available CaseSet. It does not establish that the system learned from the data, that the information is economically valuable, that it is proprietary, or that competitors cannot reproduce it.</p>
+            </details>
+          </>
+        )}
       </Section>
 
       <Section title="Create CaseSet">
