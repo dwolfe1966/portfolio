@@ -18,14 +18,18 @@ import {
   deriveFeedbackLatencyDistribution,
   deriveGradeDistribution,
   deriveInformationStructure,
+  deriveInformationStructureDiligenceQuestions,
   deriveInterestingSlices,
+  caseSetEpistemicType,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
+  scorebookRowsAreSyntheticSimulation,
   sourceRouteIsSafe,
+  CASAP_PUBLIC_SIMULATION_CASESET_KEY,
   type CompoundingCaseGrade,
   type ScorebookCaseInput
 } from "@/lib/compounding-expertise-lab";
-import { saveCaseSetAction, saveScorebookAction } from "../actions";
+import { loadCasapPublicSimulationCaseSetAction, saveCaseSetAction, saveScorebookAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
 export const dynamic = "force-dynamic";
@@ -366,10 +370,15 @@ export default async function CompoundingExpertiseScorebookPage({
   }
 
   const rows = analysis.scorebookCases.map(caseInput);
+  const isCasapPublicAnalysis = analysis.companyName === "Casap — Public Evidence Analysis — Sep 2026";
+  const observedCaseSets = analysis.caseSets.filter((caseSet) => caseSetEpistemicType(caseSet) !== "SYNTHETIC");
+  const simulationCaseSet = analysis.caseSets.find((caseSet) => caseSet.sourceSystemKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY) ?? null;
   const selectedCaseSet = params.caseSetId
     ? analysis.caseSets.find((caseSet) => caseSet.id === params.caseSetId) ?? null
-    : analysis.caseSets[0] ?? null;
-  const activeRows = casesForCaseSet(rows, selectedCaseSet?.id);
+    : isCasapPublicAnalysis
+      ? observedCaseSets[0] ?? null
+      : analysis.caseSets[0] ?? null;
+  const activeRows = selectedCaseSet ? casesForCaseSet(rows, selectedCaseSet.id) : isCasapPublicAnalysis ? [] : casesForCaseSet(rows, null);
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   const metrics = calculateScorebookMetrics(activeRows);
   const derived = scorebookDerivedSimulatorValues(activeRows);
@@ -382,9 +391,11 @@ export default async function CompoundingExpertiseScorebookPage({
   const experienceQuality = deriveExperienceCoverage(activeRows, snapshot.provenance);
   const canCannot = deriveExperienceCanCannot(activeRows);
   const informationStructure = deriveInformationStructure(activeRows);
+  const informationQuestions = deriveInformationStructureDiligenceQuestions(informationStructure);
   const segments = uniq(activeRows.map((row) => row.customerSegment));
   const caseTypes = uniq(activeRows.map((row) => row.caseType));
   const allSynthetic = scorebookRowsAreSynthetic(activeRows);
+  const simulationMode = Boolean(selectedCaseSet && (caseSetEpistemicType(selectedCaseSet) === "SYNTHETIC" || scorebookRowsAreSyntheticSimulation(activeRows)) && selectedCaseSet.sourceSystemKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY);
   const safeSourceRoute = selectedCaseSet && sourceRouteIsSafe(selectedCaseSet.sourceRoute) ? selectedCaseSet.sourceRoute : null;
   const decisionClassNames = new Map(
     analysis.workflows.flatMap((workflow) => workflow.decisionClasses.map((decisionClass) => [decisionClass.id, decisionClass.name] as const))
@@ -417,15 +428,16 @@ export default async function CompoundingExpertiseScorebookPage({
           <div className="compoundingCardHeader">
             <div>
               <p className="small">Active CaseSet</p>
-              <h3>{selectedCaseSet?.name ?? "All scorebook rows"}</h3>
-              <p>{selectedCaseSet?.description ?? "Rows are not yet assigned to a specific CaseSet."}</p>
+              <h3>{selectedCaseSet?.name ?? (isCasapPublicAnalysis ? "No production CaseSet available" : "All scorebook rows")}</h3>
+              <p>{selectedCaseSet?.description ?? (isCasapPublicAnalysis ? "Public evidence is available, but no production decision → action → outcome → grade records have been loaded." : "Rows are not yet assigned to a specific CaseSet.")}</p>
             </div>
-            {analysis.caseSets.length > 1 ? (
+            {analysis.caseSets.length > 0 ? (
               <form className="compoundingCaseSetSelector" id="case-set-selector">
                 <input type="hidden" name="analysisId" value={analysis.id} />
                 <label>
                   Case Set
                   <select name="caseSetId" defaultValue={selectedCaseSet?.id ?? ""}>
+                    {isCasapPublicAnalysis ? <option value="">No production CaseSet selected</option> : null}
                     {analysis.caseSets.map((caseSet) => (
                       <option key={caseSet.id} value={caseSet.id}>{caseSet.name}</option>
                     ))}
@@ -438,7 +450,7 @@ export default async function CompoundingExpertiseScorebookPage({
           <div className="compoundingCaseSetFacts">
             <span><strong>Source</strong>{selectedCaseSet?.sourceSystemLabel ?? "Manual / mixed"}</span>
             <span><strong>Cases</strong>{activeRows.length} active rows{selectedCaseSet ? ` / ${selectedCaseSet.caseCount} declared` : ""}</span>
-            <span><strong>Status</strong>{allSynthetic ? "Synthetic illustrative data" : selectedCaseSet?.isSynthetic ? "Synthetic" : "Company / sourced / user-entered"}</span>
+            <span><strong>Status</strong>{simulationMode ? "SIMULATION MODE — NOT COMPANY DATA" : allSynthetic ? "Synthetic illustrative data" : selectedCaseSet?.isSynthetic ? "Synthetic" : "Company / sourced / user-entered"}</span>
             <span><strong>Provenance</strong>{selectedCaseSet?.provenanceLabel ?? "No CaseSet provenance recorded"}</span>
             <span><strong>Time window</strong>{selectedCaseSet ? `${displayDate(selectedCaseSet.timeWindowStart)} -> ${displayDate(selectedCaseSet.timeWindowEnd)}` : "Unavailable"}</span>
             <span><strong>Model / policy</strong>{selectedCaseSet ? `${selectedCaseSet.modelVersion ?? "No model"} / ${selectedCaseSet.policyVersion ?? "No policy"}` : "Unavailable"}</span>
@@ -481,7 +493,33 @@ export default async function CompoundingExpertiseScorebookPage({
           <button className="btn" type="button" disabled title="External import is planned for a later pass">Upload / import dataset</button>
           <a className="btn" href="#case-set-selector">Choose existing CaseSet</a>
         </div>
-        {allSynthetic ? (
+        {isCasapPublicAnalysis && !selectedCaseSet ? (
+          <div className="card compoundingSyntheticBanner">
+            <strong>No production CaseSet available</strong>
+            <p>
+              Public evidence can establish workflow structure and company claims, but case-level analysis requires decision → action → outcome → grade records.
+              Aggregate public customer metrics are evidence records, not cases.
+            </p>
+            <div className="ctaRow">
+              <form action={loadCasapPublicSimulationCaseSetAction}>
+                <input type="hidden" name="analysisId" value={analysis.id} />
+                <button className="btn primary" type="submit">Explore synthetic simulation</button>
+              </form>
+              {simulationCaseSet ? <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}&caseSetId=${simulationCaseSet.id}#information-structure`}>Open existing simulation</Link> : null}
+              <button className="btn" type="button" disabled title="Production/data-room import is planned for a later pass">Import / connect company CaseSet</button>
+            </div>
+            <p className="small">Load 300 evidence-grounded synthetic cases to explore what CE analysis would look like. This is not a substitute for real diligence.</p>
+          </div>
+        ) : null}
+        {simulationMode ? (
+          <div className="card compoundingSyntheticBanner">
+            <strong>SIMULATION MODE — SYNTHETIC — PUBLIC-EVIDENCE-GROUNDED — NOT COMPANY DATA</strong>
+            <p>
+              These cases illustrate what the publicly documented dispute/fraud workflow might look like as a scorebook.
+              They are not Casap production records and must not be used as empirical evidence about Casap.
+            </p>
+          </div>
+        ) : allSynthetic ? (
           <div className="card compoundingSyntheticBanner">
             <strong>SYNTHETIC ILLUSTRATIVE DATA — NOT COMPANY DATA</strong>
             <p>
@@ -490,6 +528,45 @@ export default async function CompoundingExpertiseScorebookPage({
             </p>
           </div>
         ) : null}
+      </Section>
+
+      <Section title="Scorebook Structure + Information Structure">
+        <div className="grid grid-2">
+          <div className="card">
+            <p className="small">Scorebook Structure</p>
+            <h3>What experience has accumulated?</h3>
+            <div className="compoundingCaseSetFacts">
+              <span><strong>Cases</strong>{snapshot.totalCases}</span>
+              <span><strong>Outcomes</strong>{snapshot.outcomesObserved}/{snapshot.totalCases}</span>
+              <span><strong>Grades</strong>{snapshot.gradedCases}/{snapshot.totalCases}</span>
+              <span><strong>Feedback</strong>{snapshot.medianFeedbackLatencyDays === null ? "Unavailable" : `${snapshot.medianFeedbackLatencyDays}d median`}</span>
+            </div>
+            <p className="miniTag">{snapshot.provenance}</p>
+          </div>
+          <div className="card" id="information-structure-summary">
+            <p className="small">Information Structure · Shannon diagnostics</p>
+            <h3>How much distinct information does that experience contain?</h3>
+            <div className="compoundingCaseSetFacts">
+              <span><strong>Diversity</strong>{informationStructure.summary.diversity}</span>
+              <span><strong>Repetition</strong>{informationStructure.summary.patternRepetition}</span>
+              <span><strong>Novelty</strong>{informationStructure.summary.marginalNovelty}</span>
+              <span><strong>Outcome information</strong>{informationStructure.summary.outcomeInformation}</span>
+            </div>
+            <div className="ctaRow">
+              {informationStructure.available ? (
+                <a className="btn" href="#information-structure">Explore information structure ↓</a>
+              ) : isCasapPublicAnalysis ? (
+                <form action={loadCasapPublicSimulationCaseSetAction}>
+                  <input type="hidden" name="analysisId" value={analysis.id} />
+                  <button className="btn primary" type="submit">Explore synthetic simulation</button>
+                </form>
+              ) : (
+                <a className="btn" href="#information-structure">View evidence needed</a>
+              )}
+            </div>
+            <p className="small">Case volume is not the same thing as information volume. These diagnostics are descriptive, not proof of learning or Power.</p>
+          </div>
+        </div>
       </Section>
 
       <Section title="Experience Snapshot">
@@ -601,16 +678,16 @@ export default async function CompoundingExpertiseScorebookPage({
           </p>
         </div>
         <details className="card compoundingDisclosure">
-          <summary>Future information diagnostics</summary>
+          <summary>Future layers not implemented here</summary>
           <p className="small">
-            This page keeps the case and DecisionClass links needed for future information-theoretic work, but does not calculate those metrics yet.
+            Information Structure now describes diversity, repetition, structural novelty, and descriptive outcome information.
+            Future layers still require separate experiments or stronger data.
           </p>
           <div className="compoundingActionPills">
-            <span>redundancy</span>
-            <span>marginal information gain</span>
-            <span>conditional entropy</span>
-            <span>cross-customer transfer</span>
-            <span>compressibility</span>
+            <span>compressibility / reconstruction</span>
+            <span>cross-customer transfer experiment</span>
+            <span>nonstationarity / regime change</span>
+            <span>Autonomy Frontier</span>
           </div>
         </details>
         <details className="card compoundingDisclosure">
@@ -653,7 +730,8 @@ export default async function CompoundingExpertiseScorebookPage({
         </div>
       </Section>
 
-      <Section eyebrow="Information Structure" title="How much distinct information does accumulated experience contain?">
+      <Section eyebrow="Information Structure · Shannon diagnostics" title="How much distinct information does accumulated experience contain?">
+        <div id="information-structure" />
         <div className="card compoundingStageOrientation">
           <div>
             <p className="small">Question</p>
@@ -667,6 +745,17 @@ export default async function CompoundingExpertiseScorebookPage({
             <p className="small">Limit</p>
             <p>These diagnostics do not establish learning causality, model improvement, cross-customer transfer, or durable Power.</p>
           </div>
+        </div>
+        <div className="card">
+          <h3>Why Shannon matters here</h3>
+          <p>
+            Case count measures experience volume. Shannon-style information measures help distinguish a large scorebook from a diverse one,
+            and repeated observations from newly observed structural states.
+          </p>
+          <p className="small">
+            The CE strategic question is whether additional experience continues contributing useful information that competitors cannot easily reconstruct.
+            Entropy, repetition, novelty, and mutual information do not prove that by themselves.
+          </p>
         </div>
 
         {!informationStructure.available ? (
@@ -685,10 +774,36 @@ export default async function CompoundingExpertiseScorebookPage({
           <>
             {informationStructure.rowsAreSynthetic ? (
               <div className="card compoundingSyntheticBanner">
-                <strong>DERIVED — SYNTHETIC FIXTURE</strong>
-                <p>Illustrative diagnostic calculated from synthetic fixture cases. Not evidence about the actual company.</p>
+                <strong>{simulationMode ? "DERIVED — SYNTHETIC SIMULATION" : "DERIVED — SYNTHETIC FIXTURE"}</strong>
+                <p>{simulationMode ? "Simulation diagnostic calculated from public-evidence-grounded synthetic rows. This demonstrates what to measure in production data; it is not evidence about Casap." : "Illustrative diagnostic calculated from synthetic fixture cases. Not evidence about the actual company."}</p>
               </div>
             ) : null}
+            <div className="card">
+              <h3>Experience → information</h3>
+              <div className="compoundingExperienceFunnel" aria-label="Experience to information structure">
+                <span>
+                  <strong>{informationStructure.totalCases}</strong>
+                  <small>Cases</small>
+                </span>
+                <span>
+                  <strong>{informationStructure.patternRepetition.uniquePatternCount}</strong>
+                  <small>Structural patterns</small>
+                </span>
+                <span>
+                  <strong>{pct(informationStructure.patternRepetition.repetitionShare)}</strong>
+                  <small>Repeated-pattern cases</small>
+                </span>
+                <span>
+                  <strong>{informationStructure.marginalNovelty.status}</strong>
+                  <small>Structural novelty</small>
+                </span>
+                <span>
+                  <strong>{informationStructure.outcomeInformation.status}</strong>
+                  <small>Outcome information</small>
+                </span>
+              </div>
+              <p className="small">This is not an effective case count or an information score. It keeps separate volume, pattern structure, novelty, and outcome association.</p>
+            </div>
             <div className="grid grid-4 compoundingDiagnosticsGrid">
               <div className="card">
                 <p className="small">Most diverse measured dimension</p>
@@ -736,7 +851,17 @@ export default async function CompoundingExpertiseScorebookPage({
 
             {informationStructure.marginalNovelty.cohorts.length ? (
               <div className="card">
-                <h3>Accumulated experience → observed pattern space</h3>
+                <h3>Structural novelty: accumulated experience → observed pattern space</h3>
+                <p>
+                  A scorebook can grow rapidly while the amount of newly observed structure grows slowly. Marginal novelty asks whether additional cases continue exposing states the existing scorebook has not already represented.
+                </p>
+                <div className="compoundingCaseSetFacts">
+                  <span><strong>First cohort novelty</strong>{pct(informationStructure.marginalNovelty.firstCohortNoveltyRate)}</span>
+                  <span><strong>Latest cohort novelty</strong>{pct(informationStructure.marginalNovelty.latestCohortNoveltyRate)}</span>
+                  <span><strong>Cumulative unique patterns</strong>{informationStructure.marginalNovelty.cohorts[informationStructure.marginalNovelty.cohorts.length - 1]?.cumulativeUniquePatterns ?? informationStructure.patternRepetition.uniquePatternCount}</span>
+                  <span><strong>Newest-cohort contribution</strong>{pct(informationStructure.marginalNovelty.newestCohortUniqueShare)}</span>
+                </div>
+                <p className="small">New structural patterns are not automatically valuable information, and repeated patterns can still improve probability estimates.</p>
                 <InformationNoveltyChart cohorts={informationStructure.marginalNovelty.cohorts} />
                 <div className="compoundingBarList">
                   {informationStructure.marginalNovelty.cohorts.map((cohort) => (
@@ -772,6 +897,13 @@ export default async function CompoundingExpertiseScorebookPage({
                 </ul>
               </div>
             </div>
+            <div className="card">
+              <h3>What would we want to know next?</h3>
+              <ul>
+                {informationQuestions.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+              <p className="small">These questions route toward Marginal Information Value, Cross-Customer Transfer, Learning Causality, and Rebuildability / Compression. Information Structure alone does not answer them.</p>
+            </div>
 
             <details className="card compoundingDisclosure">
               <summary>How Information Structure works</summary>
@@ -781,7 +913,9 @@ export default async function CompoundingExpertiseScorebookPage({
               <p><strong>Structural novelty:</strong> Cases are ordered by decision date, then action date, then outcome date. Each cohort only compares against patterns observed in earlier cohorts, avoiding future leakage.</p>
               <p><strong>Mutual information:</strong> I(X;Y) describes how much knowing a recorded categorical attribute reduces uncertainty about grade in this CaseSet. V0.1 reports empirical mutual information without finite-sample bias correction, so small or sparse samples are descriptive only. It does not imply causality, feature usefulness, model learning, economic value, generalization, or Power.</p>
               <p><strong>Sample-size conventions:</strong> n &lt; 20 is insufficient for interpretation; 20-49 is small-sample/descriptive only; n ≥ 50 permits descriptive interpretation. Fields with less than 70% coverage are marked limited coverage.</p>
-              <p><strong>Future, not implemented here:</strong> strategic compressibility/reconstruction experiments, cross-customer information transfer, and nonstationarity/regime-change diagnostics.</p>
+              <p><strong>Next analytical layer: Compressibility / Reconstruction:</strong> Information Structure asks what information the scorebook contains. A future reconstruction test will ask how cheaply a capable challenger can reproduce the useful decision policy from public information, synthetic data, and limited calibration cases.</p>
+              <p><strong>Future cross-customer information transfer:</strong> Customer diversity creates an opportunity to test transfer; it does not demonstrate transfer. Transfer requires held-out cross-customer performance evidence.</p>
+              <p><strong>Future nonstationarity:</strong> Chronology and cohorts can later support distribution-shift, emerging-case-type, and regime-change diagnostics. V0.1 does not attempt drift detection.</p>
               <p>Information Structure describes statistical structure in the available CaseSet. It does not establish that the system learned from the data, that the information is economically valuable, that it is proprietary, or that competitors cannot reproduce it.</p>
             </details>
           </>

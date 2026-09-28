@@ -15,7 +15,12 @@ import {
   calculateScorebookMetrics,
   caseSetForExample,
   actionKeyFromDecision,
+  buildCasapPublicSimulationCases,
+  casapPublicSimulationCaseSet,
+  CASAP_PUBLIC_EVIDENCE_ANALYSIS,
+  CASAP_PUBLIC_SIMULATION_CASESET_KEY,
   decisionClassKeyForCase,
+  compoundingAnalysisAccessWhere,
   normalizedModelForExample,
   publicEvidenceDefaultAssessments,
   publicEvidenceAnalysisById,
@@ -172,14 +177,14 @@ function revalidateLab() {
   ].forEach((path) => revalidatePath(path));
 }
 
-function labPath(path: string, analysisId?: string | null, extra?: Record<string, string | null | undefined>) {
+function labPath(path: string, analysisId?: string | null, extra?: Record<string, string | null | undefined>, hash?: string) {
   const params = new URLSearchParams();
   if (analysisId) params.set("analysisId", analysisId);
   Object.entries(extra ?? {}).forEach(([key, value]) => {
     if (value) params.set(key, value);
   });
   const query = params.toString();
-  return query ? `${path}?${query}` : path;
+  return `${query ? `${path}?${query}` : path}${hash ? `#${hash}` : ""}`;
 }
 
 export async function saveAnalysisAction(formData: FormData) {
@@ -505,6 +510,85 @@ export async function loadPublicEvidenceAnalysisAction(formData?: FormData) {
 
   revalidateLab();
   redirect(`/compounding-expertise/inputs?analysisId=${analysis.id}&publicAnalysis=${fixture.id}`);
+}
+
+export async function loadCasapPublicSimulationCaseSetAction(formData: FormData) {
+  const accountUserId = await currentAccountUserId();
+  const analysisId = text(formData.get("analysisId"));
+  if (!analysisId) redirect("/compounding-expertise/overview");
+
+  const existingAnalysis = await db.compoundingExpertiseAnalysis.findFirst({
+    where: compoundingAnalysisAccessWhere(accountUserId, analysisId),
+    include: {
+      caseSets: true,
+      workflows: {
+        include: {
+          decisionClasses: { include: { actions: true } }
+        }
+      }
+    }
+  });
+  if (!existingAnalysis) redirect("/compounding-expertise/overview");
+  if (existingAnalysis.companyName !== CASAP_PUBLIC_EVIDENCE_ANALYSIS.analysis.companyName) {
+    redirect(labPath("/compounding-expertise/scorebook", analysisId));
+  }
+
+  const existing = existingAnalysis.caseSets.find((caseSet) => caseSet.sourceSystemKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY);
+  if (existing) {
+    revalidateLab();
+    redirect(labPath("/compounding-expertise/scorebook", analysisId, { caseSetId: existing.id, simulation: "selected" }, "information-structure"));
+  }
+
+  const descriptor = casapPublicSimulationCaseSet();
+  const simulationRows = buildCasapPublicSimulationCases();
+  const workflow = existingAnalysis.workflows[0] ?? null;
+  const decisionClassByName = new Map(existingAnalysis.workflows.flatMap((item) => item.decisionClasses.map((decisionClass) => [decisionClass.name, decisionClass] as const)));
+  const decisionClassByKey = new Map(CASAP_PUBLIC_EVIDENCE_ANALYSIS.normalized.workflow.decisionClasses.map((decisionClass) => [
+    decisionClass.key,
+    decisionClassByName.get(decisionClass.name) ?? null
+  ] as const));
+  const actionIdFor = (decisionClassKey: string | null | undefined, value: string | null | undefined) => {
+    const decisionClass = decisionClassKey ? decisionClassByKey.get(decisionClassKey) : null;
+    if (!decisionClass || !value) return null;
+    const normalizedValue = actionKeyFromDecision(value);
+    const action = decisionClass.actions.find((item) => item.key === normalizedValue || item.label === value || actionKeyFromDecision(item.label) === normalizedValue);
+    return action?.id ?? null;
+  };
+
+  const caseSetId = randomUUID();
+  await db.$transaction(async (tx) => {
+    await tx.compoundingExpertiseCaseSet.create({
+      data: {
+        id: caseSetId,
+        analysisId,
+        workflowId: workflow?.id ?? null,
+        decisionClassId: null,
+        ...descriptor,
+        caseCount: simulationRows.length
+      }
+    });
+    await tx.compoundingExpertiseCase.createMany({
+      data: simulationRows.map((row) => {
+        const decisionClassKey = row.sourceRecordType;
+        const decisionClassId = decisionClassKey ? decisionClassByKey.get(decisionClassKey)?.id ?? null : null;
+        return {
+          ...row,
+          analysisId,
+          caseSetId,
+          decisionClassId,
+          agentDecisionActionId: actionIdFor(decisionClassKey, row.agentDecision),
+          humanDecisionActionId: actionIdFor(decisionClassKey, row.humanDecision),
+          actionTakenActionId: actionIdFor(decisionClassKey, row.actionTaken),
+          decisionAt: nullableDate(row.decisionAt instanceof Date ? row.decisionAt.toISOString() : row.decisionAt ?? null),
+          actionAt: nullableDate(row.actionAt instanceof Date ? row.actionAt.toISOString() : row.actionAt ?? null),
+          outcomeAt: nullableDate(row.outcomeAt instanceof Date ? row.outcomeAt.toISOString() : row.outcomeAt ?? null)
+        };
+      })
+    });
+  });
+
+  revalidateLab();
+  redirect(labPath("/compounding-expertise/scorebook", analysisId, { caseSetId, simulation: "loaded" }, "information-structure"));
 }
 
 export async function saveDebatesAction(formData: FormData) {

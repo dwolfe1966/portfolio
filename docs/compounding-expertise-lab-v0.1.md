@@ -762,3 +762,49 @@ The Company Model page now presents each analytical section as a guided reasonin
 - edit/review path for the assumptions driving the answer
 
 This keeps the normalized V0.3 model visible without forcing the user to read the page as a database form. It also makes clear that canonical-test conclusions are often archetype-assumption dominated and that synthetic fixtures are not observed company evidence.
+
+## Synthetic CaseSet / Simulation Mode
+
+The Casap public evidence analysis can optionally load a synthetic scorebook simulation. This exists to show what case-level CE analysis would look like before production or data-room records are available.
+
+Simulation Mode is not company evidence:
+
+- public evidence tells us what is currently sourced about Casap;
+- synthetic rows explore a documented workflow hypothesis;
+- Information Structure describes only the selected CaseSet;
+- synthetic diagnostics must not strengthen real-company debates, Power, or Conclusion.
+
+The Lab distinguishes:
+
+- `PRODUCTION / OBSERVED`: actual company case-level records.
+- `DERIVED / RECONSTRUCTED`: individual records reconstructed from sufficiently granular sourced evidence.
+- `SYNTHETIC / SIMULATED`: generated cases used to explore a documented workflow or analytical hypothesis.
+
+Investors may use a simulation before data-room access to decide what production records to request. It is a diligence-design instrument, not a substitute for diligence.
+
+## Information Structure / Shannon Diagnostics
+
+Information Structure asks what the selected CaseSet contains, not whether the company has learned from it.
+
+The conceptual chain is:
+
+```text
+Case volume
+-> diversity
+-> pattern repetition
+-> structural novelty
+-> outcome information
+```
+
+Shannon entropy helps describe categorical diversity. Pattern repetition shows how often cases share the same deterministic structural signature. Structural novelty asks whether new chronological cohorts continue exposing previously unseen case patterns. Mutual information describes whether recorded attributes reduce uncertainty about grades in the observed CaseSet.
+
+Important limits:
+
+- entropy is not an information-value score;
+- repeated patterns are not worthless data;
+- structural novelty is not learning;
+- mutual information is not causality;
+- Information Structure is not Power;
+- simulation diagnostics are simulation context, not company proof.
+
+Future work should add compressibility / reconstruction experiments, cross-customer information transfer tests, and nonstationarity diagnostics. Those require empirical tests, not entropy alone.

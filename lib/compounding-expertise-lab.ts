@@ -11,7 +11,7 @@ export type CanonicalTestType =
   | "SUBSTITUTION_COMPRESSION_TEST"
   | "ALTERNATIVE_POWER_TEST"
   | "NEGATIVE_CONTROL";
-export type CaseSetSourceType = "CANONICAL_SYNTHETIC" | "DAVIDWOLFE_APP" | "CSV" | "GOOGLE_SHEETS" | "LIVE" | "EXTERNAL" | "MANUAL";
+export type CaseSetSourceType = "CANONICAL_SYNTHETIC" | "SYNTHETIC_SIMULATION" | "DAVIDWOLFE_APP" | "CSV" | "GOOGLE_SHEETS" | "LIVE" | "EXTERNAL" | "MANUAL";
 export type CompoundingEvidenceType =
   | "CASESET_DERIVED"
   | "UPSTREAM_APP"
@@ -28,6 +28,7 @@ export type GuidedProvenanceLabel =
   | "SOURCED — EXTERNAL EVIDENCE"
   | "DERIVED — COMPANY DATA"
   | "DERIVED — SYNTHETIC FIXTURE"
+  | "DERIVED — SYNTHETIC SIMULATION"
   | "ANALYST ASSUMPTION"
   | "ARCHETYPE ASSUMPTION"
   | "MODEL INFERENCE"
@@ -38,6 +39,7 @@ export const GUIDED_PROVENANCE_LABELS: readonly GuidedProvenanceLabel[] = [
   "SOURCED — EXTERNAL EVIDENCE",
   "DERIVED — COMPANY DATA",
   "DERIVED — SYNTHETIC FIXTURE",
+  "DERIVED — SYNTHETIC SIMULATION",
   "ANALYST ASSUMPTION",
   "ARCHETYPE ASSUMPTION",
   "MODEL INFERENCE",
@@ -46,12 +48,15 @@ export const GUIDED_PROVENANCE_LABELS: readonly GuidedProvenanceLabel[] = [
 
 export function caseSetDerivedProvenanceLabel({
   hasRows,
-  rowsAreSynthetic
+  rowsAreSynthetic,
+  rowsAreSyntheticSimulation = false
 }: {
   hasRows: boolean;
   rowsAreSynthetic: boolean;
+  rowsAreSyntheticSimulation?: boolean;
 }): GuidedProvenanceLabel {
   if (!hasRows) return "UNKNOWN / DILIGENCE REQUIRED";
+  if (rowsAreSyntheticSimulation) return "DERIVED — SYNTHETIC SIMULATION";
   return rowsAreSynthetic ? "DERIVED — SYNTHETIC FIXTURE" : "DERIVED — COMPANY DATA";
 }
 
@@ -294,6 +299,8 @@ export type CaseSetInput = {
   parentCaseSetId?: string | null;
   derivationDescription?: string | null;
 };
+
+export type CaseSetEpistemicType = "OBSERVED" | "RECONSTRUCTED" | "SYNTHETIC";
 
 export type NormalizedCompanyProfileInput = {
   name: string;
@@ -1969,6 +1976,56 @@ export function caseSetForExample(example: CompoundingExample): CaseSetInput {
   };
 }
 
+export const CASAP_PUBLIC_SIMULATION_CASESET_KEY = "casap_public_evidence_grounded_simulation_v0_1";
+export const CASAP_PUBLIC_SIMULATION_CASESET_NAME = "Casap Public-Evidence-Grounded Simulation V0.1";
+export const CASAP_PUBLIC_SIMULATION_SOURCE_LABEL = "SYNTHETIC SIMULATION — PUBLIC-EVIDENCE-GROUNDED";
+
+export function caseSetEpistemicType(caseSet: {
+  sourceType?: string | null;
+  sourceSystemKey?: string | null;
+  sourceSystemLabel?: string | null;
+  isSynthetic?: boolean | null;
+  provenanceLabel?: string | null;
+  derivationDescription?: string | null;
+} | null | undefined): CaseSetEpistemicType {
+  if (!caseSet) return "OBSERVED";
+  const combined = [
+    caseSet.sourceType,
+    caseSet.sourceSystemKey,
+    caseSet.sourceSystemLabel,
+    caseSet.provenanceLabel,
+    caseSet.derivationDescription
+  ].join(" ").toUpperCase();
+  if (caseSet.isSynthetic || combined.includes("SYNTHETIC") || combined.includes("SIMULATION")) return "SYNTHETIC";
+  if (combined.includes("RECONSTRUCTED") || combined.includes("DERIVED")) return "RECONSTRUCTED";
+  return "OBSERVED";
+}
+
+export function casapPublicSimulationCaseSet(caseCount = 300): CaseSetInput {
+  return {
+    name: CASAP_PUBLIC_SIMULATION_CASESET_NAME,
+    description: "Synthetic dispute/fraud cases designed from publicly documented Casap workflows to demonstrate the CE analytical framework. These rows are not Casap production data and must not be used as empirical evidence about Casap.",
+    sourceType: "SYNTHETIC_SIMULATION",
+    sourceSystemKey: CASAP_PUBLIC_SIMULATION_CASESET_KEY,
+    sourceSystemLabel: CASAP_PUBLIC_SIMULATION_SOURCE_LABEL,
+    sourceRunId: "casap-public-simulation-v0.1",
+    sourceRunLabel: "Fixed deterministic simulation V0.1",
+    sourceRunType: "SYNTHETIC_SIMULATION",
+    sourceRoute: "/compounding-expertise/scorebook#information-structure",
+    generatedAt: "2026-09-01",
+    importedAt: null,
+    modelVersion: "public-evidence-simulation-v0.1",
+    policyVersion: "public-workflow-assumption-v0.1",
+    experimentId: "casap-public-synthetic-scorebook-v0.1",
+    timeWindowStart: "2026-01-01",
+    timeWindowEnd: "2026-10-27",
+    isSynthetic: true,
+    provenanceLabel: "SYNTHETIC SIMULATION — PUBLIC-EVIDENCE-GROUNDED — NOT COMPANY DATA",
+    caseCount,
+    derivationDescription: "Deterministic synthetic CaseSet grounded in public Casap workflow descriptions. Public evidence shapes workflow categories only; row-level frequencies, grades, confidence, latencies, overrides, and economics are simulation assumptions."
+  };
+}
+
 function stage(key: string, name: string, position: number, stageType: string, description?: string): NormalizedWorkflowStageInput {
   return { key, name, position, stageType, description };
 }
@@ -2244,6 +2301,227 @@ function casapPublicEvidence(
     derivationMethod: "Public-source evidence record for the Casap Public Evidence Analysis. Treat as sourced context for diligence, not production case-level evidence.",
     analystNotes
   };
+}
+
+type CasapSimulationPattern = {
+  decisionClassKey: "fraud_likelihood" | "dispute_next_action" | "chargeback_likelihood_evidence";
+  caseType: string;
+  customerSegment: string;
+  actionTaken: string;
+  baseDifficulty: number;
+};
+
+const CASAP_SIMULATION_CUSTOMERS = ["Credit Union A", "Credit Union B", "Credit Union C", "Credit Union D", "Credit Union E"];
+const CASAP_SIMULATION_CASE_TYPES = [
+  "card-not-present fraud",
+  "card-present unauthorized transaction",
+  "merchant dispute",
+  "duplicate charge",
+  "service not received",
+  "ACH dispute",
+  "recurring-subscription dispute",
+  "account takeover / suspicious transaction",
+  "edge/ambiguous dispute"
+];
+const CASAP_SIMULATION_ACTIONS = [
+  "Continue investigation",
+  "Request additional information",
+  "Issue/progress provisional credit where appropriate",
+  "Prepare/file chargeback",
+  "Escalate for human review",
+  "Optimize evidence"
+];
+const CASAP_SIMULATION_CASE_SUBTYPES = [
+  "missing receipt",
+  "merchant descriptor mismatch",
+  "late network response",
+  "consumer documentation gap",
+  "repeat merchant",
+  "cross-channel claim",
+  "policy exception",
+  "high-value exposure"
+];
+
+function deterministicFraction(seed: number) {
+  const raw = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return raw - Math.floor(raw);
+}
+
+function weightedChoice<T>(items: Array<{ value: T; weight: number }>, seed: number): T {
+  const total = items.reduce((sum, item) => sum + item.weight, 0);
+  let cursor = deterministicFraction(seed) * total;
+  for (const item of items) {
+    cursor -= item.weight;
+    if (cursor <= 0) return item.value;
+  }
+  return items[items.length - 1].value;
+}
+
+function actionForDecisionClass(decisionClassKey: CasapSimulationPattern["decisionClassKey"], seed: number) {
+  if (decisionClassKey === "fraud_likelihood") {
+    return weightedChoice([
+      { value: "Continue investigation", weight: 36 },
+      { value: "Request additional information", weight: 28 },
+      { value: "Escalate for human review", weight: 36 }
+    ], seed);
+  }
+  if (decisionClassKey === "chargeback_likelihood_evidence") {
+    return weightedChoice([
+      { value: "Prepare/file chargeback", weight: 50 },
+      { value: "Optimize evidence", weight: 30 },
+      { value: "Escalate for human review", weight: 20 }
+    ], seed);
+  }
+  return weightedChoice([
+    { value: "Continue investigation", weight: 19 },
+    { value: "Request additional information", weight: 21 },
+    { value: "Issue/progress provisional credit where appropriate", weight: 24 },
+    { value: "Prepare/file chargeback", weight: 23 },
+    { value: "Escalate for human review", weight: 13 }
+  ], seed);
+}
+
+function decisionClassForCaseType(caseType: string, seed: number): CasapSimulationPattern["decisionClassKey"] {
+  if (/fraud|takeover|suspicious/i.test(caseType)) return "fraud_likelihood";
+  if (/merchant|service|duplicate|subscription/i.test(caseType)) {
+    return deterministicFraction(seed) > 0.42 ? "chargeback_likelihood_evidence" : "dispute_next_action";
+  }
+  return deterministicFraction(seed) > 0.36 ? "dispute_next_action" : "fraud_likelihood";
+}
+
+function casapSimulationPattern(seed: number): CasapSimulationPattern {
+  const baseCaseType = weightedChoice(CASAP_SIMULATION_CASE_TYPES.map((value, index) => ({
+    value,
+    weight: [20, 14, 15, 12, 11, 9, 8, 7, 4][index]
+  })), seed + 11);
+  const caseType = deterministicFraction(seed + 17) < 0.42
+    ? `${baseCaseType} / ${CASAP_SIMULATION_CASE_SUBTYPES[Math.floor(deterministicFraction(seed + 19) * CASAP_SIMULATION_CASE_SUBTYPES.length)]}`
+    : baseCaseType;
+  const customerSegment = weightedChoice(CASAP_SIMULATION_CUSTOMERS.map((value, index) => ({
+    value,
+    weight: [28, 23, 19, 17, 13][index]
+  })), seed + 23);
+  const decisionClassKey = decisionClassForCaseType(caseType, seed + 31);
+  const actionTaken = actionForDecisionClass(decisionClassKey, seed + 47);
+  const baseDifficulty = (/edge|ambiguous|takeover|ACH/i.test(caseType) ? 0.38 : 0.18)
+    + (customerSegment.endsWith("D") || customerSegment.endsWith("E") ? 0.05 : 0)
+    + (actionTaken === "Escalate for human review" ? 0.12 : 0)
+    + deterministicFraction(seed + 59) * 0.12;
+  return { decisionClassKey, caseType, customerSegment, actionTaken, baseDifficulty };
+}
+
+function casapSimulationContext(pattern: CasapSimulationPattern) {
+  const question = pattern.decisionClassKey === "fraud_likelihood"
+    ? "fraud likelihood / first-party fraud assessment"
+    : pattern.decisionClassKey === "chargeback_likelihood_evidence"
+      ? "chargeback likelihood / evidence strategy"
+      : "dispute next action";
+  return `${pattern.customerSegment} synthetic ${pattern.caseType} case for ${question}; generated from public workflow structure, not production Casap records.`;
+}
+
+function casapSimulationGrade({
+  pattern,
+  isEdgeCase,
+  humanOverride,
+  agentConfidence,
+  seed
+}: {
+  pattern: CasapSimulationPattern;
+  isEdgeCase: boolean;
+  humanOverride: boolean;
+  agentConfidence: number;
+  seed: number;
+}): CompoundingCaseGrade {
+  const random = deterministicFraction(seed);
+  const difficulty = pattern.baseDifficulty + (isEdgeCase ? 0.2 : 0) + (agentConfidence < 0.62 ? 0.13 : 0) - (humanOverride ? 0.08 : 0);
+  const incorrectThreshold = Math.min(0.38, Math.max(0.05, difficulty * 0.42));
+  const partialThreshold = Math.min(0.74, incorrectThreshold + difficulty * 0.72);
+  if (random < incorrectThreshold) return "INCORRECT";
+  if (random < partialThreshold) return "PARTIALLY_CORRECT";
+  return "CORRECT";
+}
+
+function casapSimulationOutcome(pattern: CasapSimulationPattern, grade: CompoundingCaseGrade, seed: number) {
+  if (grade === "UNRESOLVED") return null;
+  const base = /takeover|ACH|fraud/i.test(pattern.caseType) ? 2300 : /merchant|service/i.test(pattern.caseType) ? 1400 : 780;
+  const multiplier = grade === "CORRECT" ? 1 : grade === "PARTIALLY_CORRECT" ? 0.48 : -0.62;
+  return round((base + deterministicFraction(seed) * base * 0.7) * multiplier, 2);
+}
+
+export function buildCasapPublicSimulationCases(): ScorebookCaseInput[] {
+  const cohortNewCounts = [44, 38, 31, 24, 16];
+  const cohortSize = 60;
+  const patternPool: CasapSimulationPattern[] = [];
+  const cases: ScorebookCaseInput[] = [];
+  for (let cohort = 0; cohort < 5; cohort++) {
+    const newPatterns = Array.from({ length: cohortNewCounts[cohort] }, (_, index) => casapSimulationPattern((cohort + 1) * 1000 + index * 37));
+    patternPool.push(...newPatterns);
+    for (let offset = 0; offset < cohortSize; offset++) {
+      const globalIndex = cohort * cohortSize + offset;
+      const useNewPattern = offset < newPatterns.length;
+      const pattern = useNewPattern
+        ? newPatterns[offset]
+        : patternPool[Math.floor(deterministicFraction(globalIndex + 701) * patternPool.length)] ?? newPatterns[0];
+      const rareLateNovelty = cohort >= 3 && offset === cohortSize - 1;
+      const resolvedPattern = rareLateNovelty
+        ? {
+            ...casapSimulationPattern(9000 + cohort),
+            caseType: cohort === 3 ? "emerging wallet-token dispute" : "new merchant descriptor mismatch",
+            baseDifficulty: 0.48
+          }
+        : pattern;
+      const dayOffset = globalIndex;
+      const decisionAt = new Date(Date.UTC(2026, 0, 1 + dayOffset, 14, 0, 0));
+      const actionDelayDays = deterministicFraction(globalIndex + 5) > 0.75 ? 2 : deterministicFraction(globalIndex + 7) > 0.45 ? 1 : 0;
+      const actionAt = new Date(decisionAt.getTime() + actionDelayDays * 24 * 60 * 60 * 1000);
+      const isEdgeCase = /edge|ambiguous|takeover|emerging|descriptor/i.test(resolvedPattern.caseType)
+        || deterministicFraction(globalIndex + 13) < 0.12 + resolvedPattern.baseDifficulty * 0.12;
+      const agentConfidence = round(Math.max(0.32, Math.min(0.97, 0.91 - resolvedPattern.baseDifficulty * 0.65 - (isEdgeCase ? 0.13 : 0) + deterministicFraction(globalIndex + 17) * 0.18)), 2);
+      const humanOverride = deterministicFraction(globalIndex + 19) < (isEdgeCase ? 0.46 : 0.11) + (agentConfidence < 0.62 ? 0.22 : 0);
+      const grade = deterministicFraction(globalIndex + 29) < 0.05 ? "UNRESOLVED" : casapSimulationGrade({ pattern: resolvedPattern, isEdgeCase, humanOverride, agentConfidence, seed: globalIndex + 31 });
+      const feedbackDays = grade === "UNRESOLVED"
+        ? null
+        : Math.round(4 + resolvedPattern.baseDifficulty * 28 + deterministicFraction(globalIndex + 41) * 18 + (isEdgeCase ? 8 : 0));
+      const outcomeAt = feedbackDays === null ? null : new Date(decisionAt.getTime() + feedbackDays * 24 * 60 * 60 * 1000);
+      const outcomeValue = casapSimulationOutcome(resolvedPattern, grade, globalIndex + 43);
+      const finalAction = humanOverride
+        ? weightedChoice(CASAP_SIMULATION_ACTIONS.map((value, index) => ({ value, weight: [12, 18, 18, 20, 24, 8][index] })), globalIndex + 53)
+        : resolvedPattern.actionTaken;
+      cases.push({
+        decisionClassId: resolvedPattern.decisionClassKey,
+        externalCaseId: `casap-public-sim-${String(globalIndex + 1).padStart(3, "0")}`,
+        customerSegment: resolvedPattern.customerSegment,
+        caseType: resolvedPattern.caseType,
+        context: casapSimulationContext(resolvedPattern),
+        agentDecision: resolvedPattern.actionTaken,
+        agentConfidence,
+        humanDecision: humanOverride ? finalAction : null,
+        humanOverride,
+        actionTaken: finalAction,
+        outcome: grade === "UNRESOLVED"
+          ? null
+          : grade === "CORRECT"
+            ? "Synthetic favorable dispute/fraud outcome"
+            : grade === "PARTIALLY_CORRECT"
+              ? "Synthetic partially favorable outcome with remediation"
+              : "Synthetic unfavorable outcome / preventable loss",
+        outcomeValue,
+        grade,
+        gradeConfidence: grade === "UNRESOLVED" ? null : round(Math.max(0.42, Math.min(0.95, 0.84 - (isEdgeCase ? 0.15 : 0) + deterministicFraction(globalIndex + 61) * 0.11)), 2),
+        decisionAt,
+        actionAt,
+        outcomeAt,
+        isEdgeCase,
+        isSynthetic: true,
+        sourceLabel: CASAP_PUBLIC_SIMULATION_SOURCE_LABEL,
+        sourceRecordId: `casap-public-simulation-v0.1:${globalIndex + 1}`,
+        sourceRecordType: resolvedPattern.decisionClassKey,
+        sourceRecordRoute: "/compounding-expertise/scorebook#information-structure",
+        notes: `SYNTHETIC SIMULATION VALUE. Pattern generated for ${resolvedPattern.decisionClassKey}; not Casap production data.`
+      });
+    }
+  }
+  return cases;
 }
 
 export const CASAP_PUBLIC_EVIDENCE_ANALYSIS: PublicEvidenceAnalysisFixture = {
@@ -2809,6 +3087,13 @@ export function scorebookRowsAreSynthetic(rows: ScorebookCaseInput[]) {
   return rows.length > 0 && rows.every((row) => row.isSynthetic);
 }
 
+export function scorebookRowsAreSyntheticSimulation(rows: ScorebookCaseInput[]) {
+  return scorebookRowsAreSynthetic(rows) && rows.every((row) => {
+    const combined = [row.sourceLabel, row.sourceRecordId, row.sourceRecordType, row.notes].join(" ").toUpperCase();
+    return combined.includes("SIMULATION") || combined.includes("PUBLIC-EVIDENCE-GROUNDED");
+  });
+}
+
 export function calculateScorebookMetrics(rows: ScorebookCaseInput[]): ScorebookMetrics {
   const totalCases = rows.length;
   const resolvedRows = rows.filter((row) => Boolean(row.outcome || row.outcomeAt || row.grade !== "UNRESOLVED"));
@@ -2920,7 +3205,11 @@ function nonEmptyString(value: string | null | undefined) {
 }
 
 function informationProvenance(rows: ScorebookCaseInput[]): GuidedProvenanceLabel {
-  return caseSetDerivedProvenanceLabel({ hasRows: rows.length > 0, rowsAreSynthetic: scorebookRowsAreSynthetic(rows) });
+  return caseSetDerivedProvenanceLabel({
+    hasRows: rows.length > 0,
+    rowsAreSynthetic: scorebookRowsAreSynthetic(rows),
+    rowsAreSyntheticSimulation: scorebookRowsAreSyntheticSimulation(rows)
+  });
 }
 
 export function shannonEntropy(counts: number[]): number {
@@ -3295,6 +3584,37 @@ export function deriveInformationStructureInterpretation(structure: InformationS
   return statements;
 }
 
+export function deriveInformationStructureDiligenceQuestions(structure: InformationStructureDiagnostic): string[] {
+  if (!structure.available) {
+    return [
+      "Can the company provide anonymized case-level decision, action, outcome, grade, and timestamp records?",
+      "Which fields are production observations versus analyst assumptions or public aggregate evidence?"
+    ];
+  }
+  const questions: string[] = [];
+  if (structure.marginalNovelty.status === "NOVELTY DECLINING" || structure.marginalNovelty.status === "APPARENT SATURATION") {
+    questions.push("Do later repeated cases still improve calibration or decision accuracy?");
+  }
+  const customerDiversity = structure.diversity.find((item) => item.field === "customerSegment");
+  if (customerDiversity && customerDiversity.categoryCount > 1) {
+    questions.push("Does information learned in one customer segment reduce uncertainty or improve performance in another?");
+  }
+  if (structure.outcomeInformation.topAssociations.length > 0) {
+    questions.push("Does incorporating these observed associations into the policy/model improve held-out performance?");
+  }
+  if ((structure.patternRepetition.repetitionShare ?? 0) >= 0.5) {
+    questions.push("How quickly could a challenger reproduce the common structural patterns with a smaller calibration set?");
+  }
+  const edgeAssociation = structure.outcomeInformation.topAssociations.find((item) => item.xField === "edgeCase");
+  if (edgeAssociation && (edgeAssociation.normalizedInformation ?? 0) > 0.05) {
+    questions.push("Does continued experience primarily create value by expanding coverage of rare or ambiguous states?");
+  }
+  return questions.length ? questions : [
+    "Which chronological cohorts add truly new structural patterns?",
+    "Which recorded dimensions remain outcome-relevant in held-out production data?"
+  ];
+}
+
 export function deriveInformationStructure(rows: ScorebookCaseInput[]): InformationStructureDiagnostic {
   const totalCases = rows.length;
   const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
@@ -3363,6 +3683,7 @@ export function deriveInformationStructure(rows: ScorebookCaseInput[]): Informat
 export function deriveExperienceSnapshot(rows: ScorebookCaseInput[]): ExperienceSnapshot {
   const metrics = calculateScorebookMetrics(rows);
   const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
+  const rowsAreSyntheticSimulation = scorebookRowsAreSyntheticSimulation(rows);
   return {
     totalCases: metrics.totalCases,
     outcomesObserved: metrics.resolvedCases,
@@ -3375,7 +3696,7 @@ export function deriveExperienceSnapshot(rows: ScorebookCaseInput[]): Experience
     humanOverrideRate: metrics.humanOverrideRate,
     edgeCaseCount: rows.filter((row) => row.isEdgeCase).length,
     edgeCaseRate: metrics.edgeCaseShare,
-    provenance: caseSetDerivedProvenanceLabel({ hasRows: rows.length > 0, rowsAreSynthetic })
+    provenance: caseSetDerivedProvenanceLabel({ hasRows: rows.length > 0, rowsAreSynthetic, rowsAreSyntheticSimulation })
   };
 }
 
@@ -3927,7 +4248,8 @@ function segmentDashboardBars(rows: ScorebookCaseInput[], href: string): DebateD
 export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: DebateFamily): DebateEvidenceDashboard {
   const metrics = calculateScorebookMetrics(input.rows);
   const rowsAreSynthetic = scorebookRowsAreSynthetic(input.rows);
-  const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic });
+  const rowsAreSyntheticSimulation = scorebookRowsAreSyntheticSimulation(input.rows);
+  const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic, rowsAreSyntheticSimulation });
   const experienceHref = debateExperienceHref(input);
   const companyHref = debateCompanyModelHref(input);
   const externalEvidence = externalEvidenceForFamily(input, family);
@@ -3936,7 +4258,7 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
   const gradeDistribution = deriveGradeDistribution(input.rows);
   const edgeCaseCount = input.rows.filter((row) => row.isEdgeCase).length;
   const decisionClassCount = new Set(input.rows.map((row) => row.decisionClassId).filter(Boolean)).size;
-  const sourceMixBars = distribution(input.rows.map((row) => row.isSynthetic ? "Synthetic fixture" : row.sourceLabel || "Company/source row"), metrics.totalCases).map((item) => ({ label: item.label, value: `${item.count} cases`, count: item.count, share: item.share, href: experienceHref }));
+  const sourceMixBars = distribution(input.rows.map((row) => row.isSynthetic ? (scorebookRowsAreSyntheticSimulation([row]) ? "Synthetic simulation" : "Synthetic fixture") : row.sourceLabel || "Company/source row"), metrics.totalCases).map((item) => ({ label: item.label, value: `${item.count} cases`, count: item.count, share: item.share, href: experienceHref }));
 
   if (family === "CROSS_CUSTOMER_TRANSFER") {
     const segmentCount = new Set(input.rows.map((row) => row.customerSegment).filter(Boolean)).size;
@@ -4121,7 +4443,8 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
 export function deriveDebateAssessment(input: DebateEngineInput, family: DebateFamily): Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "missingEvidence"> {
   const metrics = calculateScorebookMetrics(input.rows);
   const rowsAreSynthetic = scorebookRowsAreSynthetic(input.rows);
-  const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic });
+  const rowsAreSyntheticSimulation = scorebookRowsAreSyntheticSimulation(input.rows);
+  const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic, rowsAreSyntheticSimulation });
   const companyModelHref = analysisHref("/compounding-expertise/inputs", input.analysisId, null, "company-model-review");
   const experienceHref = analysisHref("/compounding-expertise/scorebook", input.analysisId, input.caseSetId, "case-explorer");
   const forEvidence: DebateEvidenceItem[] = [];
@@ -4136,7 +4459,11 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
       provenance,
       href: experienceHref,
       interpretation,
-      limitation: rowsAreSynthetic ? "Synthetic fixture rows do not establish actual company behavior." : limitation
+      limitation: rowsAreSyntheticSimulation
+        ? "Synthetic simulation rows demonstrate what should be measured in production data; they do not establish actual company behavior."
+        : rowsAreSynthetic
+          ? "Synthetic fixture rows do not establish actual company behavior."
+          : limitation
     }));
   };
   const addMissing = (source: string, value: string, interpretation: string, obtainVia = "Diligence / experiment", expectedEvidence = "Sourced evidence sufficient to evaluate the proposition.") => {

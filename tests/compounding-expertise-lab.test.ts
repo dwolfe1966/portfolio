@@ -15,7 +15,10 @@ import {
   apparentPowerLocations,
   buildCaseDetailSequence,
   calculateScorebookMetrics,
+  buildCasapPublicSimulationCases,
+  casapPublicSimulationCaseSet,
   caseSetForExample,
+  caseSetEpistemicType,
   caseSetDerivedProvenanceLabel,
   casesForCaseSet,
   canonicalExampleForCompany,
@@ -69,6 +72,7 @@ import {
   summarizeEvidenceCoverage,
   scorebookDerivedSimulatorValues,
   scorebookRowsAreSynthetic,
+  scorebookRowsAreSyntheticSimulation,
   shannonEntropy,
   simulateComparison,
   simulateScenario,
@@ -1515,6 +1519,78 @@ test("Casap public evidence fixture preserves source-backed facts without manufa
   assert.match(fixture.normalized.profile.economicsNotes ?? "", /aggregate public customer metrics/i);
 });
 
+test("Casap public simulation CaseSet is explicitly synthetic simulation, not production evidence", () => {
+  const caseSet = casapPublicSimulationCaseSet();
+  const rows = buildCasapPublicSimulationCases();
+
+  assert.equal(rows.length, 300);
+  assert.equal(caseSet.caseCount, 300);
+  assert.equal(caseSet.sourceType, "SYNTHETIC_SIMULATION");
+  assert.equal(caseSet.isSynthetic, true);
+  assert.equal(caseSetEpistemicType(caseSet), "SYNTHETIC");
+  assert.match(caseSet.name, /Public-Evidence-Grounded Simulation/);
+  assert.match(caseSet.provenanceLabel, /NOT COMPANY DATA/);
+  assert.equal(rows.every((row) => row.isSynthetic), true);
+  assert.equal(scorebookRowsAreSyntheticSimulation(rows), true);
+  assert.ok(rows.every((row) => /SYNTHETIC SIMULATION/i.test(row.sourceLabel)));
+  assert.ok(rows.every((row) => /not Casap production data/i.test(row.notes ?? "")));
+});
+
+test("Casap public simulation fixture has designed structural diversity and repeated patterns", () => {
+  const rows = buildCasapPublicSimulationCases();
+  const structure = deriveInformationStructure(rows);
+  const uniqueSegments = new Set(rows.map((row) => row.customerSegment));
+  const uniqueDecisionClasses = new Set(rows.map((row) => row.sourceRecordType));
+  const uniqueCaseTypes = new Set(rows.map((row) => row.caseType));
+  const uniqueActions = new Set(rows.map((row) => row.actionTaken));
+  const uniqueGrades = new Set(rows.map((row) => row.grade));
+
+  assert.equal(uniqueSegments.size, 5);
+  assert.ok(uniqueDecisionClasses.size >= 3);
+  assert.ok(uniqueCaseTypes.size >= 9);
+  assert.ok(uniqueActions.size >= 5);
+  assert.ok(uniqueGrades.size >= 4);
+  assert.equal(structure.available, true);
+  assert.equal(structure.provenance, "DERIVED — SYNTHETIC SIMULATION");
+  assert.equal(structure.sampleState, "DESCRIPTIVE");
+  assert.ok((structure.patternRepetition.repetitionShare ?? 0) >= 0.5);
+  assert.ok((structure.patternRepetition.repetitionShare ?? 0) <= 0.75);
+  assert.equal(structure.patternRepetition.signatureFields.includes("grade"), false);
+});
+
+test("Casap public simulation fixture has declining but nonzero structural novelty", () => {
+  const rows = buildCasapPublicSimulationCases();
+  const novelty = deriveInformationStructure(rows).marginalNovelty;
+  const first = novelty.cohorts[0];
+  const latest = novelty.cohorts[novelty.cohorts.length - 1];
+
+  assert.equal(novelty.cohortCount, 5);
+  assert.equal(novelty.usableChronologyCount, 300);
+  assert.equal(novelty.status, "NOVELTY DECLINING");
+  assert.ok((first.noveltyRate ?? 0) > (latest.noveltyRate ?? 0));
+  assert.ok((latest.noveltyRate ?? 0) > 0);
+  assert.equal(latest.cumulativeUniquePatterns, novelty.cohorts.reduce((max, cohort) => Math.max(max, cohort.cumulativeUniquePatterns), 0));
+});
+
+test("Casap public simulation fixture encodes override and grade relationships without determinism", () => {
+  const rows = buildCasapPublicSimulationCases();
+  const edgeRows = rows.filter((row) => row.isEdgeCase);
+  const ordinaryRows = rows.filter((row) => !row.isEdgeCase);
+  const nonCorrect = (items: typeof rows) => items.filter((row) => row.grade === "INCORRECT" || row.grade === "PARTIALLY_CORRECT").length / items.length;
+  const overrideRate = (items: typeof rows) => items.filter((row) => row.humanOverride).length / items.length;
+  const outcomeInfo = deriveInformationStructure(rows).outcomeInformation;
+
+  assert.ok(edgeRows.length > 0);
+  assert.ok(ordinaryRows.length > 0);
+  assert.ok(nonCorrect(edgeRows) > nonCorrect(ordinaryRows));
+  assert.ok(overrideRate(edgeRows) > overrideRate(ordinaryRows));
+  assert.ok(outcomeInfo.topAssociations.length > 0);
+  assert.ok(outcomeInfo.topAssociations.some((item) => (item.mutualInformationBits ?? 0) > 0));
+  assert.ok(outcomeInfo.topAssociations.every((item) => (item.normalizedInformation ?? 0) < 1));
+  assert.ok(rows.some((row) => typeof row.outcomeValue === "number"));
+  assert.ok(rows.every((row) => row.outcomeValue === null || /SYNTHETIC SIMULATION VALUE/i.test(row.notes ?? "")));
+});
+
 test("Casap public analyst dimension assessments start unknown despite public evidence records", () => {
   const assessments = publicEvidenceDefaultAssessments();
 
@@ -1581,6 +1657,16 @@ test("Casap public evidence keeps CE debates conservative without production cas
   assert.notEqual(rights!.assessment, "SUPPORTED");
   assert.ok(rebuildability);
   assert.equal(rebuildability!.assessment, "UNPROVEN");
+});
+
+test("Casap public no-CaseSet mode keeps Information Structure unavailable rather than zero", () => {
+  const structure = deriveInformationStructure([]);
+
+  assert.equal(structure.available, false);
+  assert.equal(structure.summary.diversity, "UNAVAILABLE");
+  assert.equal(structure.patternRepetition.uniquePatternCount, 0);
+  assert.match(structure.unavailableReason ?? "", /No production CaseSet/i);
+  assert.ok(structure.evidenceNeeded.some((item) => /case-level records/i.test(item)));
 });
 
 test("Casap public operational results can support workflow value without establishing cross-customer transfer", () => {
@@ -1658,6 +1744,47 @@ test("Casap public Debates, Power, and Conclusion preserve unproven CE mechanism
   assert.equal(powerMap.ceMechanism.classifications.includes("REINFORCES NETWORK ECONOMIES"), false);
   assert.equal(powerMap.ceMechanism.classifications.includes("UNPROVEN MECHANISM"), true);
   assert.equal(synthesis.ceThesis, "UNPROVEN");
+});
+
+test("Casap public synthetic simulation remains context and does not become company evidence downstream", () => {
+  const fixture = CASAP_PUBLIC_EVIDENCE_ANALYSIS;
+  const rows = buildCasapPublicSimulationCases();
+  const input = {
+    analysis: fixture.analysis,
+    debates: fixture.debates,
+    rows,
+    learningArchitecture: fixture.normalized.learningArchitecture,
+    competitiveArchitecture: fixture.normalized.competitiveArchitecture,
+    evidenceRecords: fixture.normalized.evidence.map((record) => ({
+      ...record,
+      entityId: record.entityKey ?? null
+    }))
+  };
+  const candidates = deriveDebateCandidates(input, 8);
+  const transfer = candidates.find((candidate) => candidate.family === "CROSS_CUSTOMER_TRANSFER")!;
+  const learning = candidates.find((candidate) => candidate.family === "LEARNING_CAUSALITY")!;
+  const marginalInfo = candidates.find((candidate) => candidate.family === "MARGINAL_INFORMATION_VALUE")!;
+  const powerMap = derivePowerMap(input);
+  const network = powerMap.powers.find((power) => power.key === "network_economies")!;
+  const process = powerMap.powers.find((power) => power.key === "process_power")!;
+  const synthesis = deriveInvestmentSynthesis({
+    analysis: fixture.analysis,
+    experience: deriveExperienceSnapshot(rows),
+    debates: candidates,
+    powerMap,
+    stressTest: null
+  });
+
+  assert.equal(transfer.assessment, "UNPROVEN");
+  assert.equal(learning.assessment, "UNPROVEN");
+  assert.notEqual(marginalInfo.assessment, "SUPPORTED");
+  assert.equal(marginalInfo.evidenceDashboard.sections.some((section) => section.metrics?.some((metric) => metric.provenance === "DERIVED — SYNTHETIC SIMULATION")), true);
+  assert.notEqual(network.thesisStrength, "MODERATE");
+  assert.notEqual(network.thesisStrength, "STRONG");
+  assert.notEqual(process.thesisStrength, "STRONG");
+  assert.equal(powerMap.ceMechanism.classifications.includes("REINFORCES NETWORK ECONOMIES"), false);
+  assert.notEqual(synthesis.ceThesis, "SUPPORTED");
+  assert.notEqual(synthesis.ceThesis, "PARTIALLY SUPPORTED");
 });
 
 test("Casap public Company Model has structural opportunity but unproven learning loop inputs", () => {
