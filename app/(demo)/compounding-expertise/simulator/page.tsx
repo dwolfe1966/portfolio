@@ -11,6 +11,7 @@ import {
   detectCrossover,
   deriveStressTestDrivers,
   deriveStressTestPowerImplication,
+  deriveScenarioGrounding,
   getStressTestTemplate,
   sanitizeScenario,
   scorebookDerivedSimulatorValues,
@@ -145,6 +146,7 @@ export default async function CompoundingExpertiseSimulatorPage({
   const scorebookRows = analysis.scorebookCases.map((row) => ({ ...row })) as ScorebookCaseInput[];
   const activeRows = casesForCaseSet(scorebookRows, selectedCaseSet?.id);
   const derived = scorebookDerivedSimulatorValues(activeRows);
+  const scenarioGrounding = deriveScenarioGrounding(activeRows);
   const changedKeys = new Set(template.changedParameterKeys);
   const changedDefinitions = visibleStressTestChangedParameters(template.id);
   const baseQuery = "/compounding-expertise/simulator";
@@ -247,6 +249,11 @@ export default async function CompoundingExpertiseSimulatorPage({
                 <span className="badge">Primary change</span>
                 <strong>{primaryChange.label}</strong>
                 <p>{primaryChange.summary}</p>
+              </div>
+
+              <div className="card compoundingScenarioDockCard">
+                <span className="badge">{scenarioGrounding} SCENARIO</span>
+                <p>{scenarioGrounding === "ASSUMPTION-DRIVEN" ? "Trajectory reflects scenario assumptions, not measured company performance." : "Some inputs are derived from the active Experience dataset; remaining model parameters are assumptions."}</p>
               </div>
 
               <details className="card compoundingDisclosure compoundingConditionsPanel" open={template.id === "custom"}>
@@ -361,6 +368,7 @@ export default async function CompoundingExpertiseSimulatorPage({
                     <span className="badge">Scenario Result</span>
                     <h3>{result.label}</h3>
                     <p>{resultSentence(result, scenarios[0].name, scenarios[1].name)}</p>
+                    <p><strong>{scenarioGrounding} SCENARIO.</strong> {scenarioGrounding === "ASSUMPTION-DRIVEN" ? "Trajectory reflects scenario assumptions, not measured company performance." : "Interpret alongside the Experience provenance and remaining assumptions."}</p>
                     <p className="small">Scenario output only. Modeled expertise index is unitless and is not a measured business metric.</p>
                   </div>
 

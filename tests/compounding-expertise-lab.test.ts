@@ -19,6 +19,7 @@ import {
   caseSetDerivedProvenanceLabel,
   casesForCaseSet,
   canonicalExampleForCompany,
+  classifyEvidenceForDebate,
   compoundingAnalysisAccessWhere,
   defaultAssessments,
   applyExperienceSlice,
@@ -49,6 +50,7 @@ import {
   detectCrossover,
   deriveStressTestDrivers,
   deriveStressTestPowerImplication,
+  deriveScenarioGrounding,
   exampleById,
   explainSimulatorComparison,
   getStressTestTemplate,
@@ -1398,6 +1400,98 @@ test("Casap public operational results can support workflow value without establ
   assert.ok(economicDashboard.externalEvidence.some((item) => item.direction === "SUPPORTS" && /cost|loss|savings/i.test(item.value)));
   assert.ok(experienceDashboard.externalEvidence.some((item) => item.direction === "SUPPORTS" || item.direction === "CONTEXT-DESCRIPTIVE"));
   assert.equal(calculateScorebookMetrics([]).totalCases, 0);
+});
+
+test("Casap public evidence routing is proposition-specific", () => {
+  const evidence = CASAP_PUBLIC_EVIDENCE_ANALYSIS.normalized.evidence;
+  const chartway = evidence.find((record) => record.fieldKey === "chartway_customer_results")!;
+  const fileneBlog = evidence.find((record) => record.fieldKey === "filene_blog_multi_credit_union_testing")!;
+  const compoundingClaim = evidence.find((record) => record.fieldKey === "company_claim_compounding_behavior")!;
+  const privacy = evidence.find((record) => record.fieldKey === "learning_rights_privacy_policy")!;
+
+  assert.equal(classifyEvidenceForDebate(chartway, "ECONOMIC_MATERIALITY"), "SUPPORTS");
+  assert.equal(classifyEvidenceForDebate(chartway, "CROSS_CUSTOMER_TRANSFER"), "CONTEXT-DESCRIPTIVE");
+  assert.equal(classifyEvidenceForDebate(fileneBlog, "CROSS_CUSTOMER_TRANSFER"), "CONTEXT-DESCRIPTIVE");
+  assert.equal(classifyEvidenceForDebate(compoundingClaim, "LEARNING_CAUSALITY"), "CONTEXT-DESCRIPTIVE");
+  assert.equal(classifyEvidenceForDebate(privacy, "LEARNING_RIGHTS"), "CONTEXT-DESCRIPTIVE");
+  assert.notEqual(classifyEvidenceForDebate(privacy, "LEARNING_RIGHTS"), "SUPPORTS");
+  assert.notEqual(classifyEvidenceForDebate(chartway, "REBUILDABILITY_COMPRESSION"), "SUPPORTS");
+});
+
+test("Casap public Debates, Power, and Conclusion preserve unproven CE mechanism", () => {
+  const fixture = CASAP_PUBLIC_EVIDENCE_ANALYSIS;
+  const input = {
+    analysis: fixture.analysis,
+    debates: fixture.debates,
+    rows: [],
+    learningArchitecture: fixture.normalized.learningArchitecture,
+    competitiveArchitecture: fixture.normalized.competitiveArchitecture,
+    evidenceRecords: fixture.normalized.evidence.map((record) => ({
+      ...record,
+      entityId: record.entityKey ?? null
+    }))
+  };
+  const candidates = deriveDebateCandidates(input, 8);
+  const transfer = candidates.find((candidate) => candidate.family === "CROSS_CUSTOMER_TRANSFER")!;
+  const powerMap = derivePowerMap(input);
+  const network = powerMap.powers.find((power) => power.key === "network_economies")!;
+  const experience = deriveExperienceSnapshot([]);
+  const synthesis = deriveInvestmentSynthesis({
+    analysis: fixture.analysis,
+    experience,
+    debates: candidates,
+    powerMap,
+    stressTest: null
+  });
+
+  assert.equal(transfer.assessment, "UNPROVEN");
+  assert.equal(transfer.evidenceFor.length, 0);
+  assert.equal(transfer.evidenceDashboard.externalEvidence.some((item) => item.direction === "CONTEXT-DESCRIPTIVE" && /five credit unions|Chartway|MidSouth|interaction/i.test(item.value)), true);
+  assert.equal(network.thesisStrength, "UNPROVEN");
+  assert.notEqual(network.why, "Cross-customer transfer evidence supports a network-like CE mechanism.");
+  assert.equal(powerMap.ceMechanism.classifications.includes("REINFORCES NETWORK ECONOMIES"), false);
+  assert.equal(powerMap.ceMechanism.classifications.includes("UNPROVEN MECHANISM"), true);
+  assert.equal(synthesis.ceThesis, "UNPROVEN");
+});
+
+test("Casap public Company Model has structural opportunity but unproven learning loop inputs", () => {
+  const fixture = CASAP_PUBLIC_EVIDENCE_ANALYSIS;
+  const decisionClasses = fixture.normalized.workflow.decisionClasses;
+
+  assert.ok(decisionClasses.some((item) => item.name.includes("Fraud likelihood") && item.economicStakes === "HIGH"));
+  assert.ok(decisionClasses.some((item) => item.outcomeObservability === "PARTIAL"));
+  assert.equal(fixture.normalized.learningArchitecture.usesOutcomeGradesForLearning, "UNKNOWN");
+  assert.equal(fixture.normalized.learningArchitecture.deploymentCadence, "UNKNOWN");
+  assert.ok(criticalCasapUnknowns(fixture).includes("cross-customer transfer"));
+});
+
+function criticalCasapUnknowns(fixture: typeof CASAP_PUBLIC_EVIDENCE_ANALYSIS) {
+  return [
+    fixture.normalized.learningArchitecture.pooledAcrossCustomers === "UNKNOWN" ? "cross-customer transfer" : null,
+    fixture.normalized.learningArchitecture.canTrainAcrossCustomers === "UNKNOWN" ? "contractual learning rights" : null,
+    fixture.normalized.learningArchitecture.usesOutcomeGradesForLearning === "UNKNOWN" ? "actual grade → update loop" : null,
+    fixture.normalized.competitiveArchitecture.competitorRelearningDifficulty === "UNKNOWN" ? "challenger rebuildability" : null
+  ].filter((item): item is string => Boolean(item));
+}
+
+test("Better foundation model stress template changes challenger, not incumbent", () => {
+  const [incumbent, challenger] = applyStressTestTemplate(DEFAULT_SCENARIOS, "better_foundation_model");
+  const primaryChange = summarizeStressTestPrimaryChange("better_foundation_model", [incumbent, challenger], DEFAULT_SCENARIOS);
+
+  assert.equal(incumbent.baseCapability, DEFAULT_SCENARIOS[0].baseCapability);
+  assert.ok(challenger.baseCapability > DEFAULT_SCENARIOS[1].baseCapability);
+  assert.ok(challenger.baseCapability > incumbent.baseCapability);
+  assert.equal(primaryChange.label, "Base capability");
+  assert.equal(primaryChange.incumbentValue, incumbent.baseCapability);
+  assert.equal(primaryChange.incumbentBaseline, DEFAULT_SCENARIOS[0].baseCapability);
+  assert.equal(primaryChange.challengerValue, challenger.baseCapability);
+  assert.ok(primaryChange.summary.includes("Challenger"));
+});
+
+test("Casap public no-CaseSet stress tests are assumption-driven", () => {
+  assert.equal(deriveScenarioGrounding([]), "ASSUMPTION-DRIVEN");
+  assert.equal(deriveScenarioGrounding(exampleById("casap").cases), "ASSUMPTION-DRIVEN");
+  assert.equal(deriveScenarioGrounding(scorebookRows.map((row) => ({ ...row, isSynthetic: false }))), "PARTIALLY GROUNDED");
 });
 
 test("source route validation rejects external or unsafe routes", () => {

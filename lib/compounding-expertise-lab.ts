@@ -177,6 +177,8 @@ export type StressTestPrimaryChange = {
   summary: string;
 };
 
+export type StressTestScenarioGrounding = "DATA-GROUNDED" | "PARTIALLY GROUNDED" | "ASSUMPTION-DRIVEN";
+
 export type StressTestRunQueryInput = {
   analysisId: string;
   caseSetId?: string | null;
@@ -605,6 +607,7 @@ export type DebateAssessmentCategory =
 export type DebateEvidenceConfidence = "HIGH" | "MEDIUM" | "LOW";
 export type DebateThesisImpact = "VERY HIGH" | "HIGH" | "MEDIUM";
 export type DebateEvidenceDirection = "SUPPORTS" | "CONTRADICTS" | "CONTEXT-DESCRIPTIVE" | "MISSING";
+export type DebateEvidenceRelationship = DebateEvidenceDirection | "IRRELEVANT";
 export type DebateEvidenceStrength = "DIRECT" | "INDIRECT" | "CONTEXT" | "MISSING";
 export type PowerThesisStrength = "STRONG" | "MODERATE" | "WEAK" | "NONE" | "UNPROVEN";
 export type PowerEvidenceStrength = "HIGH" | "MEDIUM" | "LOW" | "NONE";
@@ -2744,6 +2747,15 @@ export function scorebookDerivedSimulatorValues(rows: ScorebookCaseInput[]): Sco
   };
 }
 
+export function deriveScenarioGrounding(rows: ScorebookCaseInput[]): StressTestScenarioGrounding {
+  if (rows.length === 0) return "ASSUMPTION-DRIVEN";
+  const derived = scorebookDerivedSimulatorValues(rows);
+  const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
+  if (!rowsAreSynthetic && derived.startingGradedCases > 0 && derived.feedbackDelayDays !== null) return "PARTIALLY GROUNDED";
+  if (!rowsAreSynthetic && derived.startingGradedCases > 0) return "PARTIALLY GROUNDED";
+  return "ASSUMPTION-DRIVEN";
+}
+
 export function deriveExperienceSnapshot(rows: ScorebookCaseInput[]): ExperienceSnapshot {
   const metrics = calculateScorebookMetrics(rows);
   const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
@@ -3151,20 +3163,107 @@ function debateEvidenceMatchesFamily(record: NonNullable<DebateEngineInput["evid
   return terms[family].some((term) => text.includes(term));
 }
 
-function externalEvidenceDirection(record: NonNullable<DebateEngineInput["evidenceRecords"]>[number]): DebateEvidenceDirection {
-  const text = `${record.valueSnapshot ?? ""} ${record.analystNotes ?? ""} ${record.derivationMethod ?? ""}`.toLowerCase();
-  if (/\b(contradict|against|failed|worse|restrict|blocked|no evidence|negative)\b/.test(text)) return "CONTRADICTS";
-  if (/\b(support|confirmed|demonstrated|measured|sourced|positive|improved)\b/.test(text)) return "SUPPORTS";
-  return "CONTEXT-DESCRIPTIVE";
+function evidenceText(record: NonNullable<DebateEngineInput["evidenceRecords"]>[number]) {
+  return `${record.entityType ?? ""} ${record.fieldKey ?? ""} ${record.evidenceType ?? ""} ${record.sourceLabel ?? ""} ${record.valueSnapshot ?? ""} ${record.analystNotes ?? ""} ${record.derivationMethod ?? ""}`.toLowerCase();
+}
+
+function hasAnyText(text: string, terms: string[]) {
+  return terms.some((term) => text.includes(term.toLowerCase()));
+}
+
+function hasNegatedSupportLanguage(text: string) {
+  return hasAnyText(text, [
+    "does not provide",
+    "does not establish",
+    "not evidence",
+    "no direct evidence",
+    "no evidence",
+    "without",
+    "absent",
+    "insufficient to establish",
+    "cannot establish"
+  ]);
+}
+
+/**
+ * SUPPORTS: evidence directly raises support for this proposition.
+ * CONTRADICTS: evidence directly lowers support for this proposition.
+ * CONTEXT: evidence helps interpret the proposition but does not establish it.
+ * IRRELEVANT: evidence belongs to the analysis but does not materially bear on this proposition.
+ * MISSING is reserved for absent evidence requirements, not attached evidence records.
+ */
+export function classifyEvidenceForDebate(
+  record: NonNullable<DebateEngineInput["evidenceRecords"]>[number],
+  family: DebateFamily
+): DebateEvidenceRelationship {
+  const text = evidenceText(record);
+  if (hasAnyText(text, ["contradict", "failed", "worse", "negative result"])) return "CONTRADICTS";
+  const negatedSupport = hasNegatedSupportLanguage(text);
+
+  if (family === "CROSS_CUSTOMER_TRANSFER") {
+    if (negatedSupport && hasAnyText(text, ["pooled-vs-local", "pooled vs local", "held-out customer", "cross-customer holdout", "transfer experiment", "cross-customer transfer"])) return "CONTEXT-DESCRIPTIVE";
+    if (hasAnyText(text, ["pooled-vs-local", "pooled vs local", "held-out customer", "customer a experience", "customer-only history", "cross-customer holdout", "transfer experiment"])) return "SUPPORTS";
+    if (hasAnyText(text, ["five credit unions", "multiple credit", "customer", "credit union", "customers", "interaction", "privacy", "aggregated", "workflow", "product", "platform"])) return "CONTEXT-DESCRIPTIVE";
+    return "IRRELEVANT";
+  }
+
+  if (family === "LEARNING_CAUSALITY") {
+    if (negatedSupport && hasAnyText(text, ["before/after", "before and after", "treatment", "control", "grade-driven", "model update", "policy update", "learning causality", "future decisions"])) return "CONTEXT-DESCRIPTIVE";
+    if (hasAnyText(text, ["before/after", "before and after", "treatment", "control", "grade-driven", "tied to graded outcomes", "model update record", "policy update record", "performance lift after"])) return "SUPPORTS";
+    if (hasAnyText(text, ["becomes more effective", "improve", "customer interaction", "savings", "loss", "resolution", "efficiency", "workflow", "operational", "performance"])) return "CONTEXT-DESCRIPTIVE";
+    return "IRRELEVANT";
+  }
+
+  if (family === "REBUILDABILITY_COMPRESSION") {
+    if (negatedSupport && hasAnyText(text, ["challenger benchmark", "calibration experiment", "reconstruction attempt", "incumbent-vs-challenger", "rebuild experiment", "relearning benchmark"])) return "CONTEXT-DESCRIPTIVE";
+    if (hasAnyText(text, ["challenger benchmark", "calibration experiment", "reconstruction attempt", "incumbent-vs-challenger", "rebuild experiment", "relearning benchmark"])) return "SUPPORTS";
+    if (hasAnyText(text, ["proprietary", "foundation", "model", "workflow", "regulatory", "operational"])) return "CONTEXT-DESCRIPTIVE";
+    return "IRRELEVANT";
+  }
+
+  if (family === "MARGINAL_INFORMATION_VALUE") {
+    if (negatedSupport && hasAnyText(text, ["cohort learning curve", "incremental performance", "successive case cohorts", "marginal information", "learning curve"])) return "CONTEXT-DESCRIPTIVE";
+    if (hasAnyText(text, ["cohort learning curve", "incremental performance", "successive case cohorts", "marginal information", "learning curve"])) return "SUPPORTS";
+    if (hasAnyText(text, ["case volume", "transactions", "five credit unions", "customer interaction", "capacity"])) return "CONTEXT-DESCRIPTIVE";
+    return "IRRELEVANT";
+  }
+
+  if (family === "LEARNING_RIGHTS") {
+    if (negatedSupport && hasAnyText(text, ["cross-customer training rights", "right to train", "right to retain", "derived features", "contractual rights"])) return "CONTEXT-DESCRIPTIVE";
+    if (hasAnyText(text, ["contract explicitly allow", "contracts explicitly allow", "cross-customer training rights", "right to train", "right to retain", "derived features"])) return "SUPPORTS";
+    if (hasAnyText(text, ["privacy", "according to their instructions", "aggregated", "analytics", "develop", "improve", "contract", "governance", "retain", "train", "pool"])) return "CONTEXT-DESCRIPTIVE";
+    return "IRRELEVANT";
+  }
+
+  if (family === "ECONOMIC_MATERIALITY") {
+    if (hasAnyText(text, ["savings", "cost", "loss", "writeoff", "writeoffs", "resolution time", "chargeback win", "capacity", "economic", "fraud loss", "error frequency declined"])) return "SUPPORTS";
+    if (hasAnyText(text, ["workflow", "operational", "product", "platform"])) return "CONTEXT-DESCRIPTIVE";
+    return "IRRELEVANT";
+  }
+
+  if (family === "EXPERIENCE_CAPTURE") {
+    if (hasAnyText(text, ["decision", "action", "outcome", "grade", "case-level", "production records", "scorebook"])) return "SUPPORTS";
+    if (hasAnyText(text, ["workflow", "intake", "chargeback", "tracking", "platform", "dispute", "merchant response", "outcome"])) return "CONTEXT-DESCRIPTIVE";
+    return "IRRELEVANT";
+  }
+
+  if (family === "ALTERNATIVE_POWER") {
+    if (hasAnyText(text, ["switching cost", "replacement", "process power", "deterministic", "regulatory barrier", "integration depth", "workflow dependency"])) return "SUPPORTS";
+    if (hasAnyText(text, ["workflow", "regulatory", "network", "chargeback", "operational", "compliance"])) return "CONTEXT-DESCRIPTIVE";
+    return "IRRELEVANT";
+  }
+
+  return debateEvidenceMatchesFamily(record, family) ? "CONTEXT-DESCRIPTIVE" : "IRRELEVANT";
 }
 
 function externalEvidenceForFamily(input: DebateEngineInput, family: DebateFamily): DebateEvidenceItem[] {
   const externalTypes = new Set(["PUBLIC_SOURCE", "COMPANY_DOCUMENT", "UPSTREAM_APP", "ANALYST_INPUT", "LIVE", "EXTERNAL", "COMPETITIVE_BENCHMARK", "EXPERIMENT"]);
   return (input.evidenceRecords ?? [])
     .filter((record) => externalTypes.has(String(record.evidenceType ?? "").toUpperCase()) || record.epistemicStatus?.toUpperCase() === "SOURCED")
-    .filter((record) => debateEvidenceMatchesFamily(record, family))
-    .map((record) => {
-      const direction = externalEvidenceDirection(record);
+    .map((record) => ({ record, relationship: classifyEvidenceForDebate(record, family) }))
+    .filter(({ relationship }) => relationship !== "IRRELEVANT")
+    .map(({ record, relationship }) => {
+      const direction = relationship === "IRRELEVANT" || relationship === "MISSING" ? "CONTEXT-DESCRIPTIVE" : relationship;
       return evidenceItem({
         source: record.sourceLabel || record.evidenceType || "Attached evidence",
         value: record.valueSnapshot || record.analystNotes || "Evidence record attached.",
@@ -3816,7 +3915,7 @@ function ceThesisFromDebates(debates: DerivedDebateCandidate[], powerMap: Derive
   if (debates.some((debate) => debate.assessment === "CONTRADICTED")) return "CONTRADICTED";
   const supportedCore = debates.filter((debate) => ["EXPERIENCE_CAPTURE", "LEARNING_CAUSALITY", "CROSS_CUSTOMER_TRANSFER"].includes(debate.family) && ["SUPPORTED", "LEANING SUPPORTED"].includes(debate.assessment));
   if (supportedCore.length >= 2 && !powerMap.ceMechanism.classifications.includes("UNPROVEN MECHANISM")) return "SUPPORTED";
-  if (debates.some((debate) => ["SUPPORTED", "LEANING SUPPORTED"].includes(debate.assessment)) || powerMap.powers.some((power) => thesisRank(power.thesisStrength) >= 2)) return "PARTIALLY SUPPORTED";
+  if (supportedCore.length >= 1 && powerMap.powers.some((power) => thesisRank(power.thesisStrength) >= 2 && evidenceRank(power.evidenceStrength) >= 1)) return "PARTIALLY SUPPORTED";
   if (debates.some((debate) => debate.assessment === "UNPROVEN")) return "UNPROVEN";
   return "UNKNOWN";
 }

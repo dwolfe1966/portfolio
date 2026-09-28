@@ -141,8 +141,8 @@ function questionConfidence(provenance: string) {
 
 function gateState(answer: string) {
   const normalized = answer.toUpperCase();
-  if (normalized.includes("STRONG") || normalized.includes("CLOSED") || normalized.includes("DIFFICULT") || normalized.includes("HIGH") || normalized.includes("HARD") || normalized === "YES") return "favorable";
-  if (normalized.includes("CONDITIONAL") || normalized.includes("PARTIAL")) return "mixed";
+  if (normalized.includes("STRONG") || normalized.includes("SUPPORTED STRUCTURAL") || normalized.includes("CLOSED") || normalized.includes("DIFFICULT") || normalized.includes("HIGH") || normalized.includes("HARD") || normalized === "YES") return "favorable";
+  if (normalized.includes("CONDITIONAL") || normalized.includes("PARTIAL") || normalized.includes("PLAUSIBLE")) return "mixed";
   if (normalized.includes("WEAK") || normalized.includes("OPEN") || normalized.includes("EASY") || normalized.includes("LOW") || normalized === "NO") return "weak";
   return "unknown";
 }
@@ -325,12 +325,17 @@ export default async function CompoundingExpertiseInputsPage({
     loopNode("UPDATE", null, activeRows.length, learning?.usesOutcomeGradesForLearning ?? "UNKNOWN", "UNKNOWN / DILIGENCE REQUIRED", "Do grades change future policy or model behavior?"),
     loopNode("DEPLOYMENT", null, activeRows.length, learning?.deploymentCadence ?? analysis?.deploysImprovementsQuickly ?? "UNKNOWN", "UNKNOWN / DILIGENCE REQUIRED", "Do learned changes reach production?")
   ];
-  const repeatedDecision = derived.totalCases > 0 || visibleDecisionClasses.some((item) => !includesAny(item.decisionFrequency, ["LOW", "UNKNOWN", "NOT"]));
+  const hasStructuredDecisionClasses = visibleDecisionClasses.some((item) => item.id !== "fallback");
+  const repeatedDecision = derived.totalCases > 0
+    || visibleDecisionClasses.some((item) => !includesAny(item.decisionFrequency, ["LOW", "UNKNOWN", "NOT"]))
+    || (hasStructuredDecisionClasses && visibleDecisionClasses.some((item) => includesAny(item.name, ["DISPUTE", "FRAUD", "CHARGEBACK", "DECISION", "RESOLUTION"])));
   const meaningfulStakes = visibleDecisionClasses.some((item) => includesAny(item.economicStakes, ["HIGH", "VERY"]));
   const gradeableDecision = visibleDecisionClasses.some((item) => includesAny(item.gradeObjectivity, ["OBJECTIVE", "MOSTLY"]));
   const observableDecision = visibleDecisionClasses.some((item) => includesAny(item.outcomeObservability, ["HIGH", "PARTIAL", "YES"]));
   const decisionInterpretation = repeatedDecision && meaningfulStakes && gradeableDecision && observableDecision
     ? "Strong learning opportunity"
+    : repeatedDecision && meaningfulStakes && (gradeableDecision || observableDecision)
+      ? "Supported structural opportunity"
     : repeatedDecision && (gradeableDecision || observableDecision)
       ? "Conditional learning opportunity"
       : repeatedDecision
@@ -348,8 +353,10 @@ export default async function CompoundingExpertiseInputsPage({
   const deployKnown = !includesAny(learning?.deploymentCadence ?? analysis?.deploysImprovementsQuickly, ["UNKNOWN", "NO", "NOT"]);
   const loopInterpretation = loopCapturedCount >= 6 && updateKnown && deployKnown
     ? "Closed loop"
-    : loopCapturedCount >= 4
-      ? "Partially closed loop"
+    : loopCapturedCount >= 4 && (!updateKnown || !deployKnown)
+      ? "Structurally plausible / unproven"
+      : loopCapturedCount >= 4
+        ? "Partially closed loop"
       : loopCapturedCount > 0
         ? "Open loop"
         : "Unknown";
@@ -364,8 +371,9 @@ export default async function CompoundingExpertiseInputsPage({
       : "Unknown";
   const modelProvenance = canonicalExample
     ? activeRowsAreSynthetic ? "ARCHETYPE ASSUMPTION + DERIVED — SYNTHETIC FIXTURE" : "ARCHETYPE ASSUMPTION"
-    : activeRowsAreSynthetic ? "DERIVED — SYNTHETIC FIXTURE" : "MIXED / DILIGENCE REQUIRED";
+    : activeRowsAreSynthetic ? "DERIVED — SYNTHETIC FIXTURE" : evidenceCoverage.sourced > 0 ? "SOURCED — EXTERNAL EVIDENCE + DILIGENCE REQUIRED" : "MIXED / DILIGENCE REQUIRED";
   const importantUnknowns = criticalUnknowns({ learning, competitive });
+  const criticalUnknownCount = Math.max(evidenceCoverage.unknown, importantUnknowns.length);
   const gateSummaries = [
     {
       ...COMPANY_MODEL_GATES[0],
@@ -458,7 +466,7 @@ export default async function CompoundingExpertiseInputsPage({
               <span><strong>{evidenceCoverage.sourced}</strong> external evidence</span>
               <span><strong>{activeRowsAreSynthetic ? derived.totalCases : 0}</strong> synthetic-derived</span>
               <span><strong>{canonicalExample ? Math.max(evidenceCoverage.assumed, 1) : evidenceCoverage.assumed}</strong> assumptions</span>
-              <span><strong>{coverageTotal ? evidenceCoverage.unknown : 8}</strong> unknowns</span>
+              <span><strong>{coverageTotal ? criticalUnknownCount : 8}</strong> critical unknowns</span>
             </div>
             <p className="small">
               Highest-value unknowns: {(importantUnknowns.length ? importantUnknowns.slice(0, 4) : [
@@ -476,7 +484,7 @@ export default async function CompoundingExpertiseInputsPage({
                 <span><strong>{activeRowsAreSynthetic ? derived.totalCases : 0}</strong> synthetic-derived rows</span>
                 <span><strong>{canonicalExample ? Math.max(evidenceCoverage.assumed, 1) : evidenceCoverage.assumed}</strong> archetype / analyst assumptions</span>
                 <span><strong>{evidenceCoverage.inferred}</strong> model inference</span>
-                <span><strong>{coverageTotal ? evidenceCoverage.unknown : 8}</strong> unknown / diligence required</span>
+                <span><strong>{coverageTotal ? criticalUnknownCount : 8}</strong> critical unknown / diligence required</span>
               </div>
               <h3>Most important unknowns</h3>
               <ul>
@@ -557,6 +565,7 @@ export default async function CompoundingExpertiseInputsPage({
               whyItMatters="Compounding Expertise forms around recurring decision classes, not abstractly at the company level. A Decision Class is a recurring type of judgment the system makes under similar conditions."
               possibleAnswers={[
                 "Strong learning opportunity",
+                "Supported structural opportunity",
                 "Conditional learning opportunity",
                 "Weak learning opportunity",
                 "Unknown"
