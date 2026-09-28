@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
+import { createScopedTimer } from "@/lib/dev-timing";
 import {
   SCOREBOOK_CASE_FIELD_CLASSIFICATION,
   applyExperienceSlice,
@@ -426,9 +427,13 @@ export default async function CompoundingExpertiseScorebookPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
+  const timer = createScopedTimer("CE Experience render");
   const accountUserId = await currentAccountUserId();
+  timer.mark("account");
   const analysis = await loadCompoundingAnalysis(accountUserId, params.analysisId);
+  timer.mark("loadAnalysis");
   if (!analysis) {
+    timer.end();
     return (
       <>
         <LabWorkflowRail active="Experience" analysisId={params.analysisId} />
@@ -441,6 +446,7 @@ export default async function CompoundingExpertiseScorebookPage({
   }
 
   const rows = analysis.scorebookCases.map(caseInput);
+  timer.mark("normalizeRows");
   const isCasapPublicAnalysis = analysis.companyName === CASAP_PUBLIC_EVIDENCE_ANALYSIS.analysis.companyName;
   const hasPersistedSimulation = analysis.caseSets.some((caseSet) => caseSet.sourceSystemKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY);
   const virtualSimulationCaseSet = isCasapPublicAnalysis && !hasPersistedSimulation ? casapPublicSimulationCaseSet() : null;
@@ -459,6 +465,7 @@ export default async function CompoundingExpertiseScorebookPage({
   const virtualSimulationRows = selectedDataset.isVirtual && selectedDataset.datasetKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY
     ? buildCasapPublicSimulationCases().map((row) => ({ ...row, caseSetId: CASAP_PUBLIC_SIMULATION_CASESET_KEY }))
     : [];
+  timer.mark("resolveDataset");
   const activeRows = selectedCaseSet
     ? casesForCaseSet(rows, selectedCaseSet.id)
     : selectedDataset.kind === "SYNTHETIC_SIMULATION"
@@ -467,6 +474,7 @@ export default async function CompoundingExpertiseScorebookPage({
         ? []
         : casesForCaseSet(rows, null);
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
+  timer.mark("filterRows");
   const metrics = calculateScorebookMetrics(activeRows);
   const derived = scorebookDerivedSimulatorValues(activeRows);
   const snapshot = deriveExperienceSnapshot(activeRows);
@@ -477,8 +485,10 @@ export default async function CompoundingExpertiseScorebookPage({
   const interestingSlices = deriveInterestingSlices(activeRows);
   const experienceQuality = deriveExperienceCoverage(activeRows, snapshot.provenance);
   const canCannot = deriveExperienceCanCannot(activeRows);
+  timer.mark("experienceDerivations");
   const informationStructure = deriveInformationStructure(activeRows);
   const informationQuestions = deriveInformationStructureDiligenceQuestions(informationStructure);
+  timer.mark("informationStructure");
   const segments = uniq(activeRows.map((row) => row.customerSegment));
   const caseTypes = uniq(activeRows.map((row) => row.caseType));
   const allSynthetic = scorebookRowsAreSynthetic(activeRows);
@@ -493,6 +503,7 @@ export default async function CompoundingExpertiseScorebookPage({
   const decisionClassNames = new Map(
     analysis.workflows.flatMap((workflow) => workflow.decisionClasses.map((decisionClass) => [decisionClass.id, decisionClass.name] as const))
   );
+  timer.end();
 
   return (
     <>

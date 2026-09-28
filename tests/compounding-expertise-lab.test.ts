@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   COMPOUNDING_EXAMPLES,
@@ -1239,6 +1240,19 @@ test("Stress Test run state can distinguish ready-to-run from executed results",
   assert.equal(Boolean(executed.template && executed.run === "1"), true);
 });
 
+test("CE pending UI uses indeterminate status rather than fake percentage progress", () => {
+  const loadingSource = readFileSync("app/(demo)/compounding-expertise/scorebook/loading.tsx", "utf8");
+  const pendingSource = readFileSync("components/compounding-expertise/StressTestPendingControls.tsx", "utf8");
+  const combined = `${loadingSource}\n${pendingSource}`;
+
+  assert.match(combined, /Analyzing experience/);
+  assert.match(combined, /Running stress test/);
+  assert.match(pendingSource, /disabled=\{pending\}/);
+  assert.match(pendingSource, /aria-busy=\{pending\}/);
+  assert.doesNotMatch(combined, /\b\d+\s*%/);
+  assert.doesNotMatch(combined, /\b\d+\s+of\s+\d+\s+complete/i);
+});
+
 test("Stress Test run context serializes exact scenarios for Conclusion recomputation", () => {
   const scenarios = applyStressTestTemplate([
     { ...baseScenario, id: "incumbent-id", name: "Incumbent / Company", startingCases: 10000, baseCapability: 2.1, learningEfficiency: 0.61 },
@@ -1656,6 +1670,20 @@ test("Casap public simulation CaseSet is explicitly synthetic simulation, not pr
   assert.equal(scorebookRowsAreSyntheticSimulation(rows), true);
   assert.ok(rows.every((row) => /SYNTHETIC SIMULATION/i.test(row.sourceLabel)));
   assert.ok(rows.every((row) => /not Casap production data/i.test(row.notes ?? "")));
+});
+
+test("Casap public simulation generation is cached safely without changing deterministic output", () => {
+  const first = buildCasapPublicSimulationCases();
+  const second = buildCasapPublicSimulationCases();
+
+  assert.deepEqual(second, first);
+  first[0].externalCaseId = "mutated-by-caller";
+  first[0].decisionAt = new Date("1999-01-01T00:00:00Z");
+
+  const third = buildCasapPublicSimulationCases();
+  assert.equal(third[0].externalCaseId, "casap-public-sim-001");
+  assert.notEqual(third[0].decisionAt?.toISOString(), "1999-01-01T00:00:00.000Z");
+  assert.deepEqual(third, second);
 });
 
 test("Casap public simulation fixture has designed structural diversity and repeated patterns", () => {

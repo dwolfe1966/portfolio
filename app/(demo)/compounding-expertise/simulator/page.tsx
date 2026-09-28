@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { EpistemicBadge, LabWorkflowRail, SimulatorLineChart } from "@/components/compounding-expertise/CompoundingLabComponents";
+import { StressTestPendingCanvas, StressTestRunButton, StressTestRunForm } from "@/components/compounding-expertise/StressTestPendingControls";
+import { createScopedTimer } from "@/lib/dev-timing";
 import {
   DEFAULT_SCENARIOS,
   SIMULATOR_PARAMETER_DEFINITIONS,
@@ -102,10 +104,14 @@ export default async function CompoundingExpertiseSimulatorPage({
   searchParams: Promise<SimulatorSearchParams>;
 }) {
   const params = await searchParams;
+  const timer = createScopedTimer("CE Stress Test render");
   const accountUserId = await currentAccountUserId();
+  timer.mark("account");
   const analysisId = value(params, "analysisId");
   const analysis = await loadCompoundingAnalysis(accountUserId, analysisId);
+  timer.mark("loadAnalysis");
   if (!analysis) {
+    timer.end();
     return (
       <>
         <LabWorkflowRail active="Stress Test" analysisId={analysisId} />
@@ -138,15 +144,18 @@ export default async function CompoundingExpertiseSimulatorPage({
   const scenarios = values(params, "startingCases").length >= 2
     ? [scenarioFromQuery(params, templatedScenarios[0], 0), scenarioFromQuery(params, templatedScenarios[1], 1)]
     : templatedScenarios;
+  timer.mark("scenarioSetup");
   const series = simulateComparison(scenarios, 36);
   const crossover = series.length >= 2 ? detectCrossover(series[0], series[1]) : null;
   const result = classifyStressTestResult(series, crossover);
   const drivers = deriveStressTestDrivers(series, result);
   const implication = deriveStressTestPowerImplication(template.id, result);
+  timer.mark("simulate");
   const scorebookRows = analysis.scorebookCases.map((row) => ({ ...row })) as ScorebookCaseInput[];
   const activeRows = casesForCaseSet(scorebookRows, selectedCaseSet?.id);
   const derived = scorebookDerivedSimulatorValues(activeRows);
   const scenarioGrounding = deriveScenarioGrounding(activeRows);
+  timer.mark("scorebookDerivations");
   const changedKeys = new Set(template.changedParameterKeys);
   const changedDefinitions = visibleStressTestChangedParameters(template.id);
   const baseQuery = "/compounding-expertise/simulator";
@@ -166,6 +175,7 @@ export default async function CompoundingExpertiseSimulatorPage({
       includeRun: true
     })
     : `/compounding-expertise/memo?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`;
+  timer.end();
 
   return (
     <>
@@ -218,7 +228,7 @@ export default async function CompoundingExpertiseSimulatorPage({
         </Section>
       ) : (
         <Section eyebrow="Scenario workspace" title={template.id === "custom" ? "Custom scenario" : template.name}>
-          <form method="get" action="/compounding-expertise/simulator" className="compoundingScenarioWorkspace">
+          <StressTestRunForm method="get" action="/compounding-expertise/simulator" className="compoundingScenarioWorkspace">
             <input type="hidden" name="analysisId" value={analysis.id} />
             <input type="hidden" name="template" value={template.id} />
             {selectedCaseSet ? <input type="hidden" name="caseSetId" value={selectedCaseSet.id} /> : null}
@@ -349,11 +359,12 @@ export default async function CompoundingExpertiseSimulatorPage({
                 </details>
               </details>
 
-              <button className="btn primary" type="submit">Run Stress Test</button>
+              <StressTestRunButton />
               <Link className="btn" href={`/compounding-expertise/simulator?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Change test</Link>
             </aside>
 
             <main className="compoundingScenarioCanvas">
+              <StressTestPendingCanvas testName={template.name} conditionSummary={conditionSummary} />
               {!hasRun ? (
                 <div className="card compoundingReadyToRun">
                   <span className="badge">Ready to run</span>
@@ -429,7 +440,7 @@ export default async function CompoundingExpertiseSimulatorPage({
                 </>
               )}
             </main>
-          </form>
+          </StressTestRunForm>
         </Section>
       )}
 

@@ -4192,6 +4192,66 @@ button {
 .compoundingSyntheticBanner {
   border-color: color-mix(in srgb, var(--band-watch) 60%, var(--demo-divider));
 }
+.compoundingPendingPanel {
+  display: grid;
+  gap: 12px;
+}
+.compoundingPendingPanel h3 {
+  margin: 0;
+}
+.compoundingIndeterminateBar {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--demo-divider) 76%, transparent);
+}
+.compoundingIndeterminateBar span {
+  position: absolute;
+  inset-block: 0;
+  left: -35%;
+  width: 35%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--demo-accent) 72%, white);
+  animation: compoundingIndeterminate 1.25s ease-in-out infinite;
+}
+.compoundingSkeletonCard {
+  display: grid;
+  gap: 10px;
+}
+.compoundingSkeletonLine {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--demo-divider) 72%, transparent),
+    color-mix(in srgb, var(--demo-accent) 12%, var(--demo-divider)),
+    color-mix(in srgb, var(--demo-divider) 72%, transparent)
+  );
+  background-size: 200% 100%;
+  animation: compoundingSkeleton 1.4s ease-in-out infinite;
+}
+.compoundingSkeletonLine:nth-child(3) {
+  width: 78%;
+}
+.compoundingSkeletonLine:nth-child(4) {
+  width: 62%;
+}
+@keyframes compoundingIndeterminate {
+  from { transform: translateX(0); }
+  to { transform: translateX(385%); }
+}
+@keyframes compoundingSkeleton {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .compoundingIndeterminateBar span,
+  .compoundingSkeletonLine {
+    animation: none;
+  }
+}
 .compoundingFormGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

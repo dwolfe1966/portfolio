@@ -2596,7 +2596,20 @@ function casapSimulationOutcome(pattern: CasapSimulationPattern, grade: Compound
   return round((base + deterministicFraction(seed) * base * 0.7) * multiplier, 2);
 }
 
+let casapPublicSimulationCaseCache: ScorebookCaseInput[] | null = null;
+
+function cloneScorebookCase(row: ScorebookCaseInput): ScorebookCaseInput {
+  return {
+    ...row,
+    decisionAt: row.decisionAt ? new Date(row.decisionAt) : row.decisionAt,
+    actionAt: row.actionAt ? new Date(row.actionAt) : row.actionAt,
+    outcomeAt: row.outcomeAt ? new Date(row.outcomeAt) : row.outcomeAt
+  };
+}
+
 export function buildCasapPublicSimulationCases(): ScorebookCaseInput[] {
+  if (casapPublicSimulationCaseCache) return casapPublicSimulationCaseCache.map(cloneScorebookCase);
+
   const cohortNewCounts = [44, 38, 31, 24, 16];
   const cohortSize = 60;
   const patternPool: CasapSimulationPattern[] = [];
@@ -2669,7 +2682,8 @@ export function buildCasapPublicSimulationCases(): ScorebookCaseInput[] {
       });
     }
   }
-  return cases;
+  casapPublicSimulationCaseCache = cases;
+  return casapPublicSimulationCaseCache.map(cloneScorebookCase);
 }
 
 export const CASAP_PUBLIC_EVIDENCE_ANALYSIS: PublicEvidenceAnalysisFixture = {
