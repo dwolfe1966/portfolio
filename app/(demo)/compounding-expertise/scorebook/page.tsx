@@ -1,3 +1,5 @@
+import { createExperienceRun } from "@/lib/experience-run";
+import { ExperienceAnalysisPanel } from "@/components/compounding-expertise/ExperienceAnalysisPanel";
 import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
@@ -36,7 +38,7 @@ import {
   type CompoundingCaseGrade,
   type ScorebookCaseInput
 } from "@/lib/compounding-expertise-lab";
-import { saveCaseSetAction, saveScorebookAction } from "../actions";
+import { saveExperienceRunAction, saveCaseSetAction, saveScorebookAction } from "../actions";
 import { currentAccountUserId, loadCompoundingAnalysis } from "../data";
 
 export const dynamic = "force-dynamic";
@@ -460,6 +462,9 @@ export default async function CompoundingExpertiseScorebookPage({
   const selectedDatasetDisplay: ExperienceDatasetDisplay | null = selectedCaseSet ?? selectedDataset.caseSet ?? null;
   timer.mark("resolveDataset");
   const activeRows = experienceContext.activeRows;
+  const experienceRun = createExperienceRun(activeRows, { analysisId: analysis.id, datasetKey: experienceContext.selected.caseSetId ?? experienceContext.selected.datasetKey, datasetName: experienceContext.selected.name, provenance: experienceContext.selected.provenanceLabel });
+  const savedRuns = analysis.evidenceRecords.filter(item => item.evidenceType === "ANALYSIS_RUN" && item.sourceCaseSetId === experienceRun.source.datasetKey);
+
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   timer.mark("filterRows");
   const metrics = calculateScorebookMetrics(activeRows);
@@ -631,6 +636,21 @@ export default async function CompoundingExpertiseScorebookPage({
             <p>Public evidence can establish workflow structure and company claims, but scorebook and Information Structure analysis require decision → action → outcome → grade records.</p>
           </div>
         ) : null}
+      </Section>
+
+      <Section title="Experience analysis" >
+        <ExperienceAnalysisPanel report={experienceRun.report} savedCurrent={savedRuns.some(item => item.sourceRecordId === experienceRun.runId)} previousRuns={savedRuns.length} />
+        <form action={saveExperienceRunAction} className="ctaRow">
+          <input type="hidden" name="analysisId" value={analysis.id} />
+          <input type="hidden" name="caseSetId" value={selectedCaseSet?.id ?? ""} />
+          <input type="hidden" name="dataset" value={experienceContext.dataset ?? ""} />
+          <input type="hidden" name="expectedRunId" value={experienceRun.runId} />
+          <button className="btn" type="submit">Save current analysis run</button>
+          <a className="btn" href={`/api/compounding-expertise/experience-run?analysisId=${analysis.id}${experienceContext.datasetSuffix}`}>Download reproducible run</a>
+        </form>
+        {savedRuns.length ? <details><summary>Saved analysis runs</summary><ul>{savedRuns.map(run => <li key={run.id}>
+          <a href={`/api/compounding-expertise/experience-run?analysisId=${analysis.id}&runId=${encodeURIComponent(run.sourceRecordId ?? "")}`}>{run.createdAt.toISOString()} · {run.sourceRecordId === experienceRun.runId ? "Current inputs" : "Previous inputs or engine"}</a>
+        </li>)}</ul></details> : null}
       </Section>
 
       <Section title="Scorebook Structure + Information Structure">

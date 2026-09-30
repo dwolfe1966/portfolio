@@ -1,3 +1,4 @@
+import { analyzeExperience, type ExperienceAnalysis, type ExperienceFinding } from "./experience-analysis";
 import { runExperienceTransferExperiment, type ExperienceTransferExperiment } from "./experience-transfer-experiment";
 
 export type CompoundingFramework = "HELMER" | "SUN" | "WOLFE";
@@ -837,6 +838,7 @@ export type DebateEvidenceDashboard = {
 };
 
 export type DerivedDebateCandidate = {
+  analysisFindings?: ExperienceFinding[];
   transferExperiment?: ExperienceTransferExperiment;
   family: DebateFamily;
   title: string;
@@ -865,6 +867,7 @@ export type DerivedDebateCandidate = {
 };
 
 export type DebateEngineInput = {
+  experienceAnalysis?: ExperienceAnalysis;
   analysis: CompanyThesisInput;
   debates: KeyDebateInput[];
   rows: ScorebookCaseInput[];
@@ -4360,6 +4363,7 @@ export function classifyEvidenceForDebate(
 function externalEvidenceForFamily(input: DebateEngineInput, family: DebateFamily): DebateEvidenceItem[] {
   const externalTypes = new Set(["PUBLIC_SOURCE", "COMPANY_DOCUMENT", "UPSTREAM_APP", "ANALYST_INPUT", "LIVE", "EXTERNAL", "COMPETITIVE_BENCHMARK", "EXPERIMENT"]);
   return (input.evidenceRecords ?? [])
+    .filter((record) => !record.sourceCaseSetId || record.sourceCaseSetId === (input.caseSetId ?? input.dataset))
     .filter((record) => externalTypes.has(String(record.evidenceType ?? "").toUpperCase()) || record.epistemicStatus?.toUpperCase() === "SOURCED")
     .map((record) => ({ record, relationship: classifyEvidenceForDebate(record, family) }))
     .filter(({ relationship }) => relationship !== "IRRELEVANT")
@@ -4601,6 +4605,7 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
 
 export function deriveDebateAssessment(input: DebateEngineInput, family: DebateFamily): Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "missingEvidence"> {
   const metrics = calculateScorebookMetrics(input.rows);
+  const report = input.experienceAnalysis ?? analyzeExperience(input.rows);
   const rowsAreSynthetic = scorebookRowsAreSynthetic(input.rows);
   const rowsAreSyntheticSimulation = scorebookRowsAreSyntheticSimulation(input.rows);
   const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic, rowsAreSyntheticSimulation });
@@ -4635,6 +4640,9 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
     }));
   };
 
+  for (const finding of report.findings.filter(item => item.family === family && item.id !== "capture")) {
+    addExperienceDescriptive(finding.summary, finding.interpretation, finding.nextTest);
+  }
   if (family === "EXPERIENCE_CAPTURE") {
     addExperienceDescriptive(`${metrics.gradedCases}/${metrics.totalCases} graded cases; ${metrics.resolvedCases}/${metrics.totalCases} outcomes represented.`, "Shows whether the active CaseSet is scorebook-like.", "Completeness alone does not prove learning improves future decisions.");
     const linkedCases = input.rows.filter(row => row.agentDecision && row.actionTaken && row.outcome && isResolvableGrade(row.grade)).length;
@@ -4663,7 +4671,7 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
     if (!valueIncludes(update, ["YES", "REGULAR", "DAILY", "WEEKLY"])) addMissing("Company Model → Learning Loop → UPDATE", String(update ?? "Unknown"), "No evidence currently shows that grades alter future model or policy behavior.", "Product/process diligence", "Model or policy update record tied to graded outcomes.");
     if (!valueIncludes(deploy, ["YES", "FAST", "DAILY", "WEEKLY"])) addMissing("Company Model → Learning Loop → DEPLOY", String(deploy ?? "Unknown"), "No evidence currently shows learned improvements reach production.", "Release/process diligence", "Deployment history showing learned changes reached production.");
     addMissing("Experience → learning comparison", "No controlled before/after learning comparison.", "Compare held-out decisions with and without updates from accumulated grades.", "Experiment", "Versioned, held-out performance before and after learning from these cases.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "Grade coverage is descriptive; no controlled performance-over-time evidence proves accumulated grades improve future decisions.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${report.findings.find(item => item.id === "predictability")!.summary} Decision-policy improvement still requires a controlled test.`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   if (family === "CROSS_CUSTOMER_TRANSFER") {
@@ -4677,8 +4685,8 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   if (family === "MARGINAL_INFORMATION_VALUE") {
     const information = deriveInformationStructure(input.rows);
     addExperienceDescriptive(`${metrics.totalCases} cases. ${information.summary.diversity}; ${information.summary.patternRepetition}; ${information.summary.marginalNovelty}.`, "Pattern diversity and cohort novelty describe the supply of new information available to learn from.", "A held-out learning curve is needed to connect novelty to performance gain.");
-    addMissing("Experience / future experiment", "No cohort learning curve.", "Need incremental performance gain from successive case cohorts.", "Experiment", "Performance gain by successive case cohort after controlling for model/policy baseline.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${information.summary.marginalNovelty}: the cases describe information supply. Incremental performance gain from successive cohorts has not been tested.`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    addMissing("Experience / future experiment", report.ready ? "Predictive learning curve measured; policy-value curve still needed." : "Insufficient cases for a held-out learning curve.", "Measure action-policy performance across successive training cohorts.", "Experiment", "Decision-policy value by successive cohort on a fixed evaluation set.");
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${information.summary.marginalNovelty}. ${report.findings.find(item => item.id === "learning-curve")!.summary}`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   if (family === "REBUILDABILITY_COMPRESSION") {
@@ -4687,12 +4695,12 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
     if (difficulty) forEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Relearning difficulty: ${difficulty}`, direction: "CONTEXT-DESCRIPTIVE", strength: "CONTEXT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Frames the rebuildability hypothesis.", limitation: "Assumption is not a challenger benchmark." }));
     if (valueIncludes(foundationRisk, ["HIGH", "FAST"])) againstEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Foundation-model substitution risk: ${foundationRisk}`, direction: "CONTRADICTS", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "A high substitution risk weakens durable CE Power.", limitation: "Still requires direct benchmark evidence." }));
     addMissing("Future challenger benchmark", "No compression/relearning benchmark.", "Need evidence that a capable challenger cannot reproduce performance cheaply.", "Benchmark", "Incumbent-vs-challenger performance gap after policy docs, public data, synthetic cases, and limited calibration.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "Without a challenger, relearning, or compression benchmark, durability remains unproven.", evidenceFor: forEvidence, evidenceAgainst: againstEvidence, missingEvidence: missing };
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${report.findings.find(item => item.id === "reconstruction-proxy")!.summary} Restricted-access challenger performance remains untested.`, evidenceFor: forEvidence, evidenceAgainst: againstEvidence, missingEvidence: missing };
   }
 
   if (family === "LEARNING_RIGHTS") {
     const rights = input.learningArchitecture?.canTrainAcrossCustomers ?? input.analysis.contractualLearningRights;
-    const hasSource = sourcedSupport(input.evidenceRecords, ["right", "contract", "train", "retain"]);
+    const hasSource = sourcedSupport(input.evidenceRecords?.filter(record => !record.sourceCaseSetId || record.sourceCaseSetId === (input.caseSetId ?? input.dataset)), ["right", "contract", "train", "retain"]);
     if (rights) forEvidence.push(evidenceItem({ source: "Company Model → Learning rights", value: `Learning rights: ${rights}`, direction: valueIncludes(rights, ["YES", "ALLOW"]) && hasSource ? "SUPPORTS" : "CONTEXT-DESCRIPTIVE", strength: hasSource ? "DIRECT" : "CONTEXT", provenance: hasSource ? "SOURCED — EXTERNAL EVIDENCE" : "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Rights determine whether experience can be retained and reused.", limitation: hasSource ? "Review scope of allowed uses." : "Analyst assumption is not contractual evidence." }));
     if (valueIncludes(rights, ["NO", "RESTRICT"])) return { assessment: "LEANING AGAINST", confidence: hasSource ? "MEDIUM" : "LOW", assessmentReason: "Current rights signal appears restrictive.", evidenceFor: [], evidenceAgainst: forEvidence, missingEvidence: [] };
     if (valueIncludes(rights, ["YES", "ALLOW"]) && hasSource) return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Sourced rights evidence supports retention/use, subject to scope review.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: [] };
@@ -4713,6 +4721,7 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
 }
 
 export function deriveDebateEvidenceRegistry(input: DebateEngineInput): Record<DebateFamily, Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceDashboard" | "evidenceCoverage" | "tenSecondSummary" | "highestValueDiligence">> {
+  input = { ...input, experienceAnalysis: input.experienceAnalysis ?? analyzeExperience(input.rows) };
   const families: DebateFamily[] = [
     "EXPERIENCE_CAPTURE",
     "LEARNING_CAUSALITY",
@@ -4766,6 +4775,7 @@ export function deriveHighestValueDiligenceQueue(candidates: DerivedDebateCandid
 }
 
 export function deriveDebateCandidates(input: DebateEngineInput, take = 8): DerivedDebateCandidate[] {
+  input = { ...input, experienceAnalysis: input.experienceAnalysis ?? analyzeExperience(input.rows) };
   const profile = deriveCanonicalDebateProfile(input.analysis);
   const registry = deriveDebateEvidenceRegistry(input);
   const families = new Set<DebateFamily>();
@@ -4788,6 +4798,7 @@ export function deriveDebateCandidates(input: DebateEngineInput, take = 8): Deri
     return {
       ...template,
       ...assessment,
+      analysisFindings: input.experienceAnalysis!.findings.filter(item => item.family === family),
       transferExperiment: family === "CROSS_CUSTOMER_TRANSFER" ? runExperienceTransferExperiment(input.rows) : undefined,
       proposition: sourceDebate?.question || template.proposition,
       investorBelief,
@@ -4941,6 +4952,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
   const networkThesis = hasSupport("CROSS_CUSTOMER_TRANSFER") ? "MODERATE" : "UNPROVEN";
   const processSupport = evidenceForPower(["LEARNING_CAUSALITY", "EXPERIENCE_CAPTURE"]);
   const processContext = [
+    ...(candidateByFamily.get("LEARNING_CAUSALITY")?.contextEvidence ?? []),
     powerEvidenceItem("Company Model → Learning Loop", `Update: ${input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly ?? "Unknown"}; deploy: ${input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly ?? "Unknown"}`, "CONTEXT-DESCRIPTIVE", "Closed-loop architecture is relevant but does not prove difficult-to-copy Process Power.", companyHref)
   ];
   const closedLoopClaim = valueIncludes(input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly, ["YES", "REGULAR", "DAILY", "WEEKLY"]) && valueIncludes(input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly, ["YES", "FAST", "DAILY", "WEEKLY"]);
@@ -5097,6 +5109,7 @@ function investmentMemoText(input: InvestmentSynthesisInput, synthesis: Omit<Inv
     `Highest-value diligence: ${diligence.map((item) => `${item.title} — ${item.test}`).join("; ") || "No diligence queue generated."}`,
     "",
     `Experience: ${experienceLine} Provenance: ${input.experience.provenance}.`,
+    `Experience experiments: ${input.debates.flatMap(debate => debate.analysisFindings ?? []).filter(finding => finding.status === "TESTED").map(finding => finding.summary).join(" ") || "No experiment met its data requirements."}`,
     "",
     `Stress-test finding: ${stressLine}`,
     "",
@@ -5183,8 +5196,9 @@ export function deriveDecisionSystemMetrics(rows: ScorebookCaseInput[]): Decisio
   };
 }
 
-export function summarizeEvidenceCoverage(records: Array<{ epistemicStatus: string }>): EvidenceCoverageSummary {
+export function summarizeEvidenceCoverage(records: Array<{ epistemicStatus: string; evidenceType?: string }>): EvidenceCoverageSummary {
   return records.reduce<EvidenceCoverageSummary>((summary, record) => {
+    if (record.evidenceType === "ANALYSIS_RUN") return summary;
     const status = record.epistemicStatus.toUpperCase();
     if (status === "DERIVED" || status === "OBSERVED") summary.derived += 1;
     else if (status === "SOURCED") summary.sourced += 1;

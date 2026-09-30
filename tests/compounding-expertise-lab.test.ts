@@ -692,7 +692,7 @@ test("grade coverage cannot establish learning causality", () => {
   }, "LEARNING_CAUSALITY");
 
   assert.equal(assessment.assessment, "UNPROVEN");
-  assert.match(assessment.assessmentReason, /Grade coverage is descriptive/i);
+  assert.match(assessment.assessmentReason, /Decision-policy improvement still requires a controlled test/i);
   assert.ok(assessment.missingEvidence.some((item) => item.source.includes("UPDATE")));
 });
 
@@ -834,7 +834,7 @@ test("high case volume cannot establish marginal information value", () => {
   const assessment = deriveDebateAssessment({ analysis: debateAnalysis, debates: INITIAL_DEBATES, rows }, "MARGINAL_INFORMATION_VALUE");
 
   assert.equal(assessment.assessment, "UNPROVEN");
-  assert.match(assessment.assessmentReason, /performance gain.*has not been tested/i);
+  assert.match(assessment.assessmentReason, /Need at least 20 training/i);
 });
 
 test("absence of challenger benchmark leaves rebuildability unproven", () => {
@@ -1799,7 +1799,7 @@ test("Casap public evidence keeps CE debates conservative without production cas
 
   assert.ok(learning);
   assert.equal(learning!.assessment, "UNPROVEN");
-  assert.match(learning!.assessmentReason, /no controlled|Grade coverage is descriptive|future decisions/i);
+  assert.match(learning!.assessmentReason, /Decision-policy improvement still requires a controlled test/i);
   assert.ok(transfer);
   assert.equal(transfer!.assessment, "UNPROVEN");
   assert.ok(transfer!.contextEvidence.every((item) => item.direction === "CONTEXT-DESCRIPTIVE"));

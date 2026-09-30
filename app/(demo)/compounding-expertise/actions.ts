@@ -1,5 +1,6 @@
 "use server";
 
+import { createExperienceRun } from "@/lib/experience-run";
 import { resolveExperienceContext } from "@/lib/experience-context";
 
 import { randomUUID } from "node:crypto";
@@ -878,4 +879,23 @@ export async function saveScenariosAction(formData: FormData) {
 
   revalidateLab();
   redirect(labPath("/compounding-expertise/simulator", analysisId, { saved: "1", caseSetId: nullableText(formData.get("caseSetId")), dataset: nullableText(formData.get("dataset")) }));
+}
+
+export async function saveExperienceRunAction(formData: FormData) {
+  const analysisId = text(formData.get("analysisId"));
+  if (!analysisId) throw new Error("Analysis is required.");
+  const accountUserId = await currentAccountUserId();
+  const analysis = await db.compoundingExpertiseAnalysis.findFirst({ where: compoundingAnalysisAccessWhere(accountUserId, analysisId), include: { caseSets: true, scorebookCases: true } });
+  if (!analysis) throw new Error("Analysis unavailable.");
+  const context = resolveExperienceContext(analysis, analysis.scorebookCases, { caseSetId: text(formData.get("caseSetId")), dataset: text(formData.get("dataset")) });
+  const run = createExperienceRun(context.activeRows, { analysisId, datasetKey: context.selected.caseSetId ?? context.selected.datasetKey, datasetName: context.selected.name, provenance: context.selected.provenanceLabel });
+  if (text(formData.get("expectedRunId")) !== run.runId) throw new Error("The dataset changed since this page was loaded. Refresh to review the current results before saving.");
+  const existing = await db.compoundingEvidence.findFirst({ where: { analysisId, evidenceType: "ANALYSIS_RUN", sourceRecordId: run.runId } });
+  if (!existing) await db.compoundingEvidence.create({ data: {
+    analysisId, entityType: "EXPERIENCE_ANALYSIS", fieldKey: "experience.analysis.run", evidenceType: "ANALYSIS_RUN", epistemicStatus: "DERIVED",
+    sourceLabel: context.selected.name, sourceCaseSetId: run.source.datasetKey, sourceRecordId: run.runId,
+    valueSnapshot: JSON.stringify(run), derivationMethod: run.engineVersion, confidence: "DESCRIPTIVE"
+  } });
+  revalidateLab();
+  redirect(labPath("/compounding-expertise/scorebook", analysisId, { caseSetId: context.selected.caseSetId, dataset: context.dataset }));
 }
