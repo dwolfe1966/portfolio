@@ -144,8 +144,12 @@ export function DebateCard({ family, children }: { family: string; children: Rea
 
 export function DebateEditButton() {
   const { family, open, toggle, buttonRef } = useEditor();
-  return <button ref={buttonRef} className="btn compoundingEditDebateButton" type="button" aria-expanded={open} aria-controls={`debate-change-${family}-editor`} onClick={toggle}>
-    {open ? "Close editor" : "Edit debate"}
+  const label = open ? "Close debate editor" : "Edit debate";
+  return <button ref={buttonRef} className="btn compoundingEditDebateButton" type="button" aria-label={label} title={label} aria-expanded={open} aria-controls={`debate-change-${family}-editor`} onClick={toggle}>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d="m16 3 5 5-12 12-6 1 1-6Z" />
+      <path d="m14 5 5 5M4 15l5 5" />
+    </svg>
   </button>;
 }
 

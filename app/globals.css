@@ -4401,7 +4401,18 @@ button {
 }
 .compoundingDebateEditor[hidden] { display: none; }
 .compoundingDebateEditor > * + * { margin-top: 12px; }
-.compoundingEditDebateButton { margin-top: 8px; }
+.btn.compoundingEditDebateButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+}
+.compoundingEditDebateButton svg { flex: none; }
 @media (max-width: 760px) {
   .compoundingArgumentColumns { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .compoundingArgumentColumns > div + div { border-left: 0; border-top: 1px solid var(--demo-divider); padding: 14px 0 0; }
@@ -4774,6 +4785,28 @@ button {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
+}
+.compoundingDebateAnalysisCard > .compoundingCardHeader {
+  flex-wrap: wrap;
+}
+.compoundingDebateAnalysisCard > .compoundingCardHeader > :first-child {
+  flex: 1 1 24rem;
+  min-width: 0;
+}
+.compoundingDebateAnalysisCard > .compoundingCardHeader > .compoundingBadgeStack {
+  max-width: 100%;
+  align-items: center;
+}
+.compoundingDebateAnalysisCard .compoundingBadgeStack .provenanceBadge {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+  line-height: 1.3;
+}
+@media (max-width: 900px) {
+  .compoundingDebateAnalysisCard > .compoundingCardHeader > :first-child { flex-basis: auto; }
+  .compoundingDebateAnalysisCard > .compoundingCardHeader > .compoundingBadgeStack { justify-content: flex-start; }
 }
 .compoundingMindChange {
   background: color-mix(in srgb, var(--demo-surface) 90%, var(--demo-accent) 10%);
