@@ -1,10 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { CASAP_PUBLIC_EVIDENCE_ANALYSIS, buildCasapPublicSimulationCases, deriveDebateAssessment, deriveDebateCandidates, deriveExperienceSnapshot, deriveInvestmentSynthesis, derivePowerMap } from "../lib/compounding-expertise-lab";
 import { normalizeSyntheticWorld, runSyntheticExperimentLab } from "../lib/experience-experiment-lab";
 import { buildAutomatedExperimentPlan, runAutomatedExperimentProgram } from "../lib/experience-experiment-program";
 
 const base = { customers: 5, casesPerCustomer: 200, patterns: 12, repetitions: 12, seed: 4107, outcomeNoise: 0.15, missingFeedback: 0.05 };
+
+test("custom experiment form accepts dataset-calibrated decimal values", () => {
+  const source = readFileSync("components/compounding-expertise/ExperimentLabPanel.tsx", "utf8");
+  for (const name of ["worldShared", "worldDrift", "worldNoise", "worldMissing"]) {
+    assert.match(source, new RegExp(`name="${name}"[^>]*step="any"`));
+  }
+});
 
 test("synthetic experiment runs are deterministic and normalize unsafe inputs", () => {
   const config = normalizeSyntheticWorld({ customers: 999, repetitions: 1, sharedStructure: -2, missingFeedback: 9, seed: 0 });

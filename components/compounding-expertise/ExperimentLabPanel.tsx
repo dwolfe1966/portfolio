@@ -65,10 +65,10 @@ export function ExperimentLabPanel({ defaults, result, program, plan, analysisId
       <label>Customers<input name="worldCustomers" type="number" min="2" max="12" defaultValue={config.customers} /></label>
       <label>Cases per customer<input name="worldCases" type="number" min="40" max="300" defaultValue={config.casesPerCustomer} /></label>
       <label>Decision patterns<input name="worldPatterns" type="number" min="2" max="30" defaultValue={config.patterns} /></label>
-      <label>Shared structure<input name="worldShared" type="number" min="0" max="1" step="0.05" defaultValue={config.sharedStructure} /><small>0 = customer-specific; 1 = fully shared</small></label>
-      <label>Environmental drift<input name="worldDrift" type="number" min="0" max="1" step="0.05" defaultValue={config.drift} /></label>
-      <label>Outcome noise<input name="worldNoise" type="number" min="0" max="0.45" step="0.05" defaultValue={config.outcomeNoise} /></label>
-      <label>Missing feedback<input name="worldMissing" type="number" min="0" max="0.8" step="0.05" defaultValue={config.missingFeedback} /></label>
+      <label>Shared structure<input name="worldShared" type="number" min="0" max="1" step="any" defaultValue={config.sharedStructure} /><small>0 = customer-specific; 1 = fully shared</small></label>
+      <label>Environmental drift<input name="worldDrift" type="number" min="0" max="1" step="any" defaultValue={config.drift} /></label>
+      <label>Outcome noise<input name="worldNoise" type="number" min="0" max="0.45" step="any" defaultValue={config.outcomeNoise} /></label>
+      <label>Missing feedback<input name="worldMissing" type="number" min="0" max="0.8" step="any" defaultValue={config.missingFeedback} /></label>
       <label>Challenger calibration cases<input name="worldCalibration" type="number" min="0" max="500" defaultValue={config.challengerCalibration} /></label>
       <label>Repeated worlds<input name="worldRepetitions" type="number" min="3" max="12" defaultValue={config.repetitions} /><small>Large worlds are automatically capped at 24,000 generated observations.</small></label>
       <label>Seed<input name="worldSeed" type="number" min="1" defaultValue={config.seed} /></label>
