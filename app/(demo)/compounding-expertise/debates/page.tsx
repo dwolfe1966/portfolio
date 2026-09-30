@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
+import { DebateSuggestionFeedback, DebateChangedBadge, DebateChangedSection, DebateChangedDetails, DebateEditingRegion } from "@/components/compounding-expertise/DebateSuggestionFeedback";
+import { debateReviewSnapshots } from "@/lib/debate-suggestion-feedback";
+import { DebateArgumentBrief } from "@/components/compounding-expertise/DebateArgumentBrief";
 import {
   buildCasapPublicSimulationCases,
   CASAP_PUBLIC_EVIDENCE_ANALYSIS,
@@ -77,6 +80,8 @@ function evidenceList(title: string, items: DebateEvidenceItem[]) {
           <p><strong>Value / observation:</strong> {item.value}</p>
           <p><strong>Interpretation:</strong> {item.interpretation}</p>
           <p className="small"><strong>Limitation:</strong> {item.limitation}</p>
+          {item.obtainVia ? <p className="small"><strong>Obtain via:</strong> {item.obtainVia}</p> : null}
+          {item.expectedEvidence ? <p className="small"><strong>Expected evidence:</strong> {item.expectedEvidence}</p> : null}
           {item.href ? <Link className="btn" href={item.href}>Inspect source</Link> : null}
         </div>
       )) : <p className="small">No evidence in this category yet.</p>}
@@ -302,19 +307,14 @@ export default async function CompoundingExpertiseDebatesPage({
             <p>Compare CE&apos;s categorical evidence assessment with your own belief, inspect typed evidence, and identify the next test most likely to change your mind.</p>
           </div>
         </div>
-        {params.ai ? (
-          <div className="card compoundingSyntheticBanner">
-            <strong>{params.ai === "generated" ? "AI suggestions loaded." : "Manual fallback loaded."}</strong>
-            <p>AI-generated material is a SUGGESTION — NOT EVIDENCE. It does not create sourced evidence, recommended probabilities, or company facts.</p>
-          </div>
-        ) : null}
-        <form action={generateDebatesAction} className="ctaRow">
-          <input type="hidden" name="analysisId" value={analysis.id} />
-          <button className="btn" type="submit">Suggest debates with AI</button>
-          <span className="small">Optional. Deterministic CE evidence assessment remains separate from AI suggestions.</span>
-        </form>
       </Section>
 
+      <DebateSuggestionFeedback
+        key={`${analysis.id}:${params.caseSetId ?? params.dataset ?? "default"}`}
+        analysisId={analysis.id}
+        snapshots={debateReviewSnapshots(candidates)}
+        action={generateDebatesAction}
+      >
       <Section title="Debate control surface">
         <div className="compoundingDebateSummaryCards">
           {candidates.map((candidate, index) => (
@@ -323,6 +323,7 @@ export default async function CompoundingExpertiseDebatesPage({
                 <div>
                   <p className="small">Debate {index + 1}</p>
                   <strong>{candidate.title}</strong>
+                  <DebateChangedBadge family={candidate.family} />
                 </div>
                 <span className="miniTag">{candidate.thesisImpact} impact</span>
               </div>
@@ -347,7 +348,7 @@ export default async function CompoundingExpertiseDebatesPage({
             <tbody>
               {candidates.map((candidate, index) => (
                 <tr key={candidate.family}>
-                  <td><a href={`#debate-${candidate.family}`}>{index + 1}. {candidate.title}</a></td>
+                  <td><a href={`#debate-${candidate.family}`}>{index + 1}. {candidate.title}</a> <DebateChangedBadge family={candidate.family} /></td>
                   <td>{candidate.assessment}</td>
                   <td>{candidate.confidence}</td>
                   <td>{candidate.evidenceCoverage}</td>
@@ -377,47 +378,24 @@ export default async function CompoundingExpertiseDebatesPage({
 
       <Section title="Evidence → belief debates">
         <form action={saveDebatesAction}>
+          <DebateEditingRegion>
           <input type="hidden" name="analysisId" value={analysis.id} />
           <div className="compoundingDebateStack">
             {candidates.map((candidate, index) => (
               <article className="card compoundingDebateCard compoundingDebateAnalysisCard" id={`debate-${candidate.family}`} key={candidate.family}>
                 <div className="compoundingCardHeader">
-                  <div>
-                    <p className="small">{candidate.title}</p>
+                  <DebateChangedSection family={candidate.family} section="proposition">
+                    <p className="small">Debate {index + 1} · {candidate.title}</p>
                     <h3>{candidate.proposition}</h3>
-                  </div>
+                  </DebateChangedSection>
                   <div className="compoundingBadgeStack">
                     <span className="provenanceBadge">{candidate.assessment}</span>
                     <span className="provenanceBadge">{candidate.confidence} confidence</span>
                     <span className="provenanceBadge">{candidate.thesisImpact} impact</span>
                   </div>
                 </div>
-                <p><strong>Why load-bearing:</strong> {candidate.whyLoadBearing}</p>
-                {evidenceDashboard(candidate.evidenceDashboard)}
-                <div className="grid grid-2">
-                  <div className="card compact">
-                    <p className="small">CE interpretation</p>
-                    <h3>{candidate.assessment}</h3>
-                    <p>{candidate.assessmentReason}</p>
-                    <p className="small">{candidate.confidence} confidence · {candidate.thesisImpact} thesis impact</p>
-                  </div>
-                  <div className="card compact">
-                    <p className="small">Next evidence / test</p>
-                    <p>{candidate.bestNextTest}</p>
-                  </div>
-                </div>
-                <div className="compoundingMissingEvidenceGrid">
-                  {candidate.missingEvidence.map((item) => (
-                    <div className="card compact compoundingEvidenceItem compoundingEvidenceItem-missing" key={`${candidate.family}-${item.source}-${item.value}`}>
-                      <p className="small">Missing evidence</p>
-                      <h4>{item.value}</h4>
-                      <p><strong>Why:</strong> {item.interpretation}</p>
-                      <p><strong>Obtain via:</strong> {item.obtainVia ?? "Diligence / experiment"}</p>
-                      <p><strong>Expected evidence:</strong> {item.expectedEvidence ?? "Sourced evidence sufficient to evaluate the proposition."}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="card compact compoundingInvestorPosition">
+                <DebateArgumentBrief candidate={candidate} />
+                <DebateChangedDetails family={candidate.family} section="position" title="Your belief — separate from evidence">
                   <p className="small">Investor position</p>
                   <h3>{candidate.investorBelief === null ? "Not set" : `${candidate.investorBelief}%`}</h3>
                   {candidate.investorBeliefDivergence ? <p>{candidate.investorBeliefDivergence}</p> : <p>Investor belief remains separate from CE evidence.</p>}
@@ -425,7 +403,11 @@ export default async function CompoundingExpertiseDebatesPage({
                     Why?
                     <textarea rows={3} placeholder="UNSOURCED INVESTOR NOTE — this does not modify CE's assessment unless separately sourced as evidence." />
                   </label>
-                </div>
+                </DebateChangedDetails>
+                <details className="compoundingInlineEditor">
+                  <summary>Inspect detailed metrics and source data</summary>
+                  {evidenceDashboard(candidate.evidenceDashboard)}
+                </details>
                 <details className="compoundingInlineEditor">
                   <summary>View full evidence ledger</summary>
                   <div className="grid grid-2">
@@ -448,8 +430,7 @@ export default async function CompoundingExpertiseDebatesPage({
                   </div>
                   </div>
                 </details>
-                <details className="compoundingInlineEditor">
-                  <summary>What would change belief?</summary>
+                <DebateChangedDetails family={candidate.family} section="belief" title="What would change belief?">
                   <div className="grid grid-2">
                   <div className="card compact">
                     <h4>What would increase belief?</h4>
@@ -460,9 +441,8 @@ export default async function CompoundingExpertiseDebatesPage({
                     <p>{candidate.sourceDebate?.decreaseBelief || candidate.decreaseBelief}</p>
                   </div>
                   </div>
-                </details>
-                <details className="compoundingInlineEditor">
-                  <summary>View argument</summary>
+                </DebateChangedDetails>
+                <DebateChangedDetails family={candidate.family} section="argument" title="View argument">
                   <div className="grid grid-2">
                     <div>
                       <p className="small">Bull case</p>
@@ -473,9 +453,8 @@ export default async function CompoundingExpertiseDebatesPage({
                       <p>{candidate.sourceDebate?.bearCase || "No bear case supplied yet."}</p>
                     </div>
                   </div>
-                </details>
-                <details className="compoundingInlineEditor">
-                  <summary>Edit proposition</summary>
+                </DebateChangedDetails>
+                <DebateChangedDetails family={candidate.family} section="editor" title="Edit proposition" key={candidate.sourceDebate?.id ?? candidate.family}>
                   {editDebateFields(candidate.sourceDebate ?? {
                     question: candidate.proposition,
                     bullCase: "",
@@ -490,7 +469,7 @@ export default async function CompoundingExpertiseDebatesPage({
                     Investor note / private evidence reminder
                     <textarea rows={3} placeholder="Example: founder showed pooled-vs-local performance in meeting; upload/source later. This note is not converted into CE evidence by this form." />
                   </label>
-                </details>
+                </DebateChangedDetails>
               </article>
             ))}
           </div>
@@ -512,8 +491,10 @@ export default async function CompoundingExpertiseDebatesPage({
             <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}${datasetSuffix}`}>Back to Experience</Link>
             <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}`}>Continue to Power</Link>
           </div>
+          </DebateEditingRegion>
         </form>
       </Section>
+      </DebateSuggestionFeedback>
     </>
   );
 }

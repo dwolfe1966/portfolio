@@ -4318,6 +4318,78 @@ button {
   display: grid;
   gap: 12px;
 }
+.compoundingSuggestionControls {
+  display: grid;
+  gap: 12px;
+  margin-block: 16px 24px;
+}
+.compoundingDebateEditingRegion {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.demoAppShellContent .compoundingAIChanged,
+.compoundingAIChanged {
+  border-left: 4px solid var(--demo-accent);
+  background: color-mix(in srgb, var(--demo-accent) 10%, var(--demo-surface, transparent));
+  border-radius: 8px;
+  padding: 12px;
+  scroll-margin-top: 110px;
+}
+.compoundingChangedBadge {
+  display: inline-block;
+  margin: 4px 6px 4px 0;
+  white-space: normal;
+  border: 1px solid var(--demo-accent);
+}
+.compoundingSuggestionComplete {
+  border-left: 4px solid var(--demo-accent);
+}
+.compoundingArgumentBrief {
+  display: grid;
+  gap: 18px;
+}
+.compoundingBriefTakeaway {
+  padding: 14px 16px;
+  border-left: 3px solid var(--demo-accent);
+  background: color-mix(in srgb, var(--demo-accent) 7%, transparent);
+}
+.compoundingArgumentBrief h4,
+.compoundingArgumentBrief h5 {
+  margin: 0 0 8px;
+}
+.compoundingArgumentBrief h5 {
+  font-size: 13px;
+}
+.compoundingBriefClaims ol,
+.compoundingBriefGaps {
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+}
+.compoundingBriefEvidenceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 24px;
+}
+.compoundingBriefEvidence {
+  border-top: 1px solid var(--demo-divider);
+  padding-block: 12px;
+}
+.compoundingBriefEvidence p,
+.compoundingBriefGaps p {
+  margin-block: 6px;
+  overflow-wrap: anywhere;
+}
+.compoundingBriefNextTest {
+  border-top: 1px solid var(--demo-divider);
+  padding-top: 14px;
+  margin-top: 16px;
+}
+@media (max-width: 760px) {
+  .compoundingBriefEvidenceGrid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
 .compoundingDebateSummaryTable {
   overflow-x: auto;
 }

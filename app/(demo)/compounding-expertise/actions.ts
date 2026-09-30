@@ -35,6 +35,7 @@ import {
   type SimulationScenarioInput
 } from "@/lib/compounding-expertise-lab";
 import { generateCompoundingExpertiseDebates } from "@/lib/compounding-expertise-ai";
+import type { DebateSuggestionResult } from "@/lib/debate-suggestion-feedback";
 import { db } from "@/lib/db";
 import { getDefaultWorkspace } from "@/lib/workspace";
 import { currentAccountUserId } from "./data";
@@ -630,14 +631,15 @@ export async function saveDebatesAction(formData: FormData) {
   redirect(labPath("/compounding-expertise/diagnostic", analysisId));
 }
 
-export async function generateDebatesAction(formData: FormData) {
+export async function generateDebatesAction(formData: FormData): Promise<DebateSuggestionResult> {
   const analysisId = text(formData.get("analysisId"));
-  if (!analysisId) redirect("/compounding-expertise/inputs");
-  const analysis = await db.compoundingExpertiseAnalysis.findUnique({
-    where: { id: analysisId },
+  if (!analysisId) return { status: "error", message: "Open a company analysis before suggesting debates." };
+  const accountUserId = await currentAccountUserId();
+  const analysis = await db.compoundingExpertiseAnalysis.findFirst({
+    where: compoundingAnalysisAccessWhere(accountUserId, analysisId),
     include: { scorebookCases: true }
   });
-  if (!analysis) redirect("/compounding-expertise/inputs");
+  if (!analysis) return { status: "error", message: "This analysis is no longer available. Reload the page before retrying." };
 
   const metrics = calculateScorebookMetrics(analysis.scorebookCases);
   const result = await generateCompoundingExpertiseDebates(analysis, {
@@ -662,23 +664,32 @@ export async function generateDebatesAction(formData: FormData) {
     },
     scorebookSummary: metrics
   });
-  await db.compoundingExpertiseKeyDebate.deleteMany({ where: { analysisId } });
-  await db.compoundingExpertiseKeyDebate.createMany({
-    data: result.debates.map((debate) => ({
-      analysisId,
-      question: debate.question,
-      bullCase: debate.bullCase,
-      bearCase: debate.bearCase,
-      evidenceNeeded: debate.evidenceNeeded,
-      increaseBelief: debate.increaseBelief,
-      decreaseBelief: debate.decreaseBelief,
-      probability: debate.probability,
-      source: result.ok ? "AI" : debate.source
-    }))
-  });
+  if (!result.ok) return { status: "error", message: "AI suggestions are unavailable right now. Your saved debates have not been changed. You can retry or continue editing manually." };
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.compoundingExpertiseKeyDebate.deleteMany({ where: { analysisId } });
+      await tx.compoundingExpertiseKeyDebate.createMany({
+        data: result.debates.map((debate) => ({
+          analysisId,
+          question: debate.question,
+          bullCase: debate.bullCase,
+          bearCase: debate.bearCase,
+          evidenceNeeded: debate.evidenceNeeded,
+          increaseBelief: debate.increaseBelief,
+          decreaseBelief: debate.decreaseBelief,
+          probability: debate.probability,
+          source: "AI"
+        }))
+      });
+    });
+  } catch {
+    return { status: "error", message: "The suggestions could not be saved. Your saved debates have not been changed. Please try again." };
+  }
 
   revalidateLab();
-  redirect(labPath("/compounding-expertise/debates", analysisId, { ai: result.ok ? "generated" : "fallback" }));
+  // Return inline feedback and refresh the server-rendered content without losing
+  // the selected dataset or the client's before/after review state.
+  return { status: "success", count: result.debates.length };
 }
 
 export async function saveDiagnosticAction(formData: FormData) {
