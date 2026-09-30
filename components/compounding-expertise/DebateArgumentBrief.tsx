@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExperienceTransferResults } from "./ExperienceTransferResults";
 import type { DebateEvidenceItem, DerivedDebateCandidate } from "@/lib/compounding-expertise-lab";
 import { DEBATE_ARGUMENT_STRUCTURE } from "@/lib/debate-argument-structure";
 
@@ -25,6 +26,7 @@ export function DebateArgumentBrief({ candidate }: { candidate: DerivedDebateCan
       <p className="small"><strong>Assessment scope:</strong> {structure.thesis}</p>
       <p className="small"><strong>Why it matters:</strong> {candidate.whyLoadBearing}</p>
     </div>
+    {candidate.transferExperiment ? <ExperienceTransferResults result={candidate.transferExperiment} /> : null}
     <div className="compoundingBriefClaims">
       <h4>Thesis being tested</h4>
       <p>{structure.thesis}</p>

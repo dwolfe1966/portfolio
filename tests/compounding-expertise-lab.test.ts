@@ -704,7 +704,7 @@ test("multiple customer segments cannot establish transfer", () => {
   }, "CROSS_CUSTOMER_TRANSFER");
 
   assert.equal(assessment.assessment, "UNPROVEN");
-  assert.match(assessment.assessmentReason, /not cross-customer performance transfer/i);
+  assert.match(assessment.assessmentReason, /Insufficient held-out coverage/i);
   assert.ok(assessment.evidenceFor.some((item) => item.direction === "CONTEXT-DESCRIPTIVE"));
   assert.equal(assessment.evidenceFor.some((item) => item.direction === "SUPPORTS"), false);
 });
@@ -721,7 +721,7 @@ test("V0.4.1 debate evidence registry separates context from support and strips 
 
   assert.equal(transfer.assessment, "UNPROVEN");
   assert.equal(transfer.evidenceFor.length, 0);
-  assert.ok(transfer.contextEvidence.some((item) => item.value.includes("customer segments represented")));
+  assert.ok(transfer.contextEvidence.some((item) => item.value.includes("patterns occur across segments")));
   assert.ok(transfer.contextEvidence.every((item) => item.direction === "CONTEXT-DESCRIPTIVE"));
   assert.ok(transfer.missingEvidence.every((item) => item.direction === "MISSING"));
   assert.ok(transfer.missingEvidence.every((item) => item.href === undefined));

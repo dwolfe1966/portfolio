@@ -1,3 +1,5 @@
+import { runExperienceTransferExperiment, type ExperienceTransferExperiment } from "./experience-transfer-experiment";
+
 export type CompoundingFramework = "HELMER" | "SUN" | "WOLFE";
 export type CompoundingConfidence = "LOW" | "MEDIUM" | "HIGH";
 export type CompoundingEvidenceStatus = "OBSERVED" | "SOURCED" | "ASSUMED" | "UNKNOWN";
@@ -835,6 +837,7 @@ export type DebateEvidenceDashboard = {
 };
 
 export type DerivedDebateCandidate = {
+  transferExperiment?: ExperienceTransferExperiment;
   family: DebateFamily;
   title: string;
   proposition: string;
@@ -4664,10 +4667,11 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   }
 
   if (family === "CROSS_CUSTOMER_TRANSFER") {
-    const segmentCount = new Set(input.rows.map((row) => row.customerSegment).filter(Boolean)).size;
-    addExperienceDescriptive(`${segmentCount} customer segments represented.`, "Shows cross-customer opportunity or dataset heterogeneity.", "Multiple customer segments do not establish transfer.");
-    addMissing("Company Model / future experiment", "No held-out customer comparison.", "Need customer-only versus pooled-experience performance comparison.", "Experiment", "Local-only performance vs pooled-experience performance on held-out customers.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "The active evidence may show multiple segments or pooling architecture, but not cross-customer performance transfer.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    const experiment = runExperienceTransferExperiment(input.rows);
+    addExperienceDescriptive(`${experiment.sharedPatterns}/${experiment.patternCount} decision-class/case-type patterns occur across segments; ${experiment.sharedCases}/${experiment.eligible} eligible cases belong to shared patterns.`, "Measures whether segments share potentially reusable decision structure.", "Shared structure is a prerequisite for transfer, not its performance result.");
+    addExperienceDescriptive(`${experiment.finding}. ${experiment.scored} held-out cases; local Brier ${experiment.local?.toFixed(3) ?? "unavailable"}, pooled ${experiment.pooled?.toFixed(3) ?? "unavailable"}.`, experiment.method, experiment.scope);
+    addMissing("Experience → action-policy experiment", experiment.enough ? "Grade prediction tested; decision-policy improvement remains untested." : "Insufficient grade-prediction coverage; decision-policy improvement remains untested.", "Use identified customers and compare local versus pooled policies on held-out decisions, measuring correctness and economic outcomes.", "Policy experiment", "Local versus pooled customer-level held-out policy comparison and segment harm analysis.");
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${experiment.finding}${experiment.delta === null ? "" : ` (local minus pooled Brier: ${experiment.delta.toFixed(3)})`}. Shared patterns: ${experiment.sharedPatterns}/${experiment.patternCount}. This narrows the transfer question to whether pooled learning improves actions, not just grade prediction.`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   if (family === "MARGINAL_INFORMATION_VALUE") {
@@ -4784,6 +4788,7 @@ export function deriveDebateCandidates(input: DebateEngineInput, take = 8): Deri
     return {
       ...template,
       ...assessment,
+      transferExperiment: family === "CROSS_CUSTOMER_TRANSFER" ? runExperienceTransferExperiment(input.rows) : undefined,
       proposition: sourceDebate?.question || template.proposition,
       investorBelief,
       investorBeliefDivergence: divergence,
@@ -4932,7 +4937,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
   };
 
   const networkSupport = evidenceForPower(["CROSS_CUSTOMER_TRANSFER"]);
-  const networkContext = segmentCount > 1 ? [powerEvidenceItem("Experience → active CaseSet", `${segmentCount} customer segments represented`, "CONTEXT-DESCRIPTIVE", "Multiple customers create an opportunity to test network effects, but do not establish cross-customer transfer.", experienceHref)] : [];
+  const networkContext = candidateByFamily.get("CROSS_CUSTOMER_TRANSFER")?.contextEvidence ?? [];
   const networkThesis = hasSupport("CROSS_CUSTOMER_TRANSFER") ? "MODERATE" : "UNPROVEN";
   const processSupport = evidenceForPower(["LEARNING_CAUSALITY", "EXPERIENCE_CAPTURE"]);
   const processContext = [
@@ -4963,7 +4968,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
       { label: "Unit cost decline", state: scaleThesis, evidence: evidenceStrengthFromItems(scaleSupport, [], scaleSupport.length > 0) },
       { label: "Shared infrastructure leverage", state: "UNPROVEN", evidence: "NONE" }
     ]),
-    build("network_economies", networkThesis, evidenceStrengthFromItems(networkSupport, [], false), "Cross-customer experience improves value for other customers.", hasSupport("CROSS_CUSTOMER_TRANSFER") ? "Cross-customer transfer evidence supports a network-like CE mechanism." : "Multiple customers alone are context; transfer remains unproven.", [...networkSupport, ...networkContext], [], missingForPower(["CROSS_CUSTOMER_TRANSFER"]), ["CROSS_CUSTOMER_TRANSFER"], [
+    build("network_economies", networkThesis, evidenceStrengthFromItems(networkSupport, [], false), "Cross-customer experience improves value for other customers.", hasSupport("CROSS_CUSTOMER_TRANSFER") ? "Cross-customer transfer evidence supports a network-like CE mechanism." : candidateByFamily.get("CROSS_CUSTOMER_TRANSFER")?.assessmentReason ?? "Transfer experiment unavailable.", [...networkSupport, ...networkContext], [], missingForPower(["CROSS_CUSTOMER_TRANSFER"]), ["CROSS_CUSTOMER_TRANSFER"], [
       { label: "Cross-customer transfer", state: hasSupport("CROSS_CUSTOMER_TRANSFER") ? "MODERATE" : "UNPROVEN", evidence: evidenceStrengthFromItems(networkSupport, [], false) },
       { label: "Pooling rights", state: thesisFromAnalystValue(input.learningArchitecture?.canTrainAcrossCustomers ?? input.analysis.contractualLearningRights), evidence: hasSupport("LEARNING_RIGHTS") ? "MEDIUM" : "LOW" },
       { label: "Feedback velocity", state: hasCaseRows ? "WEAK" : "UNPROVEN", evidence: hasCaseRows ? "LOW" : "NONE" }
@@ -5110,7 +5115,7 @@ export function deriveInvestmentSynthesis(input: InvestmentSynthesisInput): Inve
   const primaryPower = rankedPowers[0];
   const unresolved = input.debates.find((debate) => ["UNPROVEN", "UNKNOWN"].includes(debate.assessment)) ?? input.debates[0] ?? null;
   const capture = input.debates.find(item => item.family === "EXPERIENCE_CAPTURE");
-  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.assessmentReason ?? "Capture has not been assessed."} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
+  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.assessmentReason ?? "Capture has not been assessed."} ${input.debates.find(item => item.family === "CROSS_CUSTOMER_TRANSFER")?.assessmentReason ?? ""} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
   const evidenceBuckets = synthesisEvidenceBuckets(input.debates, input.experience);
   const investorDebates = input.debates.filter((debate) => debate.investorBelief !== null);
   const investorView = investorDebates.length
