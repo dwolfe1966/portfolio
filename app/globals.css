@@ -4318,6 +4318,96 @@ button {
   display: grid;
   gap: 12px;
 }
+.compoundingQuestionIndex {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--demo-divider);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.compoundingQuestionIndex li {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--demo-divider);
+}
+.compoundingQuestionIndex li:last-child { border-bottom: 0; }
+.compoundingQuestionIndex a {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  color: var(--demo-text);
+  text-decoration: none;
+}
+.compoundingQuestionIndex a:hover strong { text-decoration: underline; }
+.compoundingQuestionIndex a > span {
+  font-family: var(--demo-mono);
+  color: var(--demo-text-muted);
+  min-width: 1.2em;
+}
+.compoundingQuestionIndex li > .small { margin: 5px 0 0 28px; }
+.compoundingDetailPanel {
+  border: 1px solid var(--demo-divider);
+  border-radius: 10px;
+  min-width: 0;
+}
+.compoundingDetailPanel > summary {
+  padding: 14px 16px;
+  cursor: pointer;
+}
+.compoundingPanelHeading {
+  display: inline-grid;
+  gap: 5px;
+  vertical-align: middle;
+  max-width: calc(100% - 28px);
+}
+.compoundingPanelBody { padding: 0 16px 16px; }
+.compoundingPanelBody > * + * { margin-top: 16px; }
+.compoundingDetailPanel-evidence {
+  background: var(--demo-surface-2);
+}
+.compoundingDetailPanel-evidence .compoundingMetricCard > strong {
+  font-family: var(--demo-mono);
+  font-variant-numeric: tabular-nums;
+}
+.compoundingEvidenceLedgerLink {
+  border-top: 1px solid var(--demo-divider);
+  padding-top: 12px;
+}
+.compoundingEvidenceLedgerLink > summary {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 13px;
+}
+.compoundingEvidenceLedgerLink[open] > summary { margin-bottom: 16px; }
+.compoundingDetailPanel-argument { border-left-width: 3px; }
+.compoundingArgumentColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.compoundingArgumentColumns > div + div {
+  border-left: 1px solid var(--demo-divider);
+  padding-left: 20px;
+}
+.compoundingConsequences { border-top: 1px solid var(--demo-divider); padding-top: 16px; }
+.compoundingDetailPanel-assessment { border-style: dashed; }
+.compoundingAssessmentReadout { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; }
+.compoundingAssessmentReadout > strong { font-size: 28px; font-variant-numeric: tabular-nums; }
+.compoundingDebateEditor {
+  border: 1px solid var(--demo-accent);
+  border-radius: 10px;
+  padding: 16px;
+}
+.compoundingDebateEditor[hidden] { display: none; }
+.compoundingDebateEditor > * + * { margin-top: 12px; }
+.compoundingEditDebateButton { margin-top: 8px; }
+@media (max-width: 760px) {
+  .compoundingArgumentColumns { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .compoundingArgumentColumns > div + div { border-left: 0; border-top: 1px solid var(--demo-divider); padding: 14px 0 0; }
+  .compoundingDetailPanel > summary { padding: 12px; }
+  .compoundingPanelBody { padding: 0 12px 12px; }
+}
 .compoundingSuggestionControls {
   display: grid;
   gap: 12px;

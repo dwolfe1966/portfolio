@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
-import { DebateSuggestionFeedback, DebateChangedBadge, DebateChangedSection, DebateChangedDetails, DebateEditingRegion } from "@/components/compounding-expertise/DebateSuggestionFeedback";
+import { DebateSuggestionFeedback, DebateChangedBadge, DebateChangedSection, DebatePanel, DebateCard, DebateEditButton, DebateEditor, DebateEditingRegion } from "@/components/compounding-expertise/DebateSuggestionFeedback";
 import { debateReviewSnapshots } from "@/lib/debate-suggestion-feedback";
 import { DebateArgumentBrief } from "@/components/compounding-expertise/DebateArgumentBrief";
 import {
@@ -10,7 +10,6 @@ import {
   CASAP_PUBLIC_SIMULATION_CASESET_KEY,
   casesForCaseSet,
   deriveDebateCandidates,
-  deriveHighestValueDiligenceQueue,
   type DebateDashboardBar,
   type DebateDashboardMetric,
   type DebateEvidenceDashboard,
@@ -282,7 +281,6 @@ export default async function CompoundingExpertiseDebatesPage({
     competitiveArchitecture: analysis.competitiveArchitecture,
     evidenceRecords: analysis.evidenceRecords
   });
-  const diligenceQueue = deriveHighestValueDiligenceQueue(candidates);
 
   return (
     <>
@@ -315,65 +313,15 @@ export default async function CompoundingExpertiseDebatesPage({
         snapshots={debateReviewSnapshots(candidates)}
         action={generateDebatesAction}
       >
-      <Section title="Debate control surface">
-        <div className="compoundingDebateSummaryCards">
+      <Section title="Key questions">
+        <ol className="compoundingQuestionIndex">
           {candidates.map((candidate, index) => (
-            <a className="card compact compoundingDebateSummaryCard" href={`#debate-${candidate.family}`} key={candidate.family}>
-              <div className="compoundingCardHeader">
-                <div>
-                  <p className="small">Debate {index + 1}</p>
-                  <strong>{candidate.title}</strong>
-                  <DebateChangedBadge family={candidate.family} />
-                </div>
-                <span className="miniTag">{candidate.thesisImpact} impact</span>
-              </div>
-              <p>{candidate.tenSecondSummary}</p>
-              <p className="small">{candidate.evidenceCoverage}</p>
-              <p className="small">Your belief: {candidate.investorBelief === null ? "not set" : `${candidate.investorBelief}%`}</p>
-            </a>
+            <li key={candidate.family}>
+              <a href={`#debate-${candidate.family}`}><span aria-hidden="true">{index + 1}</span><strong>{candidate.proposition}</strong></a>
+              <div className="small">{candidate.assessment} · {candidate.thesisImpact} impact <DebateChangedBadge family={candidate.family} /></div>
+            </li>
           ))}
-        </div>
-        <div className="tableScroll compoundingDebateSummaryTable">
-          <table className="dataTable">
-            <thead>
-              <tr>
-                <th>Debate</th>
-                <th>CE assessment</th>
-                <th>Confidence</th>
-                <th>Evidence coverage</th>
-                <th>Thesis impact</th>
-                <th>Your belief</th>
-              </tr>
-            </thead>
-            <tbody>
-              {candidates.map((candidate, index) => (
-                <tr key={candidate.family}>
-                  <td><a href={`#debate-${candidate.family}`}>{index + 1}. {candidate.title}</a> <DebateChangedBadge family={candidate.family} /></td>
-                  <td>{candidate.assessment}</td>
-                  <td>{candidate.confidence}</td>
-                  <td>{candidate.evidenceCoverage}</td>
-                  <td>{candidate.thesisImpact}</td>
-                  <td>{candidate.investorBelief === null ? "—" : `${candidate.investorBelief}%`}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-
-      <Section title="Highest-value diligence queue">
-        <div className="grid grid-2">
-          {diligenceQueue.map((item) => (
-            <a className="card compact compoundingDiligenceItem" href={item.href} key={item.family}>
-              <div className="compoundingCardHeader">
-                <strong>{item.title}</strong>
-                <span className="miniTag">{item.thesisImpact} impact</span>
-              </div>
-              <p>{item.test}</p>
-              <p className="small">{item.reason}</p>
-            </a>
-          ))}
-        </div>
+        </ol>
       </Section>
 
       <Section title="Evidence → belief debates">
@@ -382,7 +330,7 @@ export default async function CompoundingExpertiseDebatesPage({
           <input type="hidden" name="analysisId" value={analysis.id} />
           <div className="compoundingDebateStack">
             {candidates.map((candidate, index) => (
-              <article className="card compoundingDebateCard compoundingDebateAnalysisCard" id={`debate-${candidate.family}`} key={candidate.family}>
+              <DebateCard family={candidate.family} key={candidate.family}>
                 <div className="compoundingCardHeader">
                   <DebateChangedSection family={candidate.family} section="proposition">
                     <p className="small">Debate {index + 1} · {candidate.title}</p>
@@ -392,34 +340,36 @@ export default async function CompoundingExpertiseDebatesPage({
                     <span className="provenanceBadge">{candidate.assessment}</span>
                     <span className="provenanceBadge">{candidate.confidence} confidence</span>
                     <span className="provenanceBadge">{candidate.thesisImpact} impact</span>
+                    <DebateEditButton />
                   </div>
                 </div>
                 <DebateArgumentBrief candidate={candidate} />
-                <DebateChangedDetails family={candidate.family} section="position" title="Your belief — separate from evidence">
-                  <p className="small">Investor position</p>
-                  <h3>{candidate.investorBelief === null ? "Not set" : `${candidate.investorBelief}%`}</h3>
-                  {candidate.investorBeliefDivergence ? <p>{candidate.investorBeliefDivergence}</p> : <p>Investor belief remains separate from CE evidence.</p>}
-                  <label>
-                    Why?
-                    <textarea rows={3} placeholder="UNSOURCED INVESTOR NOTE — this does not modify CE's assessment unless separately sourced as evidence." />
-                  </label>
-                </DebateChangedDetails>
-                <details className="compoundingInlineEditor">
-                  <summary>Inspect detailed metrics and source data</summary>
+                <DebatePanel family={candidate.family} kind="evidence" title="Evidence details" description="Inspect measurements, provenance, and original sources.">
                   {evidenceDashboard(candidate.evidenceDashboard)}
-                </details>
-                <details className="compoundingInlineEditor">
-                  <summary>View full evidence ledger</summary>
+                  <details className="compoundingEvidenceLedgerLink">
+                    <summary>View all sources and evidence</summary>
                   <div className="grid grid-2">
                     {evidenceList("Evidence that supports", candidate.evidenceFor)}
                     {evidenceList("Evidence that contradicts / alternatives", candidate.evidenceAgainst)}
                     {evidenceList("Context, not proof", candidate.contextEvidence)}
                     {evidenceList("Missing evidence", candidate.missingEvidence)}
                   </div>
-                </details>
-                <details className="compoundingInlineEditor">
-                  <summary>If true / if false</summary>
-                  <div className="grid grid-2">
+                  </details>
+                </DebatePanel>
+                <DebatePanel family={candidate.family} sections={["argument", "belief"]} kind="argument" title="Argument & implications" description="The case for and against, its consequences, and what would resolve it.">
+                  <DebateChangedSection family={candidate.family} section="argument">
+                    <div className="compoundingArgumentColumns">
+                      <div>
+                        <h4>Case for</h4>
+                        <p>{candidate.sourceDebate?.bullCase || "No bull case supplied yet."}</p>
+                      </div>
+                      <div>
+                        <h4>Case against</h4>
+                        <p>{candidate.sourceDebate?.bearCase || "No bear case supplied yet."}</p>
+                      </div>
+                    </div>
+                  </DebateChangedSection>
+                  <div className="compoundingArgumentColumns compoundingConsequences">
                   <div className="card compact">
                     <h4>If true</h4>
                     <p>{candidate.ifTrue}</p>
@@ -429,9 +379,9 @@ export default async function CompoundingExpertiseDebatesPage({
                     <p>{candidate.ifFalse}</p>
                   </div>
                   </div>
-                </details>
-                <DebateChangedDetails family={candidate.family} section="belief" title="What would change belief?">
-                  <div className="grid grid-2">
+                  <DebateChangedSection family={candidate.family} section="belief">
+                  <h4>What would resolve this?</h4>
+                  <div className="compoundingArgumentColumns">
                   <div className="card compact">
                     <h4>What would increase belief?</h4>
                     <p>{candidate.sourceDebate?.increaseBelief || candidate.increaseBelief}</p>
@@ -441,20 +391,24 @@ export default async function CompoundingExpertiseDebatesPage({
                     <p>{candidate.sourceDebate?.decreaseBelief || candidate.decreaseBelief}</p>
                   </div>
                   </div>
-                </DebateChangedDetails>
-                <DebateChangedDetails family={candidate.family} section="argument" title="View argument">
-                  <div className="grid grid-2">
-                    <div>
-                      <p className="small">Bull case</p>
-                      <p>{candidate.sourceDebate?.bullCase || "No bull case supplied yet."}</p>
+                  <p className="small"><strong>Next decisive test:</strong> {candidate.bestNextTest}</p>
+                  </DebateChangedSection>
+                </DebatePanel>
+                <DebatePanel family={candidate.family} sections={["position"]} kind="assessment" title="Your assessment" description="Your recorded belief and working notes, separate from evidence.">
+                  <DebateChangedSection family={candidate.family} section="position">
+                    <div className="compoundingAssessmentReadout">
+                      <strong>{candidate.investorBelief === null ? "Not set" : `${candidate.investorBelief}%`}</strong>
+                      <span className="small">{candidate.investorBelief === null ? "No belief recorded" : candidate.sourceDebate?.source === "AI" ? "AI-suggested; review before adopting" : "Recorded belief · separate from evidence"}</span>
                     </div>
-                    <div>
-                      <p className="small">Bear case</p>
-                      <p>{candidate.sourceDebate?.bearCase || "No bear case supplied yet."}</p>
-                    </div>
-                  </div>
-                </DebateChangedDetails>
-                <DebateChangedDetails family={candidate.family} section="editor" title="Edit proposition" key={candidate.sourceDebate?.id ?? candidate.family}>
+                    {candidate.investorBeliefDivergence ? <p>{candidate.investorBeliefDivergence}</p> : <p>Belief remains separate from the CE evidence assessment.</p>}
+                    <p className="small">Use Edit debate to change and save your belief.</p>
+                  </DebateChangedSection>
+                  <label>
+                    Working rationale (draft only — not saved)
+                    <textarea rows={3} placeholder="Why do you hold this view? Draft notes do not change the evidence assessment." />
+                  </label>
+                </DebatePanel>
+                <DebateEditor key={candidate.sourceDebate?.id ?? candidate.family}>
                   {editDebateFields(candidate.sourceDebate ?? {
                     question: candidate.proposition,
                     bullCase: "",
@@ -465,12 +419,8 @@ export default async function CompoundingExpertiseDebatesPage({
                     probability: candidate.investorBelief ?? 50,
                     source: "USER"
                   }, index)}
-                  <label>
-                    Investor note / private evidence reminder
-                    <textarea rows={3} placeholder="Example: founder showed pooled-vs-local performance in meeting; upload/source later. This note is not converted into CE evidence by this form." />
-                  </label>
-                </DebateChangedDetails>
-              </article>
+                </DebateEditor>
+              </DebateCard>
             ))}
           </div>
           <details className="card compoundingDisclosure">
