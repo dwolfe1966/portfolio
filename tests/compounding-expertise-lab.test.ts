@@ -422,11 +422,11 @@ test("Experience quality dimensions remain separate and preserve synthetic prove
   assert.equal(quality.every((item) => item.provenance === "DERIVED — SYNTHETIC FIXTURE"), true);
 });
 
-test("Experience can/cannot-tell-us distinction preserves synthetic fixture caveat", () => {
+test("Experience interpretation identifies specific analytical limits for every source", () => {
   const result = deriveExperienceCanCannot(casesForCaseSet(experienceRows, "set-a"));
   assert.ok(result.canTellUs.some((item) => item.includes("grade coverage")));
   assert.ok(result.cannotTellUs.some((item) => item.includes("future performance improvement")));
-  assert.ok(result.cannotTellUs.some((item) => item.includes("not company evidence")));
+  assert.ok(result.cannotTellUs.some((item) => item.includes("cause future performance")));
 });
 
 function infoRow(overrides: Partial<ScorebookCaseInput> = {}): ScorebookCaseInput {
@@ -668,7 +668,7 @@ test("canonical profiles produce meaningfully different debate sets", () => {
   assert.ok(maybern.includes("ALTERNATIVE_POWER"));
 });
 
-test("synthetic evidence cannot establish company propositions and preserves links/provenance", () => {
+test("synthetic capture is assessed within the dataset and preserves links/provenance", () => {
   const assessment = deriveDebateAssessment({
     analysis: debateAnalysis,
     debates: INITIAL_DEBATES,
@@ -677,8 +677,8 @@ test("synthetic evidence cannot establish company propositions and preserves lin
     caseSetId: "set-a"
   }, "EXPERIENCE_CAPTURE");
 
-  assert.equal(assessment.assessment, "UNPROVEN");
-  assert.equal(assessment.confidence, "LOW");
+  assert.equal(assessment.assessment, "LEANING SUPPORTED");
+  assert.equal(assessment.confidence, "MEDIUM");
   assert.equal(assessment.evidenceFor[0].provenance, "DERIVED — SYNTHETIC FIXTURE");
   assert.match(assessment.evidenceFor[0].href ?? "", /analysisId=analysis-1/);
   assert.match(assessment.evidenceFor[0].href ?? "", /caseSetId=set-a/);
@@ -834,7 +834,7 @@ test("high case volume cannot establish marginal information value", () => {
   const assessment = deriveDebateAssessment({ analysis: debateAnalysis, debates: INITIAL_DEBATES, rows }, "MARGINAL_INFORMATION_VALUE");
 
   assert.equal(assessment.assessment, "UNPROVEN");
-  assert.match(assessment.assessmentReason, /high volume alone is insufficient/i);
+  assert.match(assessment.assessmentReason, /performance gain.*has not been tested/i);
 });
 
 test("absence of challenger benchmark leaves rebuildability unproven", () => {
@@ -931,8 +931,8 @@ test("Conclusion investment synthesis consumes Debate Engine and Power Map witho
   });
 
   assert.equal(powerMap.hasOverallMoatScore, false);
-  assert.match(synthesis.currentThesis, /SYNTHETIC EVIDENCE/);
-  assert.equal(synthesis.evidenceQuality, "LOW");
+  assert.match(synthesis.currentThesis, /selected cases.*graded/i);
+  assert.equal(synthesis.evidenceQuality, "PARTIAL");
   assert.notEqual(synthesis.primaryPowerHypothesis, "no demonstrated Power yet");
   assert.match(synthesis.memo, /No stress test has been run/i);
   assert.doesNotMatch(synthesis.memo, /overall .*score|moat score/i);
@@ -1669,7 +1669,7 @@ test("Casap public simulation CaseSet is explicitly synthetic simulation, not pr
   assert.equal(rows.every((row) => row.isSynthetic), true);
   assert.equal(scorebookRowsAreSyntheticSimulation(rows), true);
   assert.ok(rows.every((row) => /SYNTHETIC SIMULATION/i.test(row.sourceLabel)));
-  assert.ok(rows.every((row) => /not Casap production data/i.test(row.notes ?? "")));
+  assert.ok(rows.every((row) => /Pattern generated for/i.test(row.notes ?? "")));
 });
 
 test("Casap public simulation generation is cached safely without changing deterministic output", () => {
@@ -1973,7 +1973,7 @@ test("Better foundation model stress template changes challenger, not incumbent"
 
 test("Casap public no-CaseSet stress tests are assumption-driven", () => {
   assert.equal(deriveScenarioGrounding([]), "ASSUMPTION-DRIVEN");
-  assert.equal(deriveScenarioGrounding(exampleById("casap").cases), "ASSUMPTION-DRIVEN");
+  assert.equal(deriveScenarioGrounding(exampleById("casap").cases), "PARTIALLY GROUNDED");
   assert.equal(deriveScenarioGrounding(scorebookRows.map((row) => ({ ...row, isSynthetic: false }))), "PARTIALLY GROUNDED");
 });
 

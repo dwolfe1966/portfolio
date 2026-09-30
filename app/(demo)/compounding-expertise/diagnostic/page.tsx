@@ -1,3 +1,4 @@
+import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { IntegrityNotice, LabWorkflowRail, ProvenanceBadge } from "@/components/compounding-expertise/CompoundingLabComponents";
@@ -108,7 +109,7 @@ function analystSummary(assessment: AnalystPowerAssessment | null) {
 export default async function CompoundingExpertiseDiagnosticPage({
   searchParams
 }: {
-  searchParams: Promise<{ analysisId?: string; caseSetId?: string }>;
+  searchParams: Promise<{ analysisId?: string; caseSetId?: string; dataset?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
@@ -125,11 +126,9 @@ export default async function CompoundingExpertiseDiagnosticPage({
     );
   }
 
-  const selectedCaseSet = params.caseSetId
-    ? analysis.caseSets.find((caseSet) => caseSet.id === params.caseSetId) ?? null
-    : analysis.caseSets[0] ?? null;
-  const rows = analysis.scorebookCases.map(caseInput);
-  const activeRows = casesForCaseSet(rows, selectedCaseSet?.id);
+  const experienceContext = resolveExperienceContext(analysis, analysis.scorebookCases.map(caseInput), { caseSetId: params.caseSetId, dataset: params.dataset });
+  const { selectedCaseSet, activeRows, datasetSuffix, dataset } = experienceContext;
+  const activeDatasetName = experienceContext.selected.name;
   const debates = analysis.keyDebates.map((debate) => ({
     id: debate.id,
     question: debate.question,
@@ -157,6 +156,7 @@ export default async function CompoundingExpertiseDiagnosticPage({
     rows: activeRows,
     analysisId: analysis.id,
     caseSetId: selectedCaseSet?.id,
+    dataset,
     learningArchitecture: analysis.learningArchitecture,
     competitiveArchitecture: analysis.competitiveArchitecture,
     evidenceRecords: analysis.evidenceRecords,
@@ -223,7 +223,8 @@ export default async function CompoundingExpertiseDiagnosticPage({
         active="Power"
         analysisId={analysis.id}
         activeAnalysisLabel={analysis.companyName}
-        activeAnalysisDetail={selectedCaseSet?.name ?? "Selected company analysis"}
+        datasetSuffix={datasetSuffix}
+        activeAnalysisDetail={activeDatasetName}
       />
       <Section eyebrow="Power Map" title="Where does durable Power appear to reside?">
         <p>
@@ -325,6 +326,8 @@ export default async function CompoundingExpertiseDiagnosticPage({
 
       <form action={saveDiagnosticAction}>
         <input type="hidden" name="analysisId" value={analysis.id} />
+        <input type="hidden" name="dataset" value={dataset ?? ""} />
+        <input type="hidden" name="caseSetId" value={selectedCaseSet?.id ?? ""} />
         <Section title="Analyst override / advanced assessment">
           <p>
             Existing manual SUN / WOLFE / HELMER assessments remain editable for backward compatibility. They are treated as analyst judgment,
@@ -349,8 +352,8 @@ export default async function CompoundingExpertiseDiagnosticPage({
 
         <div className="ctaRow">
           <button className="btn" type="submit">Save analyst assessments</button>
-          <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Back to Key Debates</Link>
-          <Link className="btn primary" href={`/compounding-expertise/simulator?analysisId=${analysis.id}`}>Continue to Stress Test →</Link>
+          <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${datasetSuffix}`}>Back to Key Debates</Link>
+          <Link className="btn primary" href={`/compounding-expertise/simulator?analysisId=${analysis.id}${datasetSuffix}`}>Continue to Stress Test →</Link>
         </div>
       </form>
     </>

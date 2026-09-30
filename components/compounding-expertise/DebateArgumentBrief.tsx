@@ -10,7 +10,7 @@ function evidenceExcerpt(label: string, items: DebateEvidenceItem[], empty: stri
       <p>{item.value}</p>
       <p className="small"><strong>Meaning:</strong> {item.interpretation}</p>
       <p className="small"><strong>Limit:</strong> {item.limitation}</p>
-      <p className="small">{item.provenance} · {item.href ? <Link href={item.href}>{item.source}</Link> : item.source}</p>
+      <p className="small">{item.href ? <Link href={item.href}>{item.source}</Link> : item.source}</p>
       {items.length > 1 ? <p className="small">{items.length - 1} more in the full evidence ledger below.</p> : null}
     </> : <p className="small">{empty}</p>}
   </div>;
@@ -20,8 +20,9 @@ export function DebateArgumentBrief({ candidate }: { candidate: DerivedDebateCan
   const structure = DEBATE_ARGUMENT_STRUCTURE[candidate.family];
   return <div className="compoundingArgumentBrief">
     <div className="compoundingBriefTakeaway">
-      <p className="small">Bottom line · {candidate.assessment} · {candidate.confidence} confidence</p>
+      <p className="small">Finding · {candidate.assessment} · {candidate.confidence} confidence</p>
       <p><strong>{candidate.assessmentReason}</strong></p>
+      <p className="small"><strong>Assessment scope:</strong> {structure.thesis}</p>
       <p className="small"><strong>Why it matters:</strong> {candidate.whyLoadBearing}</p>
     </div>
     <div className="compoundingBriefClaims">
@@ -29,14 +30,13 @@ export function DebateArgumentBrief({ candidate }: { candidate: DerivedDebateCan
       <p>{structure.thesis}</p>
       <h5>Subclaims: what must be true</h5>
       <ol>{structure.subclaims.map((claim) => <li key={claim}>{claim}</li>)}</ol>
-      <p className="small">Framework requirements, not established findings. Evidence below is assessed against the overall debate; individual subclaims are not separately scored.</p>
     </div>
     <div className="compoundingBriefEvidenceGrid">
       <div>
         <h4>What evidence exists?</h4>
         {evidenceExcerpt("Supports the thesis", candidate.evidenceFor, "No supporting evidence is attached to this proposition.")}
-        {evidenceExcerpt("Challenges the thesis", candidate.evidenceAgainst, "No contradicting evidence is attached. That is not proof the thesis is true.")}
-        {evidenceExcerpt("Context only — not proof", candidate.contextEvidence, "No contextual evidence is attached.")}
+        {evidenceExcerpt("Challenges the thesis", candidate.evidenceAgainst, "No contradicting evidence is attached.")}
+        {evidenceExcerpt("What the cases show", candidate.contextEvidence, "No contextual evidence is attached.")}
       </div>
       <div>
         <h4>What is still lacking?</h4>

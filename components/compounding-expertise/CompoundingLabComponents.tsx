@@ -5,9 +5,11 @@ export function LabWorkflowRail({
   active,
   analysisId,
   activeAnalysisLabel,
-  activeAnalysisDetail
+  activeAnalysisDetail,
+  datasetSuffix = ""
 }: {
   active: string;
+  datasetSuffix?: string;
   analysisId?: string | null;
   activeAnalysisLabel?: string | null;
   activeAnalysisDetail?: string | null;
@@ -19,7 +21,7 @@ export function LabWorkflowRail({
     : `Step ${activeIndex} of ${LAB_WORKFLOW_STEPS.length - 1} — ${activeStep.label}`;
   const previous = LAB_WORKFLOW_STEPS[activeIndex - 1] ?? null;
   const next = LAB_WORKFLOW_STEPS[activeIndex + 1] ?? null;
-  const href = (path: string) => analysisId ? `${path}?analysisId=${analysisId}` : path;
+  const href = (path: string) => analysisId ? `${path}?analysisId=${analysisId}${datasetSuffix}` : path;
 
   return (
     <nav className="compoundingWorkflowNav" aria-label="Compounding Expertise workflow">

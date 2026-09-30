@@ -1,5 +1,7 @@
 "use server";
 
+import { resolveExperienceContext } from "@/lib/experience-context";
+
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -13,6 +15,7 @@ import {
   sanitizeScenario,
   scorebookDerivedSimulatorValues,
   calculateScorebookMetrics,
+  deriveDebateCandidates,
   caseSetForExample,
   actionKeyFromDecision,
   buildCasapPublicSimulationCases,
@@ -202,7 +205,7 @@ export async function saveAnalysisAction(formData: FormData) {
 
   await ensureAnalysisDefaults(analysis.id);
   revalidateLab();
-  redirect(labPath("/compounding-expertise/scorebook", analysis.id));
+  redirect(labPath("/compounding-expertise/scorebook", analysis.id, { caseSetId: nullableText(formData.get("caseSetId")), dataset: nullableText(formData.get("dataset")) }));
 }
 
 export async function loadSyntheticExampleAction(formData?: FormData) {
@@ -628,7 +631,7 @@ export async function saveDebatesAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect(labPath("/compounding-expertise/diagnostic", analysisId));
+  redirect(labPath("/compounding-expertise/diagnostic", analysisId, { caseSetId: nullableText(formData.get("caseSetId")), dataset: nullableText(formData.get("dataset")) }));
 }
 
 export async function generateDebatesAction(formData: FormData): Promise<DebateSuggestionResult> {
@@ -637,11 +640,12 @@ export async function generateDebatesAction(formData: FormData): Promise<DebateS
   const accountUserId = await currentAccountUserId();
   const analysis = await db.compoundingExpertiseAnalysis.findFirst({
     where: compoundingAnalysisAccessWhere(accountUserId, analysisId),
-    include: { scorebookCases: true }
+    include: { scorebookCases: true, caseSets: true }
   });
   if (!analysis) return { status: "error", message: "This analysis is no longer available. Reload the page before retrying." };
 
-  const metrics = calculateScorebookMetrics(analysis.scorebookCases);
+  const experience = resolveExperienceContext(analysis, analysis.scorebookCases, { caseSetId: text(formData.get("caseSetId")), dataset: text(formData.get("dataset")) });
+  const metrics = calculateScorebookMetrics(experience.activeRows);
   const result = await generateCompoundingExpertiseDebates(analysis, {
     exogenous: {
       economicCostWrongDecision: analysis.economicCostWrongDecision,
@@ -662,7 +666,8 @@ export async function generateDebatesAction(formData: FormData): Promise<DebateS
       updatesModelPolicyRegularly: analysis.updatesModelPolicyRegularly,
       deploysImprovementsQuickly: analysis.deploysImprovementsQuickly
     },
-    scorebookSummary: metrics
+    scorebookSummary: metrics,
+    experienceFindings: deriveDebateCandidates({ analysis, debates: [], rows: experience.activeRows }).map(item => ({ question: item.proposition, assessment: item.assessment, finding: item.assessmentReason, evidence: [...item.evidenceFor, ...item.contextEvidence].map(e => e.value), missing: item.missingEvidence.map(e => e.value) }))
   });
   if (!result.ok) return { status: "error", message: "AI suggestions are unavailable right now. Your saved debates have not been changed. You can retry or continue editing manually." };
   try {
@@ -720,7 +725,7 @@ export async function saveDiagnosticAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect(labPath("/compounding-expertise/simulator", analysisId));
+  redirect(labPath("/compounding-expertise/simulator", analysisId, { caseSetId: nullableText(formData.get("caseSetId")), dataset: nullableText(formData.get("dataset")) }));
 }
 
 export async function saveScorebookAction(formData: FormData) {
@@ -827,11 +832,12 @@ export async function applyScorebookDerivedValuesAction(formData: FormData) {
   const caseSetId = nullableText(formData.get("caseSetId"));
   if (!analysisId) redirect("/compounding-expertise/inputs");
 
-  const [cases, scenarios] = await Promise.all([
-    db.compoundingExpertiseCase.findMany({ where: { analysisId, ...(caseSetId ? { caseSetId } : {}) } }),
-    db.compoundingExpertiseSimulationScenario.findMany({ where: { analysisId }, orderBy: { name: "asc" } })
-  ]);
-  const derived = scorebookDerivedSimulatorValues(cases);
+  const accountUserId = await currentAccountUserId();
+  const analysis = await db.compoundingExpertiseAnalysis.findFirst({ where: compoundingAnalysisAccessWhere(accountUserId, analysisId), include: { scorebookCases: true, caseSets: true, simulationScenarios: { orderBy: { name: "asc" } } } });
+  if (!analysis) throw new Error("Analysis unavailable.");
+  const experience = resolveExperienceContext(analysis, analysis.scorebookCases, { caseSetId, dataset: text(formData.get("dataset")) });
+  const scenarios = analysis.simulationScenarios;
+  const derived = scorebookDerivedSimulatorValues(experience.activeRows);
   const target = scenarios[0];
   if (target) {
     await db.compoundingExpertiseSimulationScenario.update({
@@ -844,7 +850,7 @@ export async function applyScorebookDerivedValuesAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect(labPath("/compounding-expertise/simulator", analysisId, { scorebook: "applied", caseSetId }));
+  redirect(labPath("/compounding-expertise/simulator", analysisId, { scorebook: "applied", caseSetId, dataset: nullableText(formData.get("dataset")) }));
 }
 
 export async function saveScenariosAction(formData: FormData) {
@@ -871,5 +877,5 @@ export async function saveScenariosAction(formData: FormData) {
   }
 
   revalidateLab();
-  redirect(labPath("/compounding-expertise/simulator", analysisId, { saved: "1", caseSetId: nullableText(formData.get("caseSetId")) }));
+  redirect(labPath("/compounding-expertise/simulator", analysisId, { saved: "1", caseSetId: nullableText(formData.get("caseSetId")), dataset: nullableText(formData.get("dataset")) }));
 }

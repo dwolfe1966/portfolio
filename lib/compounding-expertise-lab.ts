@@ -187,6 +187,7 @@ export type StressTestScenarioGrounding = "DATA-GROUNDED" | "PARTIALLY GROUNDED"
 export type StressTestRunQueryInput = {
   analysisId: string;
   caseSetId?: string | null;
+  dataset?: string | null;
   templateId: string;
   scenarios: SimulationScenarioInput[];
   includeRun?: boolean;
@@ -866,6 +867,7 @@ export type DebateEngineInput = {
   rows: ScorebookCaseInput[];
   analysisId?: string | null;
   caseSetId?: string | null;
+  dataset?: string | null;
   learningArchitecture?: {
     pooledAcrossCustomers?: string | null;
     capturesOutcome?: string | null;
@@ -2564,7 +2566,7 @@ function casapSimulationContext(pattern: CasapSimulationPattern) {
     : pattern.decisionClassKey === "chargeback_likelihood_evidence"
       ? "chargeback likelihood / evidence strategy"
       : "dispute next action";
-  return `${pattern.customerSegment} synthetic ${pattern.caseType} case for ${question}; generated from public workflow structure, not production Casap records.`;
+  return `${pattern.customerSegment} ${pattern.caseType} case for ${question}.`;
 }
 
 function casapSimulationGrade({
@@ -2678,7 +2680,7 @@ export function buildCasapPublicSimulationCases(): ScorebookCaseInput[] {
         sourceRecordId: `casap-public-simulation-v0.1:${globalIndex + 1}`,
         sourceRecordType: resolvedPattern.decisionClassKey,
         sourceRecordRoute: "/compounding-expertise/scorebook#information-structure",
-        notes: `SYNTHETIC SIMULATION VALUE. Pattern generated for ${resolvedPattern.decisionClassKey}; not Casap production data.`
+        notes: `SYNTHETIC SIMULATION VALUE. Pattern generated for ${resolvedPattern.decisionClassKey}.`
       });
     }
   }
@@ -3317,9 +3319,7 @@ export function scorebookDerivedSimulatorValues(rows: ScorebookCaseInput[]): Sco
 export function deriveScenarioGrounding(rows: ScorebookCaseInput[]): StressTestScenarioGrounding {
   if (rows.length === 0) return "ASSUMPTION-DRIVEN";
   const derived = scorebookDerivedSimulatorValues(rows);
-  const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
-  if (!rowsAreSynthetic && derived.startingGradedCases > 0 && derived.feedbackDelayDays !== null) return "PARTIALLY GROUNDED";
-  if (!rowsAreSynthetic && derived.startingGradedCases > 0) return "PARTIALLY GROUNDED";
+  if (derived.startingGradedCases > 0) return "PARTIALLY GROUNDED";
   return "ASSUMPTION-DRIVEN";
 }
 
@@ -3963,9 +3963,6 @@ export function deriveExperienceInsights(rows: ScorebookCaseInput[]): Experience
     }
   }
 
-  if (scorebookRowsAreSynthetic(rows)) {
-    insights.push({ tone: "caution", statement: "This is a synthetic fixture.", support: "These descriptive patterns test the analytical framework; they are not evidence about actual company operations." });
-  }
 
   return insights.length ? insights.slice(0, 6) : [{ tone: "gap", statement: "No strong descriptive pattern is evident from this CaseSet.", support: `${totalCases} active CaseSet rows were inspected deterministically.` }];
 }
@@ -4049,7 +4046,7 @@ export function deriveExperienceCoverage(rows: ScorebookCaseInput[], provenance:
     { label: "Grade coverage", value: metrics.gradeCoverage === null ? "Unavailable" : `${Math.round(metrics.gradeCoverage * 100)}%`, sample: `${metrics.gradedCases}/${metrics.totalCases} cases`, provenance },
     { label: "Feedback timing", value: metrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${metrics.medianFeedbackLatencyDays} day median`, sample: `available for ${metrics.feedbackLatencySampleSize}/${metrics.totalCases}`, provenance },
     { label: "Decision/action coverage", value: metrics.totalCases === 0 ? "Unavailable" : `${Math.round((actionCount / metrics.totalCases) * 100)}%`, sample: `${actionCount}/${metrics.totalCases} cases with action taken`, provenance },
-    { label: "Provenance quality", value: provenance, sample: scorebookRowsAreSynthetic(rows) ? "Synthetic fixture; not company data" : "Active CaseSet rows", provenance }
+    { label: "Provenance quality", value: provenance, sample: "Selected dataset", provenance }
   ];
 }
 
@@ -4070,12 +4067,8 @@ export function deriveExperienceCanCannot(rows: ScorebookCaseInput[]): Experienc
     "whether a Compounding Expertise mechanism creates durable Power"
   ];
   return {
-    canTellUs: scorebookRowsAreSynthetic(rows)
-      ? [...baseCanTellUs, "how the analytical framework behaves on a synthetic fixture"]
-      : baseCanTellUs,
-    cannotTellUs: scorebookRowsAreSynthetic(rows)
-      ? [...cannotTellUs, "actual company behavior; this CaseSet is a framework test fixture, not company evidence"]
-      : cannotTellUs
+    canTellUs: baseCanTellUs,
+    cannotTellUs
   };
 }
 
@@ -4097,10 +4090,11 @@ function valueIncludes(value: string | null | undefined, terms: string[]) {
   return terms.some((term) => normalized.includes(term.toUpperCase()));
 }
 
-function analysisHref(path: string, analysisId?: string | null, caseSetId?: string | null, anchor?: string) {
+function analysisHref(path: string, analysisId?: string | null, caseSetId?: string | null, anchor?: string, dataset?: string | null) {
   const params = new URLSearchParams();
   if (analysisId) params.set("analysisId", analysisId);
   if (caseSetId) params.set("caseSetId", caseSetId);
+  if (dataset) params.set("dataset", dataset);
   const query = params.toString();
   return `${path}${query ? `?${query}` : ""}${anchor ? `#${anchor}` : ""}`;
 }
@@ -4132,12 +4126,12 @@ function debateTemplate(family: DebateFamily) {
     EXPERIENCE_CAPTURE: {
       family,
       title: "Experience capture",
-      proposition: "Does the product naturally capture decision → action → outcome → grade?",
+      proposition: "Do the selected cases contain linked decisions, actions, outcomes, and grades?",
       whyLoadBearing: "Compounding Expertise requires a scorebook-like loop, not merely activity or stored data.",
       thesisImpact: "HIGH",
       ifTrue: "A complete capture loop makes later learning and diligence tests feasible.",
       ifFalse: "The company may have data, but not the graded operating experience required for Compounding Expertise.",
-      bestNextTest: "Audit production records for decision, action, outcome, and grade completeness by decision class.",
+      bestNextTest: "Inspect incomplete cases and grade reliability by decision class, then test whether using these grades improves held-out decisions.",
       increaseBelief: "Most meaningful decisions have linked actions, outcomes, and explicit grades in the product workflow.",
       decreaseBelief: "Decisions, actions, outcomes, or grades live outside the product or require manual backfill."
     },
@@ -4245,11 +4239,11 @@ function percentLabel(value: number | null) {
 }
 
 function debateExperienceHref(input: DebateEngineInput, anchor = "case-explorer") {
-  return analysisHref("/compounding-expertise/scorebook", input.analysisId, input.caseSetId, anchor);
+  return analysisHref("/compounding-expertise/scorebook", input.analysisId, input.caseSetId, anchor, input.dataset);
 }
 
 function debateCompanyModelHref(input: DebateEngineInput, anchor = "company-model-review") {
-  return analysisHref("/compounding-expertise/inputs", input.analysisId, null, anchor);
+  return analysisHref("/compounding-expertise/inputs", input.analysisId, input.caseSetId, anchor, input.dataset);
 }
 
 function debateEvidenceMatchesFamily(record: NonNullable<DebateEngineInput["evidenceRecords"]>[number], family: DebateFamily) {
@@ -4501,7 +4495,7 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
             { label: "Action coverage", value: percentLabel(actionCoverage), sample: `${input.rows.filter((row) => row.actionTaken).length}/${metrics.totalCases}`, provenance, href: experienceHref },
             { label: "Unresolved share", value: percentLabel(unresolvedShare), provenance, href: experienceHref },
             { label: "Human override capture", value: percentLabel(metrics.humanOverrideRate), sample: `${metrics.humanOverrideValue.count}/${metrics.totalCases}`, provenance, href: experienceHref },
-            { label: "Provenance quality", value: provenance, sample: rowsAreSynthetic ? "Synthetic fixture; not company data" : "Active CaseSet", provenance }
+            { label: "Provenance quality", value: provenance, sample: "Selected dataset", provenance }
           ]
         }
       ]
@@ -4607,8 +4601,8 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   const rowsAreSynthetic = scorebookRowsAreSynthetic(input.rows);
   const rowsAreSyntheticSimulation = scorebookRowsAreSyntheticSimulation(input.rows);
   const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic, rowsAreSyntheticSimulation });
-  const companyModelHref = analysisHref("/compounding-expertise/inputs", input.analysisId, null, "company-model-review");
-  const experienceHref = analysisHref("/compounding-expertise/scorebook", input.analysisId, input.caseSetId, "case-explorer");
+  const companyModelHref = debateCompanyModelHref(input);
+  const experienceHref = debateExperienceHref(input);
   const forEvidence: DebateEvidenceItem[] = [];
   const againstEvidence: DebateEvidenceItem[] = [];
   const missing: DebateEvidenceItem[] = [];
@@ -4621,11 +4615,7 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
       provenance,
       href: experienceHref,
       interpretation,
-      limitation: rowsAreSyntheticSimulation
-        ? "Synthetic simulation rows demonstrate what should be measured in production data; they do not establish actual company behavior."
-        : rowsAreSynthetic
-          ? "Synthetic fixture rows do not establish actual company behavior."
-          : limitation
+      limitation
     }));
   };
   const addMissing = (source: string, value: string, interpretation: string, obtainVia = "Diligence / experiment", expectedEvidence = "Sourced evidence sufficient to evaluate the proposition.") => {
@@ -4644,21 +4634,23 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
 
   if (family === "EXPERIENCE_CAPTURE") {
     addExperienceDescriptive(`${metrics.gradedCases}/${metrics.totalCases} graded cases; ${metrics.resolvedCases}/${metrics.totalCases} outcomes represented.`, "Shows whether the active CaseSet is scorebook-like.", "Completeness alone does not prove learning improves future decisions.");
-    if (metrics.gradeCoverage !== null && metrics.gradeCoverage >= 0.75 && metrics.outcomeCompletionRate !== null && metrics.outcomeCompletionRate >= 0.75 && !rowsAreSynthetic) {
+    const linkedCases = input.rows.filter(row => row.agentDecision && row.actionTaken && row.outcome && isResolvableGrade(row.grade)).length;
+    if (metrics.totalCases > 0 && linkedCases / metrics.totalCases >= 0.75) {
       forEvidence.push(evidenceItem({
         source: "Experience → active CaseSet",
-        value: "Company CaseSet rows have high outcome and grade representation.",
+        value: `${metrics.gradedCases}/${metrics.totalCases} cases graded; ${metrics.resolvedCases}/${metrics.totalCases} outcomes represented; median feedback ${metrics.medianFeedbackLatencyDays ?? "unavailable"} days.`,
         direction: "SUPPORTS",
         strength: "INDIRECT",
         provenance,
         href: experienceHref,
-        interpretation: "Supports production experience capture when the active CaseSet is actual company data.",
+        interpretation: "Supports graded experience capture within the selected dataset.",
         limitation: "Still does not prove that captured grades improve future behavior."
       }));
-      return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Company/data rows show relatively complete outcome and grade representation.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+      return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Graded experience capture is supported in the selected dataset; learning improvement and durability require separate tests.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
     }
+    if (metrics.totalCases > 0) addMissing("Experience → incomplete cases", `${metrics.totalCases - linkedCases} cases lack a complete decision/action/outcome/grade chain.`, "Complete the feedback loop for missing rows.", "Case review", "Linked decisions, actions, outcomes and grades.");
     if (metrics.totalCases === 0) addMissing("Experience → active CaseSet", "No active CaseSet rows.", "No scorebook-like body of experience is available.", "Load or import a CaseSet", "Decision/action/outcome/grade rows for the active analysis.");
-    return { assessment: rowsAreSynthetic ? "UNPROVEN" : "UNPROVEN", confidence: rowsAreSynthetic ? "LOW" : "MEDIUM", assessmentReason: rowsAreSynthetic ? "The active CaseSet demonstrates a possible scorebook shape, not actual company capture." : "The evidence is descriptive and does not yet establish natural production capture.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    return { assessment: "UNPROVEN", confidence: "MEDIUM", assessmentReason: "Fewer than 75% of selected cases link a decision, action, outcome and resolved grade; inspect incomplete cases.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   if (family === "LEARNING_CAUSALITY") {
@@ -4667,6 +4659,7 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
     addExperienceDescriptive(`${metrics.gradedCases}/${metrics.totalCases} graded cases.`, "Grades exist to learn from if connected to updates.", "Grade coverage does not establish that grades improve future decisions.");
     if (!valueIncludes(update, ["YES", "REGULAR", "DAILY", "WEEKLY"])) addMissing("Company Model → Learning Loop → UPDATE", String(update ?? "Unknown"), "No evidence currently shows that grades alter future model or policy behavior.", "Product/process diligence", "Model or policy update record tied to graded outcomes.");
     if (!valueIncludes(deploy, ["YES", "FAST", "DAILY", "WEEKLY"])) addMissing("Company Model → Learning Loop → DEPLOY", String(deploy ?? "Unknown"), "No evidence currently shows learned improvements reach production.", "Release/process diligence", "Deployment history showing learned changes reached production.");
+    addMissing("Experience → learning comparison", "No controlled before/after learning comparison.", "Compare held-out decisions with and without updates from accumulated grades.", "Experiment", "Versioned, held-out performance before and after learning from these cases.");
     return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "Grade coverage is descriptive; no controlled performance-over-time evidence proves accumulated grades improve future decisions.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
@@ -4678,9 +4671,10 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   }
 
   if (family === "MARGINAL_INFORMATION_VALUE") {
-    addExperienceDescriptive(`${metrics.totalCases} total cases.`, "Shows case volume available for analysis.", "Case volume does not establish marginal information value.");
+    const information = deriveInformationStructure(input.rows);
+    addExperienceDescriptive(`${metrics.totalCases} cases. ${information.summary.diversity}; ${information.summary.patternRepetition}; ${information.summary.marginalNovelty}.`, "Pattern diversity and cohort novelty describe the supply of new information available to learn from.", "A held-out learning curve is needed to connect novelty to performance gain.");
     addMissing("Experience / future experiment", "No cohort learning curve.", "Need incremental performance gain from successive case cohorts.", "Experiment", "Performance gain by successive case cohort after controlling for model/policy baseline.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "No learning-curve or incremental-cohort evidence is available; high volume alone is insufficient.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${information.summary.marginalNovelty}: the cases describe information supply. Incremental performance gain from successive cohorts has not been tested.`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   if (family === "REBUILDABILITY_COMPRESSION") {
@@ -4705,7 +4699,7 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   if (family === "ECONOMIC_MATERIALITY") {
     if (metrics.outcomeValueSampleSize > 0) addExperienceDescriptive(`${metrics.outcomeValueSampleSize}/${metrics.totalCases} cases include outcome value; total ${metrics.totalOutcomeValue}.`, "Shows economic outcome fields are represented.", "Economic values alone do not prove improved decisions caused value.");
     else addMissing("Experience → economic outcomes", "No outcome value rows.", "Need economic outcome values tied to decisions and grades.", "CaseSet enrichment", "Economic outcome values joined to decision/action/outcome/grade rows.");
-    return { assessment: metrics.outcomeValueSampleSize > 0 && !rowsAreSynthetic ? "LEANING SUPPORTED" : "UNPROVEN", confidence: metrics.outcomeValueSampleSize > 0 ? "MEDIUM" : "LOW", assessmentReason: rowsAreSynthetic ? "Synthetic economic values cannot establish real company materiality." : "Economic outcome rows are descriptive and need causal connection to decision quality.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    return { assessment: metrics.outcomeValueSampleSize > 0 ? "LEANING SUPPORTED" : "UNPROVEN", confidence: metrics.outcomeValueSampleSize > 0 ? "MEDIUM" : "LOW", assessmentReason: "Economic outcomes can be quantified in the selected cases; incremental value from improved decisions still requires a comparison.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   const deterministic = input.competitiveArchitecture?.deterministicInfrastructureStrength ?? input.analysis.deterministicInfrastructure;
@@ -4767,7 +4761,7 @@ export function deriveHighestValueDiligenceQueue(candidates: DerivedDebateCandid
     }));
 }
 
-export function deriveDebateCandidates(input: DebateEngineInput, take = 5): DerivedDebateCandidate[] {
+export function deriveDebateCandidates(input: DebateEngineInput, take = 8): DerivedDebateCandidate[] {
   const profile = deriveCanonicalDebateProfile(input.analysis);
   const registry = deriveDebateEvidenceRegistry(input);
   const families = new Set<DebateFamily>();
@@ -4776,6 +4770,7 @@ export function deriveDebateCandidates(input: DebateEngineInput, take = 5): Deri
     if (family) families.add(family);
   }
   profile.forEach((family) => families.add(family));
+  families.add("EXPERIENCE_CAPTURE");
   const candidates = [...families].slice(0, take).map((family) => {
     const template = debateTemplate(family);
     const sourceDebate = input.debates.find((debate) => debateFamilyFromQuestion(debate.question) === family);
@@ -4889,7 +4884,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
   const evidenceAgainstPower = (families: DebateFamily[]) => families.flatMap((family) => againstByFamily(family));
   const missingForPower = (families: DebateFamily[]) => families.flatMap((family) => missingByFamily(family));
   const segmentCount = new Set(input.rows.map((row) => row.customerSegment).filter(Boolean)).size;
-  const hasActualRows = input.rows.length > 0 && !rowsAreSynthetic;
+  const hasCaseRows = input.rows.length > 0;
   const workflowEmbeddedness = input.competitiveArchitecture?.integrationDepth ?? input.analysis.workflowEmbeddedness;
   const switchingCosts = input.competitiveArchitecture?.switchingCosts ?? input.analysis.switchingCostsAssumption;
   const dataExclusive = input.competitiveArchitecture?.crossCustomerPoolExclusive ?? input.analysis.dataExclusivity;
@@ -4971,14 +4966,14 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
     build("network_economies", networkThesis, evidenceStrengthFromItems(networkSupport, [], false), "Cross-customer experience improves value for other customers.", hasSupport("CROSS_CUSTOMER_TRANSFER") ? "Cross-customer transfer evidence supports a network-like CE mechanism." : "Multiple customers alone are context; transfer remains unproven.", [...networkSupport, ...networkContext], [], missingForPower(["CROSS_CUSTOMER_TRANSFER"]), ["CROSS_CUSTOMER_TRANSFER"], [
       { label: "Cross-customer transfer", state: hasSupport("CROSS_CUSTOMER_TRANSFER") ? "MODERATE" : "UNPROVEN", evidence: evidenceStrengthFromItems(networkSupport, [], false) },
       { label: "Pooling rights", state: thesisFromAnalystValue(input.learningArchitecture?.canTrainAcrossCustomers ?? input.analysis.contractualLearningRights), evidence: hasSupport("LEARNING_RIGHTS") ? "MEDIUM" : "LOW" },
-      { label: "Feedback velocity", state: hasActualRows ? "WEAK" : "UNPROVEN", evidence: hasActualRows ? "LOW" : "NONE" }
+      { label: "Feedback velocity", state: hasCaseRows ? "WEAK" : "UNPROVEN", evidence: hasCaseRows ? "LOW" : "NONE" }
     ]),
     build("counter_positioning", counterThesis, evidenceStrengthFromItems(counterSupport, [], counterSupport.length > 0), "Incumbents cannot respond without damaging their existing business.", counterSupport.length ? "Attached evidence suggests incumbent conflict." : "No incumbent conflict or cannibalization evidence is attached.", counterSupport, [], [], [], [
       { label: "Incumbent conflict", state: counterThesis, evidence: evidenceStrengthFromItems(counterSupport, [], counterSupport.length > 0) },
       { label: "Business-model incompatibility", state: "UNPROVEN", evidence: "NONE" }
     ]),
     build("switching_costs", switchingThesis, switchingSupport.length ? "LOW" : "NONE", "Accumulated customer context, integrations, or workflow dependency make replacement costly.", switchingSupport.length ? "Company Model assumptions point to switching-cost mechanisms, but direct replacement-degradation evidence is still needed." : "No switching-cost mechanism is evidenced yet.", switchingSupport, [], [], [], [
-      { label: "Accumulated customer context", state: hasActualRows ? "WEAK" : "UNPROVEN", evidence: hasActualRows ? "LOW" : "NONE" },
+      { label: "Accumulated customer context", state: hasCaseRows ? "WEAK" : "UNPROVEN", evidence: hasCaseRows ? "LOW" : "NONE" },
       { label: "Integration depth", state: thesisFromAnalystValue(workflowEmbeddedness), evidence: valueIncludes(workflowEmbeddedness, ["HIGH"]) ? "LOW" : "NONE" },
       { label: "Replacement performance gap", state: "UNPROVEN", evidence: "NONE" }
     ]),
@@ -4993,7 +4988,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
     ]),
     build("process_power", processThesis, evidenceStrengthFromItems(processSupport, againstByFamily("LEARNING_CAUSALITY"), false), "Closed learning/update/deploy routines compound into hard-to-copy operating performance.", processThesis === "MODERATE" ? "Learning causality plus hard-to-reproduce process evidence supports Process Power." : closedLoopClaim ? "A closed loop may exist, but reproducibility and measured learning causality remain under-evidenced." : "Capturing cases alone does not establish Process Power.", [...processSupport, ...processContext], evidenceAgainstPower(["LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"]), missingForPower(["LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"]), ["EXPERIENCE_CAPTURE", "LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"], [
       { label: "Capture", state: hasSupport("EXPERIENCE_CAPTURE") ? "MODERATE" : "WEAK", evidence: hasSupport("EXPERIENCE_CAPTURE") ? "MEDIUM" : "LOW" },
-      { label: "Grade", state: hasActualRows ? "WEAK" : "UNPROVEN", evidence: hasActualRows ? "LOW" : "NONE" },
+      { label: "Grade", state: hasCaseRows ? "WEAK" : "UNPROVEN", evidence: hasCaseRows ? "LOW" : "NONE" },
       { label: "Update", state: thesisFromAnalystValue(input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly), evidence: "LOW" },
       { label: "Deploy", state: thesisFromAnalystValue(input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly), evidence: "LOW" },
       { label: "Reproducibility", state: valueIncludes(rebuildability, ["HARD"]) ? "WEAK" : "UNPROVEN", evidence: "LOW" }
@@ -5014,7 +5009,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
   const ceMechanism = {
     classifications: [...classifications],
     summary: classifications.has("UNPROVEN MECHANISM")
-      ? "Compounding Expertise remains an unproven mechanism under the current evidence model."
+      ? hasSupport("EXPERIENCE_CAPTURE") ? "Graded capture is supported in the selected cases. Learning improvement, transfer, and resistance to reconstruction remain to be tested." : "The selected evidence does not yet establish the capture-to-learning mechanism."
       : classifications.has("CAPABILITY ADVANTAGE ONLY")
         ? "The current evidence suggests possible capability advantage, but not demonstrated durable Power."
         : `Compounding Expertise may ${[...classifications].map((item) => item.toLowerCase()).join(", ")}.`
@@ -5037,7 +5032,6 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
 }
 
 function evidenceQualityFromSynthesis(experience: ExperienceSnapshot, debates: DerivedDebateCandidate[], powerMap: DerivedPowerMap): InvestmentSynthesis["evidenceQuality"] {
-  if (experience.provenance === "DERIVED — SYNTHETIC FIXTURE") return "LOW";
   if (experience.totalCases === 0 && debates.every((debate) => debate.evidenceFor.length === 0)) return "NONE";
   if (powerMap.powers.some((power) => power.evidenceStrength === "HIGH")) return "HIGH";
   if (powerMap.powers.some((power) => power.evidenceStrength === "MEDIUM")) return "MEDIUM";
@@ -5073,19 +5067,6 @@ function synthesisEvidenceBuckets(debates: DerivedDebateCandidate[], experience:
   const contradicts = conciseEvidence(debates.flatMap((debate) => debate.evidenceAgainst), 4);
   const context = conciseEvidence(debates.flatMap((debate) => debate.contextEvidence), 4);
   const limitations = conciseEvidence(debates.flatMap((debate) => debate.missingEvidence), 4);
-  if (experience.provenance === "DERIVED — SYNTHETIC FIXTURE") {
-    limitations.unshift({
-      source: "Experience → active CaseSet",
-      value: "Current CaseSet is synthetic illustrative data.",
-      direction: "MISSING",
-      strength: "MISSING",
-      provenance: "DERIVED — SYNTHETIC FIXTURE",
-      interpretation: "The fixture tests the analytical framework but cannot establish company behavior.",
-      limitation: "Replace with company, sourced, or empirical operating evidence before treating this as investment evidence.",
-      obtainVia: "Company diligence / data-room export",
-      expectedEvidence: "Actual decision/action/outcome/grade rows or sourced company evidence."
-    });
-  }
   return { supports, contradicts, context, limitations: conciseEvidence(limitations, 4) };
 }
 
@@ -5116,7 +5097,7 @@ function investmentMemoText(input: InvestmentSynthesisInput, synthesis: Omit<Inv
     "",
     `Investor view: ${synthesis.investorView.summary}`,
     "",
-    "Research integrity note: synthetic fixtures, scenario outputs, analyst beliefs, and missing evidence are not empirical company evidence. The conclusion preserves those distinctions and does not compute a single aggregate score."
+    "Assessments apply to the selected Experience dataset. Scenario results describe the specified assumptions."
   ].join("\n");
 }
 
@@ -5128,10 +5109,8 @@ export function deriveInvestmentSynthesis(input: InvestmentSynthesisInput): Inve
     .sort((a, b) => thesisRank(b.thesisStrength) - thesisRank(a.thesisStrength) || evidenceRank(b.evidenceStrength) - evidenceRank(a.evidenceStrength));
   const primaryPower = rankedPowers[0];
   const unresolved = input.debates.find((debate) => ["UNPROVEN", "UNKNOWN"].includes(debate.assessment)) ?? input.debates[0] ?? null;
-  const syntheticPrefix = input.experience.provenance === "DERIVED — SYNTHETIC FIXTURE"
-    ? "FRAMEWORK TEST — SYNTHETIC EVIDENCE. "
-    : "";
-  const currentThesis = `${syntheticPrefix}${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
+  const capture = input.debates.find(item => item.family === "EXPERIENCE_CAPTURE");
+  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.assessmentReason ?? "Capture has not been assessed."} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
   const evidenceBuckets = synthesisEvidenceBuckets(input.debates, input.experience);
   const investorDebates = input.debates.filter((debate) => debate.investorBelief !== null);
   const investorView = investorDebates.length
@@ -5359,12 +5338,14 @@ export function summarizeStressTestPrimaryChange(
 export function stressTestRunSearchParams({
   analysisId,
   caseSetId,
+  dataset,
   templateId,
   scenarios,
   includeRun = true
 }: StressTestRunQueryInput): URLSearchParams {
   const params = new URLSearchParams({ analysisId, template: templateId });
   if (caseSetId) params.set("caseSetId", caseSetId);
+  if (dataset) params.set("dataset", dataset);
   if (includeRun) params.set("run", "1");
   scenarios.slice(0, 2).map((scenario) => sanitizeScenario(scenario)).forEach((scenario) => {
     params.append("scenarioId", scenario.id ?? "");

@@ -1,3 +1,4 @@
+import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { EpistemicBadge, LabWorkflowRail, SimulatorLineChart } from "@/components/compounding-expertise/CompoundingLabComponents";
@@ -67,9 +68,10 @@ function formatGap(value: number) {
   return `${sign}${value.toFixed(2)}`;
 }
 
-function scenarioQuery(basePath: string, analysisId: string, caseSetId: string | undefined, template: string, run = false) {
+function scenarioQuery(basePath: string, analysisId: string, caseSetId: string | undefined, template: string, dataset?: string, run = false) {
   const params = new URLSearchParams({ analysisId, template });
   if (caseSetId) params.set("caseSetId", caseSetId);
+  if (dataset) params.set("dataset", dataset);
   if (run) params.set("run", "1");
   return `${basePath}?${params.toString()}`;
 }
@@ -123,10 +125,10 @@ export default async function CompoundingExpertiseSimulatorPage({
     );
   }
 
-  const selectedCaseSet = value(params, "caseSetId")
-    ? analysis.caseSets.find((caseSet) => caseSet.id === value(params, "caseSetId")) ?? null
-    : analysis.caseSets[0] ?? null;
-  const persistedScenarios = analysis.simulationScenarios.length >= 2
+  const experienceContext = resolveExperienceContext(analysis, analysis.scorebookCases.map(row => ({ ...row })) as ScorebookCaseInput[], { caseSetId: value(params, "caseSetId"), dataset: value(params, "dataset") });
+  const { selectedCaseSet, activeRows, datasetSuffix, dataset } = experienceContext;
+  const activeDatasetName = experienceContext.selected.name;
+  const storedScenarios = analysis.simulationScenarios.length >= 2
     ? analysis.simulationScenarios.slice(0, 2)
     : DEFAULT_SCENARIOS.map((scenario, index) => ({
       id: "",
@@ -136,6 +138,11 @@ export default async function CompoundingExpertiseSimulatorPage({
       ...scenario,
       name: index === 0 ? "Incumbent / Company" : "Challenger / Alternative"
     }));
+  const experienceValues = scorebookDerivedSimulatorValues(activeRows);
+  const persistedScenarios = storedScenarios.map((scenario, index) => index === 0 && activeRows.length ? {
+    ...scenario, startingCases: experienceValues.startingGradedCases,
+    feedbackDelayDays: experienceValues.feedbackDelayDays ?? scenario.feedbackDelayDays
+  } : scenario);
   const selectedTemplateId = value(params, "template");
   const hasSelectedTemplate = selectedTemplateId.length > 0;
   const hasRun = value(params, "run") === "1";
@@ -151,8 +158,6 @@ export default async function CompoundingExpertiseSimulatorPage({
   const drivers = deriveStressTestDrivers(series, result);
   const implication = deriveStressTestPowerImplication(template.id, result);
   timer.mark("simulate");
-  const scorebookRows = analysis.scorebookCases.map((row) => ({ ...row })) as ScorebookCaseInput[];
-  const activeRows = casesForCaseSet(scorebookRows, selectedCaseSet?.id);
   const derived = scorebookDerivedSimulatorValues(activeRows);
   const scenarioGrounding = deriveScenarioGrounding(activeRows);
   timer.mark("scorebookDerivations");
@@ -170,11 +175,12 @@ export default async function CompoundingExpertiseSimulatorPage({
     ? stressTestRunHref("/compounding-expertise/memo", {
       analysisId: analysis.id,
       caseSetId,
+      dataset,
       templateId: template.id,
       scenarios,
       includeRun: true
     })
-    : `/compounding-expertise/memo?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`;
+    : `/compounding-expertise/memo?analysisId=${analysis.id}${datasetSuffix}`;
   timer.end();
 
   return (
@@ -183,7 +189,8 @@ export default async function CompoundingExpertiseSimulatorPage({
         active="Stress Test"
         analysisId={analysis.id}
         activeAnalysisLabel={analysis.companyName}
-        activeAnalysisDetail={selectedCaseSet?.name ?? "Selected company analysis"}
+        datasetSuffix={datasetSuffix}
+        activeAnalysisDetail={activeDatasetName}
       />
 
       <Section eyebrow="Stress Test · Scenario Studio" title="Stress-test the Power thesis">
@@ -217,7 +224,7 @@ export default async function CompoundingExpertiseSimulatorPage({
             {canonicalTemplates.map((item) => (
               <Link
                 className="card compoundingScenarioQuestion"
-                href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id)}
+                href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id, dataset)}
                 key={item.id}
               >
                 <span className="badge">{item.name}</span>
@@ -230,6 +237,7 @@ export default async function CompoundingExpertiseSimulatorPage({
         <Section eyebrow="Scenario workspace" title={template.id === "custom" ? "Custom scenario" : template.name}>
           <StressTestRunForm method="get" action="/compounding-expertise/simulator" className="compoundingScenarioWorkspace">
             <input type="hidden" name="analysisId" value={analysis.id} />
+        <input type="hidden" name="dataset" value={dataset ?? ""} />
             <input type="hidden" name="template" value={template.id} />
             {selectedCaseSet ? <input type="hidden" name="caseSetId" value={selectedCaseSet.id} /> : null}
             <input type="hidden" name="run" value="1" />
@@ -243,7 +251,7 @@ export default async function CompoundingExpertiseSimulatorPage({
                     {STRESS_TEST_TEMPLATES.map((item) => (
                       <Link
                         className={item.id === template.id ? "selected" : ""}
-                        href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id)}
+                        href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id, dataset)}
                         key={item.id}
                       >
                         <strong>{item.name}</strong>
@@ -360,7 +368,7 @@ export default async function CompoundingExpertiseSimulatorPage({
               </details>
 
               <StressTestRunButton />
-              <Link className="btn" href={`/compounding-expertise/simulator?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>Change test</Link>
+              <Link className="btn" href={`/compounding-expertise/simulator?analysisId=${analysis.id}${datasetSuffix}`}>Change test</Link>
             </aside>
 
             <main className="compoundingScenarioCanvas">
@@ -424,8 +432,8 @@ export default async function CompoundingExpertiseSimulatorPage({
                     <p>{implication}</p>
                     <span className="badge">SCENARIO IMPLICATION — NOT EMPIRICAL EVIDENCE</span>
                     <div className="ctaRow">
-                      <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}`}>View related Power →</Link>
-                      <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : ""}`}>View related Debate →</Link>
+                      <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}${datasetSuffix}`}>View related Power →</Link>
+                      <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${datasetSuffix}`}>View related Debate →</Link>
                     </div>
                   </div>
 
@@ -433,7 +441,7 @@ export default async function CompoundingExpertiseSimulatorPage({
                     <h3>Try another stress test</h3>
                     <div className="compoundingScenarioShortcutRow">
                       {canonicalTemplates.map((item) => (
-                        <Link className="btn" href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id)} key={item.id}>{item.name}</Link>
+                        <Link className="btn" href={scenarioQuery(baseQuery, analysis.id, caseSetId, item.id, dataset)} key={item.id}>{item.name}</Link>
                       ))}
                     </div>
                   </div>
@@ -450,6 +458,7 @@ export default async function CompoundingExpertiseSimulatorPage({
             <summary>Save / duplicate scenario</summary>
             <form action={saveScenariosAction} className="compoundingSaveScenarioForm">
               <input type="hidden" name="analysisId" value={analysis.id} />
+        <input type="hidden" name="dataset" value={dataset ?? ""} />
               {selectedCaseSet ? <input type="hidden" name="caseSetId" value={selectedCaseSet.id} /> : null}
               {scenarios.map((scenario, index) => (
                 <div key={`${scenario.name}-${index}`}>

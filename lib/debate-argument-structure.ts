@@ -3,8 +3,8 @@ import type { DebateFamily } from "./compounding-expertise-lab";
 // Framework hypotheses, not assertions about a company or new evidence scores.
 export const DEBATE_ARGUMENT_STRUCTURE: Record<DebateFamily, { thesis: string; subclaims: [string, string, string] }> = {
   EXPERIENCE_CAPTURE: {
-    thesis: "The product captures operating experience that can support a learning loop.",
-    subclaims: ["Decisions and actions can be linked to their outcomes.", "Outcomes receive meaningful, reliable grades.", "Capture is systematic in production, not just a curated sample."]
+    thesis: "The selected cases contain linked, graded experience available for learning.",
+    subclaims: ["Decisions and actions can be linked to their outcomes.", "Outcomes receive meaningful, reliable grades.", "Coverage across the selected cases is sufficient to evaluate the loop."]
   },
   LEARNING_CAUSALITY: {
     thesis: "Learning from graded experience causes better future decisions.",

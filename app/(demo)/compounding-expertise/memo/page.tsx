@@ -1,3 +1,4 @@
+import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
@@ -154,11 +155,9 @@ export default async function CompoundingExpertiseMemoPage({
     );
   }
 
-  const selectedCaseSet = value(params, "caseSetId")
-    ? analysis.caseSets.find((caseSet) => caseSet.id === value(params, "caseSetId")) ?? null
-    : analysis.caseSets[0] ?? null;
-  const rows = analysis.scorebookCases.map(caseInput);
-  const activeRows = casesForCaseSet(rows, selectedCaseSet?.id);
+  const experienceContext = resolveExperienceContext(analysis, analysis.scorebookCases.map(caseInput), { caseSetId: value(params, "caseSetId"), dataset: value(params, "dataset") });
+  const { selectedCaseSet, activeRows, datasetSuffix, dataset } = experienceContext;
+  const activeDatasetName = experienceContext.selected.name;
   const experience = deriveExperienceSnapshot(activeRows);
   const debates: KeyDebateInput[] = analysis.keyDebates.map((debate) => ({
     id: debate.id,
@@ -177,6 +176,7 @@ export default async function CompoundingExpertiseMemoPage({
     rows: activeRows,
     analysisId: analysis.id,
     caseSetId: selectedCaseSet?.id,
+    dataset,
     learningArchitecture: analysis.learningArchitecture,
     competitiveArchitecture: analysis.competitiveArchitecture,
     evidenceRecords: analysis.evidenceRecords
@@ -198,6 +198,7 @@ export default async function CompoundingExpertiseMemoPage({
     rows: activeRows,
     analysisId: analysis.id,
     caseSetId: selectedCaseSet?.id,
+    dataset,
     learningArchitecture: analysis.learningArchitecture,
     competitiveArchitecture: analysis.competitiveArchitecture,
     evidenceRecords: analysis.evidenceRecords,
@@ -234,11 +235,12 @@ export default async function CompoundingExpertiseMemoPage({
     })()
     : null;
   const synthesis = deriveInvestmentSynthesis({ analysis, experience, debates: candidates, powerMap, stressTest });
-  const caseSetQuery = selectedCaseSet ? `&caseSetId=${selectedCaseSet.id}` : "";
+  const caseSetQuery = datasetSuffix;
   const stressTestHref = hasRunContext
     ? stressTestRunHref("/compounding-expertise/simulator", {
       analysisId: analysis.id,
       caseSetId: selectedCaseSet?.id,
+    dataset,
       templateId: template.id,
       scenarios: scenarioRows,
       includeRun: true
@@ -251,14 +253,15 @@ export default async function CompoundingExpertiseMemoPage({
         active="Conclusion"
         analysisId={analysis.id}
         activeAnalysisLabel={analysis.companyName}
-        activeAnalysisDetail={selectedCaseSet?.name ?? "Selected company analysis"}
+        datasetSuffix={datasetSuffix}
+        activeAnalysisDetail={activeDatasetName}
       />
 
       <Section eyebrow="Investment Synthesis" title="Conclusion">
         <div className="card compoundingSynthesisHero">
           <p className="small">Current thesis</p>
           <h3>{synthesis.currentThesis}</h3>
-          {experience.provenance === "DERIVED — SYNTHETIC FIXTURE" ? <span className="badge">FRAMEWORK TEST — SYNTHETIC EVIDENCE</span> : null}
+
         </div>
         <div className="compoundingSynthesisStateGrid">
           {stateCard("CE Thesis", synthesis.ceThesis)}
@@ -371,7 +374,7 @@ export default async function CompoundingExpertiseMemoPage({
           <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${caseSetQuery}`}>Inspect Debates</Link>
           <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}${caseSetQuery}`}>Inspect Power</Link>
           <Link className="btn" href={stressTestHref}>Inspect Stress Test</Link>
-          <Link className="btn primary" href={`/compounding-expertise/inputs?analysisId=${analysis.id}`}>Revise analysis</Link>
+          <Link className="btn primary" href={`/compounding-expertise/inputs?analysisId=${analysis.id}${datasetSuffix}`}>Revise analysis</Link>
         </div>
       </Section>
     </>

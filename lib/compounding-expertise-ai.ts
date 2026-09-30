@@ -10,6 +10,7 @@ export type DebateGenerationContext = {
   exogenous?: Record<string, unknown>;
   endogenous?: Record<string, unknown>;
   scorebookSummary?: ScorebookMetrics;
+  experienceFindings?: unknown[];
 };
 
 function stripJsonFence(text: string) {
@@ -56,6 +57,8 @@ export function buildDebateGenerationPrompt(input: CompanyThesisInput, context?:
     "Return JSON only as an array of objects with fields: question, bullCase, bearCase, evidenceNeeded, increaseBelief, decreaseBelief, probability.",
     "Use the company/workflow context, endogenous assumptions, exogenous assumptions, and scorebook summary statistics.",
     "Do not treat synthetic case fixtures as factual company evidence. Do not invent factual evidence. AI output is hypothesis generation, not evidence.",
+    "Interpret findings within the selected dataset. Separate demonstrated prerequisites from untested causal claims. Use one proposition per question; do not bundle capture with durability. Do not repeat dataset-source disclaimers.",
+    `Experience findings: ${JSON.stringify(context?.experienceFindings ?? [])}`,
     "Probabilities must be 0-100 and labeled internally as current belief under uncertainty.",
     `Company: ${input.companyName}`,
     `Product: ${input.productDescription}`,

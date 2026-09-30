@@ -71,10 +71,9 @@ test("generation uses inline feedback and a transaction, and never saves a fallb
 
 test("brief separates supporting, contradicting, contextual, and missing evidence", () => {
   const source = readFileSync("components/compounding-expertise/DebateArgumentBrief.tsx", "utf8");
-  for (const label of ["Bottom line", "Thesis being tested", "Subclaims: what must be true", "What evidence exists?", "What is still lacking?", "Next decisive test", "Context only — not proof"]) {
+  for (const label of ["Finding", "Thesis being tested", "Subclaims: what must be true", "What evidence exists?", "What is still lacking?", "Next decisive test", "What the cases show"]) {
     assert.ok(source.includes(label), label);
   }
-  assert.match(source, /individual subclaims are not separately scored/);
-  assert.match(source, /item\.provenance/);
+  assert.match(source, /Assessment scope/);
   assert.match(source, /item\.limitation/);
 });

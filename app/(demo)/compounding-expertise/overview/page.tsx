@@ -1,3 +1,4 @@
+import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { IntegrityNotice, LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
@@ -66,17 +67,19 @@ export const dynamic = "force-dynamic";
 export default async function CompoundingExpertiseOverviewPage({
   searchParams
 }: {
-  searchParams: Promise<{ analysisId?: string }>;
+  searchParams: Promise<{ analysisId?: string; caseSetId?: string; dataset?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
   const analysis = await loadCompoundingAnalysis(accountUserId, params.analysisId);
   const activeExample = canonicalExampleForCompany(analysis?.companyName);
-  const activeCaseSet = analysis?.caseSets[0] ?? null;
+  const context = analysis ? resolveExperienceContext(analysis, analysis.scorebookCases, params) : null;
+  const activeCaseSet = context?.selectedCaseSet ?? null;
+  const datasetSuffix = context?.datasetSuffix ?? "";
 
   return (
     <>
-      <LabWorkflowRail active="Overview" analysisId={analysis?.id} />
+      <LabWorkflowRail datasetSuffix={datasetSuffix} active="Overview" analysisId={analysis?.id} />
       <Section eyebrow="Compounding Expertise Lab" title="Does experience become a moat?">
         <p>
           Compounding Expertise Lab tests whether an AI company can turn repeated real-world decisions and outcomes
@@ -110,7 +113,7 @@ export default async function CompoundingExpertiseOverviewPage({
             </span>
           </div>
           <div className="ctaRow">
-            {analysis ? <Link className="btn primary" href={`/compounding-expertise/inputs?analysisId=${analysis.id}`}>Continue analysis</Link> : null}
+            {analysis ? <Link className="btn primary" href={`/compounding-expertise/inputs?analysisId=${analysis.id}${datasetSuffix}`}>Continue analysis</Link> : null}
             <Link className="btn" href="/compounding-expertise/inputs">Start new company analysis</Link>
           </div>
         </div>

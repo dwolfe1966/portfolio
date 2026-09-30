@@ -1,3 +1,4 @@
+import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
@@ -450,29 +451,15 @@ export default async function CompoundingExpertiseScorebookPage({
   const isCasapPublicAnalysis = analysis.companyName === CASAP_PUBLIC_EVIDENCE_ANALYSIS.analysis.companyName;
   const hasPersistedSimulation = analysis.caseSets.some((caseSet) => caseSet.sourceSystemKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY);
   const virtualSimulationCaseSet = isCasapPublicAnalysis && !hasPersistedSimulation ? casapPublicSimulationCaseSet() : null;
-  const datasetResolution = resolveBestAvailableAnalyticalCaseSet({
-    caseSets: analysis.caseSets,
-    requestedCaseSetId: params.caseSetId,
-    requestedDatasetKey: params.dataset,
-    virtualCaseSets: virtualSimulationCaseSet ? [virtualSimulationCaseSet] : [],
-    includeNoCaseSet: true
-  });
+  const experienceContext = resolveExperienceContext(analysis, rows, { caseSetId: params.caseSetId, dataset: params.dataset });
+  const datasetResolution = experienceContext.resolution;
   const selectedDataset = datasetResolution.selected;
   const selectedCaseSet = selectedDataset.caseSetId
     ? analysis.caseSets.find((caseSet) => caseSet.id === selectedDataset.caseSetId) ?? null
     : null;
   const selectedDatasetDisplay: ExperienceDatasetDisplay | null = selectedCaseSet ?? selectedDataset.caseSet ?? null;
-  const virtualSimulationRows = selectedDataset.isVirtual && selectedDataset.datasetKey === CASAP_PUBLIC_SIMULATION_CASESET_KEY
-    ? buildCasapPublicSimulationCases().map((row) => ({ ...row, caseSetId: CASAP_PUBLIC_SIMULATION_CASESET_KEY }))
-    : [];
   timer.mark("resolveDataset");
-  const activeRows = selectedCaseSet
-    ? casesForCaseSet(rows, selectedCaseSet.id)
-    : selectedDataset.kind === "SYNTHETIC_SIMULATION"
-      ? virtualSimulationRows
-      : selectedDataset.kind === "NONE"
-        ? []
-        : casesForCaseSet(rows, null);
+  const activeRows = experienceContext.activeRows;
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   timer.mark("filterRows");
   const metrics = calculateScorebookMetrics(activeRows);
@@ -508,6 +495,7 @@ export default async function CompoundingExpertiseScorebookPage({
   return (
     <>
       <LabWorkflowRail
+        datasetSuffix={selectedDatasetSuffix}
         active="Experience"
         analysisId={analysis?.id}
         activeAnalysisLabel={analysis?.companyName}
@@ -538,7 +526,7 @@ export default async function CompoundingExpertiseScorebookPage({
             <span className="miniTag">{datasetResolution.selectionMode === "AUTO_SELECTED" ? "AUTO-SELECTED" : "USER-SELECTED"}</span>
           </div>
           <div className="compoundingCaseSetFacts">
-            <span><strong>Type</strong>{datasetKindLabel(selectedDataset.kind)}{analyticalDatasetIsSynthetic ? " · NOT COMPANY DATA" : ""}</span>
+            <span><strong>Type</strong>{datasetKindLabel(selectedDataset.kind)}</span>
             <span><strong>Cases</strong>{activeRows.length} active rows{selectedDataset.caseCount ? ` / ${selectedDataset.caseCount} declared` : ""}</span>
             <span><strong>Why selected</strong>{datasetResolution.reason}</span>
             <span><strong>Source</strong>{selectedDataset.sourceSystemLabel ?? selectedDatasetDisplay?.sourceSystemLabel ?? "Public evidence / manual"}</span>
@@ -641,23 +629,6 @@ export default async function CompoundingExpertiseScorebookPage({
           <div className="card compoundingSyntheticBanner">
             <strong>No case-level analytical dataset selected</strong>
             <p>Public evidence can establish workflow structure and company claims, but scorebook and Information Structure analysis require decision → action → outcome → grade records.</p>
-          </div>
-        ) : null}
-        {simulationMode ? (
-          <div className="card compoundingSyntheticBanner">
-            <strong>SIMULATION MODE — SYNTHETIC — PUBLIC-EVIDENCE-GROUNDED — NOT COMPANY DATA</strong>
-            <p>
-              These cases illustrate what the publicly documented dispute/fraud workflow might look like as a scorebook.
-              They are not Casap production records and must not be used as empirical evidence about Casap.
-            </p>
-          </div>
-        ) : allSynthetic ? (
-          <div className="card compoundingSyntheticBanner">
-            <strong>SYNTHETIC ILLUSTRATIVE DATA — NOT COMPANY DATA</strong>
-            <p>
-              Every current row in this CaseSet is marked synthetic. Use this fixture to test the theory,
-              not to describe real company operations.
-            </p>
           </div>
         ) : null}
       </Section>
@@ -901,12 +872,6 @@ export default async function CompoundingExpertiseScorebookPage({
           </div>
         ) : (
           <>
-            {informationStructure.rowsAreSynthetic ? (
-              <div className="card compoundingSyntheticBanner">
-                <strong>{simulationMode ? "DERIVED — SYNTHETIC SIMULATION" : "DERIVED — SYNTHETIC FIXTURE"}</strong>
-                <p>{simulationMode ? "Simulation diagnostic calculated from public-evidence-grounded synthetic rows. This demonstrates what to measure in production data; it is not evidence about Casap." : "Illustrative diagnostic calculated from synthetic fixture cases. Not evidence about the actual company."}</p>
-              </div>
-            ) : null}
             <div className="card">
               <h3>Experience → information</h3>
               <div className="compoundingExperienceFunnel" aria-label="Experience to information structure">
@@ -1211,11 +1176,6 @@ export default async function CompoundingExpertiseScorebookPage({
             <ul>{canCannot.cannotTellUs.map((item) => <li key={item}>{item}</li>)}</ul>
           </div>
         </div>
-        {allSynthetic && !simulationMode ? (
-          <div className="card compoundingSyntheticBanner">
-            <strong>This CaseSet tests the analytical framework. It is not evidence about the actual company.</strong>
-          </div>
-        ) : null}
         <div className="ctaRow">
           <div>
             <h3>Next: What would change the thesis?</h3>

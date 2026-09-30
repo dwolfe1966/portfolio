@@ -1,3 +1,4 @@
+import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
 import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingLabComponents";
@@ -94,7 +95,7 @@ function metricCard(metric: DebateDashboardMetric) {
       <p className="small">{metric.label}</p>
       <strong>{metric.value}</strong>
       {metric.sample ? <p className="small">{metric.sample}</p> : null}
-      <span className="miniTag">{metric.provenance}</span>
+
     </>
   );
   return metric.href && !metric.unavailable
@@ -240,26 +241,9 @@ export default async function CompoundingExpertiseDebatesPage({
     );
   }
 
-  const isCasapPublicAnalysis = analysis.companyName === CASAP_PUBLIC_EVIDENCE_ANALYSIS.analysis.companyName;
-  const virtualSimulationSelected = isCasapPublicAnalysis && params.dataset === CASAP_PUBLIC_SIMULATION_CASESET_KEY && !params.caseSetId;
-  const publicEvidenceOnlySelected = params.dataset === "public-evidence-only" && !params.caseSetId;
-  const selectedCaseSet = params.caseSetId
-    ? analysis.caseSets.find((caseSet) => caseSet.id === params.caseSetId) ?? null
-    : virtualSimulationSelected || publicEvidenceOnlySelected
-      ? null
-      : analysis.caseSets[0] ?? null;
-  const rows = analysis.scorebookCases.map(caseInput);
-  const activeRows = virtualSimulationSelected
-    ? buildCasapPublicSimulationCases().map((row) => ({ ...row, caseSetId: CASAP_PUBLIC_SIMULATION_CASESET_KEY }))
-    : publicEvidenceOnlySelected
-      ? []
-      : casesForCaseSet(rows, selectedCaseSet?.id);
-  const datasetSuffix = selectedCaseSet
-    ? `&caseSetId=${selectedCaseSet.id}`
-    : params.dataset
-      ? `&dataset=${params.dataset}`
-      : "";
-  const activeDatasetName = selectedCaseSet?.name ?? (virtualSimulationSelected ? "Casap Public-Evidence-Grounded Simulation V0.1" : "Selected company analysis");
+  const experienceContext = resolveExperienceContext(analysis, analysis.scorebookCases.map(caseInput), { caseSetId: params.caseSetId, dataset: params.dataset });
+  const { selectedCaseSet, activeRows, datasetSuffix, dataset } = experienceContext;
+  const activeDatasetName = experienceContext.selected.name;
   const debates: KeyDebateInput[] = analysis.keyDebates.map((debate) => ({
     id: debate.id,
     question: debate.question,
@@ -277,6 +261,7 @@ export default async function CompoundingExpertiseDebatesPage({
     rows: activeRows,
     analysisId: analysis.id,
     caseSetId: selectedCaseSet?.id,
+    dataset,
     learningArchitecture: analysis.learningArchitecture,
     competitiveArchitecture: analysis.competitiveArchitecture,
     evidenceRecords: analysis.evidenceRecords
@@ -288,6 +273,7 @@ export default async function CompoundingExpertiseDebatesPage({
         active="Key Debates"
         analysisId={analysis.id}
         activeAnalysisLabel={analysis.companyName}
+        datasetSuffix={datasetSuffix}
         activeAnalysisDetail={activeDatasetName}
       />
       <Section eyebrow="Key Debates" title="What would change the thesis?">
@@ -312,6 +298,8 @@ export default async function CompoundingExpertiseDebatesPage({
         analysisId={analysis.id}
         snapshots={debateReviewSnapshots(candidates)}
         action={generateDebatesAction}
+        caseSetId={selectedCaseSet?.id}
+        dataset={dataset}
       >
       <Section title="Key questions">
         <ol className="compoundingQuestionIndex">
@@ -328,6 +316,8 @@ export default async function CompoundingExpertiseDebatesPage({
         <form action={saveDebatesAction}>
           <DebateEditingRegion>
           <input type="hidden" name="analysisId" value={analysis.id} />
+        <input type="hidden" name="dataset" value={dataset ?? ""} />
+        <input type="hidden" name="caseSetId" value={selectedCaseSet?.id ?? ""} />
           <div className="compoundingDebateStack">
             {candidates.map((candidate, index) => (
               <DebateCard family={candidate.family} key={candidate.family}>
@@ -439,7 +429,7 @@ export default async function CompoundingExpertiseDebatesPage({
           <div className="ctaRow">
             <button className="btn primary" type="submit">Save debate edits</button>
             <Link className="btn" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}${datasetSuffix}`}>Back to Experience</Link>
-            <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}`}>Continue to Power</Link>
+            <Link className="btn" href={`/compounding-expertise/diagnostic?analysisId=${analysis.id}${datasetSuffix}`}>Continue to Power</Link>
           </div>
           </DebateEditingRegion>
         </form>

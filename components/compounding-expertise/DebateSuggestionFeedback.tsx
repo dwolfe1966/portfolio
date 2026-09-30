@@ -14,11 +14,13 @@ const FeedbackContext = createContext({
   showHighlights: false
 });
 
-export function DebateSuggestionFeedback({ snapshots, children, action, analysisId }: {
+export function DebateSuggestionFeedback({ snapshots, children, action, analysisId, caseSetId, dataset }: {
   snapshots: DebateReviewSnapshot[];
   children: ReactNode;
   action: (formData: FormData) => Promise<DebateSuggestionResult>;
   analysisId: string;
+  caseSetId?: string;
+  dataset?: string;
 }) {
   const [before, setBefore] = useState<DebateReviewSnapshot[]>([]);
   const [dismissed, setDismissed] = useState(false);
@@ -37,6 +39,8 @@ export function DebateSuggestionFeedback({ snapshots, children, action, analysis
     <FeedbackContext.Provider value={{ pending, changes, showHighlights: !pending && !dismissed && result.status === "success" }}>
       <form action={submit} className="compoundingSuggestionControls" onSubmit={() => { setBefore(snapshots); setDismissed(false); }}>
         <input type="hidden" name="analysisId" value={analysisId} />
+        <input type="hidden" name="caseSetId" value={caseSetId ?? ""} />
+        <input type="hidden" name="dataset" value={dataset ?? ""} />
         <div className="ctaRow">
           <button className="btn" type="submit" disabled={pending} aria-busy={pending}>
             {pending ? "Suggesting debates…" : "Suggest debates with AI"}

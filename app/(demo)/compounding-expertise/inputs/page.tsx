@@ -1,3 +1,4 @@
+import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Section } from "@/components/site/Section";
@@ -263,16 +264,17 @@ function QuestionNarrative({
 export default async function CompoundingExpertiseInputsPage({
   searchParams
 }: {
-  searchParams: Promise<{ example?: string; analysisId?: string }>;
+  searchParams: Promise<{ example?: string; analysisId?: string; caseSetId?: string; dataset?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
   const analysis = await loadCompoundingAnalysis(accountUserId, params.analysisId);
   const canonicalExample = canonicalExampleForCompany(analysis?.companyName);
   const profile = analysis ? profileFacts(analysis) : null;
-  const selectedCaseSet = analysis?.caseSets[0] ?? null;
-  const scorebookRows = analysis?.scorebookCases.map(caseInput) ?? [];
-  const activeRows = casesForCaseSet(scorebookRows, selectedCaseSet?.id);
+  const experienceContext = analysis ? resolveExperienceContext(analysis, analysis.scorebookCases.map(caseInput), params) : null;
+  const selectedCaseSet = experienceContext?.selectedCaseSet ?? null;
+  const activeRows = experienceContext?.activeRows ?? [];
+  const datasetSuffix = experienceContext?.datasetSuffix ?? "";
   const activeRowsAreSynthetic = activeRows.length > 0 && scorebookRowsAreSynthetic(activeRows);
   const derived = deriveDecisionSystemMetrics(activeRows);
   const evidenceCoverage = summarizeEvidenceCoverage(analysis?.evidenceRecords ?? []);
@@ -413,6 +415,7 @@ export default async function CompoundingExpertiseInputsPage({
   return (
     <>
       <LabWorkflowRail
+        datasetSuffix={datasetSuffix}
         active="Company Model"
         analysisId={analysis?.id}
         activeAnalysisLabel={analysis?.companyName}
@@ -507,7 +510,6 @@ export default async function CompoundingExpertiseInputsPage({
                 <span>MODEL INFERENCE</span>
                 <span>UNKNOWN / DILIGENCE REQUIRED</span>
               </div>
-              <p className="small">Derived from synthetic fixture means the canonical sample demonstrates what a dataset could look like. It is not observed company evidence.</p>
             </details>
           </>
         ) : null}
@@ -714,7 +716,7 @@ export default async function CompoundingExpertiseInputsPage({
                 `Decision frequency: ${display(opportunity?.naturalCaseFrequency ?? analysis.caseFrequency)}.`,
                 `Outcome observability: ${display(opportunity?.outcomeObservability ?? analysis.observesOutcome)}.`,
                 `Outcome objectivity: ${display(opportunity?.outcomeObjectivity ?? analysis.outcomeObjectivity)}.`,
-                activeRowsAreSynthetic ? "Completion and latency metrics are derived from synthetic fixture rows, not observed company operations." : "Completion and latency metrics are derived from the active CaseSet."
+                "Completion and latency metrics are derived from the selected cases."
               ]}
               changeAnswer={[
                 "Observed production cases showing decision, outcome, and grade completion.",
@@ -773,13 +775,13 @@ export default async function CompoundingExpertiseInputsPage({
                 `${loopCapturedCount}/${learningLoopNodes.length} loop nodes captured or partially captured.`,
                 updateKnown ? "Update behavior is represented." : "UPDATE remains unknown.",
                 deployKnown ? "Deployment cadence is represented." : "DEPLOY remains unknown.",
-                activeRowsAreSynthetic ? "Synthetic fixture coverage cannot establish a real company learning loop." : "Active CaseSet coverage provides current evidence."
+                "Case coverage measures capture; update and deployment need their own evidence."
               ]}
               whyThisAnswer={[
                 `${loopCapturedCount} of ${learningLoopNodes.length} learning-loop nodes are captured or partially captured.`,
                 updateKnown ? "Update behavior is represented." : "Update behavior remains unverified.",
                 deployKnown ? "Deployment cadence is represented." : "Deployment of learned improvements remains unverified.",
-                activeRowsAreSynthetic ? "The CaseSet demonstrates what a closed-loop dataset could look like, not that the real company operates one." : "The active CaseSet provides the current coverage evidence."
+                "The selected cases provide the current capture and feedback evidence."
               ]}
               evidenceUsed={[
                 `Decision rows represented: ${activeRows.filter((row) => row.agentDecision).length}/${activeRows.length}.`,
@@ -909,7 +911,7 @@ export default async function CompoundingExpertiseInputsPage({
                 <div className="card">
                   <h3>Current evidence for this company</h3>
                   <ul>
-                    <li>{activeRowsAreSynthetic ? "Synthetic fixture rows demonstrate a possible scorebook shape, not observed company performance." : `${derived.totalCases} active CaseSet rows are available for inspection.`}</li>
+                    <li>{`${derived.totalCases} active CaseSet rows are available for inspection.`}</li>
                     <li>Workflow position is modeled as {display(competitive?.systemOfDecision ?? analysis.ownsDecisionPoint)} for decisions and {display(competitive?.systemOfAction ?? analysis.controlsAction)} for actions.</li>
                     <li>Learning rights are currently {display(learning?.canTrainAcrossCustomers ?? analysis.contractualLearningRights)}.</li>
                   </ul>
@@ -942,11 +944,7 @@ export default async function CompoundingExpertiseInputsPage({
                   {profile.name} currently shows <strong>{decisionInterpretation.toLowerCase()}</strong>, a <strong>{feedbackInterpretation.toLowerCase()}</strong>,
                   a <strong>{loopInterpretation.toLowerCase()}</strong>, and <strong>{competitiveInterpretation.toLowerCase()}</strong> defensibility under the current model.
                 </p>
-                {activeRowsAreSynthetic ? (
-                  <p className="small">
-                    The synthetic CaseSet demonstrates what a scorebook could look like; it does not establish that the real company operates this learning loop. Treat it as DERIVED — SYNTHETIC FIXTURE, not observed company evidence.
-                  </p>
-                ) : null}
+
               </div>
               <div className="card">
                 <h3>What we don’t know</h3>
@@ -975,7 +973,7 @@ export default async function CompoundingExpertiseInputsPage({
                 <p><strong>Company Model:</strong> What would need to be true for expertise to compound?</p>
                 <p><strong>Experience:</strong> Show me the cases and evidence that tell us whether it is true.</p>
               </div>
-              <Link className="btn primary" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}`}>Continue to Experience →</Link>
+              <Link className="btn primary" href={`/compounding-expertise/scorebook?analysisId=${analysis.id}${datasetSuffix}`}>Continue to Experience →</Link>
             </div>
           </Section>
         </>
@@ -988,6 +986,8 @@ export default async function CompoundingExpertiseInputsPage({
       <Section title="View/Edit all assumptions">
         <form action={saveAnalysisAction} className="compoundingSystemForm">
           <input type="hidden" name="analysisId" value={analysis?.id ?? ""} />
+          <input type="hidden" name="caseSetId" value={selectedCaseSet?.id ?? ""} />
+          <input type="hidden" name="dataset" value={experienceContext?.dataset ?? ""} />
 
           <details className="card compoundingDisclosure" id="edit-company-model">
             <summary>Company identity - What is this business/system?</summary>
