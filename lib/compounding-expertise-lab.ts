@@ -1,5 +1,7 @@
 import { analyzeExperience, type ExperienceAnalysis, type ExperienceFinding } from "./experience-analysis";
 import { runExperienceTransferExperiment, type ExperienceTransferExperiment } from "./experience-transfer-experiment";
+import { runObservedDataExperimentAdapter, type ObservedExperiment, type ObservedExperimentAdapterResult, type ObservedExperimentVerdict } from "./observed-experiment-adapter";
+import { DEBATE_ARGUMENT_STRUCTURE } from "./debate-argument-structure";
 
 export type CompoundingFramework = "HELMER" | "SUN" | "WOLFE";
 export type CompoundingConfidence = "LOW" | "MEDIUM" | "HIGH";
@@ -794,6 +796,21 @@ export type DebateFamily =
   | "ECONOMIC_MATERIALITY"
   | "ALTERNATIVE_POWER";
 
+export type ModeledMechanismAssessment = "SUPPORTED CONDITIONALLY" | "CHALLENGED CONDITIONALLY" | "MIXED CONDITIONALLY" | "NOT TESTED";
+export type DebateSubclaimStatus =
+  | "SUPPORTED BY SELECTED CASES"
+  | "CHALLENGED BY SELECTED CASES"
+  | "SUPPORTED CONDITIONALLY"
+  | "CHALLENGED CONDITIONALLY"
+  | "MIXED / INCOMPLETE"
+  | "REQUIRES EXTERNAL / COMPANY EVIDENCE";
+
+export type ResolvedDebateSubclaim = {
+  claim: string;
+  status: DebateSubclaimStatus;
+  reason: string;
+};
+
 export type DebateEvidenceItem = {
   source: string;
   value: string;
@@ -849,6 +866,11 @@ export type DerivedDebateCandidate = {
   assessment: DebateAssessmentCategory;
   confidence: DebateEvidenceConfidence;
   assessmentReason: string;
+  companyAssessment: DebateAssessmentCategory;
+  modeledAssessment: ModeledMechanismAssessment;
+  integratedConclusion: string;
+  subclaimAssessments: ResolvedDebateSubclaim[];
+  observedExperiment: ObservedExperiment;
   tenSecondSummary: string;
   evidenceCoverage: string;
   thesisImpact: DebateThesisImpact;
@@ -870,6 +892,7 @@ export type DerivedDebateCandidate = {
 
 export type DebateEngineInput = {
   experienceAnalysis?: ExperienceAnalysis;
+  observedExperimentAdapter?: ObservedExperimentAdapterResult;
   analysis: CompanyThesisInput;
   debates: KeyDebateInput[];
   rows: ScorebookCaseInput[];
@@ -4064,11 +4087,14 @@ export function deriveExperienceCanCannot(rows: ScorebookCaseInput[]): Experienc
     "grade coverage and outcome completion",
     "feedback latency where timestamps exist",
     "human override frequency",
-    "descriptive grade, action, and decision distributions"
+    "descriptive grade, action, and decision distributions",
+    "whether pooled segment history predicts held-out grades better than local history",
+    "whether successive historical cohorts improve a fixed predictor on later cases",
+    "how much observed history is needed to reproduce near-full predictive performance"
   ];
   const cannotTellUs = [
-    "whether accumulated cases cause future performance improvement",
-    "whether learning transfers across customers",
+    "whether accumulated cases cause future performance improvement through deployed action-policy changes",
+    "whether pooled learning improves actions for identified held-out customers",
     "whether the company has contractual rights to pool or use experience",
     "whether the expertise is hard for competitors to reproduce",
     "whether historical experience is compressible into a reproducible policy",
@@ -4138,7 +4164,7 @@ export function deriveCanonicalDebateProfile(analysis: CompanyThesisInput): Deba
 }
 
 function debateTemplate(family: DebateFamily) {
-  const templates: Record<DebateFamily, Omit<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "tenSecondSummary" | "evidenceCoverage" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceDashboard" | "highestValueDiligence" | "investorBelief" | "investorBeliefDivergence">> = {
+  const templates: Record<DebateFamily, Omit<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "companyAssessment" | "modeledAssessment" | "integratedConclusion" | "subclaimAssessments" | "observedExperiment" | "tenSecondSummary" | "evidenceCoverage" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceDashboard" | "highestValueDiligence" | "investorBelief" | "investorBeliefDivergence">> = {
     EXPERIENCE_CAPTURE: {
       family,
       title: "Experience capture",
@@ -4420,6 +4446,7 @@ function segmentDashboardBars(rows: ScorebookCaseInput[], href: string): DebateD
 
 export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: DebateFamily): DebateEvidenceDashboard {
   const metrics = calculateScorebookMetrics(input.rows);
+  const observed = (input.observedExperimentAdapter ?? runObservedDataExperimentAdapter(input.rows)).byFamily[family];
   const rowsAreSynthetic = scorebookRowsAreSynthetic(input.rows);
   const rowsAreSyntheticSimulation = scorebookRowsAreSyntheticSimulation(input.rows);
   const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic, rowsAreSyntheticSimulation });
@@ -4438,7 +4465,7 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
     return {
       family,
       title: "Cross-customer transfer evidence dashboard",
-      summary: "Shows customer-segment context and transfer-test availability. Segment diversity is context, not proof of transfer.",
+      summary: "Segment diversity is context, not proof. The adapter tests whether pooled segment experience beats local history on later selected cases, then keeps customer-level action-policy claims separate.",
       externalEvidence,
       sections: [
         {
@@ -4448,16 +4475,16 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
             { label: "Customer segments", value: String(segmentCount), sample: `${metrics.totalCases} active CaseSet cases`, provenance, href: experienceHref },
             { label: "Cross-customer pooling architecture", value: input.learningArchitecture?.pooledAcrossCustomers || input.analysis.learnsAcrossCustomers || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
             { label: "Learning rights state", value: input.learningArchitecture?.canTrainAcrossCustomers || input.analysis.contractualLearningRights || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
-            missingMetric("Pooled-vs-local transfer experiment")
+            observed.status === "BLOCKED" ? missingMetric("Pooled-vs-local transfer experiment") : { label: "Segment transfer verdict", value: observed.verdict, sample: observed.headline, provenance, href: experienceHref }
           ],
           bars: segmentDashboardBars(input.rows, experienceHref)
         },
         {
           title: "Transfer test availability",
-          note: "No cross-customer transfer experiment is currently available. Multiple customer segments are CONTEXT, not evidence of transfer.",
+          note: observed.limitation,
           metrics: [
-            missingMetric("Cross-customer holdout result"),
-            missingMetric("Local-only vs pooled-experience performance")
+            { label: "Held-out pooled-vs-local result", value: observed.headline, sample: `n=${observed.sample}`, provenance, href: experienceHref },
+            missingMetric("Customer-level action-policy result")
           ]
         }
       ]
@@ -4487,6 +4514,7 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
           metrics: [
             { label: "Update state", value: input.learningArchitecture?.usesOutcomeGradesForLearning || input.analysis.updatesModelPolicyRegularly || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
             { label: "Deployment state", value: input.learningArchitecture?.deploymentCadence || input.analysis.deploysImprovementsQuickly || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
+            { label: "Chronological prediction result", value: observed.verdict, sample: observed.headline, provenance, href: experienceHref },
             missingMetric("Before/after or treatment comparison"),
             missingMetric("Performance by model/policy version")
           ]
@@ -4532,15 +4560,15 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
             { label: "Historical case volume", value: String(metrics.totalCases), provenance, href: experienceHref },
             { label: "Foundation-model substitution", value: input.competitiveArchitecture?.foundationModelSubstitutionRisk || input.analysis.foundationModelDependence || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
             { label: "Competitor relearning difficulty", value: input.competitiveArchitecture?.competitorRelearningDifficulty || input.analysis.rebuildability || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
-            missingMetric("Challenger benchmark"),
-            missingMetric("Incumbent-vs-challenger performance gap")
+            { label: "History-compression proxy", value: observed.verdict, sample: observed.headline, provenance, href: experienceHref },
+            missingMetric("Challenger benchmark")
           ],
           bars: sourceMixBars
         },
         {
           title: "Empirical test state",
-          note: "Rebuildability has not been empirically tested unless a challenger/calibration benchmark is attached.",
-          metrics: [missingMetric("Calibration/rebuild experiment")]
+          note: `A competitor-access challenger has not been empirically tested. ${observed.limitation}`,
+          metrics: [{ label: "Observed proxy", value: observed.headline, sample: `n=${observed.sample}`, provenance, href: experienceHref }, missingMetric("Competitor-access calibration experiment")]
         }
       ]
     };
@@ -4573,7 +4601,7 @@ export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: 
             topOutcomeAssociation
               ? { label: `${topOutcomeAssociation.xLabel} → grade`, value: topOutcomeAssociation.normalizedInformation === null ? "Unavailable" : `${Math.round(topOutcomeAssociation.normalizedInformation * 100)}% uncertainty reduction`, sample: `${round(topOutcomeAssociation.mutualInformationBits ?? 0, 2)} bits; ${topOutcomeAssociation.status}`, provenance, href: experienceHref }
               : missingMetric("Outcome information"),
-            missingMetric("Marginal-information experiment")
+            { label: "Successive-cohort test", value: observed.verdict, sample: observed.headline, provenance, href: experienceHref }
           ],
           bars: informationStructure.marginalNovelty.cohorts.map((cohort) => ({
             label: `Cohort ${cohort.index}`,
@@ -4757,7 +4785,7 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
 }
 
 export function deriveDebateEvidenceRegistry(input: DebateEngineInput): Record<DebateFamily, Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceDashboard" | "evidenceCoverage" | "tenSecondSummary" | "highestValueDiligence">> {
-  input = { ...input, experienceAnalysis: input.experienceAnalysis ?? analyzeExperience(input.rows) };
+  input = { ...input, experienceAnalysis: input.experienceAnalysis ?? analyzeExperience(input.rows), observedExperimentAdapter: input.observedExperimentAdapter ?? runObservedDataExperimentAdapter(input.rows) };
   const families: DebateFamily[] = [
     "EXPERIENCE_CAPTURE",
     "LEARNING_CAUSALITY",
@@ -4810,8 +4838,97 @@ export function deriveHighestValueDiligenceQueue(candidates: DerivedDebateCandid
     }));
 }
 
+type SavedSyntheticFinding = { verdict?: string; headline?: string; detail?: string; implication?: string };
+
+function latestSyntheticFinding(input: DebateEngineInput, family: DebateFamily): SavedSyntheticFinding | null {
+  const selectedDatasetKey = input.caseSetId ?? input.dataset;
+  if (!selectedDatasetKey) return null;
+  const findings = (input.evidenceRecords ?? [])
+    .filter(record => ["SYNTHETIC_EXPERIMENT", "SYNTHETIC_EXPERIMENT_SUITE"].includes(record.evidenceType ?? "") && record.sourceCaseSetId === selectedDatasetKey)
+    .flatMap(record => {
+      try {
+        const parsed = JSON.parse(record.valueSnapshot ?? "{}") as { findings?: Array<SavedSyntheticFinding & { family?: string }> };
+        return (parsed.findings ?? []).filter(finding => finding.family === family);
+      } catch {
+        return [];
+      }
+    });
+  return findings.at(-1) ?? null;
+}
+
+function modeledAssessmentFor(finding: SavedSyntheticFinding | null): ModeledMechanismAssessment {
+  if (finding?.verdict === "SUPPORTS") return "SUPPORTED CONDITIONALLY";
+  if (finding?.verdict === "CHALLENGES") return "CHALLENGED CONDITIONALLY";
+  if (finding) return "MIXED CONDITIONALLY";
+  return "NOT TESTED";
+}
+
+function caseStatus(verdict: ObservedExperimentVerdict): DebateSubclaimStatus {
+  if (verdict === "SUPPORTS") return "SUPPORTED BY SELECTED CASES";
+  if (verdict === "CHALLENGES") return "CHALLENGED BY SELECTED CASES";
+  return "MIXED / INCOMPLETE";
+}
+
+function conditionalStatus(modeled: ModeledMechanismAssessment): DebateSubclaimStatus {
+  if (modeled === "SUPPORTED CONDITIONALLY") return "SUPPORTED CONDITIONALLY";
+  if (modeled === "CHALLENGED CONDITIONALLY") return "CHALLENGED CONDITIONALLY";
+  return "MIXED / INCOMPLETE";
+}
+
+function resolveSubclaims(family: DebateFamily, observed: ObservedExperiment, modeled: ModeledMechanismAssessment, synthetic: SavedSyntheticFinding | null): ResolvedDebateSubclaim[] {
+  const claims = DEBATE_ARGUMENT_STRUCTURE[family].subclaims;
+  const row = (index: number, status: DebateSubclaimStatus, reason: string): ResolvedDebateSubclaim => ({ claim: claims[index], status, reason });
+  if (family === "EXPERIENCE_CAPTURE") return [
+    row(0, caseStatus(observed.verdict), observed.headline),
+    row(1, "MIXED / INCOMPLETE", "Resolved grades are present, but reliability still requires independent regrading."),
+    row(2, caseStatus(observed.verdict), observed.detail)
+  ];
+  if (family === "LEARNING_CAUSALITY") return [
+    row(0, "REQUIRES EXTERNAL / COMPANY EVIDENCE", "Cases do not identify which grades changed a model or policy version."),
+    row(1, caseStatus(observed.verdict), `${observed.headline} This tests later-case prediction, not deployed action improvement.`),
+    row(2, "REQUIRES EXTERNAL / COMPANY EVIDENCE", "Attribution requires a versioned, randomized, or otherwise controlled comparison.")
+  ];
+  if (family === "CROSS_CUSTOMER_TRANSFER") return [
+    row(0, observed.status === "BLOCKED" ? "MIXED / INCOMPLETE" : caseStatus(observed.verdict), observed.detail),
+    row(1, observed.status === "BLOCKED" ? conditionalStatus(modeled) : caseStatus(observed.verdict), observed.headline),
+    row(2, observed.status === "BLOCKED" ? conditionalStatus(modeled) : observed.metrics.negativeTransferSegments === 0 ? caseStatus(observed.verdict) : "MIXED / INCOMPLETE", `Negative-transfer check: ${observed.metrics.negativeTransferSegments ?? "unavailable"} evaluated segments show material harm. ${synthetic?.headline ?? "A customer-level policy test remains the decisive next step."}`)
+  ];
+  if (family === "MARGINAL_INFORMATION_VALUE") return [
+    row(0, caseStatus(observed.verdict), observed.headline),
+    row(1, caseStatus(observed.verdict), observed.detail),
+    row(2, modeled === "NOT TESTED" ? "MIXED / INCOMPLETE" : conditionalStatus(modeled), synthetic?.headline ?? "Persistence under drift has not been stress-tested.")
+  ];
+  if (family === "REBUILDABILITY_COMPRESSION") return [
+    row(0, "MIXED / INCOMPLETE", "The observed holdout measures predictive performance, but no external challenger benchmark establishes an incumbent gap."),
+    row(1, observed.status === "BLOCKED" ? conditionalStatus(modeled) : caseStatus(observed.verdict), `${observed.headline} ${synthetic?.headline ?? ""}`.trim()),
+    row(2, modeled === "NOT TESTED" ? "REQUIRES EXTERNAL / COMPANY EVIDENCE" : conditionalStatus(modeled), synthetic?.detail ?? "Catch-up cost under stronger foundation models requires a restricted challenger test.")
+  ];
+  if (family === "LEARNING_RIGHTS") return claims.map((claim, index) => row(index, "REQUIRES EXTERNAL / COMPANY EVIDENCE", ["Review retention and derived-feature clauses.", "Review evaluation, training, and cross-customer reuse permissions.", "Verify operational access, deletion, isolation, and governance controls."][index]));
+  if (family === "ECONOMIC_MATERIALITY") return [
+    row(0, observed.status === "BLOCKED" ? "MIXED / INCOMPLETE" : "SUPPORTED BY SELECTED CASES", observed.headline),
+    row(1, "MIXED / INCOMPLETE", "Outcome values describe stakes; a matched policy comparison is needed for incremental net value."),
+    row(2, "REQUIRES EXTERNAL / COMPANY EVIDENCE", "Value capture at scale requires pricing, retention, cost, and customer evidence.")
+  ];
+  return claims.map((claim, index) => row(index, "REQUIRES EXTERNAL / COMPANY EVIDENCE", ["Identify the specific non-CE mechanism and its benefit.", "Attach customer, cost, workflow, or competitive evidence of a barrier.", "Test whether the advantage survives without a compounding-learning assumption."][index]));
+}
+
+function integratedConclusionFor(family: DebateFamily, assessment: DebateAssessmentCategory, observed: ObservedExperiment, modeled: ModeledMechanismAssessment, synthetic: SavedSyntheticFinding | null) {
+  const direct = assessment === "SUPPORTED" || assessment === "LEANING SUPPORTED"
+    ? `Selected evidence supports the company-level thesis (${assessment.toLowerCase()}).`
+    : assessment === "CONTRADICTED" || assessment === "LEANING AGAINST"
+      ? `Selected evidence challenges the company-level thesis (${assessment.toLowerCase()}).`
+      : "The full company-level thesis is not yet resolved.";
+  const observedSentence = observed.status === "BLOCKED"
+    ? observed.headline
+    : `The selected cases ${observed.verdict === "SUPPORTS" ? "support" : observed.verdict === "CHALLENGES" ? "challenge" : "partially resolve"} a measurable component: ${observed.headline}`;
+  const modeledSentence = modeled === "NOT TESTED" ? "No applied synthetic mechanism result is attached to this dataset." : `The modeled mechanism is ${modeled.toLowerCase()}: ${synthetic?.headline ?? "see the applied experiment result."}`;
+  if (family === "LEARNING_RIGHTS" || family === "ALTERNATIVE_POWER") return `${direct} ${observedSentence}`;
+  return `${direct} ${observedSentence} ${modeledSentence}`;
+}
+
 export function deriveDebateCandidates(input: DebateEngineInput, take = 8): DerivedDebateCandidate[] {
-  input = { ...input, experienceAnalysis: input.experienceAnalysis ?? analyzeExperience(input.rows) };
+  input = { ...input, experienceAnalysis: input.experienceAnalysis ?? analyzeExperience(input.rows), observedExperimentAdapter: input.observedExperimentAdapter ?? runObservedDataExperimentAdapter(input.rows) };
+  const observedProgram = input.observedExperimentAdapter!;
   const profile = deriveCanonicalDebateProfile(input.analysis);
   const registry = deriveDebateEvidenceRegistry(input);
   const families = new Set<DebateFamily>();
@@ -4825,6 +4942,9 @@ export function deriveDebateCandidates(input: DebateEngineInput, take = 8): Deri
     const template = debateTemplate(family);
     const sourceDebate = input.debates.find((debate) => debateFamilyFromQuestion(debate.question) === family);
     const assessment = registry[family];
+    const observedExperiment = observedProgram.byFamily[family];
+    const syntheticFinding = latestSyntheticFinding(input, family);
+    const modeledAssessment = modeledAssessmentFor(syntheticFinding);
     const investorBelief = sourceDebate?.probability ?? null;
     const divergence = investorBelief !== null && assessment.assessment === "UNPROVEN" && investorBelief >= 60
       ? "Your belief is more positive than the currently available evidence. Capture the private diligence or meeting evidence that supports it."
@@ -4834,6 +4954,11 @@ export function deriveDebateCandidates(input: DebateEngineInput, take = 8): Deri
     return {
       ...template,
       ...assessment,
+      companyAssessment: assessment.assessment,
+      modeledAssessment,
+      integratedConclusion: integratedConclusionFor(family, assessment.assessment, observedExperiment, modeledAssessment, syntheticFinding),
+      subclaimAssessments: resolveSubclaims(family, observedExperiment, modeledAssessment, syntheticFinding),
+      observedExperiment,
       analysisFindings: input.experienceAnalysis!.findings.filter(item => item.family === family),
       transferExperiment: family === "CROSS_CUSTOMER_TRANSFER" ? runExperienceTransferExperiment(input.rows) : undefined,
       proposition: sourceDebate?.question || template.proposition,
@@ -4985,7 +5110,8 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
 
   const networkSupport = evidenceForPower(["CROSS_CUSTOMER_TRANSFER"]);
   const networkContext = candidateByFamily.get("CROSS_CUSTOMER_TRANSFER")?.contextEvidence ?? [];
-  const networkThesis = hasSupport("CROSS_CUSTOMER_TRANSFER") ? "MODERATE" : "UNPROVEN";
+  const transferCandidate = candidateByFamily.get("CROSS_CUSTOMER_TRANSFER");
+  const networkThesis = hasSupport("CROSS_CUSTOMER_TRANSFER") ? "MODERATE" : transferCandidate?.observedExperiment.verdict === "SUPPORTS" || transferCandidate?.modeledAssessment === "SUPPORTED CONDITIONALLY" ? "WEAK" : "UNPROVEN";
   const processSupport = evidenceForPower(["LEARNING_CAUSALITY", "EXPERIENCE_CAPTURE"]);
   const processContext = [
     ...(candidateByFamily.get("LEARNING_CAUSALITY")?.contextEvidence ?? []),
@@ -4993,7 +5119,9 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
     powerEvidenceItem("Company Model → Learning Loop", `Update: ${input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly ?? "Unknown"}; deploy: ${input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly ?? "Unknown"}`, "CONTEXT-DESCRIPTIVE", "Closed-loop architecture is relevant but does not prove difficult-to-copy Process Power.", companyHref)
   ];
   const closedLoopClaim = valueIncludes(input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly, ["YES", "REGULAR", "DAILY", "WEEKLY"]) && valueIncludes(input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly, ["YES", "FAST", "DAILY", "WEEKLY"]);
-  const processThesis = hasSupport("LEARNING_CAUSALITY") && valueIncludes(rebuildability, ["HARD"]) ? "MODERATE" : closedLoopClaim ? "WEAK" : "UNPROVEN";
+  const learningCandidate = candidateByFamily.get("LEARNING_CAUSALITY");
+  const marginalCandidate = candidateByFamily.get("MARGINAL_INFORMATION_VALUE");
+  const processThesis = hasSupport("LEARNING_CAUSALITY") && valueIncludes(rebuildability, ["HARD"]) ? "MODERATE" : closedLoopClaim || learningCandidate?.observedExperiment.verdict === "SUPPORTS" || marginalCandidate?.modeledAssessment === "SUPPORTED CONDITIONALLY" ? "WEAK" : "UNPROVEN";
   const switchingSupport = valueIncludes(switchingCosts, ["HIGH"]) || valueIncludes(workflowEmbeddedness, ["HIGH", "DEEP"])
     ? [powerEvidenceItem("Company Model → Competitive Architecture", `Switching/workflow state: ${switchingCosts ?? "Unknown"} / ${workflowEmbeddedness ?? "Unknown"}`, "SUPPORTS", "Customer-specific accumulated state or deep workflow dependency may support switching costs.", companyHref)]
     : [];
@@ -5005,7 +5133,8 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
   const corneredSupport = valueIncludes(dataExclusive, ["HIGH"]) && valueIncludes(rebuildability, ["HARD"]) && hasSupport("LEARNING_RIGHTS")
     ? [powerEvidenceItem("Company Model → Competitive Architecture", "Exclusive rights plus hard relearning signal", "SUPPORTS", "Scarce privileged experience may support Cornered Resource if rights and rebuild difficulty are evidenced.", companyHref)]
     : [];
-  const corneredThesis = corneredSupport.length ? "MODERATE" : corneredContext.length ? "WEAK" : "UNPROVEN";
+  const rebuildCandidate = candidateByFamily.get("REBUILDABILITY_COMPRESSION");
+  const corneredThesis = corneredSupport.length ? "MODERATE" : corneredContext.length || rebuildCandidate?.observedExperiment.verdict === "SUPPORTS" || rebuildCandidate?.modeledAssessment === "SUPPORTED CONDITIONALLY" ? "WEAK" : "UNPROVEN";
   const scaleSupport = scaleEvidence.filter((item) => item.direction === "SUPPORTS");
   const scaleThesis = scaleSupport.length ? "MODERATE" : "UNPROVEN";
   const counterSupport = counterEvidence.filter((item) => item.direction === "SUPPORTS");
@@ -5018,8 +5147,8 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
       { label: "Unit cost decline", state: scaleThesis, evidence: evidenceStrengthFromItems(scaleSupport, [], scaleSupport.length > 0) },
       { label: "Shared infrastructure leverage", state: "UNPROVEN", evidence: "NONE" }
     ]),
-    build("network_economies", networkThesis, evidenceStrengthFromItems(networkSupport, [], false), "Cross-customer experience improves value for other customers.", hasSupport("CROSS_CUSTOMER_TRANSFER") ? "Cross-customer transfer evidence supports a network-like CE mechanism." : candidateByFamily.get("CROSS_CUSTOMER_TRANSFER")?.assessmentReason ?? "Transfer experiment unavailable.", [...networkSupport, ...networkContext], [], missingForPower(["CROSS_CUSTOMER_TRANSFER"]), ["CROSS_CUSTOMER_TRANSFER"], [
-      { label: "Cross-customer transfer", state: hasSupport("CROSS_CUSTOMER_TRANSFER") ? "MODERATE" : "UNPROVEN", evidence: evidenceStrengthFromItems(networkSupport, [], false) },
+    build("network_economies", networkThesis, evidenceStrengthFromItems(networkSupport, [], false), "Cross-customer experience improves value for other customers.", hasSupport("CROSS_CUSTOMER_TRANSFER") ? "Cross-customer transfer evidence supports a network-like CE mechanism." : transferCandidate?.integratedConclusion ?? "Transfer experiment unavailable.", [...networkSupport, ...networkContext], [], missingForPower(["CROSS_CUSTOMER_TRANSFER"]), ["CROSS_CUSTOMER_TRANSFER"], [
+      { label: "Cross-customer transfer", state: networkThesis, evidence: evidenceStrengthFromItems(networkSupport, [], false) },
       { label: "Pooling rights", state: thesisFromAnalystValue(input.learningArchitecture?.canTrainAcrossCustomers ?? input.analysis.contractualLearningRights), evidence: hasSupport("LEARNING_RIGHTS") ? "MEDIUM" : "LOW" },
       { label: "Feedback velocity", state: hasCaseRows ? "WEAK" : "UNPROVEN", evidence: hasCaseRows ? "LOW" : "NONE" }
     ]),
@@ -5036,12 +5165,12 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
       { label: "Trust / reputation", state: brandThesis, evidence: evidenceStrengthFromItems(brandSupport, [], brandSupport.length > 0) },
       { label: "Willingness to pay", state: "UNPROVEN", evidence: "NONE" }
     ]),
-    build("cornered_resource", corneredThesis, evidenceStrengthFromItems(corneredSupport, [], false), "Scarce privileged data, rights, or relationships are hard for challengers to access.", corneredSupport.length ? "Rights plus hard rebuildability may support a Cornered Resource hypothesis." : "Proprietary data alone is not sufficient if reproducible or compressible.", [...corneredSupport, ...corneredContext, ...reconstructionContext], [], missingForPower(["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"]), ["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"], [
+    build("cornered_resource", corneredThesis, evidenceStrengthFromItems(corneredSupport, [], false), "Scarce privileged data, rights, or relationships are hard for challengers to access.", corneredSupport.length ? "Rights plus hard rebuildability may support a Cornered Resource hypothesis." : rebuildCandidate?.integratedConclusion ?? "Proprietary data alone is not sufficient if reproducible or compressible.", [...corneredSupport, ...corneredContext, ...reconstructionContext], [], missingForPower(["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"]), ["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"], [
       { label: "Exclusive cases/outcomes", state: thesisFromAnalystValue(dataExclusive), evidence: valueIncludes(dataExclusive, ["HIGH"]) ? "LOW" : "NONE" },
       { label: "Learning rights", state: hasSupport("LEARNING_RIGHTS") ? "MODERATE" : "UNPROVEN", evidence: hasSupport("LEARNING_RIGHTS") ? "MEDIUM" : "NONE" },
       { label: "Resistance to reproduction", state: valueIncludes(rebuildability, ["HARD"]) ? "WEAK" : "UNPROVEN", evidence: "LOW" }
     ]),
-    build("process_power", processThesis, evidenceStrengthFromItems(processSupport, againstByFamily("LEARNING_CAUSALITY"), false), "Closed learning/update/deploy routines compound into hard-to-copy operating performance.", processThesis === "MODERATE" ? "Learning causality plus hard-to-reproduce process evidence supports Process Power." : closedLoopClaim ? "A closed loop may exist, but reproducibility and measured learning causality remain under-evidenced." : "Capturing cases alone does not establish Process Power.", [...processSupport, ...processContext], evidenceAgainstPower(["LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"]), missingForPower(["LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"]), ["EXPERIENCE_CAPTURE", "LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"], [
+    build("process_power", processThesis, evidenceStrengthFromItems(processSupport, againstByFamily("LEARNING_CAUSALITY"), false), "Closed learning/update/deploy routines compound into hard-to-copy operating performance.", processThesis === "MODERATE" ? "Learning causality plus hard-to-reproduce process evidence supports Process Power." : learningCandidate?.integratedConclusion ?? (closedLoopClaim ? "A closed loop may exist, but reproducibility and measured learning causality remain under-evidenced." : "Capturing cases alone does not establish Process Power."), [...processSupport, ...processContext], evidenceAgainstPower(["LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"]), missingForPower(["LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"]), ["EXPERIENCE_CAPTURE", "LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"], [
       { label: "Capture", state: hasSupport("EXPERIENCE_CAPTURE") ? "MODERATE" : "WEAK", evidence: hasSupport("EXPERIENCE_CAPTURE") ? "MEDIUM" : "LOW" },
       { label: "Grade", state: hasCaseRows ? "WEAK" : "UNPROVEN", evidence: hasCaseRows ? "LOW" : "NONE" },
       { label: "Update", state: thesisFromAnalystValue(input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly), evidence: "LOW" },
@@ -5057,6 +5186,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
   if (processThesis === "MODERATE") classifications.add("REINFORCES PROCESS POWER");
   if (switchingThesis === "MODERATE" && !hasSupport("CROSS_CUSTOMER_TRANSFER")) classifications.add("REINFORCES SWITCHING COSTS");
   if (corneredThesis === "MODERATE") classifications.add("REINFORCES CORNERED RESOURCE");
+  if (classifications.size === 0 && candidates.some(candidate => candidate.observedExperiment.verdict === "SUPPORTS" || candidate.modeledAssessment === "SUPPORTED CONDITIONALLY")) classifications.add("CAPABILITY ADVANTAGE ONLY");
   if (classifications.size === 0 && powers.some((power) => thesisRank(power.thesisStrength) >= 2)) classifications.add("CAPABILITY ADVANTAGE ONLY");
   if (classifications.size === 0 && candidates.some((candidate) => candidate.assessment === "UNPROVEN" || candidate.assessment === "UNKNOWN")) classifications.add("UNPROVEN MECHANISM");
   if (classifications.size === 0) classifications.add("NO DURABLE ADVANTAGE DEMONSTRATED");
@@ -5172,7 +5302,8 @@ export function deriveInvestmentSynthesis(input: InvestmentSynthesisInput): Inve
     .slice(0, 3)
     .map(item => item.value.split(/(?<=[.!?])\s/)[0]);
   const boundarySummary = experimentBoundaries.length ? ` Conditional experiment boundaries: ${experimentBoundaries.join(" ")}` : "";
-  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.assessmentReason ?? "Capture has not been assessed."} ${input.debates.find(item => item.family === "CROSS_CUSTOMER_TRANSFER")?.assessmentReason ?? ""}${boundarySummary} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
+  const transfer = input.debates.find(item => item.family === "CROSS_CUSTOMER_TRANSFER");
+  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.integratedConclusion ?? "Capture has not been assessed."} ${transfer?.integratedConclusion ?? ""}${boundarySummary} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
   const evidenceBuckets = synthesisEvidenceBuckets(input.debates, input.experience);
   const investorDebates = input.debates.filter((debate) => debate.investorBelief !== null);
   const investorView = investorDebates.length

@@ -677,7 +677,7 @@ export async function generateDebatesAction(formData: FormData): Promise<DebateS
       evidenceRecords: analysis.evidenceRecords,
       caseSetId: experience.selectedCaseSet?.id,
       dataset: experience.dataset
-    }).map(item => ({ question: item.proposition, assessment: item.assessment, finding: item.assessmentReason, evidence: [...item.evidenceFor, ...item.contextEvidence].map(e => e.value), missing: item.missingEvidence.map(e => e.value) }))
+    }).map(item => ({ question: item.proposition, assessment: item.assessment, finding: item.integratedConclusion, evidence: [...item.evidenceFor, ...item.contextEvidence].map(e => e.value), missing: item.missingEvidence.map(e => e.value) }))
   });
   if (!result.ok) return { status: "error", message: "AI suggestions are unavailable right now. Your saved debates have not been changed. You can retry or continue editing manually." };
   try {

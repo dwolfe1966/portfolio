@@ -1,6 +1,7 @@
 import type { ExperienceAnalysis } from "@/lib/experience-analysis";
+import type { ObservedExperimentAdapterResult } from "@/lib/observed-experiment-adapter";
 
-export function ExperienceAnalysisPanel({ report, savedCurrent, previousRuns }: { report: ExperienceAnalysis; savedCurrent: boolean; previousRuns: number }) {
+export function ExperienceAnalysisPanel({ report, observed, savedCurrent, previousRuns }: { report: ExperienceAnalysis; observed: ObservedExperimentAdapterResult; savedCurrent: boolean; previousRuns: number }) {
   const number = (value: number | null) => value === null ? "—" : value.toFixed(3);
   return <div>
     <p><strong>{report.profile.total} cases → {report.profile.eligible} eligible for chronological experiments.</strong> {report.profile.groups} groups; {report.profile.decisionTypes} decision patterns; {report.profile.duplicateIdentityRows} rows with duplicate case IDs excluded from experiments.</p>
@@ -19,5 +20,17 @@ export function ExperienceAnalysisPanel({ report, savedCurrent, previousRuns }: 
       <ul>{report.segmentResults.map(item => <li key={item.segment}>{item.segment}: {item.count} test cases; local {number(item.local)}, pooled {number(item.pooled)}; local minus pooled {number(item.delta)}.</li>)}</ul>
     </details>
     <details><summary>Experiments requiring additional design</summary><ul>{report.nextExperiments.map(item => <li key={item.name}><strong>{item.name}:</strong> {item.required}.</li>)}</ul></details>
+    <div className="card compoundingObservedAdapter">
+      <p className="small">Observed-data experiment adapter · automatically applied to the selected dataset</p>
+      <h3>What the selected cases resolve downstream</h3>
+      <p>The adapter mapped available fields into {observed.mapping.length} tests. Results flow into each debate’s sub-thesis verdicts, the Power map, and investment synthesis; blocked questions become specific experiment requirements.</p>
+      <div className="grid grid-2">{observed.experiments.map(experiment => <div className="card compact" key={experiment.id}>
+        <div className="compoundingCardHeader"><strong>{experiment.title}</strong><span className="miniTag">{experiment.verdict}</span></div>
+        <p>{experiment.headline}</p>
+        <p className="small"><strong>Interpretation:</strong> {experiment.detail}</p>
+        <p className="small"><strong>Boundary:</strong> {experiment.limitation}</p>
+        <p className="small"><strong>Next:</strong> {experiment.nextExperiment}</p>
+      </div>)}</div>
+    </div>
   </div>;
 }

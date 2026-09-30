@@ -95,6 +95,7 @@ import {
 } from "@/lib/compounding-expertise-lab";
 import { buildPricingCaseSetDescriptor, normalizeCECase, PRICING_CE_CASE_SET_ADAPTER } from "@/lib/compounding-expertise-case-adapters";
 import { buildDebateGenerationPrompt, generateCompoundingExpertiseDebates } from "@/lib/compounding-expertise-ai";
+import { runObservedDataExperimentAdapter } from "@/lib/observed-experiment-adapter";
 
 const baseScenario = {
   name: "Base",
@@ -1708,6 +1709,21 @@ test("Casap public simulation fixture has designed structural diversity and repe
   assert.equal(structure.patternRepetition.signatureFields.includes("grade"), false);
 });
 
+test("observed-data adapter turns the Casap 300-case set into debate-specific tests", () => {
+  const result = runObservedDataExperimentAdapter(buildCasapPublicSimulationCases());
+
+  assert.equal(result.datasetProfile.rows, 300);
+  assert.equal(result.experiments.length, 8);
+  assert.equal(result.byFamily.EXPERIENCE_CAPTURE.status, "MEASURED");
+  assert.equal(result.byFamily.LEARNING_CAUSALITY.status, "TESTED");
+  assert.equal(result.byFamily.CROSS_CUSTOMER_TRANSFER.status, "TESTED");
+  assert.equal(result.byFamily.MARGINAL_INFORMATION_VALUE.status, "TESTED");
+  assert.equal(result.byFamily.REBUILDABILITY_COMPRESSION.status, "TESTED");
+  assert.equal(result.byFamily.LEARNING_RIGHTS.verdict, "BLOCKED");
+  assert.match(result.byFamily.CROSS_CUSTOMER_TRANSFER.limitation, /not identified customers|action-policy/i);
+  assert.match(result.byFamily.REBUILDABILITY_COMPRESSION.limitation, /proxy|challenger/i);
+});
+
 test("Casap public simulation fixture has declining but nonzero structural novelty", () => {
   const rows = buildCasapPublicSimulationCases();
   const novelty = deriveInformationStructure(rows).marginalNovelty;
@@ -1926,6 +1942,10 @@ test("Casap public synthetic simulation remains context and does not become comp
   });
 
   assert.equal(transfer.assessment, "UNPROVEN");
+  assert.equal(transfer.companyAssessment, "UNPROVEN");
+  assert.equal(transfer.subclaimAssessments.length, 3);
+  assert.ok(transfer.subclaimAssessments.some(item => item.status === "SUPPORTED BY SELECTED CASES" || item.status === "CHALLENGED BY SELECTED CASES" || item.status === "MIXED / INCOMPLETE"));
+  assert.match(transfer.integratedConclusion, /selected cases|full company-level thesis/i);
   assert.equal(learning.assessment, "UNPROVEN");
   assert.notEqual(marginalInfo.assessment, "SUPPORTED");
   assert.equal(marginalInfo.evidenceDashboard.sections.some((section) => section.metrics?.some((metric) => metric.provenance === "DERIVED — SYNTHETIC SIMULATION")), true);

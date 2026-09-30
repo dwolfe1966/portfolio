@@ -4456,6 +4456,37 @@ button {
   border-left: 3px solid var(--demo-accent);
   background: color-mix(in srgb, var(--demo-accent) 7%, transparent);
 }
+.compoundingVerdictLayers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.compoundingVerdictLayers > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--demo-divider);
+  border-radius: 10px;
+  background: var(--demo-surface);
+  min-width: 0;
+}
+.compoundingVerdictLayers strong,
+.compoundingSubclaimHeading .miniTag {
+  overflow-wrap: anywhere;
+}
+.compoundingSubclaimHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.compoundingSubclaimHeading .miniTag {
+  flex: 0 1 auto;
+  max-width: 48%;
+  white-space: normal;
+  text-align: center;
+}
 .compoundingArgumentBrief h4,
 .compoundingArgumentBrief h5 {
   margin: 0 0 8px;
@@ -4490,6 +4521,9 @@ button {
 }
 @media (max-width: 760px) {
   .compoundingBriefEvidenceGrid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .compoundingVerdictLayers { grid-template-columns: minmax(0, 1fr); }
+  .compoundingSubclaimHeading { display: grid; }
+  .compoundingSubclaimHeading .miniTag { max-width: 100%; justify-self: start; }
 }
 .compoundingDebateSummaryTable {
   overflow-x: auto;

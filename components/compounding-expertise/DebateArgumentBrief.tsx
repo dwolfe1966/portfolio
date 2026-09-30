@@ -21,8 +21,12 @@ export function DebateArgumentBrief({ candidate }: { candidate: DerivedDebateCan
   const structure = DEBATE_ARGUMENT_STRUCTURE[candidate.family];
   return <div className="compoundingArgumentBrief">
     <div className="compoundingBriefTakeaway">
-      <p className="small">Finding · {candidate.assessment} · {candidate.confidence} confidence</p>
-      <p><strong>{candidate.assessmentReason}</strong></p>
+      <div className="compoundingVerdictLayers">
+        <div><span className="small">Company evidence</span><strong>{candidate.companyAssessment}</strong><small>{candidate.confidence} confidence</small></div>
+        <div><span className="small">Modeled mechanism</span><strong>{candidate.modeledAssessment}</strong><small>Conditional, not company evidence</small></div>
+      </div>
+      <p className="small">Finding · integrated conclusion</p>
+      <p><strong>{candidate.integratedConclusion}</strong></p>
       <p className="small"><strong>Assessment scope:</strong> {structure.thesis}</p>
       <p className="small"><strong>Why it matters:</strong> {candidate.whyLoadBearing}</p>
     </div>
@@ -31,7 +35,11 @@ export function DebateArgumentBrief({ candidate }: { candidate: DerivedDebateCan
       <h4>Thesis being tested</h4>
       <p>{structure.thesis}</p>
       <h5>Subclaims: what must be true</h5>
-      <ol>{structure.subclaims.map((claim) => <li key={claim}>{claim}</li>)}</ol>
+      <p className="small">Each subclaim is resolved separately against the selected cases, conditional experiments, or required company evidence.</p>
+      <ol>{candidate.subclaimAssessments.map((item) => <li key={item.claim}>
+        <div className="compoundingSubclaimHeading"><strong>{item.claim}</strong><span className="miniTag">{item.status}</span></div>
+        <p className="small">{item.reason}</p>
+      </li>)}</ol>
     </div>
     <div className="compoundingBriefEvidenceGrid">
       <div>

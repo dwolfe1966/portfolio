@@ -312,9 +312,9 @@ export default async function CompoundingExpertiseMemoPage({
             <div className="card compact" key={candidate.family}>
               <div className="compoundingCardHeader">
                 <strong>{candidate.title}</strong>
-                <span className="miniTag">{candidate.assessment} · {candidate.confidence} · {candidate.thesisImpact}</span>
+                <span className="miniTag">Company {candidate.assessment} · Model {candidate.modeledAssessment} · {candidate.thesisImpact}</span>
               </div>
-              <p>{candidate.assessmentReason}</p>
+              <p>{candidate.integratedConclusion}</p>
               <p className="small"><strong>Best next evidence:</strong> {candidate.bestNextTest}</p>
               <Link className="btn" href={`/compounding-expertise/debates?analysisId=${analysis.id}${caseSetQuery}#debate-${candidate.family}`}>Inspect debate →</Link>
             </div>

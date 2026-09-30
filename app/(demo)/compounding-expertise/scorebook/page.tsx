@@ -3,6 +3,7 @@ import { ExperienceAnalysisPanel } from "@/components/compounding-expertise/Expe
 import { ExperimentLabPanel } from "@/components/compounding-expertise/ExperimentLabPanel";
 import { calibrateWorldDefaults, runSyntheticExperimentLab } from "@/lib/experience-experiment-lab";
 import { buildAutomatedExperimentPlan, runAutomatedExperimentProgram } from "@/lib/experience-experiment-program";
+import { runObservedDataExperimentAdapter } from "@/lib/observed-experiment-adapter";
 import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
@@ -466,6 +467,7 @@ export default async function CompoundingExpertiseScorebookPage({
   timer.mark("resolveDataset");
   const activeRows = experienceContext.activeRows;
   const experienceRun = createExperienceRun(activeRows, { analysisId: analysis.id, datasetKey: experienceContext.selected.caseSetId ?? experienceContext.selected.datasetKey, datasetName: experienceContext.selected.name, provenance: experienceContext.selected.provenanceLabel });
+  const observedExperiments = runObservedDataExperimentAdapter(activeRows);
   const savedRuns = analysis.evidenceRecords.filter(item => item.evidenceType === "ANALYSIS_RUN" && item.sourceCaseSetId === experienceRun.source.datasetKey);
   const experimentDefaults = calibrateWorldDefaults(activeRows);
   const experimentResult = params.experimentRun === "1" ? runSyntheticExperimentLab({
@@ -653,7 +655,7 @@ export default async function CompoundingExpertiseScorebookPage({
       </Section>
 
       <Section title="Experience analysis" >
-        <ExperienceAnalysisPanel report={experienceRun.report} savedCurrent={savedRuns.some(item => item.sourceRecordId === experienceRun.runId)} previousRuns={savedRuns.length} />
+        <ExperienceAnalysisPanel report={experienceRun.report} observed={observedExperiments} savedCurrent={savedRuns.some(item => item.sourceRecordId === experienceRun.runId)} previousRuns={savedRuns.length} />
         <form action={saveExperienceRunAction} className="ctaRow">
           <input type="hidden" name="analysisId" value={analysis.id} />
           <input type="hidden" name="caseSetId" value={selectedCaseSet?.id ?? ""} />
