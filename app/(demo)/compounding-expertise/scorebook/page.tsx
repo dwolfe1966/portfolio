@@ -477,6 +477,7 @@ export default async function CompoundingExpertiseScorebookPage({
   const savedExperimentRuns = analysis.evidenceRecords.filter(item => ["SYNTHETIC_EXPERIMENT", "SYNTHETIC_EXPERIMENT_SUITE"].includes(item.evidenceType) && item.sourceCaseSetId === experienceRun.source.datasetKey);
   const experimentPlan = buildAutomatedExperimentPlan(activeRows);
   const experimentProgram = params.experimentProgram === "1" ? runAutomatedExperimentProgram(activeRows) : null;
+  const experimentProgramApplied = experimentProgram !== null && analysis.evidenceRecords.some(item => item.evidenceType === "SYNTHETIC_EXPERIMENT_SUITE" && item.sourceCaseSetId === experienceRun.source.datasetKey && item.valueSnapshot === JSON.stringify(experimentProgram));
 
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   timer.mark("filterRows");
@@ -668,7 +669,7 @@ export default async function CompoundingExpertiseScorebookPage({
 
       <Section title="Experiment Lab">
         <div id="experiment-lab" />
-        <ExperimentLabPanel defaults={experimentDefaults} result={experimentResult} program={experimentProgram} plan={experimentPlan} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} savedRuns={savedExperimentRuns.length} />
+        <ExperimentLabPanel defaults={experimentDefaults} result={experimentResult} program={experimentProgram} plan={experimentPlan} programApplied={experimentProgramApplied} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} savedRuns={savedExperimentRuns.length} />
       </Section>
 
       <Section title="Scorebook Structure + Information Structure">

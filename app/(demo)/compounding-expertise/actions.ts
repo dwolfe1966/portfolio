@@ -964,5 +964,5 @@ export async function saveAutomatedExperimentProgramAction(formData: FormData) {
     confidence: "CONDITIONAL_SENSITIVITY", analystNotes: "Dataset-calibrated conditional mechanism boundaries; not observed company outcomes."
   } });
   revalidateLab();
-  redirect(labPath("/compounding-expertise/debates", analysisId, { caseSetId: context.selected.caseSetId, dataset: context.dataset }));
+  redirect(labPath("/compounding-expertise/debates", analysisId, { caseSetId: context.selected.caseSetId, dataset: context.dataset, experimentApplied: "1" }));
 }

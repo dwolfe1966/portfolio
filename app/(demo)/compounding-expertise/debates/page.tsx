@@ -224,7 +224,7 @@ function editDebateFields(debate: Partial<KeyDebateInput>, index: number) {
 export default async function CompoundingExpertiseDebatesPage({
   searchParams
 }: {
-  searchParams: Promise<{ ai?: string; analysisId?: string; caseSetId?: string; dataset?: string }>;
+  searchParams: Promise<{ ai?: string; analysisId?: string; caseSetId?: string; dataset?: string; experimentApplied?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
@@ -266,6 +266,10 @@ export default async function CompoundingExpertiseDebatesPage({
     competitiveArchitecture: analysis.competitiveArchitecture,
     evidenceRecords: analysis.evidenceRecords
   });
+  const appliedExperimentDebates = candidates.filter(candidate => candidate.contextEvidence.some(item => item.source === "Experience → Automated Experiment Program"));
+  const downstreamParams = new URLSearchParams({ analysisId: analysis.id });
+  if (selectedCaseSet?.id) downstreamParams.set("caseSetId", selectedCaseSet.id);
+  if (dataset) downstreamParams.set("dataset", dataset);
 
   return (
     <>
@@ -292,6 +296,20 @@ export default async function CompoundingExpertiseDebatesPage({
           </div>
         </div>
       </Section>
+
+      {params.experimentApplied === "1" ? <Section title="Experiment suite applied">
+        <div className="card" style={{ borderColor: "#16a34a" }}>
+          <span className="statusPill live">APPLIED TO SELECTED DATASET</span>
+          <h3>Conditional experiment conclusions are now part of the broader analysis.</h3>
+          <p>Updated {appliedExperimentDebates.length} debate areas: {appliedExperimentDebates.map(candidate => candidate.title).join(", ") || "no matching debate families"}. The findings remain labeled synthetic experiment context—not observed company evidence—and your belief values were not changed.</p>
+          <div className="ctaRow">
+            <a className="btn primary" href="#debate-CROSS_CUSTOMER_TRANSFER">Review updated debates</a>
+            <Link className="btn" href={`/compounding-expertise/diagnostic?${downstreamParams.toString()}`}>Review Power</Link>
+            <Link className="btn" href={`/compounding-expertise/memo?${downstreamParams.toString()}`}>Review Conclusion</Link>
+            <Link className="btn" href={`/compounding-expertise/scorebook?${downstreamParams.toString()}#experiment-lab`}>Back to Experiment Lab</Link>
+          </div>
+        </div>
+      </Section> : null}
 
       <DebateSuggestionFeedback
         key={`${analysis.id}:${params.caseSetId ?? params.dataset ?? "default"}`}

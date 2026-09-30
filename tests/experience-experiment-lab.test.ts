@@ -14,6 +14,19 @@ test("custom experiment form accepts dataset-calibrated decimal values", () => {
   }
 });
 
+test("experiment workflow explains run progress and downstream application", () => {
+  const panel = readFileSync("components/compounding-expertise/ExperimentLabPanel.tsx", "utf8");
+  assert.match(panel, /Recommended experiment suite in progress/);
+  assert.match(panel, /PREVIEW NOT YET APPLIED/);
+  assert.match(panel, /Apply to Debates, Power & Conclusion/);
+  assert.match(panel, /does not overwrite your belief or convert simulated outcomes into observed evidence/);
+  const actions = readFileSync("app/(demo)/compounding-expertise/actions.ts", "utf8");
+  const saveProgram = actions.slice(actions.indexOf("export async function saveAutomatedExperimentProgramAction"));
+  assert.match(saveProgram, /experimentApplied: "1"/);
+  const debates = readFileSync("app/(demo)/compounding-expertise/debates/page.tsx", "utf8");
+  assert.match(debates, /Conditional experiment conclusions are now part of the broader analysis/);
+});
+
 test("synthetic experiment runs are deterministic and normalize unsafe inputs", () => {
   const config = normalizeSyntheticWorld({ customers: 999, repetitions: 1, sharedStructure: -2, missingFeedback: 9, seed: 0 });
   assert.deepEqual(config, { customers: 12, casesPerCustomer: 200, patterns: 12, sharedStructure: 0, drift: 0.15, outcomeNoise: 0.15, missingFeedback: 0.8, challengerCalibration: 25, repetitions: 3, seed: 1 });
