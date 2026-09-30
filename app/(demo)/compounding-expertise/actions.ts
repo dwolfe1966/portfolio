@@ -2,8 +2,9 @@
 
 import { createExperienceRun } from "@/lib/experience-run";
 import { resolveExperienceContext } from "@/lib/experience-context";
+import { runSyntheticExperimentLab } from "@/lib/experience-experiment-lab";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -641,7 +642,7 @@ export async function generateDebatesAction(formData: FormData): Promise<DebateS
   const accountUserId = await currentAccountUserId();
   const analysis = await db.compoundingExpertiseAnalysis.findFirst({
     where: compoundingAnalysisAccessWhere(accountUserId, analysisId),
-    include: { scorebookCases: true, caseSets: true }
+    include: { scorebookCases: true, caseSets: true, evidenceRecords: true }
   });
   if (!analysis) return { status: "error", message: "This analysis is no longer available. Reload the page before retrying." };
 
@@ -668,7 +669,14 @@ export async function generateDebatesAction(formData: FormData): Promise<DebateS
       deploysImprovementsQuickly: analysis.deploysImprovementsQuickly
     },
     scorebookSummary: metrics,
-    experienceFindings: deriveDebateCandidates({ analysis, debates: [], rows: experience.activeRows }).map(item => ({ question: item.proposition, assessment: item.assessment, finding: item.assessmentReason, evidence: [...item.evidenceFor, ...item.contextEvidence].map(e => e.value), missing: item.missingEvidence.map(e => e.value) }))
+    experienceFindings: deriveDebateCandidates({
+      analysis,
+      debates: [],
+      rows: experience.activeRows,
+      evidenceRecords: analysis.evidenceRecords,
+      caseSetId: experience.selectedCaseSet?.id,
+      dataset: experience.dataset
+    }).map(item => ({ question: item.proposition, assessment: item.assessment, finding: item.assessmentReason, evidence: [...item.evidenceFor, ...item.contextEvidence].map(e => e.value), missing: item.missingEvidence.map(e => e.value) }))
   });
   if (!result.ok) return { status: "error", message: "AI suggestions are unavailable right now. Your saved debates have not been changed. You can retry or continue editing manually." };
   try {
@@ -898,4 +906,36 @@ export async function saveExperienceRunAction(formData: FormData) {
   } });
   revalidateLab();
   redirect(labPath("/compounding-expertise/scorebook", analysisId, { caseSetId: context.selected.caseSetId, dataset: context.dataset }));
+}
+
+export async function saveSyntheticExperimentRunAction(formData: FormData) {
+  const analysisId = text(formData.get("analysisId"));
+  if (!analysisId) throw new Error("Analysis is required.");
+  const accountUserId = await currentAccountUserId();
+  const analysis = await db.compoundingExpertiseAnalysis.findFirst({
+    where: compoundingAnalysisAccessWhere(accountUserId, analysisId),
+    include: { caseSets: true, scorebookCases: true }
+  });
+  if (!analysis) throw new Error("Analysis unavailable.");
+  const context = resolveExperienceContext(analysis, analysis.scorebookCases, {
+    caseSetId: text(formData.get("caseSetId")), dataset: text(formData.get("dataset"))
+  });
+  const result = runSyntheticExperimentLab({
+    customers: text(formData.get("customers")), casesPerCustomer: text(formData.get("casesPerCustomer")),
+    patterns: text(formData.get("patterns")), sharedStructure: text(formData.get("sharedStructure")),
+    drift: text(formData.get("drift")), outcomeNoise: text(formData.get("outcomeNoise")),
+    missingFeedback: text(formData.get("missingFeedback")), challengerCalibration: text(formData.get("challengerCalibration")),
+    repetitions: text(formData.get("repetitions")), seed: text(formData.get("seed"))
+  });
+  const datasetKey = context.selected.caseSetId ?? context.selected.datasetKey;
+  const sourceRecordId = `${result.version}:${createHash("sha256").update(JSON.stringify({ datasetKey, config: result.config })).digest("hex")}`;
+  const existing = await db.compoundingEvidence.findFirst({ where: { analysisId, evidenceType: "SYNTHETIC_EXPERIMENT", sourceRecordId } });
+  if (!existing) await db.compoundingEvidence.create({ data: {
+    analysisId, entityType: "EXPERIENCE_EXPERIMENT", fieldKey: "experience.synthetic.experiment",
+    evidenceType: "SYNTHETIC_EXPERIMENT", epistemicStatus: "DERIVED", sourceLabel: `Experiment Lab · ${context.selected.name}`,
+    sourceCaseSetId: datasetKey, sourceRecordId, valueSnapshot: JSON.stringify(result), derivationMethod: result.version,
+    confidence: "CONDITIONAL_SIMULATION", analystNotes: "Conditional mechanism test under explicit synthetic-world assumptions."
+  } });
+  revalidateLab();
+  redirect(labPath("/compounding-expertise/debates", analysisId, { caseSetId: context.selected.caseSetId, dataset: context.dataset }));
 }

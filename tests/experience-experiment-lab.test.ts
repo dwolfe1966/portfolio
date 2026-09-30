@@ -1,0 +1,63 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { CASAP_PUBLIC_EVIDENCE_ANALYSIS, buildCasapPublicSimulationCases, deriveDebateAssessment, derivePowerMap } from "../lib/compounding-expertise-lab";
+import { normalizeSyntheticWorld, runSyntheticExperimentLab } from "../lib/experience-experiment-lab";
+
+const base = { customers: 5, casesPerCustomer: 200, patterns: 12, repetitions: 12, seed: 4107, outcomeNoise: 0.15, missingFeedback: 0.05 };
+
+test("synthetic experiment runs are deterministic and normalize unsafe inputs", () => {
+  const config = normalizeSyntheticWorld({ customers: 999, repetitions: 1, sharedStructure: -2, missingFeedback: 9, seed: 0 });
+  assert.deepEqual(config, { customers: 12, casesPerCustomer: 200, patterns: 12, sharedStructure: 0, drift: 0.15, outcomeNoise: 0.15, missingFeedback: 0.8, challengerCalibration: 25, repetitions: 3, seed: 1 });
+  assert.deepEqual(runSyntheticExperimentLab(base), runSyntheticExperimentLab(base));
+});
+
+test("pooling is supported by shared worlds and challenged by customer-specific worlds", () => {
+  const shared = runSyntheticExperimentLab({ ...base, sharedStructure: 0.9, drift: 0.1 });
+  const specific = runSyntheticExperimentLab({ ...base, sharedStructure: 0.05, drift: 0.1 });
+  assert.equal(shared.findings.find(item => item.id === "pooling")!.verdict, "SUPPORTS");
+  assert.ok(shared.pooling.pooled.mean > shared.pooling.local.mean);
+  assert.equal(specific.findings.find(item => item.id === "pooling")!.verdict, "CHALLENGES");
+  assert.ok(specific.pooling.pooled.mean < specific.pooling.local.mean);
+});
+
+test("experience selection exposes drift and full-history boundaries", () => {
+  const stable = runSyntheticExperimentLab({ ...base, sharedStructure: 0.8, drift: 0 });
+  const drifting = runSyntheticExperimentLab({ ...base, sharedStructure: 0.8, drift: 1 });
+  assert.equal(stable.findings.find(item => item.id === "selection")!.metrics.best, "full");
+  assert.equal(drifting.findings.find(item => item.id === "selection")!.metrics.best, "recent");
+  assert.ok(drifting.selection.recent.mean > drifting.selection.full.mean);
+});
+
+test("challenger calibration closes rather than fabricates a reconstruction gap", () => {
+  const none = runSyntheticExperimentLab({ ...base, sharedStructure: 0.3, drift: 0.1, challengerCalibration: 0 });
+  const broad = runSyntheticExperimentLab({ ...base, sharedStructure: 0.3, drift: 0.1, challengerCalibration: 500 });
+  assert.ok(none.reconstruction.gap.mean > broad.reconstruction.gap.mean);
+  assert.ok(broad.reconstruction.challenger.mean > none.reconstruction.challenger.mean);
+});
+
+test("saved experiments are isolated by dataset and flow into debates and Power as conditional context", () => {
+  const result = runSyntheticExperimentLab({ ...base, sharedStructure: 0.9, drift: 0.1 });
+  const evidence = {
+    evidenceType: "SYNTHETIC_EXPERIMENT",
+    epistemicStatus: "DERIVED",
+    sourceCaseSetId: "selected",
+    valueSnapshot: JSON.stringify(result)
+  };
+  const input = {
+    analysis: CASAP_PUBLIC_EVIDENCE_ANALYSIS.analysis,
+    rows: buildCasapPublicSimulationCases(),
+    debates: [],
+    caseSetId: "selected",
+    evidenceRecords: [evidence]
+  };
+  const debate = deriveDebateAssessment(input, "CROSS_CUSTOMER_TRANSFER");
+  assert.match(debate.assessmentReason, /Conditional simulation/);
+  assert.ok(debate.evidenceFor.some(item => item.source === "Experience → Experiment Lab" && item.direction === "CONTEXT-DESCRIPTIVE"));
+  const power = derivePowerMap(input).powers.find(item => item.key === "network_economies")!;
+  assert.ok(power.evidenceFor.some(item => item.source === "Experience → Experiment Lab"));
+
+  const foreign = deriveDebateAssessment({ ...input, evidenceRecords: [{ ...evidence, sourceCaseSetId: "other" }] }, "CROSS_CUSTOMER_TRANSFER");
+  assert.doesNotMatch(foreign.assessmentReason, /Conditional simulation/);
+  const unscoped = deriveDebateAssessment({ ...input, evidenceRecords: [{ ...evidence, sourceCaseSetId: null }] }, "CROSS_CUSTOMER_TRANSFER");
+  assert.doesNotMatch(unscoped.assessmentReason, /Conditional simulation/);
+});

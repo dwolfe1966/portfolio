@@ -1,5 +1,7 @@
 import { createExperienceRun } from "@/lib/experience-run";
 import { ExperienceAnalysisPanel } from "@/components/compounding-expertise/ExperienceAnalysisPanel";
+import { ExperimentLabPanel } from "@/components/compounding-expertise/ExperimentLabPanel";
+import { calibrateWorldDefaults, runSyntheticExperimentLab } from "@/lib/experience-experiment-lab";
 import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
@@ -464,6 +466,14 @@ export default async function CompoundingExpertiseScorebookPage({
   const activeRows = experienceContext.activeRows;
   const experienceRun = createExperienceRun(activeRows, { analysisId: analysis.id, datasetKey: experienceContext.selected.caseSetId ?? experienceContext.selected.datasetKey, datasetName: experienceContext.selected.name, provenance: experienceContext.selected.provenanceLabel });
   const savedRuns = analysis.evidenceRecords.filter(item => item.evidenceType === "ANALYSIS_RUN" && item.sourceCaseSetId === experienceRun.source.datasetKey);
+  const experimentDefaults = calibrateWorldDefaults(activeRows);
+  const experimentResult = params.experimentRun === "1" ? runSyntheticExperimentLab({
+    customers: params.worldCustomers, casesPerCustomer: params.worldCases, patterns: params.worldPatterns,
+    sharedStructure: params.worldShared, drift: params.worldDrift, outcomeNoise: params.worldNoise,
+    missingFeedback: params.worldMissing, challengerCalibration: params.worldCalibration,
+    repetitions: params.worldRepetitions, seed: params.worldSeed
+  }) : null;
+  const savedExperimentRuns = analysis.evidenceRecords.filter(item => item.evidenceType === "SYNTHETIC_EXPERIMENT" && item.sourceCaseSetId === experienceRun.source.datasetKey);
 
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   timer.mark("filterRows");
@@ -651,6 +661,11 @@ export default async function CompoundingExpertiseScorebookPage({
         {savedRuns.length ? <details><summary>Saved analysis runs</summary><ul>{savedRuns.map(run => <li key={run.id}>
           <a href={`/api/compounding-expertise/experience-run?analysisId=${analysis.id}&runId=${encodeURIComponent(run.sourceRecordId ?? "")}`}>{run.createdAt.toISOString()} · {run.sourceRecordId === experienceRun.runId ? "Current inputs" : "Previous inputs or engine"}</a>
         </li>)}</ul></details> : null}
+      </Section>
+
+      <Section title="Experiment Lab">
+        <div id="experiment-lab" />
+        <ExperimentLabPanel defaults={experimentDefaults} result={experimentResult} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} savedRuns={savedExperimentRuns.length} />
       </Section>
 
       <Section title="Scorebook Structure + Information Structure">

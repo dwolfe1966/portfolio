@@ -32,6 +32,7 @@ export type GuidedProvenanceLabel =
   | "DERIVED — COMPANY DATA"
   | "DERIVED — SYNTHETIC FIXTURE"
   | "DERIVED — SYNTHETIC SIMULATION"
+  | "DERIVED — SYNTHETIC EXPERIMENT"
   | "ANALYST ASSUMPTION"
   | "ARCHETYPE ASSUMPTION"
   | "MODEL INFERENCE"
@@ -43,6 +44,7 @@ export const GUIDED_PROVENANCE_LABELS: readonly GuidedProvenanceLabel[] = [
   "DERIVED — COMPANY DATA",
   "DERIVED — SYNTHETIC FIXTURE",
   "DERIVED — SYNTHETIC SIMULATION",
+  "DERIVED — SYNTHETIC EXPERIMENT",
   "ANALYST ASSUMPTION",
   "ARCHETYPE ASSUMPTION",
   "MODEL INFERENCE",
@@ -4622,6 +4624,18 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   const forEvidence: DebateEvidenceItem[] = [];
   const againstEvidence: DebateEvidenceItem[] = [];
   const missing: DebateEvidenceItem[] = [];
+  const selectedDatasetKey = input.caseSetId ?? input.dataset;
+  const experimentFindings = (input.evidenceRecords ?? [])
+    .filter(record => record.evidenceType === "SYNTHETIC_EXPERIMENT" && Boolean(selectedDatasetKey) && record.sourceCaseSetId === selectedDatasetKey)
+    .flatMap(record => {
+      try {
+        const parsed = JSON.parse(record.valueSnapshot ?? "{}") as { assumptions?: string; findings?: Array<{ family?: string; verdict?: string; headline?: string; detail?: string; implication?: string }> };
+        return (parsed.findings ?? []).filter(finding => finding.family === family).map(finding => ({ ...finding, assumptions: parsed.assumptions }));
+      } catch {
+        return [];
+      }
+    });
+  const latestExperiment = experimentFindings.at(-1);
   const addExperienceDescriptive = (value: string, interpretation: string, limitation: string) => {
     forEvidence.push(evidenceItem({
       source: "Experience → active CaseSet",
@@ -4650,6 +4664,18 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
 
   for (const finding of report.findings.filter(item => item.family === family && item.id !== "capture")) {
     addExperienceDescriptive(finding.summary, finding.interpretation, finding.nextTest);
+  }
+  for (const finding of experimentFindings.slice(-3)) {
+    forEvidence.push(evidenceItem({
+      source: "Experience → Experiment Lab",
+      value: `${finding.verdict}: ${finding.headline} ${finding.detail}`,
+      direction: "CONTEXT-DESCRIPTIVE",
+      strength: "CONTEXT",
+      provenance: "DERIVED — SYNTHETIC EXPERIMENT",
+      href: `${experienceHref.split("#")[0]}#experiment-lab`,
+      interpretation: finding.implication ?? "Conditional mechanism result.",
+      limitation: finding.assumptions ?? "Applies only under the saved synthetic-world assumptions."
+    }));
   }
   if (family === "EXPERIENCE_CAPTURE") {
     addExperienceDescriptive(`${metrics.gradedCases}/${metrics.totalCases} graded cases; ${metrics.resolvedCases}/${metrics.totalCases} outcomes represented.`, "Shows whether the active CaseSet is scorebook-like.", "Completeness alone does not prove learning improves future decisions.");
@@ -4687,14 +4713,14 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
     addExperienceDescriptive(`${experiment.sharedPatterns}/${experiment.patternCount} decision-class/case-type patterns occur across segments; ${experiment.sharedCases}/${experiment.eligible} eligible cases belong to shared patterns.`, "Measures whether segments share potentially reusable decision structure.", "Shared structure is a prerequisite for transfer, not its performance result.");
     addExperienceDescriptive(`${experiment.finding}. ${experiment.scored} held-out cases; local Brier ${experiment.local?.toFixed(3) ?? "unavailable"}, pooled ${experiment.pooled?.toFixed(3) ?? "unavailable"}.`, experiment.method, experiment.scope);
     addMissing("Experience → action-policy experiment", experiment.enough ? "Grade prediction tested; decision-policy improvement remains untested." : "Insufficient grade-prediction coverage; decision-policy improvement remains untested.", "Use identified customers and compare local versus pooled policies on held-out decisions, measuring correctness and economic outcomes.", "Policy experiment", "Local versus pooled customer-level held-out policy comparison and segment harm analysis.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${experiment.finding}${experiment.delta === null ? "" : ` (local minus pooled Brier: ${experiment.delta.toFixed(3)})`}. Shared patterns: ${experiment.sharedPatterns}/${experiment.patternCount}. This narrows the transfer question to whether pooled learning improves actions, not just grade prediction.`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${experiment.finding}${experiment.delta === null ? "" : ` (local minus pooled Brier: ${experiment.delta.toFixed(3)})`}. Shared patterns: ${experiment.sharedPatterns}/${experiment.patternCount}. This narrows the transfer question to whether pooled learning improves actions, not just grade prediction.${latestExperiment ? ` Conditional simulation: ${latestExperiment.headline}` : ""}`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   if (family === "MARGINAL_INFORMATION_VALUE") {
     const information = deriveInformationStructure(input.rows);
     addExperienceDescriptive(`${metrics.totalCases} cases. ${information.summary.diversity}; ${information.summary.patternRepetition}; ${information.summary.marginalNovelty}.`, "Pattern diversity and cohort novelty describe the supply of new information available to learn from.", "A held-out learning curve is needed to connect novelty to performance gain.");
     addMissing("Experience / future experiment", report.ready ? "Predictive learning curve measured; policy-value curve still needed." : "Insufficient cases for a held-out learning curve.", "Measure action-policy performance across successive training cohorts.", "Experiment", "Decision-policy value by successive cohort on a fixed evaluation set.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${information.summary.marginalNovelty}. ${report.findings.find(item => item.id === "learning-curve")!.summary}`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${information.summary.marginalNovelty}. ${report.findings.find(item => item.id === "learning-curve")!.summary}${latestExperiment ? ` Conditional simulation: ${latestExperiment.headline}` : ""}`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   if (family === "REBUILDABILITY_COMPRESSION") {
@@ -4703,7 +4729,7 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
     if (difficulty) forEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Relearning difficulty: ${difficulty}`, direction: "CONTEXT-DESCRIPTIVE", strength: "CONTEXT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Frames the rebuildability hypothesis.", limitation: "Assumption is not a challenger benchmark." }));
     if (valueIncludes(foundationRisk, ["HIGH", "FAST"])) againstEvidence.push(evidenceItem({ source: "Company Model → Competitive Architecture", value: `Foundation-model substitution risk: ${foundationRisk}`, direction: "CONTRADICTS", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "A high substitution risk weakens durable CE Power.", limitation: "Still requires direct benchmark evidence." }));
     addMissing("Future challenger benchmark", "No compression/relearning benchmark.", "Need evidence that a capable challenger cannot reproduce performance cheaply.", "Benchmark", "Incumbent-vs-challenger performance gap after policy docs, public data, synthetic cases, and limited calibration.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${report.findings.find(item => item.id === "reconstruction-proxy")!.summary} Restricted-access challenger performance remains untested.`, evidenceFor: forEvidence, evidenceAgainst: againstEvidence, missingEvidence: missing };
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${report.findings.find(item => item.id === "reconstruction-proxy")!.summary}${latestExperiment ? ` Conditional simulation: ${latestExperiment.headline}` : " Restricted-access challenger performance remains untested."}`, evidenceFor: forEvidence, evidenceAgainst: againstEvidence, missingEvidence: missing };
   }
 
   if (family === "LEARNING_RIGHTS") {
@@ -4963,6 +4989,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
   const processSupport = evidenceForPower(["LEARNING_CAUSALITY", "EXPERIENCE_CAPTURE"]);
   const processContext = [
     ...(candidateByFamily.get("LEARNING_CAUSALITY")?.contextEvidence ?? []),
+    ...(candidateByFamily.get("MARGINAL_INFORMATION_VALUE")?.contextEvidence ?? []),
     powerEvidenceItem("Company Model → Learning Loop", `Update: ${input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly ?? "Unknown"}; deploy: ${input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly ?? "Unknown"}`, "CONTEXT-DESCRIPTIVE", "Closed-loop architecture is relevant but does not prove difficult-to-copy Process Power.", companyHref)
   ];
   const closedLoopClaim = valueIncludes(input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly, ["YES", "REGULAR", "DAILY", "WEEKLY"]) && valueIncludes(input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly, ["YES", "FAST", "DAILY", "WEEKLY"]);
@@ -4974,6 +5001,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
   const corneredContext = valueIncludes(dataExclusive, ["HIGH"])
     ? [powerEvidenceItem("Company Model → Competitive Architecture", `Data exclusivity: ${dataExclusive}`, "CONTEXT-DESCRIPTIVE", "Proprietary data is relevant but insufficient if reproducible, compressible, or weakly protected.", companyHref)]
     : [];
+  const reconstructionContext = candidateByFamily.get("REBUILDABILITY_COMPRESSION")?.contextEvidence ?? [];
   const corneredSupport = valueIncludes(dataExclusive, ["HIGH"]) && valueIncludes(rebuildability, ["HARD"]) && hasSupport("LEARNING_RIGHTS")
     ? [powerEvidenceItem("Company Model → Competitive Architecture", "Exclusive rights plus hard relearning signal", "SUPPORTS", "Scarce privileged experience may support Cornered Resource if rights and rebuild difficulty are evidenced.", companyHref)]
     : [];
@@ -5008,7 +5036,7 @@ export function derivePowerMap(input: DebateEngineInput & { assessments?: Dimens
       { label: "Trust / reputation", state: brandThesis, evidence: evidenceStrengthFromItems(brandSupport, [], brandSupport.length > 0) },
       { label: "Willingness to pay", state: "UNPROVEN", evidence: "NONE" }
     ]),
-    build("cornered_resource", corneredThesis, evidenceStrengthFromItems(corneredSupport, [], false), "Scarce privileged data, rights, or relationships are hard for challengers to access.", corneredSupport.length ? "Rights plus hard rebuildability may support a Cornered Resource hypothesis." : "Proprietary data alone is not sufficient if reproducible or compressible.", [...corneredSupport, ...corneredContext], [], missingForPower(["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"]), ["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"], [
+    build("cornered_resource", corneredThesis, evidenceStrengthFromItems(corneredSupport, [], false), "Scarce privileged data, rights, or relationships are hard for challengers to access.", corneredSupport.length ? "Rights plus hard rebuildability may support a Cornered Resource hypothesis." : "Proprietary data alone is not sufficient if reproducible or compressible.", [...corneredSupport, ...corneredContext, ...reconstructionContext], [], missingForPower(["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"]), ["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"], [
       { label: "Exclusive cases/outcomes", state: thesisFromAnalystValue(dataExclusive), evidence: valueIncludes(dataExclusive, ["HIGH"]) ? "LOW" : "NONE" },
       { label: "Learning rights", state: hasSupport("LEARNING_RIGHTS") ? "MODERATE" : "UNPROVEN", evidence: hasSupport("LEARNING_RIGHTS") ? "MEDIUM" : "NONE" },
       { label: "Resistance to reproduction", state: valueIncludes(rebuildability, ["HARD"]) ? "WEAK" : "UNPROVEN", evidence: "LOW" }
