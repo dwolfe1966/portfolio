@@ -2,6 +2,7 @@ import { createExperienceRun } from "@/lib/experience-run";
 import { ExperienceAnalysisPanel } from "@/components/compounding-expertise/ExperienceAnalysisPanel";
 import { ExperimentLabPanel } from "@/components/compounding-expertise/ExperimentLabPanel";
 import { calibrateWorldDefaults, runSyntheticExperimentLab } from "@/lib/experience-experiment-lab";
+import { buildAutomatedExperimentPlan, runAutomatedExperimentProgram } from "@/lib/experience-experiment-program";
 import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
@@ -473,7 +474,9 @@ export default async function CompoundingExpertiseScorebookPage({
     missingFeedback: params.worldMissing, challengerCalibration: params.worldCalibration,
     repetitions: params.worldRepetitions, seed: params.worldSeed
   }) : null;
-  const savedExperimentRuns = analysis.evidenceRecords.filter(item => item.evidenceType === "SYNTHETIC_EXPERIMENT" && item.sourceCaseSetId === experienceRun.source.datasetKey);
+  const savedExperimentRuns = analysis.evidenceRecords.filter(item => ["SYNTHETIC_EXPERIMENT", "SYNTHETIC_EXPERIMENT_SUITE"].includes(item.evidenceType) && item.sourceCaseSetId === experienceRun.source.datasetKey);
+  const experimentPlan = buildAutomatedExperimentPlan(activeRows);
+  const experimentProgram = params.experimentProgram === "1" ? runAutomatedExperimentProgram(activeRows) : null;
 
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   timer.mark("filterRows");
@@ -665,7 +668,7 @@ export default async function CompoundingExpertiseScorebookPage({
 
       <Section title="Experiment Lab">
         <div id="experiment-lab" />
-        <ExperimentLabPanel defaults={experimentDefaults} result={experimentResult} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} savedRuns={savedExperimentRuns.length} />
+        <ExperimentLabPanel defaults={experimentDefaults} result={experimentResult} program={experimentProgram} plan={experimentPlan} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} savedRuns={savedExperimentRuns.length} />
       </Section>
 
       <Section title="Scorebook Structure + Information Structure">

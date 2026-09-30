@@ -4626,11 +4626,11 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   const missing: DebateEvidenceItem[] = [];
   const selectedDatasetKey = input.caseSetId ?? input.dataset;
   const experimentFindings = (input.evidenceRecords ?? [])
-    .filter(record => record.evidenceType === "SYNTHETIC_EXPERIMENT" && Boolean(selectedDatasetKey) && record.sourceCaseSetId === selectedDatasetKey)
+    .filter(record => ["SYNTHETIC_EXPERIMENT", "SYNTHETIC_EXPERIMENT_SUITE"].includes(record.evidenceType ?? "") && Boolean(selectedDatasetKey) && record.sourceCaseSetId === selectedDatasetKey)
     .flatMap(record => {
       try {
-        const parsed = JSON.parse(record.valueSnapshot ?? "{}") as { assumptions?: string; findings?: Array<{ family?: string; verdict?: string; headline?: string; detail?: string; implication?: string }> };
-        return (parsed.findings ?? []).filter(finding => finding.family === family).map(finding => ({ ...finding, assumptions: parsed.assumptions }));
+        const parsed = JSON.parse(record.valueSnapshot ?? "{}") as { assumptions?: string; findings?: Array<{ family?: string; verdict?: string; headline?: string; detail?: string; implication?: string; worksWhen?: string; failsWhen?: string; nextExperiment?: string }> };
+        return (parsed.findings ?? []).filter(finding => finding.family === family).map(finding => ({ ...finding, assumptions: parsed.assumptions, suite: record.evidenceType === "SYNTHETIC_EXPERIMENT_SUITE" }));
       } catch {
         return [];
       }
@@ -4667,13 +4667,13 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
   }
   for (const finding of experimentFindings.slice(-3)) {
     forEvidence.push(evidenceItem({
-      source: "Experience → Experiment Lab",
-      value: `${finding.verdict}: ${finding.headline} ${finding.detail}`,
+      source: finding.suite ? "Experience → Automated Experiment Program" : "Experience → Experiment Lab",
+      value: `${finding.verdict}: ${finding.headline} ${finding.detail}${finding.worksWhen ? ` Works when: ${finding.worksWhen}` : ""}${finding.failsWhen ? ` Fails when: ${finding.failsWhen}` : ""}`,
       direction: "CONTEXT-DESCRIPTIVE",
       strength: "CONTEXT",
       provenance: "DERIVED — SYNTHETIC EXPERIMENT",
       href: `${experienceHref.split("#")[0]}#experiment-lab`,
-      interpretation: finding.implication ?? "Conditional mechanism result.",
+      interpretation: `${finding.implication ?? "Conditional mechanism result."}${finding.nextExperiment ? ` Next experiment: ${finding.nextExperiment}` : ""}`,
       limitation: finding.assumptions ?? "Applies only under the saved synthetic-world assumptions."
     }));
   }
@@ -5166,7 +5166,13 @@ export function deriveInvestmentSynthesis(input: InvestmentSynthesisInput): Inve
   const primaryPower = rankedPowers[0];
   const unresolved = input.debates.find((debate) => ["UNPROVEN", "UNKNOWN"].includes(debate.assessment)) ?? input.debates[0] ?? null;
   const capture = input.debates.find(item => item.family === "EXPERIENCE_CAPTURE");
-  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.assessmentReason ?? "Capture has not been assessed."} ${input.debates.find(item => item.family === "CROSS_CUSTOMER_TRANSFER")?.assessmentReason ?? ""} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
+  const experimentBoundaries = input.debates
+    .flatMap(debate => debate.contextEvidence)
+    .filter(item => item.source === "Experience → Automated Experiment Program")
+    .slice(0, 3)
+    .map(item => item.value.split(/(?<=[.!?])\s/)[0]);
+  const boundarySummary = experimentBoundaries.length ? ` Conditional experiment boundaries: ${experimentBoundaries.join(" ")}` : "";
+  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.assessmentReason ?? "Capture has not been assessed."} ${input.debates.find(item => item.family === "CROSS_CUSTOMER_TRANSFER")?.assessmentReason ?? ""}${boundarySummary} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
   const evidenceBuckets = synthesisEvidenceBuckets(input.debates, input.experience);
   const investorDebates = input.debates.filter((debate) => debate.investorBelief !== null);
   const investorView = investorDebates.length

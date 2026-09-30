@@ -1,6 +1,6 @@
 import type { DebateFamily, ScorebookCaseInput } from "./compounding-expertise-lab";
 
-export const EXPERIMENT_LAB_VERSION = "experience-experiment-lab-1.0";
+export const EXPERIMENT_LAB_VERSION = "experience-experiment-lab-1.1";
 
 export type SyntheticWorldConfig = {
   customers: number;
@@ -171,9 +171,9 @@ export function runSyntheticExperimentLab(raw: Partial<Record<keyof SyntheticWor
     const local = policyValue(world, "local");
     const pooled = policyValue(world, "pooled");
     const selective = policyValue(world, "selective");
-    const full = policyValue(world, "pooled", "full");
-    const recent = policyValue(world, "pooled", "recent");
-    const balanced = policyValue(world, "pooled", "balanced");
+    const full = policyValue(world, "selective", "full");
+    const recent = policyValue(world, "selective", "recent");
+    const balanced = policyValue(world, "selective", "balanced");
     const incumbent = selective;
     const challenger = policyValue(world, "selective", "full", { limit: config.challengerCalibration, publicOnly: true });
     return { local, pooled, selective, full, recent, balanced, incumbent, challenger };
@@ -195,7 +195,8 @@ export function runSyntheticExperimentLab(raw: Partial<Record<keyof SyntheticWor
   };
   const poolingGain = pooling.selective.mean - pooling.local.mean;
   const pooledGain = pooling.pooled.mean - pooling.local.mean;
-  const bestSelection = [...(["full", "recent", "balanced"] as const)].sort((a, b) => selection[b].mean - selection[a].mean)[0];
+  const rankedSelection = [...(["full", "recent", "balanced"] as const)].sort((a, b) => selection[b].mean - selection[a].mean);
+  const bestSelection = rankedSelection[0] === "full" || selection[rankedSelection[0]].mean - selection.full.mean > 0.005 ? rankedSelection[0] : "full";
   const findings: ExperimentFinding[] = [
     {
       id: "pooling", family: "CROSS_CUSTOMER_TRANSFER",

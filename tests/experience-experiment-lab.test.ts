@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CASAP_PUBLIC_EVIDENCE_ANALYSIS, buildCasapPublicSimulationCases, deriveDebateAssessment, derivePowerMap } from "../lib/compounding-expertise-lab";
+import { CASAP_PUBLIC_EVIDENCE_ANALYSIS, buildCasapPublicSimulationCases, deriveDebateAssessment, deriveDebateCandidates, deriveExperienceSnapshot, deriveInvestmentSynthesis, derivePowerMap } from "../lib/compounding-expertise-lab";
 import { normalizeSyntheticWorld, runSyntheticExperimentLab } from "../lib/experience-experiment-lab";
+import { buildAutomatedExperimentPlan, runAutomatedExperimentProgram } from "../lib/experience-experiment-program";
 
 const base = { customers: 5, casesPerCustomer: 200, patterns: 12, repetitions: 12, seed: 4107, outcomeNoise: 0.15, missingFeedback: 0.05 };
 
@@ -60,4 +61,37 @@ test("saved experiments are isolated by dataset and flow into debates and Power 
   assert.doesNotMatch(foreign.assessmentReason, /Conditional simulation/);
   const unscoped = deriveDebateAssessment({ ...input, evidenceRecords: [{ ...evidence, sourceCaseSetId: null }] }, "CROSS_CUSTOMER_TRANSFER");
   assert.doesNotMatch(unscoped.assessmentReason, /Conditional simulation/);
+});
+
+test("automated planner calibrates to the selected dataset and returns mechanism boundaries", () => {
+  const rows = buildCasapPublicSimulationCases();
+  const plan = buildAutomatedExperimentPlan(rows);
+  assert.equal(plan.profile.cases, 300);
+  assert.equal(plan.profile.customers, 5);
+  assert.equal(plan.tests.length, 3);
+  assert.ok(plan.profile.sharedPatterns > 0);
+  assert.ok(plan.calibrated.sharedStructure < 0.5);
+
+  const result = runAutomatedExperimentProgram(rows);
+  assert.equal(result.findings.length, 3);
+  assert.ok(result.generatedCases > 10_000);
+  assert.match(result.findings.find(item => item.id === "pooling")!.headline, /pooling threshold/);
+  assert.match(result.findings.find(item => item.id === "selection")!.worksWhen, /history|drift/i);
+  assert.match(result.findings.find(item => item.id === "reconstruction")!.headline, /challenger|gap/i);
+  assert.deepEqual(result, runAutomatedExperimentProgram(rows));
+});
+
+test("automated suite conclusions remain dataset-scoped conditional context downstream", () => {
+  const result = runAutomatedExperimentProgram(buildCasapPublicSimulationCases());
+  const evidence = { evidenceType: "SYNTHETIC_EXPERIMENT_SUITE", epistemicStatus: "DERIVED", sourceCaseSetId: "selected", valueSnapshot: JSON.stringify(result) };
+  const input = { analysis: CASAP_PUBLIC_EVIDENCE_ANALYSIS.analysis, rows: buildCasapPublicSimulationCases(), debates: [], caseSetId: "selected", evidenceRecords: [evidence] };
+  const debate = deriveDebateAssessment(input, "REBUILDABILITY_COMPRESSION");
+  assert.ok(debate.evidenceFor.some(item => item.source === "Experience → Automated Experiment Program" && item.value.includes("Works when:") && item.value.includes("Fails when:")));
+  assert.ok(derivePowerMap(input).powers.find(item => item.key === "cornered_resource")!.evidenceFor.some(item => item.source === "Experience → Automated Experiment Program"));
+  const debates = deriveDebateCandidates(input);
+  const powerMap = derivePowerMap(input);
+  const synthesis = deriveInvestmentSynthesis({ analysis: input.analysis, experience: deriveExperienceSnapshot(input.rows), debates, powerMap, stressTest: null });
+  assert.match(synthesis.currentThesis, /Conditional experiment boundaries/);
+  const foreign = deriveDebateAssessment({ ...input, evidenceRecords: [{ ...evidence, sourceCaseSetId: "other" }] }, "REBUILDABILITY_COMPRESSION");
+  assert.equal(foreign.evidenceFor.some(item => item.source === "Experience → Automated Experiment Program"), false);
 });

@@ -3,6 +3,7 @@
 import { createExperienceRun } from "@/lib/experience-run";
 import { resolveExperienceContext } from "@/lib/experience-context";
 import { runSyntheticExperimentLab } from "@/lib/experience-experiment-lab";
+import { runAutomatedExperimentProgram } from "@/lib/experience-experiment-program";
 
 import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -935,6 +936,32 @@ export async function saveSyntheticExperimentRunAction(formData: FormData) {
     evidenceType: "SYNTHETIC_EXPERIMENT", epistemicStatus: "DERIVED", sourceLabel: `Experiment Lab · ${context.selected.name}`,
     sourceCaseSetId: datasetKey, sourceRecordId, valueSnapshot: JSON.stringify(result), derivationMethod: result.version,
     confidence: "CONDITIONAL_SIMULATION", analystNotes: "Conditional mechanism test under explicit synthetic-world assumptions."
+  } });
+  revalidateLab();
+  redirect(labPath("/compounding-expertise/debates", analysisId, { caseSetId: context.selected.caseSetId, dataset: context.dataset }));
+}
+
+export async function saveAutomatedExperimentProgramAction(formData: FormData) {
+  const analysisId = text(formData.get("analysisId"));
+  if (!analysisId) throw new Error("Analysis is required.");
+  const accountUserId = await currentAccountUserId();
+  const analysis = await db.compoundingExpertiseAnalysis.findFirst({
+    where: compoundingAnalysisAccessWhere(accountUserId, analysisId),
+    include: { caseSets: true, scorebookCases: true }
+  });
+  if (!analysis) throw new Error("Analysis unavailable.");
+  const context = resolveExperienceContext(analysis, analysis.scorebookCases, {
+    caseSetId: text(formData.get("caseSetId")), dataset: text(formData.get("dataset"))
+  });
+  const result = runAutomatedExperimentProgram(context.activeRows);
+  const datasetKey = context.selected.caseSetId ?? context.selected.datasetKey;
+  const sourceRecordId = `${result.version}:${createHash("sha256").update(JSON.stringify({ datasetKey, profile: result.plan.profile, calibrated: result.plan.calibrated })).digest("hex")}`;
+  const existing = await db.compoundingEvidence.findFirst({ where: { analysisId, evidenceType: "SYNTHETIC_EXPERIMENT_SUITE", sourceRecordId } });
+  if (!existing) await db.compoundingEvidence.create({ data: {
+    analysisId, entityType: "EXPERIENCE_EXPERIMENT", fieldKey: "experience.synthetic.program",
+    evidenceType: "SYNTHETIC_EXPERIMENT_SUITE", epistemicStatus: "DERIVED", sourceLabel: `Automated Experiment Program · ${context.selected.name}`,
+    sourceCaseSetId: datasetKey, sourceRecordId, valueSnapshot: JSON.stringify(result), derivationMethod: result.version,
+    confidence: "CONDITIONAL_SENSITIVITY", analystNotes: "Dataset-calibrated conditional mechanism boundaries; not observed company outcomes."
   } });
   revalidateLab();
   redirect(labPath("/compounding-expertise/debates", analysisId, { caseSetId: context.selected.caseSetId, dataset: context.dataset }));
