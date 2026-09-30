@@ -4093,7 +4093,15 @@ export function deriveCaseInspectionReasons(row: ScorebookCaseInput): string[] {
 
 function valueIncludes(value: string | null | undefined, terms: string[]) {
   const normalized = String(value ?? "").toUpperCase();
+  if (/^\s*(UNKNOWN|NOT KNOWN|NOT ESTABLISHED|UNDETERMINED)\b/.test(normalized)) return false;
   return terms.some((term) => normalized.includes(term.toUpperCase()));
+}
+
+export function classifyLearningRights(value: string | null | undefined): "ALLOWED" | "RESTRICTED" | "UNKNOWN" {
+  const normalized = (value ?? "").trim().toUpperCase();
+  if (/^(NO|RESTRICTED|PROHIBITED|NOT ALLOWED|NOT PERMITTED|DISALLOWED)\b/.test(normalized)) return "RESTRICTED";
+  if (/^(YES|ALLOWED|PERMITTED)\b/.test(normalized)) return "ALLOWED";
+  return "UNKNOWN";
 }
 
 function analysisHref(path: string, analysisId?: string | null, caseSetId?: string | null, anchor?: string, dataset?: string | null) {
@@ -4700,18 +4708,20 @@ export function deriveDebateAssessment(input: DebateEngineInput, family: DebateF
 
   if (family === "LEARNING_RIGHTS") {
     const rights = input.learningArchitecture?.canTrainAcrossCustomers ?? input.analysis.contractualLearningRights;
+    const rightsState = classifyLearningRights(rights);
     const hasSource = sourcedSupport(input.evidenceRecords?.filter(record => !record.sourceCaseSetId || record.sourceCaseSetId === (input.caseSetId ?? input.dataset)), ["right", "contract", "train", "retain"]);
-    if (rights) forEvidence.push(evidenceItem({ source: "Company Model → Learning rights", value: `Learning rights: ${rights}`, direction: valueIncludes(rights, ["YES", "ALLOW"]) && hasSource ? "SUPPORTS" : "CONTEXT-DESCRIPTIVE", strength: hasSource ? "DIRECT" : "CONTEXT", provenance: hasSource ? "SOURCED — EXTERNAL EVIDENCE" : "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Rights determine whether experience can be retained and reused.", limitation: hasSource ? "Review scope of allowed uses." : "Analyst assumption is not contractual evidence." }));
-    if (valueIncludes(rights, ["NO", "RESTRICT"])) return { assessment: "LEANING AGAINST", confidence: hasSource ? "MEDIUM" : "LOW", assessmentReason: "Current rights signal appears restrictive.", evidenceFor: [], evidenceAgainst: forEvidence, missingEvidence: [] };
-    if (valueIncludes(rights, ["YES", "ALLOW"]) && hasSource) return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Sourced rights evidence supports retention/use, subject to scope review.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: [] };
+    if (rights) forEvidence.push(evidenceItem({ source: "Company Model → Learning rights", value: `Learning rights: ${rights}`, direction: rightsState === "RESTRICTED" ? "CONTRADICTS" : rightsState === "ALLOWED" && hasSource ? "SUPPORTS" : "CONTEXT-DESCRIPTIVE", strength: hasSource ? "DIRECT" : rightsState === "RESTRICTED" ? "INDIRECT" : "CONTEXT", provenance: hasSource ? "SOURCED — EXTERNAL EVIDENCE" : "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Rights determine whether experience can be retained and reused.", limitation: hasSource ? "Review scope of allowed uses." : "Analyst assumption is not contractual evidence." }));
+    if (rightsState === "RESTRICTED") return { assessment: "LEANING AGAINST", confidence: hasSource ? "MEDIUM" : "LOW", assessmentReason: "The recorded rights position is restrictive; review the scope of the restriction.", evidenceFor: [], evidenceAgainst: forEvidence, missingEvidence: [] };
+    if (rightsState === "ALLOWED" && hasSource) return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Sourced rights evidence supports retention/use, subject to scope review.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: [] };
     addMissing("Contracts / data governance", "No sourced contractual rights evidence.", "Need retention, derived-feature, evaluation, and cross-customer training rights.", "Legal/data-room review", "Contractual language covering retention, derived features, evaluation, and cross-customer training.");
-    return { assessment: rights ? "UNPROVEN" : "UNKNOWN", confidence: "LOW", assessmentReason: "Learning rights are not yet established by sourced contractual evidence.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    return { assessment: rightsState === "UNKNOWN" ? "UNKNOWN" : "UNPROVEN", confidence: "LOW", assessmentReason: "Learning rights are not established. Unknown permission is not evidence of a restriction.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   if (family === "ECONOMIC_MATERIALITY") {
     if (metrics.outcomeValueSampleSize > 0) addExperienceDescriptive(`${metrics.outcomeValueSampleSize}/${metrics.totalCases} cases include outcome value; total ${metrics.totalOutcomeValue}.`, "Shows economic outcome fields are represented.", "Economic values alone do not prove improved decisions caused value.");
     else addMissing("Experience → economic outcomes", "No outcome value rows.", "Need economic outcome values tied to decisions and grades.", "CaseSet enrichment", "Economic outcome values joined to decision/action/outcome/grade rows.");
-    return { assessment: metrics.outcomeValueSampleSize > 0 ? "LEANING SUPPORTED" : "UNPROVEN", confidence: metrics.outcomeValueSampleSize > 0 ? "MEDIUM" : "LOW", assessmentReason: "Economic outcomes can be quantified in the selected cases; incremental value from improved decisions still requires a comparison.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
+    addMissing("Experience → incremental economic value", "No matched policy-value comparison.", "Compare outcomes under a baseline and an improved decision policy, with consistent value units and comparable case mix.", "Policy-value experiment", "Incremental economic value attributable to changed decisions, including intervention costs.");
+    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: metrics.outcomeValueSampleSize > 0 ? `Recorded economic stakes are measurable in ${metrics.outcomeValueSampleSize} cases. Additional value caused by better decisions has not been tested.` : "Economic stakes and incremental decision value cannot yet be assessed from these cases.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
   }
 
   const deterministic = input.competitiveArchitecture?.deterministicInfrastructureStrength ?? input.analysis.deterministicInfrastructure;

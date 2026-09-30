@@ -1,4 +1,6 @@
-# Experience analysis engine v1
+# Experience analysis engine v1.1
+
+Version 1.1 changes interpretation, not the experiment splits or scoring: learning summaries expose all curve increments and validation/final ranking reversals; reconstruction is marked blocked until an actual restricted-access challenger is evaluated. Economic-value coverage remains descriptive rather than proof of incremental benefit. Unknown rights and Power inputs remain unknown instead of matching negative substrings. Existing v1.0 snapshots remain downloadable but are not labeled current under v1.1.
 
 The selected dataset is profiled and analyzed before debate interpretation. `analyzeExperience` is company-independent: it accepts normalized scorebook cases and produces a serializable report. Debate assessments, Power context, AI suggestion inputs, and the investment memo consume these findings. Cards are not redesigned in this phase.
 
