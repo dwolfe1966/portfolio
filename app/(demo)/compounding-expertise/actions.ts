@@ -5,6 +5,7 @@ import { resolveExperienceContext } from "@/lib/experience-context";
 import { runSyntheticExperimentLab } from "@/lib/experience-experiment-lab";
 import { runAutomatedExperimentProgram } from "@/lib/experience-experiment-program";
 import { actionPolicyEvidenceSnapshot, runActionPolicyExperiment } from "@/lib/action-policy-experiment";
+import { assertActionPolicyReview } from "@/lib/action-policy-review";
 
 import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -968,7 +969,9 @@ export async function saveAutomatedExperimentProgramAction(formData: FormData) {
   redirect(labPath("/compounding-expertise/debates", analysisId, { caseSetId: context.selected.caseSetId, dataset: context.dataset, experimentApplied: "1" }));
 }
 
-export async function applyActionPolicyExperimentAction(formData: FormData) {
+export async function applyActionPolicyExperimentAction(_previousState: { error: string } | null, formData: FormData) {
+  let appliedPath = "";
+  try {
   const analysisId = text(formData.get("analysisId"));
   if (!analysisId) throw new Error("Analysis is required.");
   const accountUserId = await currentAccountUserId();
@@ -981,6 +984,8 @@ export async function applyActionPolicyExperimentAction(formData: FormData) {
     caseSetId: text(formData.get("caseSetId")), dataset: text(formData.get("dataset"))
   });
   const result = runActionPolicyExperiment({
+    scenario: text(formData.get("scenario")), valuePerOutcome: text(formData.get("valuePerOutcome")),
+    contestCost: text(formData.get("contestCost")), reviewCost: text(formData.get("reviewCost")),
     family: text(formData.get("family")), cases: text(formData.get("cases")),
     customers: text(formData.get("customers")), patterns: text(formData.get("patterns")),
     sharedStructure: text(formData.get("sharedStructure")), drift: text(formData.get("drift")),
@@ -989,19 +994,22 @@ export async function applyActionPolicyExperimentAction(formData: FormData) {
     repetitions: text(formData.get("repetitions")), seed: text(formData.get("seed"))
   }, context.activeRows);
   const parentDatasetKey = context.selected.caseSetId ?? context.selected.datasetKey;
-  const sourceRecordId = `${result.version}:${createHash("sha256").update(JSON.stringify({ parentDatasetKey, config: result.config })).digest("hex")}`;
+  const reviewToken = assertActionPolicyReview(text(formData.get("reviewToken")), result, context.activeRows, parentDatasetKey);
+  const sourceRecordId = `${result.version}:${reviewToken}`;
+  const persistenceKey = createHash("sha256").update(`${analysisId}:${sourceRecordId}`).digest("hex");
+  const childCaseSetId = `policy-set-${persistenceKey}`;
   const parentCaseSet = context.selected.caseSetId
     ? analysis.caseSets.find((caseSet) => caseSet.id === context.selected.caseSetId) ?? null
     : null;
 
   await db.$transaction(async (tx) => {
-    let childCaseSet = await tx.compoundingExpertiseCaseSet.findFirst({ where: { analysisId, sourceRunId: sourceRecordId } });
-    if (!childCaseSet) {
-      childCaseSet = await tx.compoundingExpertiseCaseSet.create({ data: {
+    const childCaseSet = await tx.compoundingExpertiseCaseSet.upsert({
+      where: { id: childCaseSetId }, update: {}, create: {
+        id: childCaseSetId,
         analysisId,
         workflowId: parentCaseSet?.workflowId ?? null,
         decisionClassId: parentCaseSet?.decisionClassId ?? null,
-        name: `${result.config.family.replaceAll("_", " ")} · action-policy experiment`,
+        name: `${result.config.scenario === "CASAP_DISPUTES" ? "Casap dispute actions" : result.config.family.replaceAll("_", " ")} · experiment`,
         description: `${result.finding.headline} Generated from the selected dataset's structural calibration.`,
         sourceType: "SYNTHETIC_SIMULATION",
         sourceSystemKey: "action-policy-experiment",
@@ -1020,17 +1028,16 @@ export async function applyActionPolicyExperimentAction(formData: FormData) {
         derivationDescription: `Synthetic counterfactual action-policy trial calibrated from ${context.selected.name}; conclusions remain conditional on configured assumptions.`
       } });
       await tx.compoundingExpertiseCase.createMany({
-        data: result.generatedRows.map((row) => ({
+        skipDuplicates: true,
+        data: result.generatedRows.map((row, index) => ({
           ...row,
+          id: `${childCaseSetId}-${index + 1}`,
           analysisId,
-          caseSetId: childCaseSet!.id
+          caseSetId: childCaseSet.id
         }))
       });
-    }
-    const existingEvidence = await tx.compoundingEvidence.findFirst({
-      where: { analysisId, evidenceType: "ACTION_POLICY_EXPERIMENT", sourceRecordId }
-    });
-    if (!existingEvidence) await tx.compoundingEvidence.create({ data: {
+    await tx.compoundingEvidence.upsert({ where: { id: `policy-evidence-${persistenceKey}` }, update: {}, create: {
+      id: `policy-evidence-${persistenceKey}`,
       analysisId,
       entityType: "EXPERIENCE_EXPERIMENT",
       fieldKey: `experience.action-policy.${result.config.family.toLowerCase()}`,
@@ -1047,9 +1054,17 @@ export async function applyActionPolicyExperimentAction(formData: FormData) {
   });
 
   revalidateLab();
-  redirect(labPath("/compounding-expertise/debates", analysisId, {
+  appliedPath = labPath("/compounding-expertise/debates", analysisId, {
     caseSetId: context.selected.caseSetId,
     dataset: context.dataset,
-    policyApplied: result.config.family
-  }));
+    policyApplied: result.config.family,
+    policyScenario: result.config.scenario
+  });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return { error: message.startsWith("The dataset, configuration, or experiment engine changed.")
+      ? message : "Could not apply this experiment. Check the selected analysis and dataset, then try again. No partial experiment was saved." };
+  }
+  // Next redirects throw a control-flow signal; keep it outside the error handler.
+  redirect(appliedPath);
 }

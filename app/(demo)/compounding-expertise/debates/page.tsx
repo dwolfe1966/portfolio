@@ -225,7 +225,7 @@ function editDebateFields(debate: Partial<KeyDebateInput>, index: number) {
 export default async function CompoundingExpertiseDebatesPage({
   searchParams
 }: {
-  searchParams: Promise<{ ai?: string; analysisId?: string; caseSetId?: string; dataset?: string; experimentApplied?: string; policyApplied?: string }>;
+  searchParams: Promise<{ ai?: string; analysisId?: string; caseSetId?: string; dataset?: string; experimentApplied?: string; policyApplied?: string; policyScenario?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
@@ -316,6 +316,7 @@ export default async function CompoundingExpertiseDebatesPage({
         <div className="card" style={{ borderColor: "#16a34a" }}>
           <span className="statusPill live">APPLIED TO SELECTED DATASET</span>
           <h3>The {params.policyApplied.replaceAll("_", " ").toLowerCase()} experiment now informs the broader analysis.</h3>
+          {params.policyScenario === "CASAP_DISPUTES" ? <p>Casap workflow run: learning, cross-customer transfer, marginal information, and economic materiality were updated together using the same simulated worlds.</p> : null}
           <p>The reviewed conclusion is attached to this selected parent dataset, while its trial rows are available as a separate synthetic child CaseSet. Debate assessments, Power, Conclusion, and future AI suggestions can now use the conditional finding without confusing it with observed company outcomes.</p>
           <div className="ctaRow">
             <a className="btn primary" href={`#debate-${params.policyApplied}`}>Review updated debate</a>
@@ -360,6 +361,7 @@ export default async function CompoundingExpertiseDebatesPage({
                     <h3>{candidate.proposition}</h3>
                   </DebateChangedSection>
                   <div className="compoundingBadgeStack">
+                    {params.policyApplied && (params.policyApplied === candidate.family || params.policyScenario === "CASAP_DISPUTES" && ACTION_POLICY_FAMILIES.some(family => family === candidate.family)) ? <span className="statusPill live">EXPERIMENT APPLIED</span> : null}
                     <span className="provenanceBadge">{candidate.assessment}</span>
                     <span className="provenanceBadge">{candidate.confidence} confidence</span>
                     <span className="provenanceBadge">{candidate.thesisImpact} impact</span>

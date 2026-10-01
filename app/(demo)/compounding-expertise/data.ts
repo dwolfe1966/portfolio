@@ -30,7 +30,7 @@ export async function loadCompoundingAnalysis(accountUserId: string | null, anal
       environment: true,
       learningArchitecture: true,
       competitiveArchitecture: true,
-      evidenceRecords: { orderBy: [{ entityType: "asc" }, { fieldKey: "asc" }] },
+      evidenceRecords: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
       analystOverrides: { orderBy: [{ entityType: "asc" }, { fieldKey: "asc" }] }
     },
     orderBy: { updatedAt: "desc" }

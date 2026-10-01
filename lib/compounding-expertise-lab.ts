@@ -4843,7 +4843,7 @@ export function deriveHighestValueDiligenceQueue(candidates: DerivedDebateCandid
     }));
 }
 
-type SavedSyntheticFinding = { verdict?: string; headline?: string; detail?: string; implication?: string };
+type SavedSyntheticFinding = { verdict?: string; headline?: string; detail?: string; implication?: string; actionPolicy?: boolean };
 
 function latestSyntheticFinding(input: DebateEngineInput, family: DebateFamily): SavedSyntheticFinding | null {
   const selectedDatasetKey = input.caseSetId ?? input.dataset;
@@ -4853,7 +4853,7 @@ function latestSyntheticFinding(input: DebateEngineInput, family: DebateFamily):
     .flatMap(record => {
       try {
         const parsed = JSON.parse(record.valueSnapshot ?? "{}") as { findings?: Array<SavedSyntheticFinding & { family?: string }> };
-        return (parsed.findings ?? []).filter(finding => finding.family === family);
+        return (parsed.findings ?? []).filter(finding => finding.family === family).map(finding => ({ ...finding, actionPolicy: record.evidenceType === "ACTION_POLICY_EXPERIMENT" }));
       } catch {
         return [];
       }
@@ -4890,13 +4890,13 @@ function resolveSubclaims(family: DebateFamily, observed: ObservedExperiment, mo
   ];
   if (family === "LEARNING_CAUSALITY") return [
     row(0, "REQUIRES EXTERNAL / COMPANY EVIDENCE", "Cases do not identify which grades changed a model or policy version."),
-    row(1, caseStatus(observed.verdict), `${observed.headline} This tests later-case prediction, not deployed action improvement.`),
-    row(2, "REQUIRES EXTERNAL / COMPANY EVIDENCE", "Attribution requires a versioned, randomized, or otherwise controlled comparison.")
+    row(1, synthetic?.actionPolicy ? conditionalStatus(modeled) : caseStatus(observed.verdict), `${observed.headline} ${synthetic?.actionPolicy ? `Action-policy test: ${synthetic.headline} ${synthetic.detail}` : "This tests later-case prediction, not deployed action improvement."}`),
+    row(2, synthetic?.actionPolicy ? conditionalStatus(modeled) : "REQUIRES EXTERNAL / COMPANY EVIDENCE", synthetic?.actionPolicy ? `Controlled simulated policy comparison: ${synthetic.implication} Deployment attribution still requires an observed policy trial.` : "Attribution requires a versioned, randomized, or otherwise controlled comparison.")
   ];
   if (family === "CROSS_CUSTOMER_TRANSFER") return [
     row(0, observed.status === "BLOCKED" ? "MIXED / INCOMPLETE" : caseStatus(observed.verdict), observed.detail),
-    row(1, observed.status === "BLOCKED" ? conditionalStatus(modeled) : caseStatus(observed.verdict), observed.headline),
-    row(2, observed.status === "BLOCKED" ? conditionalStatus(modeled) : observed.metrics.negativeTransferSegments === 0 ? caseStatus(observed.verdict) : "MIXED / INCOMPLETE", `Negative-transfer check: ${observed.metrics.negativeTransferSegments ?? "unavailable"} evaluated segments show material harm. ${synthetic?.headline ?? "A customer-level policy test remains the decisive next step."}`)
+    row(1, synthetic?.actionPolicy || observed.status === "BLOCKED" ? conditionalStatus(modeled) : caseStatus(observed.verdict), `${observed.headline}${synthetic?.actionPolicy ? ` Action-policy comparison: ${synthetic.headline}` : ""}`),
+    row(2, synthetic?.actionPolicy || observed.status === "BLOCKED" ? conditionalStatus(modeled) : observed.metrics.negativeTransferSegments === 0 ? caseStatus(observed.verdict) : "MIXED / INCOMPLETE", `Selected-case negative-transfer check: ${observed.metrics.negativeTransferSegments ?? "unavailable"} evaluated segments show material harm. ${synthetic?.actionPolicy ? `Simulated action-policy robustness: ${synthetic.detail}` : synthetic?.headline ?? "A customer-level policy test remains the decisive next step."}`)
   ];
   if (family === "MARGINAL_INFORMATION_VALUE") return [
     row(0, caseStatus(observed.verdict), observed.headline),
@@ -4911,7 +4911,7 @@ function resolveSubclaims(family: DebateFamily, observed: ObservedExperiment, mo
   if (family === "LEARNING_RIGHTS") return claims.map((claim, index) => row(index, "REQUIRES EXTERNAL / COMPANY EVIDENCE", ["Review retention and derived-feature clauses.", "Review evaluation, training, and cross-customer reuse permissions.", "Verify operational access, deletion, isolation, and governance controls."][index]));
   if (family === "ECONOMIC_MATERIALITY") return [
     row(0, observed.status === "BLOCKED" ? "MIXED / INCOMPLETE" : "SUPPORTED BY SELECTED CASES", observed.headline),
-    row(1, "MIXED / INCOMPLETE", "Outcome values describe stakes; a matched policy comparison is needed for incremental net value."),
+    row(1, synthetic?.actionPolicy ? conditionalStatus(modeled) : "MIXED / INCOMPLETE", synthetic?.actionPolicy ? `${synthetic.headline} ${synthetic.implication}` : "Outcome values describe stakes; a matched policy comparison is needed for incremental net value."),
     row(2, "REQUIRES EXTERNAL / COMPANY EVIDENCE", "Value capture at scale requires pricing, retention, cost, and customer evidence.")
   ];
   return claims.map((claim, index) => row(index, "REQUIRES EXTERNAL / COMPANY EVIDENCE", ["Identify the specific non-CE mechanism and its benefit.", "Attach customer, cost, workflow, or competitive evidence of a barrier.", "Test whether the advantage survives without a compounding-learning assumption."][index]));
@@ -4942,6 +4942,11 @@ export function deriveDebateCandidates(input: DebateEngineInput, take = 8): Deri
     if (family) families.add(family);
   }
   profile.forEach((family) => families.add(family));
+  // Applied dataset-scoped experiments must not disappear because the default
+  // company profile omitted their debate family (notably economic materiality).
+  (Object.keys(registry) as DebateFamily[]).forEach(family => {
+    if (latestSyntheticFinding(input, family)) families.add(family);
+  });
   families.add("EXPERIENCE_CAPTURE");
   const candidates = [...families].slice(0, take).map((family) => {
     const template = debateTemplate(family);
@@ -5302,13 +5307,16 @@ export function deriveInvestmentSynthesis(input: InvestmentSynthesisInput): Inve
   const unresolved = input.debates.find((debate) => ["UNPROVEN", "UNKNOWN"].includes(debate.assessment)) ?? input.debates[0] ?? null;
   const capture = input.debates.find(item => item.family === "EXPERIENCE_CAPTURE");
   const experimentBoundaries = input.debates
-    .flatMap(debate => debate.contextEvidence)
-    .filter(item => ["Experience → Automated Experiment Program", "Experience → Action-Policy Experiment"].includes(item.source))
-    .slice(0, 3)
+    .flatMap(debate => {
+      const latest = debate.contextEvidence.filter(item => ["Experience → Automated Experiment Program", "Experience → Action-Policy Experiment"].includes(item.source)).at(-1);
+      return latest ? [latest] : [];
+    })
+    .slice(0, 4)
     .map(item => item.value.split(/(?<=[.!?])\s/)[0]);
   const boundarySummary = experimentBoundaries.length ? ` Conditional experiment boundaries: ${experimentBoundaries.join(" ")}` : "";
   const transfer = input.debates.find(item => item.family === "CROSS_CUSTOMER_TRANSFER");
-  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.integratedConclusion ?? "Capture has not been assessed."} ${transfer?.integratedConclusion ?? ""}${boundarySummary} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
+  const economics = input.debates.find(item => item.family === "ECONOMIC_MATERIALITY" && item.modeledAssessment !== "NOT TESTED");
+  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.integratedConclusion ?? "Capture has not been assessed."} ${transfer?.integratedConclusion ?? ""}${boundarySummary}${economics ? ` Economic implication: ${economics.integratedConclusion}` : ""} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
   const evidenceBuckets = synthesisEvidenceBuckets(input.debates, input.experience);
   const investorDebates = input.debates.filter((debate) => debate.investorBelief !== null);
   const investorView = investorDebates.length

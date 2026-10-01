@@ -2,6 +2,9 @@ import { createExperienceRun } from "@/lib/experience-run";
 import { ExperienceAnalysisPanel } from "@/components/compounding-expertise/ExperienceAnalysisPanel";
 import { ExperimentLabPanel } from "@/components/compounding-expertise/ExperimentLabPanel";
 import { ActionPolicyExperimentPanel } from "@/components/compounding-expertise/ActionPolicyExperimentPanel";
+import { ExperienceEnrichmentPanel } from "@/components/compounding-expertise/ExperienceEnrichmentPanel";
+import { buildExperienceEnrichmentPlan } from "@/lib/experience-enrichment";
+import { actionPolicyReviewToken } from "@/lib/action-policy-review";
 import { calibrateWorldDefaults, runSyntheticExperimentLab } from "@/lib/experience-experiment-lab";
 import { buildAutomatedExperimentPlan, runAutomatedExperimentProgram } from "@/lib/experience-experiment-program";
 import { runObservedDataExperimentAdapter } from "@/lib/observed-experiment-adapter";
@@ -483,12 +486,17 @@ export default async function CompoundingExpertiseScorebookPage({
   const experimentProgram = params.experimentProgram === "1" ? runAutomatedExperimentProgram(activeRows) : null;
   const experimentProgramApplied = experimentProgram !== null && analysis.evidenceRecords.some(item => item.evidenceType === "SYNTHETIC_EXPERIMENT_SUITE" && item.sourceCaseSetId === experienceRun.source.datasetKey && item.valueSnapshot === JSON.stringify(experimentProgram));
   const policyConfig = normalizeActionPolicyConfig({
+    scenario: params.policyScenario ?? (isCasapPublicAnalysis ? "CASAP_DISPUTES" : "GENERIC"),
+    valuePerOutcome: params.policyValue, contestCost: params.policyContestCost, reviewCost: params.policyReviewCost,
     family: params.policyFamily, cases: params.policyCases, customers: params.policyCustomers, patterns: params.policyPatterns,
     sharedStructure: params.policyShared, drift: params.policyDrift, effectStrength: params.policyEffect,
     outcomeNoise: params.policyNoise, interventionCost: params.policyCost, minimumEffect: params.policyMinimum,
     repetitions: params.policyRepetitions, seed: params.policySeed
   }, activeRows);
   const policyResult = params.policyRun === "1" ? runActionPolicyExperiment(policyConfig, activeRows) : null;
+  const policyReviewToken = policyResult ? actionPolicyReviewToken(policyResult, activeRows, experienceRun.source.datasetKey) : undefined;
+  const enrichmentPlan = buildExperienceEnrichmentPlan(activeRows, experienceRun.source.datasetKey, experienceContext.selected.name);
+  const savedPolicyRuns = analysis.evidenceRecords.filter(item => item.evidenceType === "ACTION_POLICY_EXPERIMENT" && item.sourceCaseSetId === experienceRun.source.datasetKey);
 
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   timer.mark("filterRows");
@@ -682,10 +690,18 @@ export default async function CompoundingExpertiseScorebookPage({
         <div id="experiment-lab" />
         <div id="action-policy-lab" />
         <h2>Action-Policy Experiment</h2>
-        <ActionPolicyExperimentPanel defaults={policyConfig} result={policyResult} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} />
+        <ActionPolicyExperimentPanel key={`${experienceRun.runId}:${policyReviewToken ?? "configure"}`} defaults={policyConfig} result={policyResult} reviewToken={policyReviewToken} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} />
+        {savedPolicyRuns.length ? <details><summary>Applied action-policy runs ({savedPolicyRuns.length})</summary><ul>{savedPolicyRuns.map(run => {
+          const child = analysis.caseSets.find(caseSet => caseSet.sourceRunId === run.sourceRecordId);
+          return <li key={run.id}>{run.createdAt.toISOString()} · {run.sourceLabel} {child ? <Link href={`/compounding-expertise/scorebook?analysisId=${analysis.id}&caseSetId=${child.id}`}>Inspect {child.caseCount} trial cases</Link> : null}</li>;
+        })}</ul></details> : null}
         <hr />
         <h2>Mechanism Sensitivity Experiments</h2>
         <ExperimentLabPanel defaults={experimentDefaults} result={experimentResult} program={experimentProgram} plan={experimentPlan} programApplied={experimentProgramApplied} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} savedRuns={savedExperimentRuns.length} />
+      </Section>
+
+      <Section title="Experience enrichment">
+        <ExperienceEnrichmentPanel plan={enrichmentPlan} />
       </Section>
 
       <Section title="Scorebook Structure + Information Structure">
