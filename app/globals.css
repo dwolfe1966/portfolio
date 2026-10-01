@@ -3756,6 +3756,27 @@ button {
   padding: 12px;
   background: color-mix(in srgb, var(--demo-surface) 88%, transparent);
 }
+.compoundingPolicyLab {
+  display: grid;
+  gap: 16px;
+}
+.compoundingPolicyLab > details,
+.compoundingPolicyLab > .card {
+  margin: 0;
+}
+.compoundingExperimentPrompt {
+  align-items: center;
+  border-color: color-mix(in srgb, var(--demo-accent) 45%, var(--demo-divider));
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+.compoundingExperimentPrompt p:last-child {
+  margin-bottom: 0;
+}
+.compoundingExperimentPrompt .btn {
+  flex: 0 0 auto;
+}
 .compoundingConceptFlow {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -6508,6 +6529,10 @@ button {
   .compoundingCaseSequence,
   .compoundingProfileGrid,
   .compoundingCaseSetFacts { grid-template-columns: 1fr; }
+  .compoundingExperimentPrompt {
+    align-items: stretch;
+    flex-direction: column;
+  }
   .compoundingExperienceFunnel span:not(:last-child)::after {
     content: "";
   }

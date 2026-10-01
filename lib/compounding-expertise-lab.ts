@@ -1,5920 +1,791 @@
-import { analyzeExperience, type ExperienceAnalysis, type ExperienceFinding } from "./experience-analysis";
-import { runExperienceTransferExperiment, type ExperienceTransferExperiment } from "./experience-transfer-experiment";
-import { runObservedDataExperimentAdapter, type ObservedExperiment, type ObservedExperimentAdapterResult, type ObservedExperimentVerdict } from "./observed-experiment-adapter";
-import { DEBATE_ARGUMENT_STRUCTURE } from "./debate-argument-structure";
-
-export type CompoundingFramework = "HELMER" | "SUN" | "WOLFE";
-export type CompoundingConfidence = "LOW" | "MEDIUM" | "HIGH";
-export type CompoundingEvidenceStatus = "OBSERVED" | "SOURCED" | "ASSUMED" | "UNKNOWN";
-export type CompoundingDebateSource = "SUN" | "WOLFE" | "USER" | "AI";
-export type CompoundingCaseGrade = "CORRECT" | "PARTIALLY_CORRECT" | "INCORRECT" | "UNRESOLVED";
-export type CompoundingExampleId = "casap" | "listen-labs" | "aaru" | "maybern" | "creative-agent";
-export type PublicEvidenceAnalysisId = "casap-public-2026-09";
-export type CanonicalTestType =
-  | "POSITIVE_TEST"
-  | "BOUNDARY_TEST"
-  | "SUBSTITUTION_COMPRESSION_TEST"
-  | "ALTERNATIVE_POWER_TEST"
-  | "NEGATIVE_CONTROL";
-export type CaseSetSourceType = "CANONICAL_SYNTHETIC" | "SYNTHETIC_SIMULATION" | "DAVIDWOLFE_APP" | "CSV" | "GOOGLE_SHEETS" | "LIVE" | "EXTERNAL" | "MANUAL";
-export type CompoundingEvidenceType =
-  | "CASESET_DERIVED"
-  | "UPSTREAM_APP"
-  | "PUBLIC_SOURCE"
-  | "COMPANY_DOCUMENT"
-  | "ANALYST_INPUT"
-  | "MODEL_INFERENCE"
-  | "SYNTHETIC_ASSUMPTION"
-  | "UNKNOWN";
-export type CompoundingEpistemicStatus = "OBSERVED" | "DERIVED" | "SOURCED" | "ASSUMED" | "INFERRED" | "UNKNOWN";
-export type CompoundingFieldConfidence = "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN";
-export type GuidedProvenanceLabel =
-  | "OBSERVED â€” COMPANY DATA"
-  | "SOURCED â€” EXTERNAL EVIDENCE"
-  | "DERIVED â€” COMPANY DATA"
-  | "DERIVED â€” SYNTHETIC FIXTURE"
-  | "DERIVED â€” SYNTHETIC SIMULATION"
-  | "DERIVED â€” SYNTHETIC EXPERIMENT"
-  | "ANALYST ASSUMPTION"
-  | "ARCHETYPE ASSUMPTION"
-  | "MODEL INFERENCE"
-  | "UNKNOWN / DILIGENCE REQUIRED";
-
-export const GUIDED_PROVENANCE_LABELS: readonly GuidedProvenanceLabel[] = [
-  "OBSERVED â€” COMPANY DATA",
-  "SOURCED â€” EXTERNAL EVIDENCE",
-  "DERIVED â€” COMPANY DATA",
-  "DERIVED â€” SYNTHETIC FIXTURE",
-  "DERIVED â€” SYNTHETIC SIMULATION",
-  "DERIVED â€” SYNTHETIC EXPERIMENT",
-  "ANALYST ASSUMPTION",
-  "ARCHETYPE ASSUMPTION",
-  "MODEL INFERENCE",
-  "UNKNOWN / DILIGENCE REQUIRED"
-] as const;
-
-export function caseSetDerivedProvenanceLabel({
-  hasRows,
-  rowsAreSynthetic,
-  rowsAreSyntheticSimulation = false
-}: {
-  hasRows: boolean;
-  rowsAreSynthetic: boolean;
-  rowsAreSyntheticSimulation?: boolean;
-}): GuidedProvenanceLabel {
-  if (!hasRows) return "UNKNOWN / DILIGENCE REQUIRED";
-  if (rowsAreSyntheticSimulation) return "DERIVED â€” SYNTHETIC SIMULATION";
-  return rowsAreSynthetic ? "DERIVED â€” SYNTHETIC FIXTURE" : "DERIVED â€” COMPANY DATA";
-}
-
-export type CompanyThesisInput = {
-  companyName: string;
-  companyUrl?: string | null;
-  productCategory?: string | null;
-  productDescription: string;
-  targetCustomer: string;
-  businessModel?: string | null;
-  workflow: string;
-  decisionDescription: string;
-  actionSpace?: string | null;
-  companyStage?: string | null;
-  thesis: string;
-  economicCostWrongDecision?: string | null;
-  outcomeObjectivity?: string | null;
-  naturalFeedbackTime?: string | null;
-  caseFrequency?: string | null;
-  customerCaseHeterogeneity?: string | null;
-  environmentalChangeRate?: string | null;
-  foundationModelImprovementRate?: string | null;
-  ownsDecisionPoint?: string | null;
-  controlsAction?: string | null;
-  observesOutcome?: string | null;
-  capturesOverrides?: string | null;
-  capturesGrades?: string | null;
-  learnsAcrossCustomers?: string | null;
-  contractualLearningRights?: string | null;
-  runsControlledExperiments?: string | null;
-  updatesModelPolicyRegularly?: string | null;
-  deploysImprovementsQuickly?: string | null;
-  dataExclusivity?: string | null;
-  workflowEmbeddedness?: string | null;
-  switchingCostsAssumption?: string | null;
-  rebuildability?: string | null;
-  foundationModelDependence?: string | null;
-  deterministicInfrastructure?: string | null;
-  distributionAdvantage?: string | null;
-  regulatoryContractualBarriers?: string | null;
-};
-
-export type KeyDebateInput = {
-  id?: string;
-  question: string;
-  bullCase: string;
-  bearCase: string;
-  evidenceNeeded: string;
-  increaseBelief: string;
-  decreaseBelief: string;
-  probability: number;
-  source: CompoundingDebateSource;
-};
-
-export type DimensionDefinition = {
-  framework: CompoundingFramework;
-  dimension: string;
-  label: string;
-  description: string;
-};
-
-export type DimensionAssessmentInput = {
-  id?: string;
-  framework: CompoundingFramework;
-  dimension: string;
-  score: number;
-  confidence: CompoundingConfidence;
-  rationale: string;
-  evidenceStatus: CompoundingEvidenceStatus;
-  source?: CompoundingDebateSource;
-};
-
-export type SimulationScenarioInput = {
-  id?: string;
-  name: string;
-  startingCases: number;
-  casesPerMonth: number;
-  feedbackDelayDays: number;
-  transferability: number;
-  informationValue: number;
-  learningEfficiency: number;
-  stalenessRate: number;
-  baseCapability: number;
-};
-
-export type SimulationPoint = {
-  month: number;
-  effectiveExperience: number;
-  expertise: number;
-  maturedCases: number;
-};
-
-export type SimulationSeries = {
-  scenario: SimulationScenarioInput;
-  points: SimulationPoint[];
-};
-
-export type StressTestTemplateId =
-  | "baseline"
-  | "better_foundation_model"
-  | "faster_learner"
-  | "transfer_breakdown"
-  | "feedback_delay"
-  | "experience_staleness"
-  | "continuous_capture"
-  | "custom";
-
-export type StressTestTemplate = {
-  id: StressTestTemplateId;
-  name: string;
-  question: string;
-  changedVariables: string[];
-  changedParameterKeys: Array<keyof SimulationScenarioInput>;
-  whyMatters: string;
-};
-
-export type StressTestPrimaryChange = {
-  label: string;
-  incumbentValue: number | null;
-  challengerValue: number | null;
-  incumbentBaseline: number | null;
-  challengerBaseline: number | null;
-  summary: string;
-};
-
-export type StressTestScenarioGrounding = "DATA-GROUNDED" | "PARTIALLY GROUNDED" | "ASSUMPTION-DRIVEN";
-
-export type StressTestRunQueryInput = {
-  analysisId: string;
-  caseSetId?: string | null;
-  dataset?: string | null;
-  templateId: string;
-  scenarios: SimulationScenarioInput[];
-  includeRun?: boolean;
-};
-
-export type StressTestResultClassification =
-  | "ADVANTAGE_PERSISTS"
-  | "ADVANTAGE_COMPRESSES"
-  | "CHALLENGER_CATCHES_UP"
-  | "CHALLENGER_OVERTAKES"
-  | "NO_MATERIAL_INITIAL_ADVANTAGE";
-
-export type StressTestResultSummary = {
-  classification: StressTestResultClassification;
-  label: string;
-  initialGap: number;
-  month12Gap: number;
-  month36Gap: number;
-  incumbentFinalExpertise: number;
-  challengerFinalExpertise: number;
-  gapDirection: "widening" | "compressing" | "reversed" | "stable";
-  crossoverMonth: number | null;
-};
-
-export type StressTestDriver = {
-  title: string;
-  detail: string;
-  magnitude: number;
-};
-
-export type SimulatorParameterDefinition = {
-  key: keyof Omit<SimulationScenarioInput, "id" | "name">;
-  label: string;
-  group: "Experience advantage" | "Learning dynamics" | "Competitive / environmental conditions";
-  epistemic: "OBSERVED / DERIVED" | "ENDOGENOUS ASSUMPTION" | "EXOGENOUS ASSUMPTION";
-  help: string;
-  min: number;
-  max?: number;
-  step: number;
-};
-
-export type Crossover = {
-  month: number;
-  from: string;
-  to: string;
-};
-
-export type ValidationResult = {
-  ok: boolean;
-  errors: string[];
-};
-
-export type ScorebookCaseInput = {
-  id?: string;
-  caseSetId?: string | null;
-  decisionClassId?: string | null;
-  agentDecisionActionId?: string | null;
-  humanDecisionActionId?: string | null;
-  actionTakenActionId?: string | null;
-  externalCaseId: string;
-  customerSegment: string;
-  caseType: string;
-  context: string;
-  agentDecision: string;
-  agentConfidence?: number | null;
-  humanDecision?: string | null;
-  humanOverride: boolean;
-  actionTaken?: string | null;
-  outcome?: string | null;
-  outcomeValue?: number | null;
-  grade: CompoundingCaseGrade;
-  gradeConfidence?: number | null;
-  decisionAt?: Date | string | null;
-  actionAt?: Date | string | null;
-  outcomeAt?: Date | string | null;
-  isEdgeCase: boolean;
-  isSynthetic: boolean;
-  sourceLabel: string;
-  sourceRecordId?: string | null;
-  sourceRecordType?: string | null;
-  sourceRecordRoute?: string | null;
-  notes?: string | null;
-};
-
-export type CaseSetInput = {
-  id?: string;
-  analysisId?: string | null;
-  workflowId?: string | null;
-  decisionClassId?: string | null;
-  name: string;
-  description?: string | null;
-  sourceType: CaseSetSourceType;
-  sourceSystemKey?: string | null;
-  sourceSystemLabel?: string | null;
-  sourceRunId?: string | null;
-  sourceRunLabel?: string | null;
-  sourceRunType?: string | null;
-  sourceRoute?: string | null;
-  sourceExternalUrl?: string | null;
-  generatedAt?: Date | string | null;
-  importedAt?: Date | string | null;
-  modelVersion?: string | null;
-  policyVersion?: string | null;
-  experimentId?: string | null;
-  timeWindowStart?: Date | string | null;
-  timeWindowEnd?: Date | string | null;
-  isSynthetic: boolean;
-  provenanceLabel: string;
-  caseCount: number;
-  parentCaseSetId?: string | null;
-  derivationDescription?: string | null;
-};
-
-export type CaseSetEpistemicType = "OBSERVED" | "RECONSTRUCTED" | "SYNTHETIC";
-export type AnalyticalDatasetKind =
-  | "OBSERVED_PRODUCTION"
-  | "RECONSTRUCTED_SOURCED"
-  | "SYNTHETIC_SIMULATION"
-  | "CANONICAL_SYNTHETIC"
-  | "NONE";
-export type AnalyticalDatasetSelectionMode = "AUTO_SELECTED" | "USER_SELECTED";
-
-export type AnalyticalCaseSetLike = {
-  id?: string | null;
-  sourceType?: string | null;
-  sourceSystemKey?: string | null;
-  sourceSystemLabel?: string | null;
-  isSynthetic?: boolean | null;
-  provenanceLabel?: string | null;
-  derivationDescription?: string | null;
-  name: string;
-  description?: string | null;
-  caseCount?: number | null;
-};
-
-export type AnalyticalDatasetOption = {
-  datasetKey: string;
-  caseSetId: string | null;
-  name: string;
-  kind: AnalyticalDatasetKind;
-  caseCount: number;
-  provenanceLabel: string;
-  sourceSystemLabel?: string | null;
-  description?: string | null;
-  isVirtual: boolean;
-  caseSet?: AnalyticalCaseSetLike | null;
-};
-
-export type ResolvedAnalyticalDataset = {
-  selected: AnalyticalDatasetOption;
-  options: AnalyticalDatasetOption[];
-  selectionMode: AnalyticalDatasetSelectionMode;
-  reason: string;
-};
-
-export type NormalizedCompanyProfileInput = {
-  name: string;
-  website?: string | null;
-  industry?: string | null;
-  productCategory?: string | null;
-  productDescription?: string | null;
-  companyStage?: string | null;
-  geography?: string | null;
-  customerType?: string | null;
-  customerSegments?: string | null;
-  revenueModel?: string | null;
-  pricingUnit?: string | null;
-  businessModelNotes?: string | null;
-  grossMarginProfile?: string | null;
-  economicValueUnit?: string | null;
-  economicsNotes?: string | null;
-  marketContext?: string | null;
-  analystThesis?: string | null;
-};
-
-export type NormalizedWorkflowStageInput = {
-  key: string;
-  name: string;
-  description?: string | null;
-  position: number;
-  stageType: string;
-};
-
-export type NormalizedDecisionActionInput = {
-  key: string;
-  label: string;
-  description?: string | null;
-  reversible?: string;
-  requiresHumanApproval?: boolean;
-  economicExposure?: string | null;
-  regulatoryExposure?: string | null;
-};
-
-export type NormalizedDecisionClassInput = {
-  key: string;
-  stageKey?: string | null;
-  name: string;
-  description?: string | null;
-  decisionMakerType: string;
-  decisionFrequency?: string | null;
-  estimatedCasesPerPeriod?: number | null;
-  frequencyPeriod?: string | null;
-  economicStakes: string;
-  reversibility: string;
-  regulatoryRisk: string;
-  operationalRisk: string;
-  outcomeObservability: string;
-  gradeObjectivity: string;
-  naturalFeedbackLatencyDays?: number | null;
-  humanReviewMode: string;
-  currentAutonomyMode: string;
-  actionKeys: string[];
-};
-
-export type NormalizedWorkflowInput = {
-  key: string;
-  name: string;
-  description?: string | null;
-  position: number;
-  stages: NormalizedWorkflowStageInput[];
-  decisionClasses: NormalizedDecisionClassInput[];
-  actions: NormalizedDecisionActionInput[];
-};
-
-export type NormalizedEnvironmentInput = {
-  naturalCaseFrequency?: string | null;
-  estimatedCasesPerPeriod?: number | null;
-  frequencyPeriod?: string | null;
-  typicalEconomicCostOfError?: string | null;
-  typicalValueOfCorrectDecision?: string | null;
-  outcomeObservability?: string | null;
-  outcomeObjectivity?: string | null;
-  naturalFeedbackLatencyDays?: number | null;
-  customerHeterogeneity?: string | null;
-  caseHeterogeneity?: string | null;
-  environmentalNonstationarity?: string | null;
-  regulatoryChangeRate?: string | null;
-  foundationModelImprovementRate?: string | null;
-  notes?: string | null;
-};
-
-export type NormalizedLearningArchitectureInput = {
-  capturesContext: string;
-  capturesAgentDecision: string;
-  capturesHumanDecision: string;
-  capturesActionTaken: string;
-  capturesOutcome: string;
-  capturesExplicitGrade: string;
-  outcomeCompletionMechanism?: string | null;
-  gradeGenerationMethod?: string | null;
-  feedbackLatencyMechanism?: string | null;
-  pooledAcrossCustomers: string;
-  customerSpecificAdaptation: string;
-  usesHumanOverridesForLearning: string;
-  usesOutcomeGradesForLearning: string;
-  experimentationMode?: string | null;
-  modelUpdateCadence?: string | null;
-  policyUpdateCadence?: string | null;
-  deploymentMode?: string | null;
-  deploymentCadence?: string | null;
-  humanApprovalForPolicyChanges: string;
-  canRetainCases: string;
-  canRetainDerivedFeatures: string;
-  canTrainAcrossCustomers: string;
-  canUseForEvaluation: string;
-  contractualRestrictions?: string | null;
-  notes?: string | null;
-};
-
-export type NormalizedCompetitiveArchitectureInput = {
-  rawCasesExclusive: string;
-  outcomesExclusive: string;
-  humanCorrectionsExclusive: string;
-  crossCustomerPoolExclusive: string;
-  customerCanExportData: string;
-  competitorCanAccessEquivalentData: string;
-  systemOfRecord: string;
-  systemOfDecision: string;
-  systemOfAction: string;
-  systemOfOutcomeCapture: string;
-  integrationDepth?: string | null;
-  replacementComplexity?: string | null;
-  publicDataSubstitutionRisk?: string | null;
-  syntheticDataSubstitutionRisk?: string | null;
-  foundationModelSubstitutionRisk?: string | null;
-  competitorRelearningDifficulty?: string | null;
-  deterministicInfrastructureStrength?: string | null;
-  distributionAdvantage?: string | null;
-  regulatoryBarrierStrength?: string | null;
-  contractualBarrierStrength?: string | null;
-  notes?: string | null;
-};
-
-export type NormalizedEvidenceInput = {
-  entityType: string;
-  entityKey?: string | null;
-  fieldKey: string;
-  evidenceType: CompoundingEvidenceType;
-  epistemicStatus: CompoundingEpistemicStatus;
-  valueSnapshot?: string | null;
-  sourceLabel: string;
-  sourceUrl?: string | null;
-  sourceRecordId?: string | null;
-  sourceCaseSetKey?: string | null;
-  confidence: CompoundingFieldConfidence;
-  observedAt?: Date | string | null;
-  derivationMethod?: string | null;
-  analystNotes?: string | null;
-};
-
-export type NormalizedExampleModel = {
-  profile: NormalizedCompanyProfileInput;
-  workflow: NormalizedWorkflowInput;
-  environment: NormalizedEnvironmentInput;
-  learningArchitecture: NormalizedLearningArchitectureInput;
-  competitiveArchitecture: NormalizedCompetitiveArchitectureInput;
-  evidence: NormalizedEvidenceInput[];
-};
-
-export type PublicEvidenceAnalysisFixture = {
-  id: PublicEvidenceAnalysisId;
-  label: string;
-  publicSourceLabel: string;
-  analysis: CompanyThesisInput;
-  normalized: NormalizedExampleModel;
-  debates: KeyDebateInput[];
-  scenarios: SimulationScenarioInput[];
-};
-
-export type EvidenceCoverageSummary = {
-  derived: number;
-  sourced: number;
-  assumed: number;
-  inferred: number;
-  unknown: number;
-};
-
-export function compoundingAnalysisAccessWhere(accountUserId: string | null, analysisId?: string | null) {
-  const access = accountUserId
-    ? { OR: [{ accountUserId }, { accountUserId: null }] }
-    : { accountUserId: null };
-  return analysisId ? { id: analysisId, ...access } : access;
-}
-
-export type DecisionSystemDerivedMetrics = {
-  totalCases: number;
-  resolvedCases: number;
-  gradedCases: number;
-  gradeCoverage: number | null;
-  outcomeCompletionRate: number | null;
-  medianDecisionToActionLatencyDays: number | null;
-  medianDecisionToOutcomeLatencyDays: number | null;
-  humanOverrideRate: number | null;
-  actionDistribution: { label: string; count: number; share: number | null }[];
-  gradeDistribution: { label: CompoundingCaseGrade; count: number; share: number | null }[];
-  edgeCaseShare: number | null;
-  totalOutcomeValue: number | null;
-  averageOutcomeValue: number | null;
-  customerSegmentCount: number;
-  caseTypeCount: number;
-  observedDecisionVolume: {
-    count: number;
-    windowStart: Date | null;
-    windowEnd: Date | null;
-    days: number | null;
-    casesPerMonth: number | null;
-  };
-};
-
-export type ScorebookMetrics = {
-  totalCases: number;
-  resolvedCases: number;
-  gradedCases: number;
-  outcomeCompletionRate: number | null;
-  gradeCoverage: number | null;
-  agentCorrectnessRate: number | null;
-  humanOverrideRate: number | null;
-  medianFeedbackLatencyDays: number | null;
-  feedbackLatencySampleSize: number;
-  edgeCaseShare: number | null;
-  outcomeValueSampleSize: number;
-  totalOutcomeValue: number | null;
-  averageOutcomeValue: number | null;
-  syntheticCaseCount: number;
-  humanOverrideValue: {
-    count: number;
-    shareOfCases: number | null;
-    resolvableCount: number;
-    correctCount: number;
-    incorrectCount: number;
-    correctRate: number | null;
-    incorrectRate: number | null;
-    outcomeValueSampleSize: number;
-    totalOutcomeValue: number | null;
-    averageOutcomeValue: number | null;
-  };
-};
-
-export type ScorebookDerivedSimulatorValues = {
-  startingGradedCases: number;
-  feedbackDelayDays: number | null;
-  feedbackDelaySampleSize: number;
-};
-
-export type ExperienceSnapshot = {
-  totalCases: number;
-  outcomesObserved: number;
-  gradedCases: number;
-  outcomeCompletionRate: number | null;
-  gradeCoverage: number | null;
-  medianFeedbackLatencyDays: number | null;
-  feedbackLatencySampleSize: number;
-  humanOverrideCount: number;
-  humanOverrideRate: number | null;
-  edgeCaseCount: number;
-  edgeCaseRate: number | null;
-  provenance: GuidedProvenanceLabel;
-};
-
-export type ExperienceDistributionItem = {
-  label: string;
-  count: number;
-  share: number | null;
-};
-
-export type FeedbackLatencyBucket = ExperienceDistributionItem & {
-  key: "0_7" | "8_14" | "15_30" | "31_PLUS" | "UNAVAILABLE";
-};
-
-export type ExperienceInsight = {
-  tone: "pattern" | "caution" | "gap";
-  statement: string;
-  support: string;
-};
-
-export type InterestingSlice = {
-  key: "human-overrides" | "agent-errors" | "edge-cases" | "unresolved" | "longest-feedback" | "highest-impact";
-  label: string;
-  count: number;
-  query: Record<string, string>;
-  enabled: boolean;
-  description: string;
-};
-
-export type ExperienceQualityDimension = {
-  label: string;
-  value: string;
-  sample: string;
-  provenance: GuidedProvenanceLabel;
-};
-
-export type ExperienceCanCannot = {
-  canTellUs: string[];
-  cannotTellUs: string[];
-};
-
-export type InformationSampleState = "UNAVAILABLE" | "INSUFFICIENT DATA" | "SMALL SAMPLE / DESCRIPTIVE ONLY" | "DESCRIPTIVE";
-export type InformationDiversityLabel = "HIGH DIVERSITY" | "MODERATE DIVERSITY" | "CONCENTRATED" | "INSUFFICIENT DATA" | "UNAVAILABLE";
-export type PatternRepetitionLabel = "HIGH REPETITION" | "MODERATE REPETITION" | "LOW REPETITION" | "INSUFFICIENT DATA" | "UNAVAILABLE";
-export type MarginalNoveltyLabel = "NOVELTY PERSISTING" | "NOVELTY DECLINING" | "APPARENT SATURATION" | "INSUFFICIENT DATA" | "UNAVAILABLE";
-export type OutcomeInformationLabel = "MEASURABLE" | "SMALL SAMPLE / DESCRIPTIVE ONLY" | "SPARSE CATEGORIES â€” INTERPRET CAUTIOUSLY" | "INSUFFICIENT DATA" | "UNAVAILABLE";
-export type InformationStructureFieldKey =
-  | "decisionClass"
-  | "caseType"
-  | "customerSegment"
-  | "actionTaken"
-  | "grade"
-  | "humanOverride"
-  | "edgeCase";
-
-export type CategoricalInformationDiagnostic = {
-  field: InformationStructureFieldKey;
-  label: string;
-  status: InformationDiversityLabel;
-  sampleState: InformationSampleState;
-  usableCount: number;
-  totalCases: number;
-  missingShare: number | null;
-  limitedCoverage: boolean;
-  categoryCount: number;
-  entropyBits: number | null;
-  maxEntropyBits: number | null;
-  normalizedEntropy: number | null;
-  dominantCategory: string | null;
-  dominantShare: number | null;
-  interpretation: string;
-  provenance: GuidedProvenanceLabel;
-};
-
-export type PatternRepetitionDiagnostic = {
-  status: PatternRepetitionLabel;
-  sampleState: InformationSampleState;
-  totalCases: number;
-  signatureFields: string[];
-  uniquePatternCount: number;
-  repeatedPatternCases: number;
-  singletonPatterns: number;
-  repetitionShare: number | null;
-  mostCommonPatterns: Array<{ signature: string; count: number; share: number | null }>;
-  interpretation: string;
-  provenance: GuidedProvenanceLabel;
-};
-
-export type MarginalNoveltyCohort = {
-  index: number;
-  cases: number;
-  previouslyObservedPatterns: number;
-  newPatternSignatures: number;
-  noveltyRate: number | null;
-  cumulativeUniquePatterns: number;
-};
-
-export type MarginalNoveltyDiagnostic = {
-  status: MarginalNoveltyLabel;
-  sampleState: InformationSampleState;
-  totalCases: number;
-  usableChronologyCount: number;
-  chronologyCoverage: number | null;
-  cohortCount: number;
-  cohorts: MarginalNoveltyCohort[];
-  firstCohortNoveltyRate: number | null;
-  latestCohortNoveltyRate: number | null;
-  newestCohortUniqueShare: number | null;
-  interpretation: string;
-  provenance: GuidedProvenanceLabel;
-  unavailableReason?: string;
-};
-
-export type MutualInformationDiagnostic = {
-  xField: InformationStructureFieldKey;
-  xLabel: string;
-  yField: "grade";
-  yLabel: string;
-  status: OutcomeInformationLabel;
-  sampleState: InformationSampleState;
-  usableCount: number;
-  totalCases: number;
-  missingShare: number | null;
-  xCategoryCount: number;
-  yCategoryCount: number;
-  mutualInformationBits: number | null;
-  outcomeEntropyBits: number | null;
-  normalizedInformation: number | null;
-  sparseCategories: boolean;
-  interpretation: string;
-  provenance: GuidedProvenanceLabel;
-};
-
-export type InformationStructureDiagnostic = {
-  available: boolean;
-  totalCases: number;
-  provenance: GuidedProvenanceLabel;
-  sampleState: InformationSampleState;
-  rowsAreSynthetic: boolean;
-  unavailableReason?: string;
-  evidenceNeeded: string[];
-  diversity: CategoricalInformationDiagnostic[];
-  diversitySummary: CategoricalInformationDiagnostic | null;
-  patternRepetition: PatternRepetitionDiagnostic;
-  marginalNovelty: MarginalNoveltyDiagnostic;
-  outcomeInformation: {
-    status: OutcomeInformationLabel;
-    sampleState: InformationSampleState;
-    topAssociations: MutualInformationDiagnostic[];
-    interpretation: string;
-    provenance: GuidedProvenanceLabel;
-  };
-  summary: {
-    diversity: string;
-    patternRepetition: string;
-    marginalNovelty: string;
-    outcomeInformation: string;
-  };
-  ceInterpretation: string[];
-};
-
-export type DebateAssessmentCategory =
-  | "SUPPORTED"
-  | "LEANING SUPPORTED"
-  | "UNPROVEN"
-  | "LEANING AGAINST"
-  | "CONTRADICTED"
-  | "UNKNOWN";
-
-export type DebateEvidenceConfidence = "HIGH" | "MEDIUM" | "LOW";
-export type DebateThesisImpact = "VERY HIGH" | "HIGH" | "MEDIUM";
-export type DebateEvidenceDirection = "SUPPORTS" | "CONTRADICTS" | "CONTEXT-DESCRIPTIVE" | "MISSING";
-export type DebateEvidenceRelationship = DebateEvidenceDirection | "IRRELEVANT";
-export type DebateEvidenceStrength = "DIRECT" | "INDIRECT" | "CONTEXT" | "MISSING";
-export type PowerThesisStrength = "STRONG" | "MODERATE" | "WEAK" | "NONE" | "UNPROVEN";
-export type PowerEvidenceStrength = "HIGH" | "MEDIUM" | "LOW" | "NONE";
-export type DebateFamily =
-  | "EXPERIENCE_CAPTURE"
-  | "LEARNING_CAUSALITY"
-  | "CROSS_CUSTOMER_TRANSFER"
-  | "MARGINAL_INFORMATION_VALUE"
-  | "REBUILDABILITY_COMPRESSION"
-  | "LEARNING_RIGHTS"
-  | "ECONOMIC_MATERIALITY"
-  | "ALTERNATIVE_POWER";
-
-export type ModeledMechanismAssessment = "SUPPORTED CONDITIONALLY" | "CHALLENGED CONDITIONALLY" | "MIXED CONDITIONALLY" | "NOT TESTED";
-export type DebateSubclaimStatus =
-  | "SUPPORTED BY SELECTED CASES"
-  | "CHALLENGED BY SELECTED CASES"
-  | "SUPPORTED CONDITIONALLY"
-  | "CHALLENGED CONDITIONALLY"
-  | "MIXED / INCOMPLETE"
-  | "REQUIRES EXTERNAL / COMPANY EVIDENCE";
-
-export type ResolvedDebateSubclaim = {
-  claim: string;
-  status: DebateSubclaimStatus;
-  reason: string;
-};
-
-export type DebateEvidenceItem = {
-  source: string;
-  value: string;
-  direction: DebateEvidenceDirection;
-  strength: DebateEvidenceStrength;
-  provenance: GuidedProvenanceLabel;
-  href?: string;
-  interpretation: string;
-  limitation: string;
-  obtainVia?: string;
-  expectedEvidence?: string;
-};
-
-export type DebateDashboardMetric = {
-  label: string;
-  value: string;
-  sample?: string;
-  provenance: GuidedProvenanceLabel;
-  href?: string;
-  unavailable?: boolean;
-};
-
-export type DebateDashboardBar = {
-  label: string;
-  value: string;
-  count: number;
-  share: number | null;
-  href?: string;
-};
-
-export type DebateDashboardSection = {
-  title: string;
-  note?: string;
-  metrics?: DebateDashboardMetric[];
-  bars?: DebateDashboardBar[];
-};
-
-export type DebateEvidenceDashboard = {
-  family: DebateFamily;
-  title: string;
-  summary: string;
-  sections: DebateDashboardSection[];
-  externalEvidence: DebateEvidenceItem[];
-};
-
-export type DerivedDebateCandidate = {
-  analysisFindings?: ExperienceFinding[];
-  transferExperiment?: ExperienceTransferExperiment;
-  family: DebateFamily;
-  title: string;
-  proposition: string;
-  whyLoadBearing: string;
-  assessment: DebateAssessmentCategory;
-  confidence: DebateEvidenceConfidence;
-  assessmentReason: string;
-  companyAssessment: DebateAssessmentCategory;
-  modeledAssessment: ModeledMechanismAssessment;
-  integratedConclusion: string;
-  subclaimAssessments: ResolvedDebateSubclaim[];
-  observedExperiment: ObservedExperiment;
-  tenSecondSummary: string;
-  evidenceCoverage: string;
-  thesisImpact: DebateThesisImpact;
-  evidenceFor: DebateEvidenceItem[];
-  evidenceAgainst: DebateEvidenceItem[];
-  contextEvidence: DebateEvidenceItem[];
-  missingEvidence: DebateEvidenceItem[];
-  evidenceDashboard: DebateEvidenceDashboard;
-  highestValueDiligence: string;
-  ifTrue: string;
-  ifFalse: string;
-  bestNextTest: string;
-  increaseBelief: string;
-  decreaseBelief: string;
-  investorBelief: number | null;
-  investorBeliefDivergence: string | null;
-  sourceDebate?: KeyDebateInput;
-};
-
-export type DebateEngineInput = {
-  experienceAnalysis?: ExperienceAnalysis;
-  observedExperimentAdapter?: ObservedExperimentAdapterResult;
-  analysis: CompanyThesisInput;
-  debates: KeyDebateInput[];
-  rows: ScorebookCaseInput[];
-  analysisId?: string | null;
-  caseSetId?: string | null;
-  dataset?: string | null;
-  learningArchitecture?: {
-    pooledAcrossCustomers?: string | null;
-    capturesOutcome?: string | null;
-    capturesExplicitGrade?: string | null;
-    usesOutcomeGradesForLearning?: string | null;
-    deploymentCadence?: string | null;
-    canTrainAcrossCustomers?: string | null;
-    canUseForEvaluation?: string | null;
-    canRetainCases?: string | null;
-    contractualRestrictions?: string | null;
-  } | null;
-  competitiveArchitecture?: {
-    rawCasesExclusive?: string | null;
-    outcomesExclusive?: string | null;
-    humanCorrectionsExclusive?: string | null;
-    crossCustomerPoolExclusive?: string | null;
-    competitorCanAccessEquivalentData?: string | null;
-    systemOfRecord?: string | null;
-    systemOfDecision?: string | null;
-    systemOfAction?: string | null;
-    systemOfOutcomeCapture?: string | null;
-    integrationDepth?: string | null;
-    replacementComplexity?: string | null;
-    competitorRelearningDifficulty?: string | null;
-    foundationModelSubstitutionRisk?: string | null;
-    syntheticDataSubstitutionRisk?: string | null;
-    deterministicInfrastructureStrength?: string | null;
-    distributionAdvantage?: string | null;
-    regulatoryBarrierStrength?: string | null;
-    contractualBarrierStrength?: string | null;
-    switchingCosts?: string | null;
-  } | null;
-  evidenceRecords?: Array<{
-    entityType?: string | null;
-    entityId?: string | null;
-    fieldKey?: string | null;
-    evidenceType?: string | null;
-    epistemicStatus: string;
-    valueSnapshot?: string | null;
-    sourceLabel?: string | null;
-    sourceUrl?: string | null;
-    sourceRecordId?: string | null;
-    sourceCaseSetId?: string | null;
-    confidence?: string | null;
-    observedAt?: Date | string | null;
-    derivationMethod?: string | null;
-    analystNotes?: string | null;
-  }> | null;
-};
-
-export type HelmerPowerKey =
-  | "scale_economies"
-  | "network_economies"
-  | "counter_positioning"
-  | "switching_costs"
-  | "branding"
-  | "cornered_resource"
-  | "process_power";
-
-export type CEPowerClassification =
-  | "INDEPENDENT POWER CANDIDATE"
-  | "REINFORCES NETWORK ECONOMIES"
-  | "REINFORCES PROCESS POWER"
-  | "REINFORCES SWITCHING COSTS"
-  | "REINFORCES CORNERED RESOURCE"
-  | "CAPABILITY ADVANTAGE ONLY"
-  | "UNPROVEN MECHANISM"
-  | "NO DURABLE ADVANTAGE DEMONSTRATED";
-
-export type PowerSubdimension = {
-  label: string;
-  state: PowerThesisStrength;
-  evidence: PowerEvidenceStrength;
-};
-
-export type AnalystPowerAssessment = {
-  score: number;
-  confidence: CompoundingConfidence;
-  evidenceStatus: CompoundingEvidenceStatus;
-  rationale: string;
-};
-
-export type DerivedPowerAssessment = {
-  key: HelmerPowerKey;
-  label: string;
-  definition: string;
-  thesisStrength: PowerThesisStrength;
-  evidenceStrength: PowerEvidenceStrength;
-  mechanism: string;
-  why: string;
-  evidenceFor: DebateEvidenceItem[];
-  evidenceAgainst: DebateEvidenceItem[];
-  missingEvidence: DebateEvidenceItem[];
-  relevantDebates: DebateFamily[];
-  subdimensions: PowerSubdimension[];
-  analystAssessment: AnalystPowerAssessment | null;
-  analystDiverges: boolean;
-};
-
-export type CompoundingExpertisePowerSummary = {
-  classifications: CEPowerClassification[];
-  summary: string;
-};
-
-export type PowerMechanismEdge = {
-  from: string;
-  to: string;
-  state: PowerThesisStrength;
-  evidence: PowerEvidenceStrength;
-};
-
-export type DerivedPowerMap = {
-  powers: DerivedPowerAssessment[];
-  ceMechanism: CompoundingExpertisePowerSummary;
-  conclusion: string;
-  mechanismEdges: PowerMechanismEdge[];
-  hasOverallMoatScore: false;
-};
-
-export type InvestmentSynthesisInput = {
-  analysis: CompanyThesisInput;
-  experience: ExperienceSnapshot;
-  debates: DerivedDebateCandidate[];
-  powerMap: DerivedPowerMap;
-  stressTest?: {
-    templateName: string;
-    primaryChange: string;
-    result: StressTestResultSummary;
-    implication: string;
-  } | null;
-};
-
-export type InvestmentSynthesis = {
-  ceThesis: "SUPPORTED" | "PARTIALLY SUPPORTED" | "UNPROVEN" | "CONTRADICTED" | "UNKNOWN";
-  evidenceQuality: "HIGH" | "MEDIUM" | "LOW" | "PARTIAL" | "NONE";
-  primaryPowerHypothesis: string;
-  criticalUnresolvedDependency: string;
-  currentThesis: string;
-  powerHighlights: Array<{
-    label: string;
-    thesisStrength: PowerThesisStrength;
-    evidenceStrength: PowerEvidenceStrength;
-    why: string;
-  }>;
-  evidenceBuckets: {
-    supports: DebateEvidenceItem[];
-    contradicts: DebateEvidenceItem[];
-    context: DebateEvidenceItem[];
-    limitations: DebateEvidenceItem[];
-  };
-  investorView: {
-    hasInvestorBelief: boolean;
-    summary: string;
-  };
-  memo: string;
-};
-
-export type EpistemicKind = "OBSERVED_DERIVED" | "SOURCED" | "ENDOGENOUS_ASSUMPTION" | "EXOGENOUS_ASSUMPTION" | "UNKNOWN";
-
-export type StructuredInputDefinition = {
-  key: keyof CompanyThesisInput;
-  label: string;
-  description: string;
-  options: string[];
-  epistemicKind: EpistemicKind;
-};
-
-export const LAB_WORKFLOW_STEPS = [
-  { href: "/compounding-expertise/overview", label: "Overview", stage: "0", verb: "Understand" },
-  { href: "/compounding-expertise/inputs", label: "Company Model", stage: "1", verb: "Understand" },
-  { href: "/compounding-expertise/scorebook", label: "Experience", stage: "2", verb: "Observe" },
-  { href: "/compounding-expertise/debates", label: "Key Debates", stage: "3", verb: "Hypothesize" },
-  { href: "/compounding-expertise/diagnostic", label: "Power", stage: "4", verb: "Hypothesize" },
-  { href: "/compounding-expertise/simulator", label: "Stress Test", stage: "5", verb: "Test" },
-  { href: "/compounding-expertise/memo", label: "Conclusion", stage: "6", verb: "Decide" }
-] as const;
-
-export const COMPANY_MODEL_GATES = [
-  { id: "decision", label: "Decision Opportunity", shortLabel: "Decision Opportunity", sequence: "1" },
-  { id: "feedback", label: "Feedback", shortLabel: "Feedback", sequence: "2" },
-  { id: "learning-loop", label: "Learning Loop", shortLabel: "Learning Loop", sequence: "3" },
-  { id: "defensibility", label: "Defensibility", shortLabel: "Defensibility", sequence: "4" }
-] as const;
-
-export const EXOGENOUS_INPUTS: StructuredInputDefinition[] = [
-  { key: "economicCostWrongDecision", label: "Economic cost of a wrong decision", description: "How much value is at stake when the product is wrong?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
-  { key: "outcomeObjectivity", label: "Outcome objectivity", description: "Can outcomes be graded objectively rather than by taste or politics?", options: ["Unknown", "Subjective", "Mixed", "Objective / deterministic"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
-  { key: "naturalFeedbackTime", label: "Natural feedback time", description: "How quickly does reality reveal whether the decision was good?", options: ["Unknown", "Minutes", "Days", "Weeks", "Months", "Years"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
-  { key: "caseFrequency", label: "Case / decision frequency", description: "How often does the workflow generate meaningful decision cases?", options: ["Unknown", "Low", "Medium", "High", "Very high"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
-  { key: "customerCaseHeterogeneity", label: "Customer / case heterogeneity", description: "How different are customers, cases, policies, and contexts?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
-  { key: "environmentalChangeRate", label: "Environmental change / nonstationarity", description: "How quickly does the problem distribution change?", options: ["Unknown", "Stable", "Moderate", "Rapidly changing"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
-  { key: "foundationModelImprovementRate", label: "Foundation-model improvement relative to this task", description: "How quickly general model capability may compress proprietary experience advantage.", options: ["Unknown", "Slow", "Moderate", "Fast"], epistemicKind: "EXOGENOUS_ASSUMPTION" }
-];
-
-export const ENDOGENOUS_INPUTS: StructuredInputDefinition[] = [
-  { key: "ownsDecisionPoint", label: "Owns or participates directly in decision point?", description: "Can the product see the actual decision moment?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "controlsAction", label: "Controls or executes action?", description: "Does the product actually execute the action, or only recommend it?", options: ["Unknown", "No", "Recommends only", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "observesOutcome", label: "Observes eventual outcome?", description: "Can the company observe what happened after the decision?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "capturesOverrides", label: "Captures human overrides?", description: "Are human corrections captured as learning signal?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "capturesGrades", label: "Captures explicit grades?", description: "Are decisions explicitly graded against outcomes?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "learnsAcrossCustomers", label: "Can learn across customers?", description: "Can learning from one customer improve another?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "contractualLearningRights", label: "Has contractual rights to learn?", description: "Can the company legally use the feedback loop to improve?", options: ["Unknown", "No", "Partial / restricted", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "runsControlledExperiments", label: "Runs controlled experiments?", description: "Can the company test changes rather than infer from anecdotes?", options: ["Unknown", "No", "Sometimes", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "updatesModelPolicyRegularly", label: "Updates model / policy regularly?", description: "Does learning feed back into system behavior?", options: ["Unknown", "No", "Occasionally", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "deploysImprovementsQuickly", label: "Can deploy improvements quickly?", description: "How quickly can the company turn learning into changed behavior?", options: ["Unknown", "No", "Partially", "Yes"], epistemicKind: "ENDOGENOUS_ASSUMPTION" }
-];
-
-export const COMPETITIVE_INPUTS: StructuredInputDefinition[] = [
-  { key: "dataExclusivity", label: "Data exclusivity", description: "Can rivals access equivalent decision/outcome data?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "workflowEmbeddedness", label: "Workflow embeddedness", description: "How deeply is the product embedded in the operating workflow?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "switchingCostsAssumption", label: "Switching costs", description: "Would customers face operational, risk, or integration costs to switch?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "rebuildability", label: "Rebuildability", description: "How easily could a capable challenger rebuild the useful system and learning loop?", options: ["Unknown", "Easy", "Moderate", "Hard"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
-  { key: "foundationModelDependence", label: "Foundation-model dependence", description: "How dependent is the advantage on commoditized frontier model capability?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "EXOGENOUS_ASSUMPTION" },
-  { key: "deterministicInfrastructure", label: "Deterministic / domain infrastructure", description: "Does defensibility reside in rails, schema, controls, or domain process rather than CE?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "distributionAdvantage", label: "Distribution advantage", description: "Does the company have advantaged access to customers or workflows?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" },
-  { key: "regulatoryContractualBarriers", label: "Regulatory / contractual barriers", description: "Do contracts, consent, or regulation make replication harder?", options: ["Unknown", "Low", "Medium", "High"], epistemicKind: "ENDOGENOUS_ASSUMPTION" }
-];
-
-export const HELMER_POWERS: DimensionDefinition[] = [
-  { framework: "HELMER", dimension: "scale_economies", label: "Scale Economies", description: "Unit economics improve with volume in a way that is hard to match." },
-  { framework: "HELMER", dimension: "network_economies", label: "Network Economies", description: "Product value increases as more participants join." },
-  { framework: "HELMER", dimension: "counter_positioning", label: "Counter-Positioning", description: "The model is hard for incumbents to copy without damaging their existing business." },
-  { framework: "HELMER", dimension: "switching_costs", label: "Switching Costs", description: "Customers face meaningful cost, risk, or disruption when leaving." },
-  { framework: "HELMER", dimension: "branding", label: "Branding", description: "Brand meaning lowers acquisition friction or supports pricing power." },
-  { framework: "HELMER", dimension: "cornered_resource", label: "Cornered Resource", description: "The company controls a scarce asset not generally available to rivals." },
-  { framework: "HELMER", dimension: "process_power", label: "Process Power", description: "Operational routines compound into difficult-to-copy performance." }
-];
-
-export const SUN_DIMENSIONS: DimensionDefinition[] = [
-  { framework: "SUN", dimension: "workflow_capture_position", label: "Workflow / capture position", description: "The product sits where decisions and outcomes are naturally captured." },
-  { framework: "SUN", dimension: "objective_grading", label: "Objective grading", description: "Decisions can be graded against outcomes with relatively low ambiguity." },
-  { framework: "SUN", dimension: "feedback_speed", label: "Feedback speed", description: "The system receives outcome feedback quickly enough to learn." },
-  { framework: "SUN", dimension: "freshness", label: "Freshness", description: "Recent cases remain available and relevant to future decisions." },
-  { framework: "SUN", dimension: "diversity_edge_cases", label: "Diversity / edge cases", description: "The scorebook includes enough varied and rare cases to improve judgment." },
-  { framework: "SUN", dimension: "cross_customer_learning", label: "Cross-customer learning", description: "Learning from one customer can improve decisions for others." },
-  { framework: "SUN", dimension: "contractual_rights_consent", label: "Contractual rights / consent", description: "The company can legally use feedback to improve the product." },
-  { framework: "SUN", dimension: "economic_value_of_being_right", label: "Economic value of being right", description: "Better decisions create meaningful customer or company value." }
-];
-
-export const WOLFE_DIMENSIONS: DimensionDefinition[] = [
-  { framework: "WOLFE", dimension: "cross_customer_transferability", label: "Cross-customer transferability", description: "Experience transfers across customers without being too context-specific." },
-  { framework: "WOLFE", dimension: "customer_heterogeneity", label: "Customer heterogeneity", description: "Customer variation is understood rather than averaging away important differences." },
-  { framework: "WOLFE", dimension: "marginal_information_gain", label: "Marginal information gain", description: "New cases still teach something non-obvious rather than repeating known patterns." },
-  { framework: "WOLFE", dimension: "knowledge_compressibility", label: "Knowledge compressibility", description: "Useful information cannot be easily compressed into a static playbook or prompt." },
-  { framework: "WOLFE", dimension: "causal_quality", label: "Causal quality", description: "The scorebook distinguishes causality from correlation or confounded outcomes." },
-  { framework: "WOLFE", dimension: "nonstationarity", label: "Nonstationarity", description: "The environment changes slowly enough, or the learning loop is fast enough, to stay relevant." },
-  { framework: "WOLFE", dimension: "learning_efficiency", label: "Learning efficiency", description: "The organization turns graded cases into product improvement quickly." }
-];
-
-export const ALL_DIMENSIONS = [...HELMER_POWERS, ...SUN_DIMENSIONS, ...WOLFE_DIMENSIONS];
-
-export const SYNTHETIC_CLAIMS_EXAMPLE: CompanyThesisInput = {
-  companyName: "Synthetic Claims Resolution AI",
-  productDescription:
-    "A synthetic example company that helps insurance and marketplace operations teams triage disputes, recommend resolutions, and learn from graded outcomes.",
-  targetCustomer: "Claims, trust-and-safety, and dispute operations teams with repeated decision workflows.",
-  workflow: "Claim intake -> evidence collection -> decision recommendation -> human review -> outcome tracking -> grade capture.",
-  decisionDescription:
-    "Whether to approve, deny, escalate, request more evidence, or propose a settlement for a claim or dispute.",
-  thesis:
-    "The possible Power would come from owning a continuous graded decision loop, not from a static historical dataset. The question is whether fresh, transferable, objectively graded cases improve automation faster than capable challengers can infer or relearn the same judgment."
-};
-
-export const SYNTHETIC_DEBATES: KeyDebateInput[] = [
-  {
-    question: "Does the workflow naturally capture both the decision and the later outcome grade?",
-    bullCase: "The product sits in the operational path, so decisions, evidence, outcomes, and reviewer corrections can be captured as part of normal work.",
-    bearCase: "Outcome grades may arrive outside the product, be delayed, or be too subjective to support durable learning.",
-    evidenceNeeded: "Instrumentation map, outcome labels, reviewer override logs, and grade completeness by customer.",
-    increaseBelief: "A high share of decisions receive objective outcome grades without manual backfill.",
-    decreaseBelief: "Most outcomes are missing, subjective, delayed, or stored in customer systems the product cannot use.",
-    probability: 58,
-    source: "USER"
-  },
-  {
-    question: "Is the scorebook transferable across customers without washing out local policy differences?",
-    bullCase: "Many claims share common evidence patterns, fraud signals, and resolution tradeoffs across customers.",
-    bearCase: "Each customer has different policy rules, risk tolerance, data fields, and escalation behavior.",
-    evidenceNeeded: "Cross-customer holdout tests, per-customer error analysis, and examples where global learning improves a new customer.",
-    increaseBelief: "Global cases improve accuracy or time-to-resolution for a customer excluded from training.",
-    decreaseBelief: "Customer-specific models consistently outperform global learning and do not benefit from shared cases.",
-    probability: 46,
-    source: "WOLFE"
-  },
-  {
-    question: "Could a capable challenger compress or simulate the useful knowledge without owning the historical scorebook?",
-    bullCase: "The useful expertise may be procedural and tacit, embedded in edge cases and reviewer corrections that are hard to infer.",
-    bearCase: "The repeatable judgment may be reducible to policies, public examples, foundation-model priors, and a short calibration period.",
-    evidenceNeeded: "Learning curves for new deployments, synthetic-data benchmarks, and accuracy after limited customer-specific calibration.",
-    increaseBelief: "Accuracy continues improving with proprietary graded cases after policy and foundation-model baselines plateau.",
-    decreaseBelief: "A challenger reaches similar performance with policy docs, simulated cases, and a small fresh sample.",
-    probability: 42,
-    source: "WOLFE"
-  }
-];
-
-export const INITIAL_DEBATES: KeyDebateInput[] = [
-  {
-    question: "Is the product positioned to capture graded decisions as part of the natural workflow?",
-    bullCase: "If the product owns the decision workflow, it can capture cases, decisions, outcomes, and grades without relying on separate reporting.",
-    bearCase: "If decisioning or outcomes happen outside the product, the scorebook may be incomplete or too delayed to compound.",
-    evidenceNeeded: "Workflow map, instrumentation plan, examples of decision records, and observed grade capture rate.",
-    increaseBelief: "Most meaningful decisions receive outcome grades inside the product flow with low manual effort.",
-    decreaseBelief: "Grades are sparse, manual, subjective, or disconnected from the product workflow.",
-    probability: 50,
-    source: "SUN"
-  },
-  {
-    question: "Does each additional graded case add useful marginal information?",
-    bullCase: "New cases may expose edge conditions, policy ambiguity, and correction patterns that improve future automation.",
-    bearCase: "The useful information may plateau quickly once common cases and rules are documented.",
-    evidenceNeeded: "Learning curves, error analysis by case age, and marginal performance gain from incremental case cohorts.",
-    increaseBelief: "Recent case cohorts continue improving decisions after policy and foundation-model baselines are included.",
-    decreaseBelief: "Performance plateaus quickly or new cases duplicate known lessons.",
-    probability: 50,
-    source: "WOLFE"
-  },
-  {
-    question: "Could a capable challenger compress, infer, simulate, or relearn the useful scorebook knowledge?",
-    bullCase: "The proprietary scorebook may encode hard-to-copy reviewer corrections, causal labels, and operational context.",
-    bearCase: "The useful judgment may be captured by public rules, foundation-model priors, synthetic cases, or a short calibration period.",
-    evidenceNeeded: "Challenger-style benchmark, synthetic-case comparison, and performance after limited fresh calibration.",
-    increaseBelief: "A challenger with policy docs and a small sample remains materially behind the scorebook owner.",
-    decreaseBelief: "A challenger reaches similar performance with compressed rules, simulated examples, or short relearning.",
-    probability: 50,
-    source: "WOLFE"
-  }
-];
-
-export type CompoundingExample = {
-  id: CompoundingExampleId;
-  label: string;
-  role: string;
-  companyName: string;
-  testType: CanonicalTestType;
-  testLabel: string;
-  canonicalQuestion: string;
-  productCategory: string;
-  principalDecision: string;
-  gradeObjectivity: string;
-  typicalFeedbackSpeed: string;
-  economicCostOfError: string;
-  caseFrequency: string;
-  crossCustomerTransferPotential: string;
-  historicalCaseDependence: string;
-  primaryPowerHypothesis: string;
-  competingPowerHypothesis: string;
-  whyCanonical: string;
-  expectedTheoreticalBehavior: string;
-  labFailureCondition: string;
-  sourceAppKey?: string | null;
-  syntheticDatasetLabel: string;
-  caseSet: Omit<CaseSetInput, "analysisId" | "caseCount">;
-  analysis: CompanyThesisInput;
-  debates: KeyDebateInput[];
-  scenarios: SimulationScenarioInput[];
-  cases: ScorebookCaseInput[];
-};
-
-function addDays(date: Date, days: number) {
-  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
-}
-
-function createSyntheticCases(config: {
-  prefix: string;
-  sourceLabel: string;
-  segments: string[];
-  caseTypes: string[];
-  decisions: string[];
-  outcomes: string[];
-  count: number;
-  delayPattern: number[];
-  unresolvedEvery?: number;
-  overrideEvery?: number;
-  edgeEvery?: number;
-  objectiveBias?: "strong" | "mixed" | "weak";
-  valueBase?: number;
-}): ScorebookCaseInput[] {
-  const base = new Date("2026-01-05T12:00:00.000Z");
-  return Array.from({ length: config.count }, (_, index) => {
-    const externalCaseId = `${config.prefix}-${String(index + 1).padStart(3, "0")}`;
-    const isUnresolved = config.unresolvedEvery ? (index + 1) % config.unresolvedEvery === 0 : false;
-    const humanOverride = config.overrideEvery ? (index + 2) % config.overrideEvery === 0 : false;
-    const isEdgeCase = config.edgeEvery ? (index + 3) % config.edgeEvery === 0 : false;
-    const delayDays = config.delayPattern[index % config.delayPattern.length];
-    const decisionAt = addDays(base, index * 2);
-    const outcomeAt = isUnresolved ? null : addDays(decisionAt, delayDays);
-    const agentDecision = config.decisions[index % config.decisions.length];
-    const humanDecision = humanOverride
-      ? config.decisions[(index + 1) % config.decisions.length]
-      : index % 5 === 0
-        ? null
-        : agentDecision;
-    const grade: CompoundingCaseGrade = isUnresolved
-      ? "UNRESOLVED"
-      : config.objectiveBias === "weak"
-        ? (index % 4 === 0 ? "INCORRECT" : index % 3 === 0 ? "PARTIALLY_CORRECT" : "CORRECT")
-        : config.objectiveBias === "mixed"
-          ? (index % 5 === 0 ? "INCORRECT" : index % 3 === 0 ? "PARTIALLY_CORRECT" : "CORRECT")
-          : (index % 8 === 0 ? "INCORRECT" : index % 5 === 0 ? "PARTIALLY_CORRECT" : "CORRECT");
-    const outcomeValue = isUnresolved
-      ? null
-      : Math.round(((config.valueBase ?? 1200) + index * 85) * (grade === "INCORRECT" ? -0.35 : grade === "PARTIALLY_CORRECT" ? 0.45 : 1));
-
-    return {
-      externalCaseId,
-      customerSegment: config.segments[index % config.segments.length],
-      caseType: config.caseTypes[index % config.caseTypes.length],
-      context: `${config.sourceLabel}. Synthetic case context ${index + 1}; generated to test scorebook inspection, not to describe real operations.`,
-      agentDecision,
-      agentConfidence: Math.min(0.96, 0.54 + (index % 7) * 0.06),
-      humanDecision,
-      humanOverride,
-      actionTaken: isUnresolved ? null : humanDecision ?? agentDecision,
-      outcome: isUnresolved ? null : config.outcomes[index % config.outcomes.length],
-      outcomeValue,
-      grade,
-      gradeConfidence: isUnresolved ? null : config.objectiveBias === "weak" ? 0.45 + (index % 3) * 0.08 : 0.68 + (index % 4) * 0.07,
-      decisionAt,
-      actionAt: isUnresolved ? null : addDays(decisionAt, 1),
-      outcomeAt,
-      isEdgeCase,
-      isSynthetic: true,
-      sourceLabel: config.sourceLabel,
-      sourceRecordId: externalCaseId,
-      sourceRecordType: "canonical_synthetic_fixture",
-      sourceRecordRoute: null,
-      notes: isUnresolved ? "Outcome not yet observed; unresolved rows should remain incomplete." : "Synthetic illustrative row for theory testing."
-    };
-  });
-}
-
-const EXAMPLE_DEBATES: KeyDebateInput[] = [
-  INITIAL_DEBATES[0],
-  INITIAL_DEBATES[1],
-  INITIAL_DEBATES[2]
-];
-
-const CASAP_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic disputes scorebook, not Casap data";
-const LISTEN_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic research/listening scorebook, not Listen Labs data";
-const AARU_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic model-first research scorebook, not Aaru data";
-const MAYBERN_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic deterministic-rails scorebook, not Maybern data";
-const CREATIVE_SOURCE = "SYNTHETIC ILLUSTRATIVE DATA - Synthetic creative marketing agent scorebook";
-
-export const DEFAULT_SCENARIOS: SimulationScenarioInput[] = [
-  {
-    name: "Incumbent A",
-    startingCases: 50000,
-    casesPerMonth: 4000,
-    feedbackDelayDays: 21,
-    transferability: 0.7,
-    informationValue: 0.8,
-    learningEfficiency: 0.55,
-    stalenessRate: 0.015,
-    baseCapability: 2.4
-  },
-  {
-    name: "Challenger B",
-    startingCases: 5000,
-    casesPerMonth: 2500,
-    feedbackDelayDays: 7,
-    transferability: 0.85,
-    informationValue: 0.85,
-    learningEfficiency: 0.75,
-    stalenessRate: 0.012,
-    baseCapability: 2.9
-  }
-];
-
-export const STRESS_TEST_TEMPLATES: StressTestTemplate[] = [
-  {
-    id: "baseline",
-    name: "Baseline",
-    question: "What happens under the current assumptions?",
-    changedVariables: ["No template changes"],
-    changedParameterKeys: [],
-    whyMatters: "Provides the reference case before changing competitive conditions."
-  },
-  {
-    id: "better_foundation_model",
-    name: "Better foundation model",
-    question: "Can a challenger compress the incumbent's historical experience advantage with higher base model capability?",
-    changedVariables: ["Challenger base capability increases"],
-    changedParameterKeys: ["baseCapability"],
-    whyMatters: "Tests whether frontier-model progress reduces the value of proprietary accumulated experience."
-  },
-  {
-    id: "faster_learner",
-    name: "Faster learner",
-    question: "Can a challenger catch up by extracting more learning from each case?",
-    changedVariables: ["Challenger learning efficiency increases"],
-    changedParameterKeys: ["learningEfficiency"],
-    whyMatters: "Tests whether better learning velocity can offset a smaller starting scorebook."
-  },
-  {
-    id: "transfer_breakdown",
-    name: "Transfer breakdown",
-    question: "What if accumulated experience transfers poorly across customers or contexts?",
-    changedVariables: ["Incumbent transferability decreases"],
-    changedParameterKeys: ["transferability"],
-    whyMatters: "Tests whether the experience advantage depends on learning that generalizes beyond the original cases."
-  },
-  {
-    id: "feedback_delay",
-    name: "Feedback delay",
-    question: "What if real-world outcomes take longer to arrive and grade?",
-    changedVariables: ["Incumbent feedback delay increases"],
-    changedParameterKeys: ["feedbackDelayDays"],
-    whyMatters: "Tests whether compounding slows when experience matures late."
-  },
-  {
-    id: "experience_staleness",
-    name: "Experience staleness",
-    question: "What if historical experience loses relevance quickly?",
-    changedVariables: ["Incumbent staleness increases"],
-    changedParameterKeys: ["stalenessRate"],
-    whyMatters: "Tests whether historical advantage is durable when the environment changes."
-  },
-  {
-    id: "continuous_capture",
-    name: "Continuous capture advantage",
-    question: "What if the incumbent continuously generates graded experience faster than challengers?",
-    changedVariables: ["Incumbent cases per month increases relative to challenger"],
-    changedParameterKeys: ["casesPerMonth"],
-    whyMatters: "Tests whether owning the ongoing experience-generation loop matters more than the static historical scorebook."
-  },
-  {
-    id: "custom",
-    name: "Custom",
-    question: "Create your own competitive scenario.",
-    changedVariables: ["User-defined"],
-    changedParameterKeys: [
-      "startingCases",
-      "casesPerMonth",
-      "feedbackDelayDays",
-      "transferability",
-      "informationValue",
-      "learningEfficiency",
-      "stalenessRate",
-      "baseCapability"
-    ],
-    whyMatters: "Use when the canonical stress tests do not match the question you want to ask."
-  }
-];
-
-export const STRESS_TEST_SCENARIO_QUERY_KEYS: Array<keyof Omit<SimulationScenarioInput, "id" | "name">> = [
-  "startingCases",
-  "casesPerMonth",
-  "feedbackDelayDays",
-  "transferability",
-  "informationValue",
-  "learningEfficiency",
-  "stalenessRate",
-  "baseCapability"
-];
-
-export const SIMULATOR_PARAMETER_DEFINITIONS: SimulatorParameterDefinition[] = [
-  {
-    key: "startingCases",
-    label: "Starting graded cases",
-    group: "Experience advantage",
-    epistemic: "OBSERVED / DERIVED",
-    help: "How much matured experience the system begins with.",
-    min: 0,
-    step: 1
-  },
-  {
-    key: "casesPerMonth",
-    label: "Cases / month",
-    group: "Experience advantage",
-    epistemic: "ENDOGENOUS ASSUMPTION",
-    help: "How quickly new potentially learnable experience is generated.",
-    min: 0,
-    step: 1
-  },
-  {
-    key: "feedbackDelayDays",
-    label: "Feedback delay",
-    group: "Learning dynamics",
-    epistemic: "OBSERVED / DERIVED",
-    help: "How long before a decision produces an outcome that can be graded.",
-    min: 0,
-    step: 1
-  },
-  {
-    key: "learningEfficiency",
-    label: "Learning efficiency",
-    group: "Learning dynamics",
-    epistemic: "ENDOGENOUS ASSUMPTION",
-    help: "How effectively the system converts graded experience into improved expertise.",
-    min: 0,
-    max: 1,
-    step: 0.01
-  },
-  {
-    key: "informationValue",
-    label: "Information value / case",
-    group: "Learning dynamics",
-    epistemic: "EXOGENOUS ASSUMPTION",
-    help: "How much non-redundant learning a typical case contributes. This remains a scenario assumption until the Shannon layer exists.",
-    min: 0,
-    max: 1,
-    step: 0.01
-  },
-  {
-    key: "transferability",
-    label: "Transferability",
-    group: "Learning dynamics",
-    epistemic: "EXOGENOUS ASSUMPTION",
-    help: "How much learning from prior cases applies to future/customer contexts.",
-    min: 0,
-    max: 1,
-    step: 0.01
-  },
-  {
-    key: "baseCapability",
-    label: "Base capability",
-    group: "Competitive / environmental conditions",
-    epistemic: "EXOGENOUS ASSUMPTION",
-    help: "Capability available without proprietary accumulated experience, for example from the underlying frontier model.",
-    min: 0,
-    max: 5,
-    step: 0.1
-  },
-  {
-    key: "stalenessRate",
-    label: "Monthly staleness",
-    group: "Competitive / environmental conditions",
-    epistemic: "EXOGENOUS ASSUMPTION",
-    help: "How quickly accumulated experience loses relevance.",
-    min: 0,
-    max: 1,
-    step: 0.001
-  }
-];
-
-export const COMPOUNDING_EXAMPLES: CompoundingExample[] = [
-  {
-    id: "casap",
-    label: "Casap",
-    role: "Strong Compounding Expertise candidate.",
-    companyName: "Casap",
-    testType: "POSITIVE_TEST",
-    testLabel: "Positive test",
-    canonicalQuestion: "Can repeated, economically consequential, objectively graded decisions create expertise that a capable challenger cannot quickly reproduce?",
-    productCategory: "Disputes / fraud / exception resolution",
-    principalDecision: "Dispute / fraud / exception resolution action.",
-    gradeObjectivity: "Relatively high",
-    typicalFeedbackSpeed: "Relatively fast - days/weeks as an archetype assumption",
-    economicCostOfError: "High",
-    caseFrequency: "High / repeated workflow",
-    crossCustomerTransferPotential: "Plausibly high but requires evidence",
-    historicalCaseDependence: "Potentially important",
-    primaryPowerHypothesis: "Compounding Expertise, potentially reinforcing Network Economies and Process Power.",
-    competingPowerHypothesis: "Workflow distribution, process execution, or data rights may matter as much as the scorebook.",
-    whyCanonical: "Close to the strongest theoretical environment for Ben Sun's thesis: repeated decisions, observable outcomes, meaningful economics, and workflow capture.",
-    expectedTheoreticalBehavior: "Compounding Expertise should be plausible if cross-customer transfer and resistance to compression are demonstrated.",
-    labFailureCondition: "If the Lab rejects CE merely because case count is modest, or accepts CE without testing transferability/compressibility, the framework is behaving poorly.",
-    sourceAppKey: null,
-    syntheticDatasetLabel: CASAP_SOURCE,
-    caseSet: {
-      name: "Synthetic disputes scorebook",
-      description: "Canonical positive-test fixture for objectively graded dispute and exception decisions.",
-      sourceType: "CANONICAL_SYNTHETIC",
-      sourceSystemKey: "canonical_test_suite",
-      sourceSystemLabel: "Canonical Test Fixture",
-      sourceRunLabel: "Casap positive test fixture",
-      sourceRunType: "synthetic_fixture",
-      sourceRoute: "/compounding-expertise/overview?canonical=casap",
-      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
-      isSynthetic: true,
-      provenanceLabel: CASAP_SOURCE,
-      derivationDescription: "Created as a synthetic theory-test CaseSet; not Casap operational data."
-    },
-    analysis: {
-      companyName: "Casap archetype review",
-      companyUrl: null,
-      productCategory: "Disputes / fraud / exception resolution",
-      productDescription: "Company-analysis archetype for a disputes workflow where decisions can plausibly be graded against outcomes. Case rows are synthetic fixtures only.",
-      targetCustomer: "Operations teams handling repeated disputes, chargebacks, or exception workflows.",
-      businessModel: "Unknown / not assessed",
-      workflow: "Dispute intake -> evidence review -> recommended resolution -> human approval or override -> outcome and grade capture.",
-      decisionDescription: "Recommend approve, deny, refund, escalate, or request evidence for repeated dispute cases.",
-      actionSpace: "Approve, deny, refund, escalate, or request additional evidence.",
-      companyStage: "Unknown / not assessed",
-      thesis: "This is a strong candidate for Compounding Expertise if the product owns the graded workflow and cross-customer cases remain transferable.",
-      economicCostWrongDecision: "High",
-      outcomeObjectivity: "Objective / deterministic",
-      naturalFeedbackTime: "Days",
-      caseFrequency: "High",
-      customerCaseHeterogeneity: "Medium",
-      environmentalChangeRate: "Moderate",
-      foundationModelImprovementRate: "Moderate",
-      ownsDecisionPoint: "Yes",
-      controlsAction: "Partially",
-      observesOutcome: "Yes",
-      capturesOverrides: "Yes",
-      capturesGrades: "Yes",
-      learnsAcrossCustomers: "Partially",
-      contractualLearningRights: "Partial / restricted",
-      runsControlledExperiments: "Sometimes",
-      updatesModelPolicyRegularly: "Yes",
-      deploysImprovementsQuickly: "Yes",
-      dataExclusivity: "Medium",
-      workflowEmbeddedness: "High",
-      switchingCostsAssumption: "Medium",
-      rebuildability: "Moderate",
-      foundationModelDependence: "Medium",
-      deterministicInfrastructure: "Medium",
-      distributionAdvantage: "Unknown",
-      regulatoryContractualBarriers: "Medium"
-    },
-    debates: EXAMPLE_DEBATES,
-    scenarios: DEFAULT_SCENARIOS,
-    cases: createSyntheticCases({
-      prefix: "SYN-DSP",
-      sourceLabel: CASAP_SOURCE,
-      segments: ["mid-market marketplace", "enterprise fintech", "consumer platform"],
-      caseTypes: ["evidence mismatch", "policy exception", "fraud signal", "customer appeal"],
-      decisions: ["approve claim", "deny claim", "request more evidence", "escalate for review"],
-      outcomes: ["chargeback avoided", "customer retained", "loss prevented", "manual review saved"],
-      count: 28,
-      delayPattern: [3, 5, 7, 10, 14],
-      unresolvedEvery: 9,
-      overrideEvery: 4,
-      edgeEvery: 5,
-      objectiveBias: "strong",
-      valueBase: 1800
-    })
-  },
-  {
-    id: "listen-labs",
-    label: "Listen Labs",
-    role: "Ambiguous case: accumulated research or knowledge may not equal a graded decision scorebook.",
-    companyName: "Listen Labs",
-    testType: "BOUNDARY_TEST",
-    testLabel: "Boundary test",
-    canonicalQuestion: "Is accumulated proprietary knowledge the same thing as accumulated graded expertise?",
-    productCategory: "AI-assisted research / listening",
-    principalDecision: "Research insight / recommendation used to support later product, marketing, or strategy decisions.",
-    gradeObjectivity: "Low-to-medium / often indirect",
-    typicalFeedbackSpeed: "Delayed and sometimes ambiguous",
-    economicCostOfError: "Medium / context-dependent",
-    caseFrequency: "Potentially high research volume, but not necessarily high graded-decision volume",
-    crossCustomerTransferPotential: "Uncertain",
-    historicalCaseDependence: "Questionable",
-    primaryPowerHypothesis: "Potentially valuable proprietary knowledge / filing cabinet rather than a true scorebook.",
-    competingPowerHypothesis: "Brand, workflow ownership, research distribution, or proprietary access may dominate.",
-    whyCanonical: "Separates information accumulation from decision -> outcome -> grade accumulation.",
-    expectedTheoreticalBehavior: "The Lab should not infer strong CE merely from large amounts of proprietary research or customer knowledge.",
-    labFailureCondition: "If interview/research volume alone creates a strong CE conclusion without an observable decision/outcome/grade loop, the Lab has confused the filing cabinet with the scorebook.",
-    sourceAppKey: null,
-    syntheticDatasetLabel: LISTEN_SOURCE,
-    caseSet: {
-      name: "Synthetic research/listening scorebook",
-      description: "Canonical boundary-test fixture for qualitative research where decision/outcome/grade linkage is weak.",
-      sourceType: "CANONICAL_SYNTHETIC",
-      sourceSystemKey: "canonical_test_suite",
-      sourceSystemLabel: "Canonical Test Fixture",
-      sourceRunLabel: "Listen Labs boundary test fixture",
-      sourceRunType: "synthetic_fixture",
-      sourceRoute: "/compounding-expertise/overview?canonical=listen-labs",
-      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
-      isSynthetic: true,
-      provenanceLabel: LISTEN_SOURCE,
-      derivationDescription: "Created as a synthetic theory-test CaseSet; not Listen Labs operational data."
-    },
-    analysis: {
-      companyName: "Listen Labs archetype review",
-      companyUrl: null,
-      productCategory: "AI-assisted research / listening",
-      productDescription: "Company-analysis archetype for AI-assisted research/listening workflows. Case rows are synthetic fixtures only.",
-      targetCustomer: "Product, marketing, and research teams synthesizing customer interviews or qualitative feedback.",
-      businessModel: "Unknown / not assessed",
-      workflow: "Research prompt -> participant/session evidence -> synthesis -> recommendation -> later product or messaging decision.",
-      decisionDescription: "Recommend themes, positioning, prioritization, or follow-up research questions from qualitative evidence.",
-      actionSpace: "Recommend themes, segments, follow-up research, or defer conclusion.",
-      companyStage: "Unknown / not assessed",
-      thesis: "Accumulated knowledge may be valuable, but the scorebook claim is weaker unless recommendations are tied to objective later grades.",
-      economicCostWrongDecision: "Medium",
-      outcomeObjectivity: "Subjective",
-      naturalFeedbackTime: "Months",
-      caseFrequency: "Medium",
-      customerCaseHeterogeneity: "High",
-      environmentalChangeRate: "Moderate",
-      foundationModelImprovementRate: "Fast",
-      ownsDecisionPoint: "Partially",
-      controlsAction: "Recommends only",
-      observesOutcome: "Partially",
-      capturesOverrides: "Partially",
-      capturesGrades: "No",
-      learnsAcrossCustomers: "Partially",
-      contractualLearningRights: "Partial / restricted",
-      runsControlledExperiments: "Sometimes",
-      updatesModelPolicyRegularly: "Occasionally",
-      deploysImprovementsQuickly: "Partially",
-      dataExclusivity: "Medium",
-      workflowEmbeddedness: "Medium",
-      switchingCostsAssumption: "Low",
-      rebuildability: "Moderate",
-      foundationModelDependence: "High",
-      deterministicInfrastructure: "Low",
-      distributionAdvantage: "Unknown",
-      regulatoryContractualBarriers: "Low"
-    },
-    debates: EXAMPLE_DEBATES,
-    scenarios: [
-      { ...DEFAULT_SCENARIOS[0], startingCases: 900, casesPerMonth: 90, feedbackDelayDays: 75, transferability: 0.42, informationValue: 0.55, learningEfficiency: 0.48 },
-      { ...DEFAULT_SCENARIOS[1], startingCases: 120, casesPerMonth: 60, feedbackDelayDays: 45, transferability: 0.5, informationValue: 0.5, learningEfficiency: 0.62 }
-    ],
-    cases: createSyntheticCases({
-      prefix: "SYN-RSCH",
-      sourceLabel: LISTEN_SOURCE,
-      segments: ["growth team", "product team", "enterprise research"],
-      caseTypes: ["theme synthesis", "positioning read", "feature priority", "interview follow-up"],
-      decisions: ["recommend theme", "recommend segment", "recommend follow-up", "defer conclusion"],
-      outcomes: ["directionally useful", "ambiguous downstream signal", "not adopted", "later validated by team"],
-      count: 24,
-      delayPattern: [21, 45, 60, 90],
-      unresolvedEvery: 4,
-      overrideEvery: 6,
-      edgeEvery: 7,
-      objectiveBias: "mixed",
-      valueBase: 700
-    })
-  },
-  {
-    id: "aaru",
-    label: "Aaru / model-first research",
-    role: "Challenge case: stronger model intelligence may substitute for proprietary experience.",
-    companyName: "Aaru",
-    testType: "SUBSTITUTION_COMPRESSION_TEST",
-    testLabel: "Substitution / compression test",
-    canonicalQuestion: "Can sufficiently capable models or simulation substitute for real-world experience that historically had to be accumulated case by case?",
-    productCategory: "Model-first research / simulation",
-    principalDecision: "Prediction/simulation of likely human or market response to a proposed action.",
-    gradeObjectivity: "Potentially high when simulation predictions are later compared with actual outcomes",
-    typicalFeedbackSpeed: "Depends on prediction horizon",
-    economicCostOfError: "Use-case dependent",
-    caseFrequency: "Potentially high through simulation",
-    crossCustomerTransferPotential: "Potentially central",
-    historicalCaseDependence: "Core question - potentially lower if model priors/simulation substitute for experience",
-    primaryPowerHypothesis: "Model/simulation capability may compress the value of historical scorebooks.",
-    competingPowerHypothesis: "Base model capability, simulation quality, or synthetic data generation may dominate proprietary experience.",
-    whyCanonical: "Directly tests the Wolfe criticism that economically useful scorebook information can be compressed, simulated, inferred, or relearned.",
-    expectedTheoreticalBehavior: "Increasing base-model/simulation capability should be capable of reducing the modeled advantage of historical experience.",
-    labFailureCondition: "If the Lab always rewards the larger historical scorebook and cannot represent model/simulation substitution, the theory test is incomplete.",
-    sourceAppKey: null,
-    syntheticDatasetLabel: AARU_SOURCE,
-    caseSet: {
-      name: "Synthetic model-first research scorebook",
-      description: "Canonical substitution/compression fixture for model-first research and simulation claims.",
-      sourceType: "CANONICAL_SYNTHETIC",
-      sourceSystemKey: "canonical_test_suite",
-      sourceSystemLabel: "Canonical Test Fixture",
-      sourceRunLabel: "Aaru substitution/compression test fixture",
-      sourceRunType: "synthetic_fixture",
-      sourceRoute: "/compounding-expertise/overview?canonical=aaru",
-      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
-      isSynthetic: true,
-      provenanceLabel: AARU_SOURCE,
-      derivationDescription: "Created as a synthetic theory-test CaseSet; not Aaru operational data."
-    },
-    analysis: {
-      companyName: "Aaru model-first archetype review",
-      companyUrl: null,
-      productCategory: "Model-first research / simulation",
-      productDescription: "Company-analysis archetype for model-first research where base intelligence may compress the value of historical cases. Case rows are synthetic fixtures only.",
-      targetCustomer: "Strategy, investment, or research teams asking model-heavy analytical questions.",
-      businessModel: "Unknown / not assessed",
-      workflow: "Question -> model-generated analysis -> reviewer correction -> decision support -> optional later outcome review.",
-      decisionDescription: "Generate or rank analytical conclusions, research paths, or scenario implications.",
-      actionSpace: "Generate, rank, support, challenge, or request more evidence.",
-      companyStage: "Unknown / not assessed",
-      thesis: "The challenge is whether higher base capability can substitute for proprietary historical experience quickly enough to weaken scorebook Power.",
-      economicCostWrongDecision: "Medium",
-      outcomeObjectivity: "Mixed",
-      naturalFeedbackTime: "Weeks",
-      caseFrequency: "High",
-      customerCaseHeterogeneity: "High",
-      environmentalChangeRate: "Rapidly changing",
-      foundationModelImprovementRate: "Fast",
-      ownsDecisionPoint: "Partially",
-      controlsAction: "Recommends only",
-      observesOutcome: "Partially",
-      capturesOverrides: "Yes",
-      capturesGrades: "Partially",
-      learnsAcrossCustomers: "Partially",
-      contractualLearningRights: "Unknown",
-      runsControlledExperiments: "Sometimes",
-      updatesModelPolicyRegularly: "Yes",
-      deploysImprovementsQuickly: "Yes",
-      dataExclusivity: "Low",
-      workflowEmbeddedness: "Medium",
-      switchingCostsAssumption: "Low",
-      rebuildability: "Easy",
-      foundationModelDependence: "High",
-      deterministicInfrastructure: "Low",
-      distributionAdvantage: "Unknown",
-      regulatoryContractualBarriers: "Low"
-    },
-    debates: EXAMPLE_DEBATES,
-    scenarios: [
-      { ...DEFAULT_SCENARIOS[0], startingCases: 600, casesPerMonth: 80, feedbackDelayDays: 35, transferability: 0.45, informationValue: 0.5, learningEfficiency: 0.5, baseCapability: 2.7 },
-      { ...DEFAULT_SCENARIOS[1], startingCases: 80, casesPerMonth: 120, feedbackDelayDays: 14, transferability: 0.68, informationValue: 0.58, learningEfficiency: 0.82, baseCapability: 3.35 }
-    ],
-    cases: createSyntheticCases({
-      prefix: "SYN-MDL",
-      sourceLabel: AARU_SOURCE,
-      segments: ["investor research", "strategy desk", "model evaluation"],
-      caseTypes: ["market map", "company assessment", "scenario analysis", "forecast critique"],
-      decisions: ["support thesis", "challenge thesis", "request more evidence", "rank alternative"],
-      outcomes: ["reviewer accepted", "partially revised", "superseded by new data", "unresolved external result"],
-      count: 22,
-      delayPattern: [7, 14, 30, 60],
-      unresolvedEvery: 5,
-      overrideEvery: 5,
-      edgeEvery: 6,
-      objectiveBias: "mixed",
-      valueBase: 500
-    })
-  },
-  {
-    id: "maybern",
-    label: "Maybern",
-    role: "Alternative Power: deterministic rails/schema may matter more than Compounding Expertise.",
-    companyName: "Maybern",
-    testType: "ALTERNATIVE_POWER_TEST",
-    testLabel: "Alternative Power test",
-    canonicalQuestion: "Does an AI company need Compounding Expertise at all, or can durable Power reside in deterministic domain infrastructure?",
-    productCategory: "Deterministic finance / fund operations infrastructure",
-    principalDecision: "Structured fund/finance calculation or controlled operational action.",
-    gradeObjectivity: "Very high",
-    typicalFeedbackSpeed: "Immediate/short",
-    economicCostOfError: "High",
-    caseFrequency: "Repeated but not necessarily strategically important for learning",
-    crossCustomerTransferPotential: "Not necessarily the primary strategic variable",
-    historicalCaseDependence: "Potentially secondary",
-    primaryPowerHypothesis: "Deterministic rails, Process Power, Switching Costs, domain infrastructure.",
-    competingPowerHypothesis: "Compounding Expertise may be weak/modest while business Power resides elsewhere.",
-    whyCanonical: "Tests Ben's argument that some durable AI applications may sell what intelligence needs rather than intelligence itself.",
-    expectedTheoreticalBehavior: "The Lab should be capable of concluding weak/modest CE but potentially strong business Power elsewhere.",
-    labFailureCondition: "If weak CE automatically produces a weak-company conclusion, the Lab is improperly treating CE as the only form of Power.",
-    sourceAppKey: null,
-    syntheticDatasetLabel: MAYBERN_SOURCE,
-    caseSet: {
-      name: "Synthetic deterministic-rails scorebook",
-      description: "Canonical alternative-Power fixture for deterministic rails, schema, and controlled execution.",
-      sourceType: "CANONICAL_SYNTHETIC",
-      sourceSystemKey: "canonical_test_suite",
-      sourceSystemLabel: "Canonical Test Fixture",
-      sourceRunLabel: "Maybern alternative Power test fixture",
-      sourceRunType: "synthetic_fixture",
-      sourceRoute: "/compounding-expertise/overview?canonical=maybern",
-      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
-      isSynthetic: true,
-      provenanceLabel: MAYBERN_SOURCE,
-      derivationDescription: "Created as a synthetic theory-test CaseSet; not Maybern operational data."
-    },
-    analysis: {
-      companyName: "Maybern archetype review",
-      companyUrl: null,
-      productCategory: "Deterministic finance / fund operations infrastructure",
-      productDescription: "Company-analysis archetype for deterministic workflows where schema, controls, and process execution may be the stronger source of Power. Case rows are synthetic fixtures only.",
-      targetCustomer: "Finance, fund operations, or compliance teams requiring controlled execution.",
-      businessModel: "Unknown / not assessed",
-      workflow: "Structured request -> schema validation -> deterministic rule path -> exception handling -> audit trail.",
-      decisionDescription: "Validate, route, reconcile, or reject structured operational exceptions.",
-      actionSpace: "Validate, route, reconcile, reject, or request source documentation.",
-      companyStage: "Unknown / not assessed",
-      thesis: "The key question is whether Power resides in accumulated graded cases or in deterministic process rails, schemas, and trust controls.",
-      economicCostWrongDecision: "High",
-      outcomeObjectivity: "Objective / deterministic",
-      naturalFeedbackTime: "Days",
-      caseFrequency: "Medium",
-      customerCaseHeterogeneity: "Medium",
-      environmentalChangeRate: "Stable",
-      foundationModelImprovementRate: "Moderate",
-      ownsDecisionPoint: "Yes",
-      controlsAction: "Yes",
-      observesOutcome: "Yes",
-      capturesOverrides: "Yes",
-      capturesGrades: "Partially",
-      learnsAcrossCustomers: "Partially",
-      contractualLearningRights: "Yes",
-      runsControlledExperiments: "No",
-      updatesModelPolicyRegularly: "Occasionally",
-      deploysImprovementsQuickly: "Partially",
-      dataExclusivity: "Medium",
-      workflowEmbeddedness: "High",
-      switchingCostsAssumption: "High",
-      rebuildability: "Hard",
-      foundationModelDependence: "Low",
-      deterministicInfrastructure: "High",
-      distributionAdvantage: "Unknown",
-      regulatoryContractualBarriers: "High"
-    },
-    debates: EXAMPLE_DEBATES,
-    scenarios: [
-      { ...DEFAULT_SCENARIOS[0], startingCases: 2000, casesPerMonth: 180, feedbackDelayDays: 10, transferability: 0.52, informationValue: 0.42, learningEfficiency: 0.46, baseCapability: 2.2 },
-      { ...DEFAULT_SCENARIOS[1], startingCases: 300, casesPerMonth: 120, feedbackDelayDays: 8, transferability: 0.55, informationValue: 0.4, learningEfficiency: 0.55, baseCapability: 2.6 }
-    ],
-    cases: createSyntheticCases({
-      prefix: "SYN-RAIL",
-      sourceLabel: MAYBERN_SOURCE,
-      segments: ["fund operations", "finance controller", "compliance ops"],
-      caseTypes: ["schema mismatch", "rule exception", "reconciliation variance", "approval routing"],
-      decisions: ["accept", "reject", "route exception", "request source document"],
-      outcomes: ["audit trail complete", "variance resolved", "control prevented error", "manual escalation required"],
-      count: 26,
-      delayPattern: [1, 2, 3, 5],
-      unresolvedEvery: 13,
-      overrideEvery: 7,
-      edgeEvery: 4,
-      objectiveBias: "strong",
-      valueBase: 900
-    })
-  },
-  {
-    id: "creative-agent",
-    label: "Creative Marketing Agent",
-    role: "Negative control: many cases but subjective/noisy grading and difficult-to-prove decision superiority.",
-    companyName: "Creative Marketing Agent",
-    testType: "NEGATIVE_CONTROL",
-    testLabel: "Negative control",
-    canonicalQuestion: "When can enormous volumes of apparently graded data fail to create durable expertise?",
-    productCategory: "Creative / marketing agent",
-    principalDecision: "Creative / message / audience / campaign allocation choice.",
-    gradeObjectivity: "Superficially measurable but causally noisy",
-    typicalFeedbackSpeed: "Fast for clicks/conversions; slower for durable economic outcomes",
-    economicCostOfError: "Medium",
-    caseFrequency: "Very high",
-    crossCustomerTransferPotential: "Potentially broad but highly context-sensitive",
-    historicalCaseDependence: "Large datasets may exist but contain substantial redundancy",
-    primaryPowerHypothesis: "Possibly none from CE alone.",
-    competingPowerHypothesis: "Workflow distribution, brand, media buying economics, or creative process may matter more.",
-    whyCanonical: "Tests whether the Lab confuses high case volume + rapid feedback with high-value transferable expertise.",
-    expectedTheoreticalBehavior: "Large data volume should not automatically produce strong CE when outcomes are confounded, nonstationary, redundant, or easily learned by frontier models.",
-    labFailureCondition: "If the Lab declares strong CE primarily from volume and fast click feedback, the analytical framework has failed its negative control.",
-    sourceAppKey: null,
-    syntheticDatasetLabel: CREATIVE_SOURCE,
-    caseSet: {
-      name: "Synthetic creative marketing scorebook",
-      description: "Canonical negative-control fixture for high-volume but noisy and confounded creative feedback.",
-      sourceType: "CANONICAL_SYNTHETIC",
-      sourceSystemKey: "canonical_test_suite",
-      sourceSystemLabel: "Canonical Test Fixture",
-      sourceRunLabel: "Creative Marketing Agent negative-control fixture",
-      sourceRunType: "synthetic_fixture",
-      sourceRoute: "/compounding-expertise/overview?canonical=creative-agent",
-      generatedAt: new Date("2026-01-05T12:00:00.000Z"),
-      isSynthetic: true,
-      provenanceLabel: CREATIVE_SOURCE,
-      derivationDescription: "Created as a fully synthetic negative-control CaseSet."
-    },
-    analysis: {
-      companyName: "Creative Marketing Agent",
-      companyUrl: null,
-      productCategory: "Creative / marketing agent",
-      productDescription: "Fully synthetic negative-control archetype for a high-volume creative workflow with subjective outcomes and attribution ambiguity.",
-      targetCustomer: "Marketing teams producing creative variants, social posts, ads, and campaign concepts.",
-      businessModel: "Synthetic",
-      workflow: "Brief -> generated creative -> human edit -> launch or discard -> noisy performance readout.",
-      decisionDescription: "Select, rewrite, or reject creative variants for audience/channel use.",
-      actionSpace: "Ship, rewrite, reject, or test a creative variant against a control.",
-      companyStage: "Synthetic",
-      thesis: "High case volume alone should not imply Compounding Expertise if grades are subjective, delayed, confounded, or weakly tied to decisions.",
-      economicCostWrongDecision: "Low",
-      outcomeObjectivity: "Subjective",
-      naturalFeedbackTime: "Weeks",
-      caseFrequency: "Very high",
-      customerCaseHeterogeneity: "High",
-      environmentalChangeRate: "Rapidly changing",
-      foundationModelImprovementRate: "Fast",
-      ownsDecisionPoint: "Partially",
-      controlsAction: "Partially",
-      observesOutcome: "Partially",
-      capturesOverrides: "Yes",
-      capturesGrades: "Partially",
-      learnsAcrossCustomers: "Partially",
-      contractualLearningRights: "Unknown",
-      runsControlledExperiments: "Sometimes",
-      updatesModelPolicyRegularly: "Yes",
-      deploysImprovementsQuickly: "Yes",
-      dataExclusivity: "Low",
-      workflowEmbeddedness: "Low",
-      switchingCostsAssumption: "Low",
-      rebuildability: "Easy",
-      foundationModelDependence: "High",
-      deterministicInfrastructure: "Low",
-      distributionAdvantage: "Medium",
-      regulatoryContractualBarriers: "Low"
-    },
-    debates: EXAMPLE_DEBATES,
-    scenarios: [
-      { ...DEFAULT_SCENARIOS[0], startingCases: 20000, casesPerMonth: 3000, feedbackDelayDays: 28, transferability: 0.28, informationValue: 0.35, learningEfficiency: 0.38, stalenessRate: 0.08, baseCapability: 2.3 },
-      { ...DEFAULT_SCENARIOS[1], startingCases: 1500, casesPerMonth: 2200, feedbackDelayDays: 21, transferability: 0.4, informationValue: 0.42, learningEfficiency: 0.7, stalenessRate: 0.05, baseCapability: 3.0 }
-    ],
-    cases: createSyntheticCases({
-      prefix: "SYN-CRTV",
-      sourceLabel: CREATIVE_SOURCE,
-      segments: ["paid social", "email", "brand", "content"],
-      caseTypes: ["headline variant", "image concept", "email subject", "landing copy"],
-      decisions: ["ship variant", "rewrite", "reject", "test against control"],
-      outcomes: ["mixed performance", "attribution unclear", "team liked creative", "underperformed noisy baseline"],
-      count: 32,
-      delayPattern: [14, 21, 28, 45],
-      unresolvedEvery: 3,
-      overrideEvery: 4,
-      edgeEvery: 5,
-      objectiveBias: "weak",
-      valueBase: 300
-    })
-  }
-];
-
-export function exampleById(id: string | null | undefined) {
-  return COMPOUNDING_EXAMPLES.find((example) => example.id === id) ?? COMPOUNDING_EXAMPLES[0];
-}
-
-export function canonicalExampleForCompany(companyName: string | null | undefined) {
-  const normalized = String(companyName ?? "").toLowerCase();
-  if (PUBLIC_EVIDENCE_ANALYSES.some((analysis) =>
-    normalized === analysis.analysis.companyName.toLowerCase()
-      || normalized === analysis.label.toLowerCase()
-      || normalized.includes(analysis.id)
-      || normalized.includes("public evidence analysis")
-  )) return null;
-  return COMPOUNDING_EXAMPLES.find((example) =>
-    normalized.includes(example.id.replace("-labs", " labs"))
-      || normalized.includes(example.companyName.toLowerCase())
-      || normalized.includes(example.label.toLowerCase())
-  ) ?? null;
-}
-
-export function publicEvidenceDefaultAssessments() {
-  return defaultAssessments().map((assessment) => normalizeAssessment({
-    ...assessment,
-    rationale: "Public evidence analysis starts from sourced public records and explicit unknowns. No production case-level data has been loaded.",
-    evidenceStatus: "UNKNOWN"
-  }));
-}
-
-export function caseSetForExample(example: CompoundingExample): CaseSetInput {
-  return {
-    ...example.caseSet,
-    caseCount: example.cases.length
-  };
-}
-
-export const CASAP_PUBLIC_SIMULATION_CASESET_KEY = "casap_public_evidence_grounded_simulation_v0_1";
-export const CASAP_PUBLIC_SIMULATION_CASESET_NAME = "Casap Public-Evidence-Grounded Simulation V0.1";
-export const CASAP_PUBLIC_SIMULATION_SOURCE_LABEL = "SYNTHETIC SIMULATION â€” PUBLIC-EVIDENCE-GROUNDED";
-
-export function caseSetEpistemicType(caseSet: {
-  sourceType?: string | null;
-  sourceSystemKey?: string | null;
-  sourceSystemLabel?: string | null;
-  isSynthetic?: boolean | null;
-  provenanceLabel?: string | null;
-  derivationDescription?: string | null;
-} | null | undefined): CaseSetEpistemicType {
-  if (!caseSet) return "OBSERVED";
-  const combined = [
-    caseSet.sourceType,
-    caseSet.sourceSystemKey,
-    caseSet.sourceSystemLabel,
-    caseSet.provenanceLabel,
-    caseSet.derivationDescription
-  ].join(" ").toUpperCase();
-  if (caseSet.isSynthetic || combined.includes("SYNTHETIC") || combined.includes("SIMULATION")) return "SYNTHETIC";
-  if (combined.includes("RECONSTRUCTED") || combined.includes("DERIVED")) return "RECONSTRUCTED";
-  return "OBSERVED";
-}
-
-export function analyticalDatasetKind(caseSet: AnalyticalCaseSetLike | null | undefined): AnalyticalDatasetKind {
-  if (!caseSet) return "NONE";
-  const sourceType = String(caseSet.sourceType ?? "").toUpperCase();
-  const combined = [
-    caseSet.sourceType,
-    caseSet.sourceSystemKey,
-    caseSet.sourceSystemLabel,
-    caseSet.provenanceLabel,
-    caseSet.derivationDescription
-  ].join(" ").toUpperCase();
-  if (sourceType === "CANONICAL_SYNTHETIC") return "CANONICAL_SYNTHETIC";
-  if (sourceType === "SYNTHETIC_SIMULATION" || combined.includes("PUBLIC-EVIDENCE-GROUNDED") || combined.includes("SIMULATION")) return "SYNTHETIC_SIMULATION";
-  if (sourceType.includes("PRODUCTION") || sourceType.includes("OBSERVED") || sourceType.includes("LIVE") || combined.includes("COMPANY DATA")) return "OBSERVED_PRODUCTION";
-  const epistemicType = caseSetEpistemicType(caseSet);
-  if (epistemicType === "SYNTHETIC") return "CANONICAL_SYNTHETIC";
-  if (epistemicType === "RECONSTRUCTED") return "RECONSTRUCTED_SOURCED";
-  return "OBSERVED_PRODUCTION";
-}
-
-function analyticalDatasetPriority(kind: AnalyticalDatasetKind) {
-  if (kind === "OBSERVED_PRODUCTION") return 50;
-  if (kind === "RECONSTRUCTED_SOURCED") return 40;
-  if (kind === "SYNTHETIC_SIMULATION") return 30;
-  if (kind === "CANONICAL_SYNTHETIC") return 20;
-  return 0;
-}
-
-function analyticalDatasetOption(caseSet: AnalyticalCaseSetLike, isVirtual = false): AnalyticalDatasetOption {
-  const kind = analyticalDatasetKind(caseSet);
-  return {
-    datasetKey: caseSet.sourceSystemKey || caseSet.id || caseSet.name,
-    caseSetId: isVirtual ? null : caseSet.id ?? null,
-    name: caseSet.name,
-    kind,
-    caseCount: caseSet.caseCount ?? 0,
-    provenanceLabel: caseSet.provenanceLabel || "UNKNOWN / DILIGENCE REQUIRED",
-    sourceSystemLabel: caseSet.sourceSystemLabel,
-    description: caseSet.description,
-    isVirtual,
-    caseSet
-  };
-}
-
-// Maximize analytical usefulness subject to epistemic integrity:
-// expose the richest responsible analytical dataset available, but keep
-// provenance explicit so simulations never become empirical company evidence.
-export function resolveBestAvailableAnalyticalCaseSet({
-  caseSets,
-  requestedCaseSetId,
-  requestedDatasetKey,
-  virtualCaseSets = [],
-  includeNoCaseSet = true
-}: {
-  caseSets: AnalyticalCaseSetLike[];
-  requestedCaseSetId?: string | null;
-  requestedDatasetKey?: string | null;
-  virtualCaseSets?: AnalyticalCaseSetLike[];
-  includeNoCaseSet?: boolean;
-}): ResolvedAnalyticalDataset {
-  const persisted = caseSets.map((caseSet) => analyticalDatasetOption(caseSet, false));
-  const persistedKeys = new Set(persisted.map((option) => option.datasetKey));
-  const virtual = virtualCaseSets
-    .filter((caseSet) => !persistedKeys.has(caseSet.sourceSystemKey || caseSet.id || caseSet.name))
-    .map((caseSet) => analyticalDatasetOption(caseSet, true));
-  const noneOption: AnalyticalDatasetOption = {
-    datasetKey: "public-evidence-only",
-    caseSetId: null,
-    name: "Public evidence only / no CaseSet",
-    kind: "NONE",
-    caseCount: 0,
-    provenanceLabel: "UNKNOWN / DILIGENCE REQUIRED",
-    sourceSystemLabel: "Public evidence only",
-    description: "Restrict Experience to public/company evidence. Case-level diagnostics are unavailable.",
-    isVirtual: true,
-    caseSet: null
-  };
-  const options = [...persisted, ...virtual, ...(includeNoCaseSet ? [noneOption] : [])];
-  const explicit = requestedCaseSetId
-    ? options.find((option) => option.caseSetId === requestedCaseSetId)
-    : requestedDatasetKey
-      ? options.find((option) => option.datasetKey === requestedDatasetKey)
-      : null;
-  if (explicit) {
-    return {
-      selected: explicit,
-      options,
-      selectionMode: "USER_SELECTED",
-      reason: explicit.kind === "NONE"
-        ? "Selected by analyst to inspect public/company evidence without case-level diagnostics."
-        : "Selected by analyst."
-    };
-  }
-
-  const selected = [...options]
-    .filter((option) => option.kind !== "NONE")
-    .sort((a, b) => analyticalDatasetPriority(b.kind) - analyticalDatasetPriority(a.kind) || b.caseCount - a.caseCount || a.name.localeCompare(b.name))[0] ?? noneOption;
-  const reason = selected.kind === "OBSERVED_PRODUCTION"
-    ? "Selected automatically because production case-level data is available."
-    : selected.kind === "RECONSTRUCTED_SOURCED"
-      ? "Selected automatically because reconstructed sourced case-level data is the best available analytical dataset."
-      : selected.kind === "SYNTHETIC_SIMULATION"
-        ? "Selected automatically because no production CaseSet is available."
-        : selected.kind === "CANONICAL_SYNTHETIC"
-          ? "Selected automatically because this is a canonical synthetic theory-test analysis."
-          : "No analytical CaseSet is available.";
-  return { selected, options, selectionMode: "AUTO_SELECTED", reason };
-}
-
-export function casapPublicSimulationCaseSet(caseCount = 300): CaseSetInput {
-  return {
-    name: CASAP_PUBLIC_SIMULATION_CASESET_NAME,
-    description: "Synthetic dispute/fraud cases designed from publicly documented Casap workflows to demonstrate the CE analytical framework. These rows are not Casap production data and must not be used as empirical evidence about Casap.",
-    sourceType: "SYNTHETIC_SIMULATION",
-    sourceSystemKey: CASAP_PUBLIC_SIMULATION_CASESET_KEY,
-    sourceSystemLabel: CASAP_PUBLIC_SIMULATION_SOURCE_LABEL,
-    sourceRunId: "casap-public-simulation-v0.1",
-    sourceRunLabel: "Fixed deterministic simulation V0.1",
-    sourceRunType: "SYNTHETIC_SIMULATION",
-    sourceRoute: "/compounding-expertise/scorebook#information-structure",
-    generatedAt: "2026-09-01",
-    importedAt: null,
-    modelVersion: "public-evidence-simulation-v0.1",
-    policyVersion: "public-workflow-assumption-v0.1",
-    experimentId: "casap-public-synthetic-scorebook-v0.1",
-    timeWindowStart: "2026-01-01",
-    timeWindowEnd: "2026-10-27",
-    isSynthetic: true,
-    provenanceLabel: "SYNTHETIC SIMULATION â€” PUBLIC-EVIDENCE-GROUNDED â€” NOT COMPANY DATA",
-    caseCount,
-    derivationDescription: "Deterministic synthetic CaseSet grounded in public Casap workflow descriptions. Public evidence shapes workflow categories only; row-level frequencies, grades, confidence, latencies, overrides, and economics are simulation assumptions."
-  };
-}
-
-function stage(key: string, name: string, position: number, stageType: string, description?: string): NormalizedWorkflowStageInput {
-  return { key, name, position, stageType, description };
-}
-
-function action(key: string, label: string, description: string, reversible = "UNKNOWN", requiresHumanApproval = false): NormalizedDecisionActionInput {
-  return { key, label, description, reversible, requiresHumanApproval };
-}
-
-function decisionClass(input: NormalizedDecisionClassInput): NormalizedDecisionClassInput {
-  return input;
-}
-
-export function actionKeyFromDecision(value: string | null | undefined) {
-  return String(value ?? "")
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "") || "UNKNOWN";
-}
-
-function baseWorkflow(example: CompoundingExample, stages: NormalizedWorkflowStageInput[], decisionClasses: NormalizedDecisionClassInput[], actions: NormalizedDecisionActionInput[]): NormalizedWorkflowInput {
-  return {
-    key: "primary_workflow",
-    name: example.analysis.workflow.split("->")[0]?.trim() || `${example.label} workflow`,
-    description: example.analysis.workflow,
-    position: 0,
-    stages,
-    decisionClasses,
-    actions
-  };
-}
-
-export function normalizedModelForExample(example: CompoundingExample): NormalizedExampleModel {
-  const profile: NormalizedCompanyProfileInput = {
-    name: example.analysis.companyName,
-    website: example.analysis.companyUrl,
-    industry: example.productCategory,
-    productCategory: example.productCategory,
-    productDescription: example.analysis.productDescription,
-    companyStage: example.analysis.companyStage,
-    geography: "Unknown / not assessed",
-    customerType: example.analysis.targetCustomer,
-    customerSegments: [...new Set(example.cases.map((row) => row.customerSegment))].join(", "),
-    revenueModel: example.id === "creative-agent" ? "UNKNOWN" : "UNKNOWN",
-    pricingUnit: "Unknown / not assessed",
-    businessModelNotes: example.analysis.businessModel,
-    grossMarginProfile: "Unknown / not assessed",
-    economicValueUnit: example.economicCostOfError,
-    economicsNotes: `Canonical test metadata only: ${example.economicCostOfError}.`,
-    marketContext: example.role,
-    analystThesis: example.analysis.thesis
-  };
-
-  const commonStages = [
-    stage("intake", "Intake", 0, "INTAKE", "Case or request enters the workflow."),
-    stage("evidence", "Evidence", 1, "EVIDENCE_COLLECTION", "Relevant context and evidence are assembled."),
-    stage("decision", "Decision", 2, "DECISION", "Agent, rule, or human recommends a decision."),
-    stage("human_review", "Human review", 3, "HUMAN_REVIEW", "Human reviewer approves, overrides, or escalates."),
-    stage("execution", "Action", 4, "EXECUTION", "The actual action is taken."),
-    stage("outcome", "Outcome", 5, "OUTCOME", "Reality later reveals an outcome."),
-    stage("grade", "Grade", 6, "GRADING", "The decision/action is graded where possible.")
-  ];
-
-  const commonLearning: NormalizedLearningArchitectureInput = {
-    capturesContext: "YES",
-    capturesAgentDecision: "YES",
-    capturesHumanDecision: example.analysis.capturesOverrides ?? "UNKNOWN",
-    capturesActionTaken: example.analysis.controlsAction === "Recommends only" ? "PARTIAL" : example.analysis.controlsAction ?? "UNKNOWN",
-    capturesOutcome: example.analysis.observesOutcome ?? "UNKNOWN",
-    capturesExplicitGrade: example.analysis.capturesGrades ?? "UNKNOWN",
-    outcomeCompletionMechanism: "Derived from scorebook rows when outcomes exist; otherwise analyst assumption.",
-    gradeGenerationMethod: "Synthetic canonical fixtures use illustrative grades; observed grades require future source evidence.",
-    feedbackLatencyMechanism: "Derived from decision/outcome timestamps when present.",
-    pooledAcrossCustomers: example.analysis.learnsAcrossCustomers ?? "UNKNOWN",
-    customerSpecificAdaptation: "UNKNOWN",
-    usesHumanOverridesForLearning: example.analysis.capturesOverrides ?? "UNKNOWN",
-    usesOutcomeGradesForLearning: example.analysis.capturesGrades ?? "UNKNOWN",
-    experimentationMode: example.analysis.runsControlledExperiments ?? "UNKNOWN",
-    modelUpdateCadence: example.analysis.updatesModelPolicyRegularly ?? "UNKNOWN",
-    policyUpdateCadence: example.analysis.updatesModelPolicyRegularly ?? "UNKNOWN",
-    deploymentMode: "Unknown / not assessed",
-    deploymentCadence: example.analysis.deploysImprovementsQuickly ?? "UNKNOWN",
-    humanApprovalForPolicyChanges: "UNKNOWN",
-    canRetainCases: "UNKNOWN",
-    canRetainDerivedFeatures: "UNKNOWN",
-    canTrainAcrossCustomers: example.analysis.contractualLearningRights ?? "UNKNOWN",
-    canUseForEvaluation: "UNKNOWN",
-    contractualRestrictions: example.analysis.contractualLearningRights,
-    notes: "Canonical test architecture metadata; not verified operating-company evidence."
-  };
-
-  const competitiveArchitecture: NormalizedCompetitiveArchitectureInput = {
-    rawCasesExclusive: example.analysis.dataExclusivity ?? "UNKNOWN",
-    outcomesExclusive: example.analysis.dataExclusivity ?? "UNKNOWN",
-    humanCorrectionsExclusive: example.analysis.dataExclusivity ?? "UNKNOWN",
-    crossCustomerPoolExclusive: example.analysis.dataExclusivity ?? "UNKNOWN",
-    customerCanExportData: "UNKNOWN",
-    competitorCanAccessEquivalentData: example.analysis.rebuildability ?? "UNKNOWN",
-    systemOfRecord: example.analysis.workflowEmbeddedness ?? "UNKNOWN",
-    systemOfDecision: example.analysis.ownsDecisionPoint ?? "UNKNOWN",
-    systemOfAction: example.analysis.controlsAction ?? "UNKNOWN",
-    systemOfOutcomeCapture: example.analysis.observesOutcome ?? "UNKNOWN",
-    integrationDepth: example.analysis.workflowEmbeddedness,
-    replacementComplexity: example.analysis.switchingCostsAssumption,
-    publicDataSubstitutionRisk: example.analysis.rebuildability,
-    syntheticDataSubstitutionRisk: example.id === "aaru" || example.id === "creative-agent" ? "High" : "Unknown",
-    foundationModelSubstitutionRisk: example.analysis.foundationModelDependence,
-    competitorRelearningDifficulty: example.historicalCaseDependence,
-    deterministicInfrastructureStrength: example.analysis.deterministicInfrastructure,
-    distributionAdvantage: example.analysis.distributionAdvantage,
-    regulatoryBarrierStrength: example.analysis.regulatoryContractualBarriers,
-    contractualBarrierStrength: example.analysis.regulatoryContractualBarriers,
-    notes: "Competitive architecture assumptions support Helmer interpretation but do not prove Power."
-  };
-
-  const environment: NormalizedEnvironmentInput = {
-    naturalCaseFrequency: example.caseFrequency,
-    estimatedCasesPerPeriod: null,
-    frequencyPeriod: "month",
-    typicalEconomicCostOfError: example.economicCostOfError,
-    typicalValueOfCorrectDecision: example.economicCostOfError,
-    outcomeObservability: example.analysis.observesOutcome,
-    outcomeObjectivity: example.gradeObjectivity,
-    naturalFeedbackLatencyDays: null,
-    customerHeterogeneity: example.analysis.customerCaseHeterogeneity,
-    caseHeterogeneity: example.analysis.customerCaseHeterogeneity,
-    environmentalNonstationarity: example.analysis.environmentalChangeRate,
-    regulatoryChangeRate: "Unknown / not assessed",
-    foundationModelImprovementRate: example.analysis.foundationModelImprovementRate,
-    notes: "Environment values are canonical-test assumptions unless separately sourced."
-  };
-
-  const genericActions = [
-    action("APPROVE_CLAIM", "Approve claim", "Approve or accept the requested action.", "MODERATE", true),
-    action("DENY_CLAIM", "Deny claim", "Deny or reject the requested action.", "MODERATE", true),
-    action("REQUEST_MORE_EVIDENCE", "Request more evidence", "Ask for more evidence before resolution.", "EASY", false),
-    action("ESCALATE_FOR_REVIEW", "Escalate for review", "Route to specialist or fraud review.", "EASY", true),
-    action("RECOMMEND_THEME", "Recommend theme", "Recommend a synthesized research theme.", "EASY", false),
-    action("RECOMMEND_SEGMENT", "Recommend segment", "Recommend a segment or audience interpretation.", "EASY", false),
-    action("RECOMMEND_FOLLOW_UP", "Recommend follow-up", "Ask for more research or evidence.", "EASY", false),
-    action("DEFER_CONCLUSION", "Defer conclusion", "Defer until evidence improves.", "EASY", false),
-    action("SUPPORT_THESIS", "Support thesis", "Support the proposed analytical thesis.", "EASY", false),
-    action("CHALLENGE_THESIS", "Challenge thesis", "Challenge the proposed analytical thesis.", "EASY", false),
-    action("RANK_ALTERNATIVE", "Rank alternative", "Rank candidate alternatives.", "EASY", false),
-    action("ACCEPT", "Accept", "Accept a structured operational action.", "MODERATE", false),
-    action("REJECT", "Reject", "Reject a structured operational action.", "MODERATE", false),
-    action("ROUTE_EXCEPTION", "Route exception", "Route exception for operational handling.", "EASY", true),
-    action("REQUEST_SOURCE_DOCUMENT", "Request source document", "Request source documentation.", "EASY", false),
-    action("SHIP_VARIANT", "Ship variant", "Ship creative or message variant.", "MODERATE", false),
-    action("REWRITE", "Rewrite", "Rewrite creative or message.", "EASY", false),
-    action("TEST_AGAINST_CONTROL", "Test against control", "Run a comparative creative test.", "EASY", false)
-  ];
-
-  const workflow = baseWorkflow(example, commonStages, [
-    decisionClass({
-      key: "primary_decision",
-      stageKey: "decision",
-      name: example.principalDecision.replace(/\.$/, ""),
-      description: example.canonicalQuestion,
-      decisionMakerType: example.analysis.ownsDecisionPoint === "Yes" ? "HYBRID" : "UNKNOWN",
-      decisionFrequency: example.caseFrequency,
-      estimatedCasesPerPeriod: null,
-      frequencyPeriod: "month",
-      economicStakes: example.economicCostOfError.toUpperCase().includes("HIGH") ? "HIGH" : example.economicCostOfError.toUpperCase().includes("LOW") ? "LOW" : "MEDIUM",
-      reversibility: example.id === "creative-agent" ? "MODERATE" : "UNKNOWN",
-      regulatoryRisk: example.id === "maybern" ? "HIGH" : "UNKNOWN",
-      operationalRisk: example.economicCostOfError.toUpperCase().includes("HIGH") ? "HIGH" : "UNKNOWN",
-      outcomeObservability: example.analysis.observesOutcome === "Yes" ? "HIGH" : example.analysis.observesOutcome === "No" ? "LOW" : "PARTIAL",
-      gradeObjectivity: example.gradeObjectivity.toUpperCase().includes("OBJECTIVE") || example.gradeObjectivity.toUpperCase().includes("HIGH") ? "MOSTLY_OBJECTIVE" : example.gradeObjectivity.toUpperCase().includes("LOW") || example.gradeObjectivity.toUpperCase().includes("SUBJECTIVE") ? "SUBJECTIVE" : "MIXED",
-      naturalFeedbackLatencyDays: null,
-      humanReviewMode: example.analysis.controlsAction === "Recommends only" ? "REQUIRED" : "EXCEPTION",
-      currentAutonomyMode: example.analysis.controlsAction === "Recommends only" ? "RECOMMEND_ONLY" : "HUMAN_APPROVAL",
-      actionKeys: genericActions.map((item) => item.key)
-    })
-  ], genericActions);
-
-  if (example.id === "casap") {
-    workflow.name = "Dispute resolution";
-    workflow.decisionClasses = [
-      decisionClass({ ...workflow.decisionClasses[0], key: "classify_dispute", name: "Classify dispute", description: "Classify incoming disputes by policy, evidence, and fraud signals.", economicStakes: "HIGH", outcomeObservability: "HIGH", gradeObjectivity: "MOSTLY_OBJECTIVE", humanReviewMode: "SAMPLE", currentAutonomyMode: "BOUNDED_AUTONOMY", actionKeys: ["REQUEST_MORE_EVIDENCE", "ESCALATE_FOR_REVIEW"] }),
-      decisionClass({ ...workflow.decisionClasses[0], key: "request_evidence", name: "Request evidence", description: "Decide whether more evidence is required before resolution.", economicStakes: "MEDIUM", outcomeObservability: "HIGH", gradeObjectivity: "MIXED", humanReviewMode: "SAMPLE", currentAutonomyMode: "BOUNDED_AUTONOMY", actionKeys: ["REQUEST_MORE_EVIDENCE", "APPROVE_CLAIM", "DENY_CLAIM"] }),
-      decisionClass({ ...workflow.decisionClasses[0], key: "recommend_resolution", name: "Recommend resolution", description: "Recommend approve, deny, refund, or related dispute outcome.", economicStakes: "HIGH", outcomeObservability: "HIGH", gradeObjectivity: "MOSTLY_OBJECTIVE", humanReviewMode: "EXCEPTION", currentAutonomyMode: "HUMAN_APPROVAL", actionKeys: ["APPROVE_CLAIM", "DENY_CLAIM", "REQUEST_MORE_EVIDENCE"] }),
-      decisionClass({ ...workflow.decisionClasses[0], key: "fraud_escalation", name: "Escalate suspected fraud", description: "Escalate suspicious or high-risk cases for fraud review.", economicStakes: "VERY_HIGH", outcomeObservability: "PARTIAL", gradeObjectivity: "MOSTLY_OBJECTIVE", humanReviewMode: "REQUIRED", currentAutonomyMode: "RECOMMEND_ONLY", actionKeys: ["ESCALATE_FOR_REVIEW", "REQUEST_MORE_EVIDENCE"] })
-    ];
-  }
-
-  return {
-    profile,
-    workflow,
-    environment,
-    learningArchitecture: commonLearning,
-    competitiveArchitecture,
-    evidence: [
-      {
-        entityType: "company_profile",
-        entityKey: "profile",
-        fieldKey: "name",
-        evidenceType: example.id === "creative-agent" ? "SYNTHETIC_ASSUMPTION" : "PUBLIC_SOURCE",
-        epistemicStatus: example.id === "creative-agent" ? "ASSUMED" : "UNKNOWN",
-        valueSnapshot: example.companyName,
-        sourceLabel: example.id === "creative-agent" ? "Synthetic archetype" : "Public-company archetype; source verification pending",
-        confidence: example.id === "creative-agent" ? "HIGH" : "LOW"
-      },
-      {
-        entityType: "case_set",
-        entityKey: "canonical_case_set",
-        fieldKey: "provenanceLabel",
-        evidenceType: "SYNTHETIC_ASSUMPTION",
-        epistemicStatus: "ASSUMED",
-        valueSnapshot: example.syntheticDatasetLabel,
-        sourceLabel: example.syntheticDatasetLabel,
-        confidence: "HIGH"
-      },
-      {
-        entityType: "environment",
-        entityKey: "environment",
-        fieldKey: "naturalCaseFrequency",
-        evidenceType: "SYNTHETIC_ASSUMPTION",
-        epistemicStatus: "ASSUMED",
-        valueSnapshot: example.caseFrequency,
-        sourceLabel: "Canonical test metadata; not measured company data",
-        confidence: "MEDIUM"
-      },
-      {
-        entityType: "decision_class",
-        entityKey: "primary_decision",
-        fieldKey: "gradeObjectivity",
-        evidenceType: "SYNTHETIC_ASSUMPTION",
-        epistemicStatus: "ASSUMED",
-        valueSnapshot: example.gradeObjectivity,
-        sourceLabel: "Canonical test metadata; not measured company data",
-        confidence: "MEDIUM"
-      }
-    ]
-  };
-}
-
-export function decisionClassKeyForCase(example: CompoundingExample, row: ScorebookCaseInput) {
-  if (example.id === "casap") {
-    const type = row.caseType.toLowerCase();
-    if (type.includes("evidence")) return "request_evidence";
-    if (type.includes("fraud")) return "fraud_escalation";
-    if (type.includes("appeal") || type.includes("exception")) return "classify_dispute";
-    return "recommend_resolution";
-  }
-  return "primary_decision";
-}
-
-const CASAP_PUBLIC_SOURCE_LABEL = "PUBLIC SOURCES - NO PRODUCTION CASE DATA";
-
-function casapPublicEvidence(
-  entityType: string,
-  fieldKey: string,
-  valueSnapshot: string,
-  sourceLabel: string,
-  sourceUrl: string,
-  confidence: CompoundingFieldConfidence,
-  analystNotes: string,
-  observedAt?: string | null,
-  entityKey?: string
-): NormalizedEvidenceInput {
-  return {
-    entityType,
-    entityKey,
-    fieldKey,
-    evidenceType: "PUBLIC_SOURCE",
-    epistemicStatus: "SOURCED",
-    valueSnapshot,
-    sourceLabel,
-    sourceUrl,
-    confidence,
-    observedAt: observedAt ?? null,
-    derivationMethod: "Public-source evidence record for the Casap Public Evidence Analysis. Treat as sourced context for diligence, not production case-level evidence.",
-    analystNotes
-  };
-}
-
-type CasapSimulationPattern = {
-  decisionClassKey: "fraud_likelihood" | "dispute_next_action" | "chargeback_likelihood_evidence";
-  caseType: string;
-  customerSegment: string;
-  actionTaken: string;
-  baseDifficulty: number;
-};
-
-const CASAP_SIMULATION_CUSTOMERS = ["Credit Union A", "Credit Union B", "Credit Union C", "Credit Union D", "Credit Union E"];
-const CASAP_SIMULATION_CASE_TYPES = [
-  "card-not-present fraud",
-  "card-present unauthorized transaction",
-  "merchant dispute",
-  "duplicate charge",
-  "service not received",
-  "ACH dispute",
-  "recurring-subscription dispute",
-  "account takeover / suspicious transaction",
-  "edge/ambiguous dispute"
-];
-const CASAP_SIMULATION_ACTIONS = [
-  "Continue investigation",
-  "Request additional information",
-  "Issue/progress provisional credit where appropriate",
-  "Prepare/file chargeback",
-  "Escalate for human review",
-  "Optimize evidence"
-];
-const CASAP_SIMULATION_CASE_SUBTYPES = [
-  "missing receipt",
-  "merchant descriptor mismatch",
-  "late network response",
-  "consumer documentation gap",
-  "repeat merchant",
-  "cross-channel claim",
-  "policy exception",
-  "high-value exposure"
-];
-
-function deterministicFraction(seed: number) {
-  const raw = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
-  return raw - Math.floor(raw);
-}
-
-function weightedChoice<T>(items: Array<{ value: T; weight: number }>, seed: number): T {
-  const total = items.reduce((sum, item) => sum + item.weight, 0);
-  let cursor = deterministicFraction(seed) * total;
-  for (const item of items) {
-    cursor -= item.weight;
-    if (cursor <= 0) return item.value;
-  }
-  return items[items.length - 1].value;
-}
-
-function actionForDecisionClass(decisionClassKey: CasapSimulationPattern["decisionClassKey"], seed: number) {
-  if (decisionClassKey === "fraud_likelihood") {
-    return weightedChoice([
-      { value: "Continue investigation", weight: 36 },
-      { value: "Request additional information", weight: 28 },
-      { value: "Escalate for human review", weight: 36 }
-    ], seed);
-  }
-  if (decisionClassKey === "chargeback_likelihood_evidence") {
-    return weightedChoice([
-      { value: "Prepare/file chargeback", weight: 50 },
-      { value: "Optimize evidence", weight: 30 },
-      { value: "Escalate for human review", weight: 20 }
-    ], seed);
-  }
-  return weightedChoice([
-    { value: "Continue investigation", weight: 19 },
-    { value: "Request additional information", weight: 21 },
-    { value: "Issue/progress provisional credit where appropriate", weight: 24 },
-    { value: "Prepare/file chargeback", weight: 23 },
-    { value: "Escalate for human review", weight: 13 }
-  ], seed);
-}
-
-function decisionClassForCaseType(caseType: string, seed: number): CasapSimulationPattern["decisionClassKey"] {
-  if (/fraud|takeover|suspicious/i.test(caseType)) return "fraud_likelihood";
-  if (/merchant|service|duplicate|subscription/i.test(caseType)) {
-    return deterministicFraction(seed) > 0.42 ? "chargeback_likelihood_evidence" : "dispute_next_action";
-  }
-  return deterministicFraction(seed) > 0.36 ? "dispute_next_action" : "fraud_likelihood";
-}
-
-function casapSimulationPattern(seed: number): CasapSimulationPattern {
-  const baseCaseType = weightedChoice(CASAP_SIMULATION_CASE_TYPES.map((value, index) => ({
-    value,
-    weight: [20, 14, 15, 12, 11, 9, 8, 7, 4][index]
-  })), seed + 11);
-  const caseType = deterministicFraction(seed + 17) < 0.42
-    ? `${baseCaseType} / ${CASAP_SIMULATION_CASE_SUBTYPES[Math.floor(deterministicFraction(seed + 19) * CASAP_SIMULATION_CASE_SUBTYPES.length)]}`
-    : baseCaseType;
-  const customerSegment = weightedChoice(CASAP_SIMULATION_CUSTOMERS.map((value, index) => ({
-    value,
-    weight: [28, 23, 19, 17, 13][index]
-  })), seed + 23);
-  const decisionClassKey = decisionClassForCaseType(caseType, seed + 31);
-  const actionTaken = actionForDecisionClass(decisionClassKey, seed + 47);
-  const baseDifficulty = (/edge|ambiguous|takeover|ACH/i.test(caseType) ? 0.38 : 0.18)
-    + (customerSegment.endsWith("D") || customerSegment.endsWith("E") ? 0.05 : 0)
-    + (actionTaken === "Escalate for human review" ? 0.12 : 0)
-    + deterministicFraction(seed + 59) * 0.12;
-  return { decisionClassKey, caseType, customerSegment, actionTaken, baseDifficulty };
-}
-
-function casapSimulationContext(pattern: CasapSimulationPattern) {
-  const question = pattern.decisionClassKey === "fraud_likelihood"
-    ? "fraud likelihood / first-party fraud assessment"
-    : pattern.decisionClassKey === "chargeback_likelihood_evidence"
-      ? "chargeback likelihood / evidence strategy"
-      : "dispute next action";
-  return `${pattern.customerSegment} ${pattern.caseType} case for ${question}.`;
-}
-
-function casapSimulationGrade({
-  pattern,
-  isEdgeCase,
-  humanOverride,
-  agentConfidence,
-  seed
-}: {
-  pattern: CasapSimulationPattern;
-  isEdgeCase: boolean;
-  humanOverride: boolean;
-  agentConfidence: number;
-  seed: number;
-}): CompoundingCaseGrade {
-  const random = deterministicFraction(seed);
-  const difficulty = pattern.baseDifficulty + (isEdgeCase ? 0.2 : 0) + (agentConfidence < 0.62 ? 0.13 : 0) - (humanOverride ? 0.08 : 0);
-  const incorrectThreshold = Math.min(0.38, Math.max(0.05, difficulty * 0.42));
-  const partialThreshold = Math.min(0.74, incorrectThreshold + difficulty * 0.72);
-  if (random < incorrectThreshold) return "INCORRECT";
-  if (random < partialThreshold) return "PARTIALLY_CORRECT";
-  return "CORRECT";
-}
-
-function casapSimulationOutcome(pattern: CasapSimulationPattern, grade: CompoundingCaseGrade, seed: number) {
-  if (grade === "UNRESOLVED") return null;
-  const base = /takeover|ACH|fraud/i.test(pattern.caseType) ? 2300 : /merchant|service/i.test(pattern.caseType) ? 1400 : 780;
-  const multiplier = grade === "CORRECT" ? 1 : grade === "PARTIALLY_CORRECT" ? 0.48 : -0.62;
-  return round((base + deterministicFraction(seed) * base * 0.7) * multiplier, 2);
-}
-
-let casapPublicSimulationCaseCache: ScorebookCaseInput[] | null = null;
-
-function cloneScorebookCase(row: ScorebookCaseInput): ScorebookCaseInput {
-  return {
-    ...row,
-    decisionAt: row.decisionAt ? new Date(row.decisionAt) : row.decisionAt,
-    actionAt: row.actionAt ? new Date(row.actionAt) : row.actionAt,
-    outcomeAt: row.outcomeAt ? new Date(row.outcomeAt) : row.outcomeAt
-  };
-}
-
-export function buildCasapPublicSimulationCases(): ScorebookCaseInput[] {
-  if (casapPublicSimulationCaseCache) return casapPublicSimulationCaseCache.map(cloneScorebookCase);
-
-  const cohortNewCounts = [44, 38, 31, 24, 16];
-  const cohortSize = 60;
-  const patternPool: CasapSimulationPattern[] = [];
-  const cases: ScorebookCaseInput[] = [];
-  for (let cohort = 0; cohort < 5; cohort++) {
-    const newPatterns = Array.from({ length: cohortNewCounts[cohort] }, (_, index) => casapSimulationPattern((cohort + 1) * 1000 + index * 37));
-    patternPool.push(...newPatterns);
-    for (let offset = 0; offset < cohortSize; offset++) {
-      const globalIndex = cohort * cohortSize + offset;
-      const useNewPattern = offset < newPatterns.length;
-      const pattern = useNewPattern
-        ? newPatterns[offset]
-        : patternPool[Math.floor(deterministicFraction(globalIndex + 701) * patternPool.length)] ?? newPatterns[0];
-      const rareLateNovelty = cohort >= 3 && offset === cohortSize - 1;
-      const resolvedPattern = rareLateNovelty
-        ? {
-            ...casapSimulationPattern(9000 + cohort),
-            caseType: cohort === 3 ? "emerging wallet-token dispute" : "new merchant descriptor mismatch",
-            baseDifficulty: 0.48
-          }
-        : pattern;
-      const dayOffset = globalIndex;
-      const decisionAt = new Date(Date.UTC(2026, 0, 1 + dayOffset, 14, 0, 0));
-      const actionDelayDays = deterministicFraction(globalIndex + 5) > 0.75 ? 2 : deterministicFraction(globalIndex + 7) > 0.45 ? 1 : 0;
-      const actionAt = new Date(decisionAt.getTime() + actionDelayDays * 24 * 60 * 60 * 1000);
-      const isEdgeCase = /edge|ambiguous|takeover|emerging|descriptor/i.test(resolvedPattern.caseType)
-        || deterministicFraction(globalIndex + 13) < 0.12 + resolvedPattern.baseDifficulty * 0.12;
-      const agentConfidence = round(Math.max(0.32, Math.min(0.97, 0.91 - resolvedPattern.baseDifficulty * 0.65 - (isEdgeCase ? 0.13 : 0) + deterministicFraction(globalIndex + 17) * 0.18)), 2);
-      const humanOverride = deterministicFraction(globalIndex + 19) < (isEdgeCase ? 0.46 : 0.11) + (agentConfidence < 0.62 ? 0.22 : 0);
-      const grade = deterministicFraction(globalIndex + 29) < 0.05 ? "UNRESOLVED" : casapSimulationGrade({ pattern: resolvedPattern, isEdgeCase, humanOverride, agentConfidence, seed: globalIndex + 31 });
-      const feedbackDays = grade === "UNRESOLVED"
-        ? null
-        : Math.round(4 + resolvedPattern.baseDifficulty * 28 + deterministicFraction(globalIndex + 41) * 18 + (isEdgeCase ? 8 : 0));
-      const outcomeAt = feedbackDays === null ? null : new Date(decisionAt.getTime() + feedbackDays * 24 * 60 * 60 * 1000);
-      const outcomeValue = casapSimulationOutcome(resolvedPattern, grade, globalIndex + 43);
-      const finalAction = humanOverride
-        ? weightedChoice(CASAP_SIMULATION_ACTIONS.map((value, index) => ({ value, weight: [12, 18, 18, 20, 24, 8][index] })), globalIndex + 53)
-        : resolvedPattern.actionTaken;
-      cases.push({
-        decisionClassId: resolvedPattern.decisionClassKey,
-        externalCaseId: `casap-public-sim-${String(globalIndex + 1).padStart(3, "0")}`,
-        customerSegment: resolvedPattern.customerSegment,
-        caseType: resolvedPattern.caseType,
-        context: casapSimulationContext(resolvedPattern),
-        agentDecision: resolvedPattern.actionTaken,
-        agentConfidence,
-        humanDecision: humanOverride ? finalAction : null,
-        humanOverride,
-        actionTaken: finalAction,
-        outcome: grade === "UNRESOLVED"
-          ? null
-          : grade === "CORRECT"
-            ? "Synthetic favorable dispute/fraud outcome"
-            : grade === "PARTIALLY_CORRECT"
-              ? "Synthetic partially favorable outcome with remediation"
-              : "Synthetic unfavorable outcome / preventable loss",
-        outcomeValue,
-        grade,
-        gradeConfidence: grade === "UNRESOLVED" ? null : round(Math.max(0.42, Math.min(0.95, 0.84 - (isEdgeCase ? 0.15 : 0) + deterministicFraction(globalIndex + 61) * 0.11)), 2),
-        decisionAt,
-        actionAt,
-        outcomeAt,
-        isEdgeCase,
-        isSynthetic: true,
-        sourceLabel: CASAP_PUBLIC_SIMULATION_SOURCE_LABEL,
-        sourceRecordId: `casap-public-simulation-v0.1:${globalIndex + 1}`,
-        sourceRecordType: resolvedPattern.decisionClassKey,
-        sourceRecordRoute: "/compounding-expertise/scorebook#information-structure",
-        notes: `SYNTHETIC SIMULATION VALUE. Pattern generated for ${resolvedPattern.decisionClassKey}.`
-      });
-    }
-  }
-  casapPublicSimulationCaseCache = cases;
-  return casapPublicSimulationCaseCache.map(cloneScorebookCase);
-}
-
-export const CASAP_PUBLIC_EVIDENCE_ANALYSIS: PublicEvidenceAnalysisFixture = {
-  id: "casap-public-2026-09",
-  label: "Casap â€” Public Evidence Analysis â€” Sep 2026",
-  publicSourceLabel: CASAP_PUBLIC_SOURCE_LABEL,
-  analysis: {
-    companyName: "Casap â€” Public Evidence Analysis â€” Sep 2026",
-    companyUrl: "https://www.casaphq.com/",
-    productCategory: "Agentic AI / dispute management / fraud operations / payment operations",
-    productDescription: "Casap provides AI agents and dispute-management software for financial institutions. Public materials describe automation across dispute and fraud workflows, including intake, investigation/evidence analysis, provisional-credit-related actions, fraud scoring, outcome prediction, chargeback filing/tracking, and consumer communication.",
-    targetCustomer: "Banks, credit unions, and fintechs.",
-    businessModel: "UNKNOWN / DILIGENCE REQUIRED",
-    workflow: "Dispute intake -> evidence / transaction-data collection -> fraud / dispute assessment -> resolution / provisional-credit / investigation decision -> chargeback preparation / filing -> merchant / network response tracking -> outcome / resolution.",
-    decisionDescription: "Public materials support fraud likelihood assessment, dispute next-action recommendations, and chargeback likelihood/evidence strategy. They do not establish internal thresholds, autonomous-action shares, or grade/update mechanics.",
-    actionSpace: "Continue investigation, request additional information, issue or progress provisional credit where appropriate, prepare/file chargeback, escalate for human review.",
-    companyStage: "Series A",
-    thesis: "Public evidence supports a structurally favorable dispute/fraud workflow, but no public production CaseSet establishes learning causality, cross-customer transfer, learning rights, or durable Compounding Expertise Power.",
-    economicCostWrongDecision: "High / sourced structural inference",
-    outcomeObjectivity: "Partial / structurally plausible",
-    naturalFeedbackTime: "UNKNOWN / DILIGENCE REQUIRED",
-    caseFrequency: "UNKNOWN / DILIGENCE REQUIRED",
-    customerCaseHeterogeneity: "UNKNOWN / DILIGENCE REQUIRED",
-    environmentalChangeRate: "UNKNOWN / DILIGENCE REQUIRED",
-    foundationModelImprovementRate: "UNKNOWN / DILIGENCE REQUIRED",
-    ownsDecisionPoint: "PARTIAL / SOURCED",
-    controlsAction: "UNKNOWN / DILIGENCE REQUIRED",
-    observesOutcome: "PARTIAL / SOURCED",
-    capturesOverrides: "UNKNOWN / DILIGENCE REQUIRED",
-    capturesGrades: "UNKNOWN / DILIGENCE REQUIRED",
-    learnsAcrossCustomers: "UNKNOWN / DILIGENCE REQUIRED",
-    contractualLearningRights: "UNKNOWN / DILIGENCE REQUIRED",
-    runsControlledExperiments: "UNKNOWN / DILIGENCE REQUIRED",
-    updatesModelPolicyRegularly: "UNKNOWN / DILIGENCE REQUIRED",
-    deploysImprovementsQuickly: "UNKNOWN / DILIGENCE REQUIRED",
-    dataExclusivity: "UNKNOWN / DILIGENCE REQUIRED",
-    workflowEmbeddedness: "PARTIAL / SOURCED",
-    switchingCostsAssumption: "UNKNOWN / DILIGENCE REQUIRED",
-    rebuildability: "UNKNOWN / DILIGENCE REQUIRED",
-    foundationModelDependence: "UNKNOWN / DILIGENCE REQUIRED",
-    deterministicInfrastructure: "PARTIAL / SOURCED",
-    distributionAdvantage: "UNKNOWN / DILIGENCE REQUIRED",
-    regulatoryContractualBarriers: "PARTIAL / SOURCED"
-  },
-  debates: [
-    {
-      question: "Do accumulated grades actually improve future Casap decisions?",
-      bullCase: "Public product materials and company claims describe AI-powered decisioning and improvement, but this is not direct empirical proof.",
-      bearCase: "No public source shows grade-to-update mechanics, update cadence, deployment cadence, or before/after performance experiments.",
-      evidenceNeeded: "Model/policy update records tied to graded outcomes and performance before/after incorporating those grades.",
-      increaseBelief: "A sourced before/after or treatment comparison shows improved dispute/fraud decisions after grade-driven updates.",
-      decreaseBelief: "Outcomes are used only for reporting, compliance, or workflow tracking rather than model/policy improvement.",
-      probability: 50,
-      source: "USER"
-    },
-    {
-      question: "Does experience from one Casap customer improve decisions for another?",
-      bullCase: "The product serves a repeated dispute/fraud workflow across financial institutions, so transfer is plausible.",
-      bearCase: "Public evidence does not include pooled-vs-local tests, held-out customer results, or contractual proof of cross-customer training rights.",
-      evidenceNeeded: "Held-out customer comparison of customer-only history versus pooled cross-customer experience.",
-      increaseBelief: "Pooled cross-customer experience improves held-out customer decisions beyond local history.",
-      decreaseBelief: "Customer-specific policies outperform pooled learning or cross-customer training is contractually unavailable.",
-      probability: 50,
-      source: "USER"
-    },
-    {
-      question: "Can Casap legally and operationally retain and exploit customer experience?",
-      bullCase: "The public privacy policy permits product improvement and aggregated analytics in some contexts.",
-      bearCase: "The same policy says third-party personal data is processed on behalf of customers and according to their instructions; this does not establish cross-customer model-training rights.",
-      evidenceNeeded: "Customer contracts and data-governance terms covering retention, derived features, evaluation, and cross-customer training.",
-      increaseBelief: "Contracts explicitly allow retention, derived-feature creation, evaluation reuse, and cross-customer training.",
-      decreaseBelief: "Contracts restrict retention, pooling, model training, or evaluation reuse.",
-      probability: 50,
-      source: "USER"
-    },
-    {
-      question: "Could a capable challenger compress, infer, simulate, or relearn Casap's useful scorebook knowledge?",
-      bullCase: "Dispute and fraud operations may require workflow context, network rules, customer history, and regulatory expertise.",
-      bearCase: "Public sources do not include challenger benchmarks, replacement-performance gaps, or tests against frontier-model plus calibration data.",
-      evidenceNeeded: "Incumbent-vs-challenger benchmark after policy docs, public data, synthetic cases, and limited calibration.",
-      increaseBelief: "A challenger remains materially behind after access to policy docs, public data, and limited calibration.",
-      decreaseBelief: "A challenger reaches similar performance with compressed rules, synthetic examples, or short relearning.",
-      probability: 50,
-      source: "USER"
-    },
-    {
-      question: "Does improved dispute/fraud decision quality create enough economic value to matter?",
-      bullCase: "Public customer stories and Filene evaluation report meaningful operational savings, lower writeoffs, faster resolution, and lower dispute costs.",
-      bearCase: "Customer results are aggregated and do not isolate model-learning causality or per-decision economic contribution.",
-      evidenceNeeded: "Case-level or cohort-level economic outcomes tied to decisions, actions, outcomes, and grades.",
-      increaseBelief: "Economic outcome values show meaningful gains from better decisions after controlling for non-CE workflow improvements.",
-      decreaseBelief: "Savings are driven by workflow automation alone or are not linked to decision quality.",
-      probability: 50,
-      source: "USER"
-    }
-  ],
-  scenarios: DEFAULT_SCENARIOS,
-  normalized: {
-    profile: {
-      name: "Casap Technologies",
-      website: "https://www.casaphq.com/",
-      industry: "Financial services operations / fraud and disputes",
-      productCategory: "Agentic AI / dispute management / fraud operations / payment operations",
-      productDescription: "AI agents and dispute-management software for banks, credit unions, and fintechs.",
-      companyStage: "Series A",
-      geography: "UNKNOWN / DILIGENCE REQUIRED",
-      customerType: "Banks, credit unions, and fintechs",
-      customerSegments: "Financial institutions; exact segment mix UNKNOWN / DILIGENCE REQUIRED",
-      revenueModel: "UNKNOWN",
-      pricingUnit: "UNKNOWN / DILIGENCE REQUIRED",
-      businessModelNotes: "Public sources reviewed here do not establish revenue, valuation, gross margin, customer count, or transaction/case volume.",
-      grossMarginProfile: "UNKNOWN / DILIGENCE REQUIRED",
-      economicValueUnit: "Fraud losses, dispute processing cost, writeoffs, resolution time, chargeback win rate",
-      economicsNotes: "Aggregate public customer metrics are evidence records, not production case-level CE rows.",
-      marketContext: "Dispute and fraud operations for regulated financial institutions.",
-      analystThesis: "Structurally plausible Compounding Expertise environment; durable CE remains unproven from public evidence alone."
-    },
-    workflow: {
-      key: "casap_public_dispute_workflow",
-      name: "Publicly described dispute and fraud workflow",
-      description: "Public materials support a workflow from dispute intake through evidence collection, fraud/dispute assessment, resolution/provisional-credit decisions, chargeback preparation/filing, merchant/network response tracking, and outcome/resolution. This is a public-source model, not a claim about every customer deployment.",
-      position: 0,
-      stages: [
-        stage("intake", "Dispute intake", 0, "INTAKE", "Dispute or fraud claim enters the workflow."),
-        stage("evidence", "Evidence / transaction-data collection", 1, "EVIDENCE_COLLECTION", "Relevant transaction data, evidence, and member/customer context are assembled."),
-        stage("assessment", "Fraud / dispute assessment", 2, "CLASSIFICATION", "Fraud likelihood, dispute attributes, and evidence sufficiency are assessed."),
-        stage("resolution", "Resolution / investigation decision", 3, "DECISION", "The next action is selected, potentially including provisional-credit-related steps where appropriate."),
-        stage("chargeback", "Chargeback preparation / filing", 4, "EXECUTION", "Chargeback evidence is prepared, filed, or tracked where applicable."),
-        stage("response_tracking", "Merchant / network response tracking", 5, "OUTCOME", "Merchant, network, or processor responses are tracked."),
-        stage("outcome", "Outcome / resolution", 6, "OUTCOME", "The dispute or fraud claim resolves.")
-      ],
-      actions: [
-        action("CONTINUE_INVESTIGATION", "Continue investigation", "Continue investigating the dispute or fraud claim.", "UNKNOWN", true),
-        action("REQUEST_ADDITIONAL_INFORMATION", "Request additional information", "Ask the consumer/member or other source for more information.", "EASY", false),
-        action("PROGRESS_PROVISIONAL_CREDIT", "Issue/progress provisional credit where appropriate", "Proceed with provisional-credit-related action where policy and regulation allow.", "MODERATE", true),
-        action("PREPARE_FILE_CHARGEBACK", "Prepare/file chargeback", "Prepare, file, or progress a chargeback package.", "DIFFICULT", true),
-        action("ESCALATE_HUMAN_REVIEW", "Escalate for human review", "Escalate the case to a human specialist or reviewer.", "EASY", true),
-        action("OPTIMIZE_EVIDENCE", "Optimize evidence", "Select or optimize evidence for chargeback strategy.", "UNKNOWN", true)
-      ],
-      decisionClasses: [
-        decisionClass({
-          key: "fraud_likelihood",
-          stageKey: "assessment",
-          name: "Fraud likelihood / first-party fraud assessment",
-          description: "Question: How likely is this claim to represent first-party or other fraud? Public basis: Casap describes a proprietary first-party-fraud score.",
-          decisionMakerType: "HYBRID",
-          decisionFrequency: "UNKNOWN / DILIGENCE REQUIRED",
-          estimatedCasesPerPeriod: null,
-          frequencyPeriod: null,
-          economicStakes: "HIGH",
-          reversibility: "UNKNOWN",
-          regulatoryRisk: "HIGH",
-          operationalRisk: "HIGH",
-          outcomeObservability: "PARTIAL",
-          gradeObjectivity: "MIXED",
-          naturalFeedbackLatencyDays: null,
-          humanReviewMode: "UNKNOWN",
-          currentAutonomyMode: "UNKNOWN",
-          actionKeys: ["CONTINUE_INVESTIGATION", "REQUEST_ADDITIONAL_INFORMATION", "ESCALATE_HUMAN_REVIEW"]
-        }),
-        decisionClass({
-          key: "dispute_next_action",
-          stageKey: "resolution",
-          name: "Dispute next action",
-          description: "Question: What action should be taken next on this dispute? Public basis: Casap describes automated dispute lifecycle steps, but not internal thresholds or autonomous-action rates.",
-          decisionMakerType: "HYBRID",
-          decisionFrequency: "UNKNOWN / DILIGENCE REQUIRED",
-          estimatedCasesPerPeriod: null,
-          frequencyPeriod: null,
-          economicStakes: "HIGH",
-          reversibility: "UNKNOWN",
-          regulatoryRisk: "HIGH",
-          operationalRisk: "HIGH",
-          outcomeObservability: "PARTIAL",
-          gradeObjectivity: "MIXED",
-          naturalFeedbackLatencyDays: null,
-          humanReviewMode: "UNKNOWN",
-          currentAutonomyMode: "UNKNOWN",
-          actionKeys: ["CONTINUE_INVESTIGATION", "REQUEST_ADDITIONAL_INFORMATION", "PROGRESS_PROVISIONAL_CREDIT", "PREPARE_FILE_CHARGEBACK", "ESCALATE_HUMAN_REVIEW"]
-        }),
-        decisionClass({
-          key: "chargeback_likelihood_evidence",
-          stageKey: "chargeback",
-          name: "Chargeback likelihood / evidence strategy",
-          description: "Question: How likely is a chargeback to succeed and what evidence should support it? Public basis: Casap describes win-score prediction and optimized evidence.",
-          decisionMakerType: "HYBRID",
-          decisionFrequency: "UNKNOWN / DILIGENCE REQUIRED",
-          estimatedCasesPerPeriod: null,
-          frequencyPeriod: null,
-          economicStakes: "HIGH",
-          reversibility: "DIFFICULT",
-          regulatoryRisk: "HIGH",
-          operationalRisk: "HIGH",
-          outcomeObservability: "PARTIAL",
-          gradeObjectivity: "MIXED",
-          naturalFeedbackLatencyDays: null,
-          humanReviewMode: "UNKNOWN",
-          currentAutonomyMode: "UNKNOWN",
-          actionKeys: ["PREPARE_FILE_CHARGEBACK", "OPTIMIZE_EVIDENCE", "ESCALATE_HUMAN_REVIEW"]
-        })
-      ]
-    },
-    environment: {
-      naturalCaseFrequency: "UNKNOWN / DILIGENCE REQUIRED",
-      estimatedCasesPerPeriod: null,
-      frequencyPeriod: null,
-      typicalEconomicCostOfError: "High / sourced structural inference",
-      typicalValueOfCorrectDecision: "Customer stories report material savings/loss reduction, but not case-level value.",
-      outcomeObservability: "PARTIAL / SOURCED",
-      outcomeObjectivity: "PARTIAL / STRUCTURALLY PLAUSIBLE",
-      naturalFeedbackLatencyDays: null,
-      customerHeterogeneity: "UNKNOWN / DILIGENCE REQUIRED",
-      caseHeterogeneity: "UNKNOWN / DILIGENCE REQUIRED",
-      environmentalNonstationarity: "UNKNOWN / DILIGENCE REQUIRED",
-      regulatoryChangeRate: "UNKNOWN / DILIGENCE REQUIRED",
-      foundationModelImprovementRate: "UNKNOWN / DILIGENCE REQUIRED",
-      notes: "Public evidence supports a favorable repeated operational problem, but does not provide production case frequency, grade completeness, or case-level feedback latency."
-    },
-    learningArchitecture: {
-      capturesContext: "PARTIAL / SOURCED",
-      capturesAgentDecision: "PARTIAL / SOURCED",
-      capturesHumanDecision: "UNKNOWN",
-      capturesActionTaken: "PARTIAL / SOURCED",
-      capturesOutcome: "PARTIAL / SOURCED",
-      capturesExplicitGrade: "UNKNOWN",
-      outcomeCompletionMechanism: "Public sources describe tracking chargeback/dispute outcomes, but not case-level outcome completeness.",
-      gradeGenerationMethod: "UNKNOWN / DILIGENCE REQUIRED",
-      feedbackLatencyMechanism: "UNKNOWN / DILIGENCE REQUIRED",
-      pooledAcrossCustomers: "UNKNOWN",
-      customerSpecificAdaptation: "UNKNOWN",
-      usesHumanOverridesForLearning: "UNKNOWN",
-      usesOutcomeGradesForLearning: "UNKNOWN",
-      experimentationMode: "UNKNOWN",
-      modelUpdateCadence: "UNKNOWN",
-      policyUpdateCadence: "UNKNOWN",
-      deploymentMode: "UNKNOWN",
-      deploymentCadence: "UNKNOWN",
-      humanApprovalForPolicyChanges: "UNKNOWN",
-      canRetainCases: "UNKNOWN",
-      canRetainDerivedFeatures: "UNKNOWN",
-      canTrainAcrossCustomers: "UNKNOWN",
-      canUseForEvaluation: "UNKNOWN",
-      contractualRestrictions: "Privacy policy is relevant but insufficient to establish cross-customer model-training rights.",
-      notes: "No public production CaseSet, grade-to-update loop, cross-customer pooling right, or deployment cadence is established."
-    },
-    competitiveArchitecture: {
-      rawCasesExclusive: "UNKNOWN",
-      outcomesExclusive: "UNKNOWN",
-      humanCorrectionsExclusive: "UNKNOWN",
-      crossCustomerPoolExclusive: "UNKNOWN",
-      customerCanExportData: "UNKNOWN",
-      competitorCanAccessEquivalentData: "UNKNOWN",
-      systemOfRecord: "PARTIAL / SOURCED",
-      systemOfDecision: "PARTIAL / SOURCED",
-      systemOfAction: "UNKNOWN",
-      systemOfOutcomeCapture: "PARTIAL / SOURCED",
-      integrationDepth: "PARTIAL / SOURCED",
-      replacementComplexity: "UNKNOWN / DILIGENCE REQUIRED",
-      publicDataSubstitutionRisk: "UNKNOWN",
-      syntheticDataSubstitutionRisk: "UNKNOWN",
-      foundationModelSubstitutionRisk: "UNKNOWN",
-      competitorRelearningDifficulty: "UNKNOWN",
-      deterministicInfrastructureStrength: "PARTIAL / SOURCED",
-      distributionAdvantage: "UNKNOWN",
-      regulatoryBarrierStrength: "PARTIAL / SOURCED",
-      contractualBarrierStrength: "UNKNOWN",
-      notes: "Public evidence supports workflow and regulatory context. It does not prove data exclusivity, challenger difficulty, or a Cornered Resource."
-    },
-    evidence: [
-      casapPublicEvidence(
-        "company_profile",
-        "product_workflow",
-        "Purpose-built AI agents and dispute-management software for banks, credit unions, and fintechs; public materials describe dispute model/API, win-score prediction, fraud functionality, and built-in Reg E, Reg Z, Nacha, and card-network expertise.",
-        "Casap homepage / product materials",
-        "https://www.casaphq.com/",
-        "MEDIUM",
-        "Supports workflow position and operational decisioning capability. Does not establish learning causality, cross-customer transfer, grade completeness, or durable Power.",
-        null,
-        "profile"
-      ),
-      casapPublicEvidence(
-        "company_profile",
-        "funding_stage_product_strategy",
-        "$25M Series A announced August 7, 2025; $33.5M total funding; AI agents analyze evidence, predict outcomes, and automate lifecycle from intake to chargeback filing; proprietary first-party fraud score; company-reported customer results.",
-        "Casap Raises $25M Series A",
-        "https://www.casaphq.com/articles/casap-raises-25m-series-a",
-        "MEDIUM",
-        "Strong evidence for product architecture and company strategy. Customer-performance claims remain company-reported unless independently validated.",
-        "2025-08-07",
-        "profile"
-      ),
-      casapPublicEvidence(
-        "company_profile",
-        "chartway_customer_results",
-        "Company-published customer story reports estimated $875K annual savings, resolution time improved from 90 days to 12 days, 95% chargeback win rate, writeoffs down 72%, costs down 85%, and monthly capacity from 1,200 to 4,000 transactions.",
-        "Casap Chartway customer story",
-        "https://www.casaphq.com/articles/how-chartway-cut-dispute-costs-by-85-with-casap",
-        "MEDIUM",
-        "Supports economic materiality, workflow embeddedness, and operational performance at one named customer. Does not establish causal learning from accumulated cases, cross-customer transfer, or durability.",
-        "2026-02-12"
-      ),
-      casapPublicEvidence(
-        "company_profile",
-        "midsouth_customer_results",
-        "Company-published customer story reports fraud loss reduced 51%, cost per dispute reduced 90%+ from $37, chargeback floor reduced 85%, real-time merchant-response/chargeback tracking, and Visa transaction metadata used in fraud investigation.",
-        "Casap MidSouth customer story",
-        "https://www.casaphq.com/articles/how-midsouth-cut-fraud-loss-in-half-with-casap",
-        "MEDIUM",
-        "Supports economic materiality and operational workflow value at another customer. Not evidence of cross-customer learning, scorebook causality, or durable CE.",
-        "2025-03-10"
-      ),
-      casapPublicEvidence(
-        "company_profile",
-        "filene_independent_evaluation",
-        "Filene Research Institute public report summary describes testing Casap's fraud dispute platform in sandbox and live environments, with participating credit unions reporting usability, reduced manual effort, and confidence supporting compliance/dispute outcomes.",
-        "Filene Research Institute, 2025 FiLab Results: Casap",
-        "https://www.filene.org/reports/2025-filab-results-casap",
-        "HIGH",
-        "Independent evidence that the product can create operational value in credit-union environments. Public summary does not provide case-level model-learning data, cross-customer holdouts, or challenger benchmarks.",
-        "2026-02-26"
-      ),
-      casapPublicEvidence(
-        "company_profile",
-        "filene_blog_multi_credit_union_testing",
-        "Filene reports testing Casap with five credit unions; one institution had been live on the platform for more than a year; staff reported a 122% improvement in ease of use versus prior systems; reported dispute-processing error frequency declined 63%.",
-        "Filene blog: Chartway Credit Union saved an estimated $875K in one year testing Casap",
-        "https://www.filene.org/blog/chartway-credit-union-saved-an-estimated-875k-in-one-year-testing-a-fraud-dispute-automation-fintech-with-filab",
-        "HIGH",
-        "Independent support for operational effectiveness and workflow value across multiple credit-union environments. Does NOT establish grade-driven model improvement, learning causality, cross-customer transfer, cross-customer training rights, marginal information gain, challenger rebuildability, or durable Compounding Expertise Power.",
-        null
-      ),
-      casapPublicEvidence(
-        "learning_architecture",
-        "company_claim_compounding_behavior",
-        "Company funding announcement claims Casap's platform becomes more effective at fraud detection with customer interaction.",
-        "Casap October 2024 funding announcement",
-        "https://www.prnewswire.com/news-releases/casap-secures-8-5-million-in-funding-to-revolutionize-the-multi-billion-dollar-payment-disputes-process-and-fight-first-party-fraud-302288206.html",
-        "MEDIUM",
-        "COMPANY CLAIM RELEVANT TO CE THESIS - NOT EMPIRICAL PROOF. Treat as context-descriptive for learning causality and transfer until empirical evidence exists.",
-        "2024-10-28"
-      ),
-      casapPublicEvidence(
-        "learning_architecture",
-        "learning_rights_privacy_policy",
-        "Privacy policy says Casap may use collected information to develop/improve products and conduct analytics, including aggregated non-specific information. It also says third-party personal data uploaded through the service is processed on behalf of customers and according to their instructions.",
-        "Casap Privacy Policy",
-        "https://www.casaphq.com/privacy-policy",
-        "MEDIUM",
-        "Relevant to learning rights, but insufficient to establish contractual rights to pool customer case data or train cross-customer decision models.",
-        "2024-03-01"
-      ),
-      casapPublicEvidence(
-        "competitive_architecture",
-        "investor_context",
-        "Primary Venture Partners public materials identify Casap in its portfolio/insights context and state Primary led the seed round and invested in every round.",
-        "Primary Venture Partners insights",
-        "https://www.primary.vc/insights",
-        "LOW",
-        "Investor context only. Does not establish revenue, valuation, CE, durability, or case-level learning.",
-        null
-      )
-    ]
-  }
-};
-
-export const PUBLIC_EVIDENCE_ANALYSES: PublicEvidenceAnalysisFixture[] = [CASAP_PUBLIC_EVIDENCE_ANALYSIS];
-
-export function publicEvidenceAnalysisById(id: string | null | undefined) {
-  return PUBLIC_EVIDENCE_ANALYSES.find((analysis) => analysis.id === id) ?? CASAP_PUBLIC_EVIDENCE_ANALYSIS;
-}
-
-export function sourceRouteIsSafe(route: string | null | undefined) {
-  if (!route) return false;
-  if (!route.startsWith("/") || route.startsWith("//")) return false;
-  return !/^\/(?:\\|%5c)/i.test(route) && !/[\r\n]/.test(route);
-}
-
-export function casesForCaseSet(rows: ScorebookCaseInput[], caseSetId: string | null | undefined) {
-  return caseSetId ? rows.filter((row) => row.caseSetId === caseSetId) : rows;
-}
-
-function finite(value: number, fallback = 0) {
-  return Number.isFinite(value) ? value : fallback;
-}
-
-export function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(finite(value), min), max);
-}
-
-function round(value: number, digits = 4) {
-  const factor = 10 ** digits;
-  return Math.round(value * factor) / factor;
-}
-
-export function validateProbability(value: number): ValidationResult {
-  const errors = Number.isInteger(value) && value >= 0 && value <= 100
-    ? []
-    : ["Probability must be an integer from 0 to 100."];
-  return { ok: errors.length === 0, errors };
-}
-
-export function validateAssessment(input: DimensionAssessmentInput): ValidationResult {
-  const errors: string[] = [];
-  if (!Number.isInteger(input.score) || input.score < 0 || input.score > 5) {
-    errors.push("Dimension score must be an integer from 0 to 5.");
-  }
-  if (!["LOW", "MEDIUM", "HIGH"].includes(input.confidence)) errors.push("Confidence must be LOW, MEDIUM, or HIGH.");
-  if (!["OBSERVED", "SOURCED", "ASSUMED", "UNKNOWN"].includes(input.evidenceStatus)) {
-    errors.push("Evidence status must be OBSERVED, SOURCED, ASSUMED, or UNKNOWN.");
-  }
-  return { ok: errors.length === 0, errors };
-}
-
-export function normalizeAssessment(input: DimensionAssessmentInput): DimensionAssessmentInput {
-  const source = input.source ?? "USER";
-  const evidenceStatus = source === "AI" && (input.evidenceStatus === "OBSERVED" || input.evidenceStatus === "SOURCED")
-    ? "ASSUMED"
-    : input.evidenceStatus;
-  return {
-    ...input,
-    score: Math.round(clamp(input.score, 0, 5)),
-    confidence: ["LOW", "MEDIUM", "HIGH"].includes(input.confidence) ? input.confidence : "LOW",
-    evidenceStatus: ["OBSERVED", "SOURCED", "ASSUMED", "UNKNOWN"].includes(evidenceStatus) ? evidenceStatus : "UNKNOWN",
-    source
-  };
-}
-
-export function validateScenario(input: SimulationScenarioInput): ValidationResult {
-  const errors: string[] = [];
-  if (input.startingCases < 0) errors.push("Starting cases cannot be negative.");
-  if (input.casesPerMonth < 0) errors.push("Cases per month cannot be negative.");
-  if (input.feedbackDelayDays < 0) errors.push("Feedback delay cannot be negative.");
-  for (const key of ["transferability", "informationValue", "learningEfficiency", "stalenessRate", "baseCapability"] as const) {
-    const value = input[key];
-    if (!Number.isFinite(value)) errors.push(`${key} must be numeric.`);
-  }
-  if (input.transferability < 0 || input.transferability > 1) errors.push("Transferability must be 0 to 1.");
-  if (input.informationValue < 0 || input.informationValue > 1) errors.push("Information value must be 0 to 1.");
-  if (input.learningEfficiency < 0 || input.learningEfficiency > 1) errors.push("Learning efficiency must be 0 to 1.");
-  if (input.stalenessRate < 0 || input.stalenessRate > 1) errors.push("Monthly staleness rate must be 0 to 1.");
-  if (input.baseCapability < 0 || input.baseCapability > 5) errors.push("Base capability must be 0 to 5.");
-  return { ok: errors.length === 0, errors };
-}
-
-export function sanitizeScenario(input: SimulationScenarioInput): SimulationScenarioInput {
-  return {
-    ...input,
-    name: input.name.trim() || "Scenario",
-    startingCases: Math.max(0, Math.round(finite(input.startingCases))),
-    casesPerMonth: Math.max(0, finite(input.casesPerMonth)),
-    feedbackDelayDays: Math.max(0, Math.round(finite(input.feedbackDelayDays))),
-    transferability: clamp(input.transferability, 0, 1),
-    informationValue: clamp(input.informationValue, 0, 1),
-    learningEfficiency: clamp(input.learningEfficiency, 0, 1),
-    stalenessRate: clamp(input.stalenessRate, 0, 1),
-    baseCapability: clamp(input.baseCapability, 0, 5)
-  };
-}
-
-function asDate(value: Date | string | null | undefined): Date | null {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isFinite(date.getTime()) ? date : null;
-}
-
-function ratio(numerator: number, denominator: number) {
-  return denominator > 0 ? round(numerator / denominator, 4) : null;
-}
-
-function median(values: number[]) {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const midpoint = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? round((sorted[midpoint - 1] + sorted[midpoint]) / 2, 2)
-    : round(sorted[midpoint], 2);
-}
-
-function isResolvableGrade(grade: CompoundingCaseGrade) {
-  return grade === "CORRECT" || grade === "PARTIALLY_CORRECT" || grade === "INCORRECT";
-}
-
-function isCorrectGrade(grade: CompoundingCaseGrade) {
-  return grade === "CORRECT" || grade === "PARTIALLY_CORRECT";
-}
-
-function feedbackLatencyDays(row: ScorebookCaseInput) {
-  const decisionAt = asDate(row.decisionAt);
-  const outcomeAt = asDate(row.outcomeAt);
-  if (!decisionAt || !outcomeAt || outcomeAt < decisionAt) return null;
-  return (outcomeAt.getTime() - decisionAt.getTime()) / (24 * 60 * 60 * 1000);
-}
-
-export const SCOREBOOK_CASE_FIELD_CLASSIFICATION = {
-  sourceRawFields: [
-    "externalCaseId",
-    "customerSegment",
-    "caseType",
-    "context",
-    "agentDecision",
-    "agentConfidence",
-    "humanDecision",
-    "humanOverride",
-    "actionTaken",
-    "outcome",
-    "outcomeValue",
-    "grade",
-    "gradeConfidence",
-    "decisionAt",
-    "actionAt",
-    "outcomeAt",
-    "isEdgeCase",
-    "isSynthetic",
-    "sourceLabel",
-    "sourceRecordId",
-    "sourceRecordType",
-    "sourceRecordRoute",
-    "notes"
-  ],
-  ceDerivedFields: [
-    "feedbackLatencyDays",
-    "resolvedStatus",
-    "decisionClassLabel",
-    "flags"
-  ]
-} as const;
-
-export function deriveCaseFeedbackLatencyDays(row: ScorebookCaseInput) {
-  return feedbackLatencyDays(row);
-}
-
-export function deriveCaseResolvedStatus(row: ScorebookCaseInput) {
-  return Boolean(row.outcome || row.outcomeAt || row.grade !== "UNRESOLVED") ? "resolved" : "unresolved";
-}
-
-export function buildCaseDetailSequence(row: ScorebookCaseInput) {
-  return [
-    { label: "Context", value: row.context, fieldType: "SOURCE / RAW FIELD" },
-    { label: "Agent Decision", value: row.agentDecision, fieldType: "SOURCE / RAW FIELD" },
-    { label: "Human Intervention", value: row.humanDecision ?? (row.humanOverride ? "Override captured without final decision" : "No override captured"), fieldType: "SOURCE / RAW FIELD" },
-    { label: "Action Taken", value: row.actionTaken, fieldType: "SOURCE / RAW FIELD" },
-    { label: "Outcome", value: row.outcome, fieldType: "SOURCE / RAW FIELD" },
-    { label: "Grade", value: row.grade, fieldType: "SOURCE / RAW FIELD" }
-  ] as const;
-}
-
-function actionLatencyDays(row: ScorebookCaseInput) {
-  const decisionAt = asDate(row.decisionAt);
-  const actionAt = asDate(row.actionAt);
-  if (!decisionAt || !actionAt || actionAt < decisionAt) return null;
-  return (actionAt.getTime() - decisionAt.getTime()) / (24 * 60 * 60 * 1000);
-}
-
-function distribution<T extends string>(values: T[], total: number) {
-  const counts = new Map<T, number>();
-  values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
-  return [...counts.entries()]
-    .map(([label, count]) => ({ label, count, share: ratio(count, total) }))
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-}
-
-export function scorebookRowsAreSynthetic(rows: ScorebookCaseInput[]) {
-  return rows.length > 0 && rows.every((row) => row.isSynthetic);
-}
-
-export function scorebookRowsAreSyntheticSimulation(rows: ScorebookCaseInput[]) {
-  return scorebookRowsAreSynthetic(rows) && rows.every((row) => {
-    const combined = [row.sourceLabel, row.sourceRecordId, row.sourceRecordType, row.notes].join(" ").toUpperCase();
-    return combined.includes("SIMULATION") || combined.includes("PUBLIC-EVIDENCE-GROUNDED");
-  });
-}
-
-export function calculateScorebookMetrics(rows: ScorebookCaseInput[]): ScorebookMetrics {
-  const totalCases = rows.length;
-  const resolvedRows = rows.filter((row) => Boolean(row.outcome || row.outcomeAt || row.grade !== "UNRESOLVED"));
-  const gradedRows = rows.filter((row) => isResolvableGrade(row.grade));
-  const correctRows = gradedRows.filter((row) => isCorrectGrade(row.grade));
-  const overrideRows = rows.filter((row) => row.humanOverride && row.humanDecision && row.humanDecision !== row.agentDecision);
-  const overrideResolvable = overrideRows.filter((row) => isResolvableGrade(row.grade));
-  const overrideCorrect = overrideResolvable.filter((row) => isCorrectGrade(row.grade));
-  const overrideIncorrect = overrideResolvable.filter((row) => row.grade === "INCORRECT");
-  const latencyValues = rows.map(feedbackLatencyDays).filter((value): value is number => value !== null);
-  const outcomeValues = rows.map((row) => row.outcomeValue).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-  const overrideOutcomeValues = overrideRows.map((row) => row.outcomeValue).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-
-  const totalOutcomeValue = outcomeValues.length ? round(outcomeValues.reduce((sum, value) => sum + value, 0), 2) : null;
-  const overrideTotalOutcomeValue = overrideOutcomeValues.length
-    ? round(overrideOutcomeValues.reduce((sum, value) => sum + value, 0), 2)
-    : null;
-
-  return {
-    totalCases,
-    resolvedCases: resolvedRows.length,
-    gradedCases: gradedRows.length,
-    outcomeCompletionRate: ratio(resolvedRows.length, totalCases),
-    gradeCoverage: ratio(gradedRows.length, totalCases),
-    agentCorrectnessRate: ratio(correctRows.length, gradedRows.length),
-    humanOverrideRate: ratio(overrideRows.length, totalCases),
-    medianFeedbackLatencyDays: median(latencyValues),
-    feedbackLatencySampleSize: latencyValues.length,
-    edgeCaseShare: ratio(rows.filter((row) => row.isEdgeCase).length, totalCases),
-    outcomeValueSampleSize: outcomeValues.length,
-    totalOutcomeValue,
-    averageOutcomeValue: totalOutcomeValue !== null ? round(totalOutcomeValue / outcomeValues.length, 2) : null,
-    syntheticCaseCount: rows.filter((row) => row.isSynthetic).length,
-    humanOverrideValue: {
-      count: overrideRows.length,
-      shareOfCases: ratio(overrideRows.length, totalCases),
-      resolvableCount: overrideResolvable.length,
-      correctCount: overrideCorrect.length,
-      incorrectCount: overrideIncorrect.length,
-      correctRate: ratio(overrideCorrect.length, overrideResolvable.length),
-      incorrectRate: ratio(overrideIncorrect.length, overrideResolvable.length),
-      outcomeValueSampleSize: overrideOutcomeValues.length,
-      totalOutcomeValue: overrideTotalOutcomeValue,
-      averageOutcomeValue: overrideTotalOutcomeValue !== null ? round(overrideTotalOutcomeValue / overrideOutcomeValues.length, 2) : null
-    }
-  };
-}
-
-export function scorebookDerivedSimulatorValues(rows: ScorebookCaseInput[]): ScorebookDerivedSimulatorValues {
-  const gradedRows = rows.filter((row) => isResolvableGrade(row.grade));
-  const latencyValues = gradedRows.map(feedbackLatencyDays).filter((value): value is number => value !== null);
-  return {
-    startingGradedCases: gradedRows.length,
-    feedbackDelayDays: median(latencyValues),
-    feedbackDelaySampleSize: latencyValues.length
-  };
-}
-
-export function deriveScenarioGrounding(rows: ScorebookCaseInput[]): StressTestScenarioGrounding {
-  if (rows.length === 0) return "ASSUMPTION-DRIVEN";
-  const derived = scorebookDerivedSimulatorValues(rows);
-  if (derived.startingGradedCases > 0) return "PARTIALLY GROUNDED";
-  return "ASSUMPTION-DRIVEN";
-}
-
-const INFORMATION_STRUCTURE_EVIDENCE_NEEDED = [
-  "Anonymized case-level records",
-  "Decision class / case type",
-  "Customer or segment identifier where legally permissible",
-  "Action taken",
-  "Outcome / grade",
-  "Event timestamps",
-  "Human override where relevant"
-];
-
-const INFORMATION_FIELD_LABELS: Record<InformationStructureFieldKey, string> = {
-  decisionClass: "Decision class",
-  caseType: "Case type",
-  customerSegment: "Customer segment",
-  actionTaken: "Action taken",
-  grade: "Grade",
-  humanOverride: "Human override",
-  edgeCase: "Edge-case flag"
-};
-
-function informationSampleState(n: number): InformationSampleState {
-  if (n <= 0) return "UNAVAILABLE";
-  if (n < 20) return "INSUFFICIENT DATA";
-  if (n < 50) return "SMALL SAMPLE / DESCRIPTIVE ONLY";
-  return "DESCRIPTIVE";
-}
-
-function categoricalValue(row: ScorebookCaseInput, field: InformationStructureFieldKey): string | null {
-  if (field === "decisionClass") return nonEmptyString(row.decisionClassId);
-  if (field === "caseType") return nonEmptyString(row.caseType);
-  if (field === "customerSegment") return nonEmptyString(row.customerSegment);
-  if (field === "actionTaken") return nonEmptyString(row.actionTaken);
-  if (field === "grade") return nonEmptyString(row.grade);
-  if (field === "humanOverride") return row.humanOverride ? "Human override" : "No human override";
-  if (field === "edgeCase") return row.isEdgeCase ? "Edge case" : "Not edge case";
-  return null;
-}
-
-function nonEmptyString(value: string | null | undefined) {
-  const trimmed = String(value ?? "").trim();
-  return trimmed ? trimmed : null;
-}
-
-function informationProvenance(rows: ScorebookCaseInput[]): GuidedProvenanceLabel {
-  return caseSetDerivedProvenanceLabel({
-    hasRows: rows.length > 0,
-    rowsAreSynthetic: scorebookRowsAreSynthetic(rows),
-    rowsAreSyntheticSimulation: scorebookRowsAreSyntheticSimulation(rows)
-  });
-}
-
-export function shannonEntropy(counts: number[]): number {
-  const total = counts.reduce((sum, count) => sum + Math.max(0, count), 0);
-  if (total <= 0) return 0;
-  const entropy = counts.reduce((sum, count) => {
-    if (count <= 0) return sum;
-    const p = count / total;
-    return sum - p * Math.log2(p);
-  }, 0);
-  return round(entropy, 4);
-}
-
-function normalizedEntropyLabel(normalizedEntropy: number | null, usableCount: number, categoryCount: number): InformationDiversityLabel {
-  if (usableCount === 0 || categoryCount <= 1) return usableCount === 0 ? "UNAVAILABLE" : "INSUFFICIENT DATA";
-  if (usableCount < 20) return "INSUFFICIENT DATA";
-  if (normalizedEntropy === null) return "UNAVAILABLE";
-  if (normalizedEntropy >= 0.8) return "HIGH DIVERSITY";
-  if (normalizedEntropy >= 0.5) return "MODERATE DIVERSITY";
-  return "CONCENTRATED";
-}
-
-export function deriveCategoricalInformation(rows: ScorebookCaseInput[], field: InformationStructureFieldKey): CategoricalInformationDiagnostic {
-  const totalCases = rows.length;
-  const provenance = informationProvenance(rows);
-  const usableValues = rows.map((row) => categoricalValue(row, field)).filter((value): value is string => Boolean(value));
-  const usableCount = usableValues.length;
-  const missingShare = ratio(totalCases - usableCount, totalCases);
-  const limitedCoverage = totalCases > 0 && usableCount / totalCases < 0.7;
-  const counts = new Map<string, number>();
-  usableValues.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
-  const ordered = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  const categoryCount = ordered.length;
-  const entropyBits = categoryCount > 0 ? shannonEntropy(ordered.map(([, count]) => count)) : null;
-  const maxEntropyBits = categoryCount > 1 ? round(Math.log2(categoryCount), 4) : categoryCount === 1 ? 0 : null;
-  const normalizedEntropy = maxEntropyBits && maxEntropyBits > 0 && entropyBits !== null ? round(entropyBits / maxEntropyBits, 4) : null;
-  const dominantCategory = ordered[0]?.[0] ?? null;
-  const dominantShare = ordered[0] ? ratio(ordered[0][1], usableCount) : null;
-  const sampleState = informationSampleState(usableCount);
-  const status = limitedCoverage
-    ? "INSUFFICIENT DATA"
-    : normalizedEntropyLabel(normalizedEntropy, usableCount, categoryCount);
-  const label = INFORMATION_FIELD_LABELS[field];
-  const interpretation = totalCases === 0
-    ? `${label} diversity is unavailable because no active CaseSet rows exist.`
-    : limitedCoverage
-      ? `${label} has limited field coverage: ${usableCount} of ${totalCases} rows contain this field.`
-      : categoryCount <= 1
-        ? `${label} is represented by ${categoryCount} populated category across ${usableCount} usable rows.`
-        : `${label} spans ${categoryCount} categories; the largest category (${dominantCategory}) contains ${Math.round((dominantShare ?? 0) * 100)}% of usable rows.`;
-
-  return {
-    field,
-    label,
-    status,
-    sampleState,
-    usableCount,
-    totalCases,
-    missingShare,
-    limitedCoverage,
-    categoryCount,
-    entropyBits,
-    maxEntropyBits,
-    normalizedEntropy,
-    dominantCategory,
-    dominantShare,
-    interpretation,
-    provenance
-  };
-}
-
-function informationSignatureFields(rows: ScorebookCaseInput[]) {
-  const preferred: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken"];
-  return preferred.filter((field) => rows.some((row) => categoricalValue(row, field) !== null));
-}
-
-export function casePatternSignature(row: ScorebookCaseInput, fields: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken"]) {
-  return fields.map((field) => `${field}:${categoricalValue(row, field) ?? "MISSING"}`).join(" | ");
-}
-
-export function derivePatternRepetition(rows: ScorebookCaseInput[]): PatternRepetitionDiagnostic {
-  const totalCases = rows.length;
-  const provenance = informationProvenance(rows);
-  const signatureFields = informationSignatureFields(rows);
-  if (totalCases === 0 || signatureFields.length === 0) {
-    return {
-      status: "UNAVAILABLE",
-      sampleState: "UNAVAILABLE",
-      totalCases,
-      signatureFields: signatureFields.map((field) => INFORMATION_FIELD_LABELS[field]),
-      uniquePatternCount: 0,
-      repeatedPatternCases: 0,
-      singletonPatterns: 0,
-      repetitionShare: null,
-      mostCommonPatterns: [],
-      interpretation: "Pattern repetition is unavailable because no case-level categorical signature can be derived.",
-      provenance
-    };
-  }
-
-  const signatures = rows.map((row) => casePatternSignature(row, signatureFields));
-  const counts = new Map<string, number>();
-  signatures.forEach((signature) => counts.set(signature, (counts.get(signature) ?? 0) + 1));
-  const ordered = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  const repeatedPatternCases = ordered.filter(([, count]) => count > 1).reduce((sum, [, count]) => sum + count, 0);
-  const singletonPatterns = ordered.filter(([, count]) => count === 1).length;
-  const repetitionShare = ratio(repeatedPatternCases, totalCases);
-  const sampleState = informationSampleState(totalCases);
-  const status: PatternRepetitionLabel = totalCases < 20
-    ? "INSUFFICIENT DATA"
-    : (repetitionShare ?? 0) >= 0.7
-      ? "HIGH REPETITION"
-      : (repetitionShare ?? 0) >= 0.4
-        ? "MODERATE REPETITION"
-        : "LOW REPETITION";
-
-  return {
-    status,
-    sampleState,
-    totalCases,
-    signatureFields: signatureFields.map((field) => INFORMATION_FIELD_LABELS[field]),
-    uniquePatternCount: ordered.length,
-    repeatedPatternCases,
-    singletonPatterns,
-    repetitionShare,
-    mostCommonPatterns: ordered.slice(0, 5).map(([signature, count]) => ({ signature, count, share: ratio(count, totalCases) })),
-    interpretation: `${repeatedPatternCases} of ${totalCases} cases share a V0.1 case-pattern signature with at least one other case. This estimates structural repetition, not information worthlessness.`,
-    provenance
-  };
-}
-
-function caseEventDate(row: ScorebookCaseInput) {
-  return asDate(row.decisionAt) ?? asDate(row.actionAt) ?? asDate(row.outcomeAt);
-}
-
-export function deriveMarginalNovelty(rows: ScorebookCaseInput[]): MarginalNoveltyDiagnostic {
-  const totalCases = rows.length;
-  const provenance = informationProvenance(rows);
-  const signatureFields = informationSignatureFields(rows);
-  const orderedRows = rows
-    .map((row, index) => ({ row, index, date: caseEventDate(row) }))
-    .filter((item): item is { row: ScorebookCaseInput; index: number; date: Date } => item.date !== null)
-    .sort((a, b) => a.date.getTime() - b.date.getTime() || a.index - b.index);
-  const usableChronologyCount = orderedRows.length;
-  const chronologyCoverage = ratio(usableChronologyCount, totalCases);
-  const sampleState = informationSampleState(usableChronologyCount);
-
-  if (totalCases === 0) {
-    return {
-      status: "UNAVAILABLE",
-      sampleState: "UNAVAILABLE",
-      totalCases,
-      usableChronologyCount,
-      chronologyCoverage,
-      cohortCount: 0,
-      cohorts: [],
-      firstCohortNoveltyRate: null,
-      latestCohortNoveltyRate: null,
-      newestCohortUniqueShare: null,
-      interpretation: "Marginal novelty is unavailable because no active CaseSet rows exist.",
-      provenance,
-      unavailableReason: "No active CaseSet rows."
-    };
-  }
-
-  if (signatureFields.length === 0 || usableChronologyCount < 20 || (chronologyCoverage ?? 0) < 0.7) {
-    const chronologyUnavailable = (chronologyCoverage ?? 0) < 0.7 || signatureFields.length === 0;
-    return {
-      status: chronologyUnavailable ? "UNAVAILABLE" : "INSUFFICIENT DATA",
-      sampleState,
-      totalCases,
-      usableChronologyCount,
-      chronologyCoverage,
-      cohortCount: 0,
-      cohorts: [],
-      firstCohortNoveltyRate: null,
-      latestCohortNoveltyRate: null,
-      newestCohortUniqueShare: null,
-      interpretation: chronologyUnavailable
-        ? "Marginal novelty unavailable â€” reliable case chronology required."
-        : "Marginal novelty needs at least 20 chronologically ordered cases for V0.1 interpretation.",
-      provenance,
-      unavailableReason: chronologyUnavailable ? "Reliable chronology coverage is below the 70% V0.1 threshold." : "Fewer than 20 chronological cases."
-    };
-  }
-
-  const cohortCount = usableChronologyCount >= 25 ? 5 : 4;
-  const seenPatterns = new Set<string>();
-  const cohorts: MarginalNoveltyCohort[] = [];
-  for (let index = 0; index < cohortCount; index += 1) {
-    const start = Math.floor((index * usableChronologyCount) / cohortCount);
-    const end = Math.floor(((index + 1) * usableChronologyCount) / cohortCount);
-    const cohortRows = orderedRows.slice(start, end).map((item) => item.row);
-    const cohortSignatures = new Set(cohortRows.map((row) => casePatternSignature(row, signatureFields)));
-    const newPatterns = [...cohortSignatures].filter((signature) => !seenPatterns.has(signature));
-    cohorts.push({
-      index: index + 1,
-      cases: cohortRows.length,
-      previouslyObservedPatterns: seenPatterns.size,
-      newPatternSignatures: newPatterns.length,
-      noveltyRate: ratio(newPatterns.length, cohortRows.length),
-      cumulativeUniquePatterns: seenPatterns.size + newPatterns.length
-    });
-    cohortSignatures.forEach((signature) => seenPatterns.add(signature));
-  }
-
-  const firstCohortNoveltyRate = cohorts[0]?.noveltyRate ?? null;
-  const latestCohortNoveltyRate = cohorts.at(-1)?.noveltyRate ?? null;
-  const newestCohortUniqueShare = ratio(cohorts.at(-1)?.newPatternSignatures ?? 0, seenPatterns.size);
-  const decline = firstCohortNoveltyRate !== null && latestCohortNoveltyRate !== null ? firstCohortNoveltyRate - latestCohortNoveltyRate : 0;
-  const status: MarginalNoveltyLabel = usableChronologyCount < 50
-    ? "INSUFFICIENT DATA"
-    : latestCohortNoveltyRate !== null && latestCohortNoveltyRate <= 0.1 && decline >= 0.3
-      ? "APPARENT SATURATION"
-      : decline >= 0.25
-        ? "NOVELTY DECLINING"
-        : "NOVELTY PERSISTING";
-  const interpretation = status === "INSUFFICIENT DATA"
-    ? `V0.1 calculated cohort novelty from ${usableChronologyCount} chronological cases, but treats the sample as descriptive only.`
-    : status === "NOVELTY DECLINING"
-      ? `The first cohort introduced ${Math.round((firstCohortNoveltyRate ?? 0) * 100)} new patterns per 100 cases; the latest introduced ${Math.round((latestCohortNoveltyRate ?? 0) * 100)} per 100.`
-      : status === "APPARENT SATURATION"
-        ? `Recent cohorts add few previously unseen structural patterns under the V0.1 signature. This does not mean the company stopped learning.`
-        : `Recent cohorts continue introducing previously unseen structural patterns under the V0.1 signature.`;
-
-  return {
-    status,
-    sampleState,
-    totalCases,
-    usableChronologyCount,
-    chronologyCoverage,
-    cohortCount,
-    cohorts,
-    firstCohortNoveltyRate,
-    latestCohortNoveltyRate,
-    newestCohortUniqueShare,
-    interpretation,
-    provenance
-  };
-}
-
-export function mutualInformation(pairs: Array<{ x: string | null | undefined; y: string | null | undefined }>) {
-  const usable = pairs
-    .map((pair) => ({ x: nonEmptyString(pair.x), y: nonEmptyString(pair.y) }))
-    .filter((pair): pair is { x: string; y: string } => Boolean(pair.x && pair.y));
-  const n = usable.length;
-  if (n === 0) return { mutualInformationBits: 0, outcomeEntropyBits: 0, normalizedInformation: null, usableCount: 0, xCategoryCount: 0, yCategoryCount: 0, sparseCategories: false };
-  const xCounts = new Map<string, number>();
-  const yCounts = new Map<string, number>();
-  const jointCounts = new Map<string, number>();
-  usable.forEach(({ x, y }) => {
-    xCounts.set(x, (xCounts.get(x) ?? 0) + 1);
-    yCounts.set(y, (yCounts.get(y) ?? 0) + 1);
-    jointCounts.set(`${x}\u0000${y}`, (jointCounts.get(`${x}\u0000${y}`) ?? 0) + 1);
-  });
-  let mi = 0;
-  jointCounts.forEach((count, key) => {
-    const [x, y] = key.split("\u0000");
-    const pxy = count / n;
-    const px = (xCounts.get(x) ?? 0) / n;
-    const py = (yCounts.get(y) ?? 0) / n;
-    if (pxy > 0 && px > 0 && py > 0) mi += pxy * Math.log2(pxy / (px * py));
-  });
-  const outcomeEntropyBits = shannonEntropy([...yCounts.values()]);
-  return {
-    mutualInformationBits: round(mi, 4),
-    outcomeEntropyBits,
-    normalizedInformation: outcomeEntropyBits > 0 ? round(mi / outcomeEntropyBits, 4) : null,
-    usableCount: n,
-    xCategoryCount: xCounts.size,
-    yCategoryCount: yCounts.size,
-    sparseCategories: [...jointCounts.values()].some((count) => count < 3) || jointCounts.size > Math.max(1, n / 2)
-  };
-}
-
-export function deriveOutcomeInformation(rows: ScorebookCaseInput[]): InformationStructureDiagnostic["outcomeInformation"] {
-  const totalCases = rows.length;
-  const provenance = informationProvenance(rows);
-  if (totalCases === 0) {
-    return {
-      status: "UNAVAILABLE",
-      sampleState: "UNAVAILABLE",
-      topAssociations: [],
-      interpretation: "Outcome information is unavailable because no active CaseSet rows exist.",
-      provenance
-    };
-  }
-
-  const candidates: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken", "humanOverride", "edgeCase"];
-  const diagnostics = candidates.map((field): MutualInformationDiagnostic => {
-    const pairs = rows.map((row) => ({ x: categoricalValue(row, field), y: row.grade }));
-    const result = mutualInformation(pairs);
-    const missingShare = ratio(totalCases - result.usableCount, totalCases);
-    const limitedCoverage = totalCases > 0 && result.usableCount / totalCases < 0.7;
-    const sampleState = informationSampleState(result.usableCount);
-    const status: OutcomeInformationLabel = result.usableCount === 0
-      ? "UNAVAILABLE"
-      : result.usableCount < 20 || result.yCategoryCount <= 1 || result.xCategoryCount <= 1
-        ? "INSUFFICIENT DATA"
-        : result.sparseCategories || limitedCoverage
-          ? "SPARSE CATEGORIES â€” INTERPRET CAUTIOUSLY"
-          : result.usableCount < 50
-            ? "SMALL SAMPLE / DESCRIPTIVE ONLY"
-            : "MEASURABLE";
-    return {
-      xField: field,
-      xLabel: INFORMATION_FIELD_LABELS[field],
-      yField: "grade",
-      yLabel: "Grade",
-      status,
-      sampleState,
-      usableCount: result.usableCount,
-      totalCases,
-      missingShare,
-      xCategoryCount: result.xCategoryCount,
-      yCategoryCount: result.yCategoryCount,
-      mutualInformationBits: result.usableCount > 0 ? result.mutualInformationBits : null,
-      outcomeEntropyBits: result.usableCount > 0 ? result.outcomeEntropyBits : null,
-      normalizedInformation: result.normalizedInformation,
-      sparseCategories: result.sparseCategories || limitedCoverage,
-      interpretation: result.normalizedInformation !== null
-        ? `Knowing ${INFORMATION_FIELD_LABELS[field].toLowerCase()} reduces observed grade uncertainty by ${Math.round(result.normalizedInformation * 100)}% in this CaseSet.`
-        : `${INFORMATION_FIELD_LABELS[field]} cannot currently be compared with grade uncertainty.`,
-      provenance
-    };
-  });
-  const eligible = diagnostics
-    .filter((item) => item.mutualInformationBits !== null && item.usableCount >= 20 && item.xCategoryCount > 1 && item.yCategoryCount > 1)
-    .sort((a, b) => (b.normalizedInformation ?? 0) - (a.normalizedInformation ?? 0) || a.xLabel.localeCompare(b.xLabel))
-    .slice(0, 3);
-  const first = eligible[0];
-  const status: OutcomeInformationLabel = !first
-    ? "INSUFFICIENT DATA"
-    : first.sparseCategories
-      ? "SPARSE CATEGORIES â€” INTERPRET CAUTIOUSLY"
-      : first.usableCount < 50
-        ? "SMALL SAMPLE / DESCRIPTIVE ONLY"
-        : "MEASURABLE";
-
-  return {
-    status,
-    sampleState: first?.sampleState ?? informationSampleState(totalCases),
-    topAssociations: eligible,
-    interpretation: first
-      ? "Some recorded categorical attributes are descriptively associated with reduced grade uncertainty. This is association, not causality."
-      : "Insufficient data for reliable outcome-information comparison.",
-    provenance
-  };
-}
-
-export function deriveInformationStructureInterpretation(structure: InformationStructureDiagnostic): string[] {
-  if (!structure.available) {
-    return [
-      "Information Structure is a diligence gap: aggregate evidence cannot substitute for case-level records.",
-      "Public customer outcomes may support workflow or economic value, but they cannot estimate diversity, repetition, novelty, or outcome information."
-    ];
-  }
-  const statements: string[] = [];
-  const diversity = structure.diversitySummary;
-  if (diversity && diversity.status !== "UNAVAILABLE" && diversity.status !== "INSUFFICIENT DATA") {
-    statements.push(`The CaseSet spans ${diversity.categoryCount} observed ${diversity.label.toLowerCase()} categories, with ${diversity.status.toLowerCase()} under the V0.1 entropy convention.`);
-  }
-  if (structure.marginalNovelty.status === "NOVELTY DECLINING" || structure.marginalNovelty.status === "APPARENT SATURATION") {
-    statements.push("Recent cohorts are adding fewer new structural patterns. This is relevant to Marginal Information Value, but does not establish low predictive or economic value.");
-  } else if (structure.marginalNovelty.status === "NOVELTY PERSISTING") {
-    statements.push("New cohorts continue introducing previously unseen structural patterns. This is consistent with continued information entering the scorebook, not proof of learning causality.");
-  }
-  if (structure.outcomeInformation.topAssociations.length > 0) {
-    statements.push("Some recorded case attributes are associated with reduced uncertainty about grades. This establishes descriptive predictive structure, not model learning or causal value.");
-  }
-  statements.push("Information exists is not the same as proprietary learning, performance improvement, challenger resistance, or durable Power.");
-  return statements;
-}
-
-export function deriveInformationStructureDiligenceQuestions(structure: InformationStructureDiagnostic): string[] {
-  if (!structure.available) {
-    return [
-      "Can the company provide anonymized case-level decision, action, outcome, grade, and timestamp records?",
-      "Which fields are production observations versus analyst assumptions or public aggregate evidence?"
-    ];
-  }
-  const questions: string[] = [];
-  if (structure.marginalNovelty.status === "NOVELTY DECLINING" || structure.marginalNovelty.status === "APPARENT SATURATION") {
-    questions.push("Do later repeated cases still improve calibration or decision accuracy?");
-  }
-  const customerDiversity = structure.diversity.find((item) => item.field === "customerSegment");
-  if (customerDiversity && customerDiversity.categoryCount > 1) {
-    questions.push("Does information learned in one customer segment reduce uncertainty or improve performance in another?");
-  }
-  if (structure.outcomeInformation.topAssociations.length > 0) {
-    questions.push("Does incorporating these observed associations into the policy/model improve held-out performance?");
-  }
-  if ((structure.patternRepetition.repetitionShare ?? 0) >= 0.5) {
-    questions.push("How quickly could a challenger reproduce the common structural patterns with a smaller calibration set?");
-  }
-  const edgeAssociation = structure.outcomeInformation.topAssociations.find((item) => item.xField === "edgeCase");
-  if (edgeAssociation && (edgeAssociation.normalizedInformation ?? 0) > 0.05) {
-    questions.push("Does continued experience primarily create value by expanding coverage of rare or ambiguous states?");
-  }
-  return questions.length ? questions : [
-    "Which chronological cohorts add truly new structural patterns?",
-    "Which recorded dimensions remain outcome-relevant in held-out production data?"
-  ];
-}
-
-export function deriveInformationStructure(rows: ScorebookCaseInput[]): InformationStructureDiagnostic {
-  const totalCases = rows.length;
-  const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
-  const provenance = informationProvenance(rows);
-  if (totalCases === 0) {
-    const emptyPattern = derivePatternRepetition(rows);
-    const emptyNovelty = deriveMarginalNovelty(rows);
-    const emptyOutcome = deriveOutcomeInformation(rows);
-    const unavailable: InformationStructureDiagnostic = {
-      available: false,
-      totalCases,
-      provenance,
-      sampleState: "UNAVAILABLE",
-      rowsAreSynthetic,
-      unavailableReason: "No production CaseSet is available for this analysis. Public aggregate evidence cannot be used to estimate case diversity, pattern repetition, marginal novelty, or outcome information.",
-      evidenceNeeded: INFORMATION_STRUCTURE_EVIDENCE_NEEDED,
-      diversity: [],
-      diversitySummary: null,
-      patternRepetition: emptyPattern,
-      marginalNovelty: emptyNovelty,
-      outcomeInformation: emptyOutcome,
-      summary: {
-        diversity: "UNAVAILABLE",
-        patternRepetition: "UNAVAILABLE",
-        marginalNovelty: "UNAVAILABLE",
-        outcomeInformation: "UNAVAILABLE"
-      },
-      ceInterpretation: []
-    };
-    return { ...unavailable, ceInterpretation: deriveInformationStructureInterpretation(unavailable) };
-  }
-
-  const diversityFields: InformationStructureFieldKey[] = ["decisionClass", "caseType", "customerSegment", "actionTaken", "grade"];
-  const diversity = diversityFields
-    .map((field) => deriveCategoricalInformation(rows, field))
-    .filter((item) => item.usableCount > 0);
-  const diversitySummary = [...diversity]
-    .filter((item) => item.categoryCount > 1)
-    .sort((a, b) => (b.normalizedEntropy ?? -1) - (a.normalizedEntropy ?? -1) || b.usableCount - a.usableCount)[0] ?? diversity[0] ?? null;
-  const patternRepetition = derivePatternRepetition(rows);
-  const marginalNovelty = deriveMarginalNovelty(rows);
-  const outcomeInformation = deriveOutcomeInformation(rows);
-  const diagnostic: InformationStructureDiagnostic = {
-    available: true,
-    totalCases,
-    provenance,
-    sampleState: informationSampleState(totalCases),
-    rowsAreSynthetic,
-    evidenceNeeded: [],
-    diversity,
-    diversitySummary,
-    patternRepetition,
-    marginalNovelty,
-    outcomeInformation,
-    summary: {
-      diversity: diversitySummary?.status ?? "UNAVAILABLE",
-      patternRepetition: patternRepetition.status,
-      marginalNovelty: marginalNovelty.status,
-      outcomeInformation: outcomeInformation.status
-    },
-    ceInterpretation: []
-  };
-  return { ...diagnostic, ceInterpretation: deriveInformationStructureInterpretation(diagnostic) };
-}
-
-export function deriveExperienceSnapshot(rows: ScorebookCaseInput[]): ExperienceSnapshot {
-  const metrics = calculateScorebookMetrics(rows);
-  const rowsAreSynthetic = scorebookRowsAreSynthetic(rows);
-  const rowsAreSyntheticSimulation = scorebookRowsAreSyntheticSimulation(rows);
-  return {
-    totalCases: metrics.totalCases,
-    outcomesObserved: metrics.resolvedCases,
-    gradedCases: metrics.gradedCases,
-    outcomeCompletionRate: metrics.outcomeCompletionRate,
-    gradeCoverage: metrics.gradeCoverage,
-    medianFeedbackLatencyDays: metrics.medianFeedbackLatencyDays,
-    feedbackLatencySampleSize: metrics.feedbackLatencySampleSize,
-    humanOverrideCount: metrics.humanOverrideValue.count,
-    humanOverrideRate: metrics.humanOverrideRate,
-    edgeCaseCount: rows.filter((row) => row.isEdgeCase).length,
-    edgeCaseRate: metrics.edgeCaseShare,
-    provenance: caseSetDerivedProvenanceLabel({ hasRows: rows.length > 0, rowsAreSynthetic, rowsAreSyntheticSimulation })
-  };
-}
-
-export function deriveGradeDistribution(rows: ScorebookCaseInput[]): ExperienceDistributionItem[] {
-  const orderedGrades: CompoundingCaseGrade[] = ["CORRECT", "PARTIALLY_CORRECT", "INCORRECT", "UNRESOLVED"];
-  return orderedGrades.map((grade) => ({
-    label: grade,
-    count: rows.filter((row) => row.grade === grade).length,
-    share: ratio(rows.filter((row) => row.grade === grade).length, rows.length)
-  }));
-}
-
-export function deriveActionDistribution(rows: ScorebookCaseInput[], limit = 5): ExperienceDistributionItem[] {
-  const values = rows
-    .map((row) => row.actionTaken || row.agentDecision)
-    .filter((value): value is string => Boolean(value));
-  return distribution(values, rows.length).slice(0, limit);
-}
-
-export function deriveFeedbackLatencyDistribution(rows: ScorebookCaseInput[]): FeedbackLatencyBucket[] {
-  const buckets: FeedbackLatencyBucket[] = [
-    { key: "0_7", label: "0-7 days", count: 0, share: null },
-    { key: "8_14", label: "8-14 days", count: 0, share: null },
-    { key: "15_30", label: "15-30 days", count: 0, share: null },
-    { key: "31_PLUS", label: "31+ days", count: 0, share: null },
-    { key: "UNAVAILABLE", label: "unresolved / unavailable", count: 0, share: null }
-  ];
-
-  rows.forEach((row) => {
-    const latency = feedbackLatencyDays(row);
-    if (latency === null) buckets[4].count += 1;
-    else if (latency <= 7) buckets[0].count += 1;
-    else if (latency <= 14) buckets[1].count += 1;
-    else if (latency <= 30) buckets[2].count += 1;
-    else buckets[3].count += 1;
-  });
-
-  return buckets.map((bucket) => ({ ...bucket, share: ratio(bucket.count, rows.length) }));
-}
-
-export function deriveExperienceInsights(rows: ScorebookCaseInput[]): ExperienceInsight[] {
-  const metrics = calculateScorebookMetrics(rows);
-  const insights: ExperienceInsight[] = [];
-  const totalCases = metrics.totalCases;
-  if (totalCases === 0) return [{ tone: "gap", statement: "No cases are available in this CaseSet.", support: "0 active CaseSet rows." }];
-
-  if (metrics.outcomeCompletionRate !== null && metrics.outcomeCompletionRate >= 0.8) {
-    insights.push({ tone: "pattern", statement: "Outcome representation is relatively complete.", support: `${metrics.resolvedCases} of ${totalCases} cases include an outcome, outcome date, or resolvable grade.` });
-  } else if (metrics.outcomeCompletionRate !== null && metrics.outcomeCompletionRate < 0.5) {
-    insights.push({ tone: "gap", statement: "Outcome representation is incomplete.", support: `${metrics.resolvedCases} of ${totalCases} cases include an outcome, outcome date, or resolvable grade.` });
-  }
-
-  if (metrics.gradeCoverage !== null && metrics.gradeCoverage >= 0.8) {
-    insights.push({ tone: "pattern", statement: "Most cases are graded.", support: `${metrics.gradedCases} of ${totalCases} cases have correct, partially correct, or incorrect grades.` });
-  } else if (metrics.gradeCoverage !== null && metrics.gradeCoverage < 0.5) {
-    insights.push({ tone: "gap", statement: "Grade coverage is limited.", support: `${metrics.gradedCases} of ${totalCases} cases have resolvable grades.` });
-  }
-
-  if (metrics.humanOverrideRate !== null && metrics.humanOverrideValue.count > 0) {
-    insights.push({ tone: "pattern", statement: "Human intervention is meaningfully represented.", support: `${metrics.humanOverrideValue.count} of ${totalCases} cases (${Math.round(metrics.humanOverrideRate * 100)}%) contain a human override where the final decision differs from the agent decision.` });
-  }
-
-  const unresolvedCount = rows.filter((row) => deriveCaseResolvedStatus(row) === "unresolved").length;
-  if (unresolvedCount > 0 && ratio(unresolvedCount, totalCases)! >= 0.2) {
-    insights.push({ tone: "caution", statement: "Unresolved cases are a material slice of the dataset.", support: `${unresolvedCount} of ${totalCases} cases are unresolved or missing outcome/grade evidence.` });
-  }
-
-  const edgeCaseCount = rows.filter((row) => row.isEdgeCase).length;
-  if (edgeCaseCount > 0 && ratio(edgeCaseCount, totalCases)! >= 0.15) {
-    insights.push({ tone: "pattern", statement: "Edge cases are visible enough to inspect separately.", support: `${edgeCaseCount} of ${totalCases} cases (${Math.round((edgeCaseCount / totalCases) * 100)}%) are marked edge cases.` });
-  }
-
-  const actionDistribution = deriveActionDistribution(rows, 1);
-  const topAction = actionDistribution[0];
-  if (topAction?.share !== null && topAction.share >= 0.5) {
-    insights.push({ tone: "pattern", statement: "A small number of actions dominate the dataset.", support: `${topAction.label} appears in ${topAction.count} of ${totalCases} cases (${Math.round(topAction.share * 100)}%).` });
-  }
-
-  if (metrics.medianFeedbackLatencyDays !== null) {
-    const statement = metrics.medianFeedbackLatencyDays <= 14
-      ? "Feedback is relatively fast under the fixed descriptive threshold."
-      : metrics.medianFeedbackLatencyDays > 30
-        ? "Feedback is relatively slow under the fixed descriptive threshold."
-        : "Feedback timing is moderate under the fixed descriptive threshold.";
-    insights.push({ tone: "pattern", statement, support: `Median decision-to-outcome latency is ${metrics.medianFeedbackLatencyDays} days across n=${metrics.feedbackLatencySampleSize}.` });
-  }
-
-  const informationStructure = deriveInformationStructure(rows);
-  if (informationStructure.sampleState === "DESCRIPTIVE") {
-    if (informationStructure.marginalNovelty.status === "NOVELTY DECLINING" || informationStructure.marginalNovelty.status === "APPARENT SATURATION") {
-      insights.push({
-        tone: "caution",
-        statement: "Recent cohorts are introducing fewer new structural patterns.",
-        support: `First cohort novelty ${percentLabel(informationStructure.marginalNovelty.firstCohortNoveltyRate)}; latest cohort ${percentLabel(informationStructure.marginalNovelty.latestCohortNoveltyRate)}.`
-      });
-    } else if (informationStructure.patternRepetition.repetitionShare !== null && informationStructure.patternRepetition.repetitionShare >= 0.75) {
-      insights.push({
-        tone: "caution",
-        statement: "Many cases repeat previously represented structural patterns.",
-        support: `${informationStructure.patternRepetition.repeatedPatternCases} of ${totalCases} cases share a V0.1 pattern signature with another case.`
-      });
-    }
-  }
-
-
-  return insights.length ? insights.slice(0, 6) : [{ tone: "gap", statement: "No strong descriptive pattern is evident from this CaseSet.", support: `${totalCases} active CaseSet rows were inspected deterministically.` }];
-}
-
-export function deriveInterestingSlices(rows: ScorebookCaseInput[]): InterestingSlice[] {
-  const latencyRows = rows.filter((row) => feedbackLatencyDays(row) !== null);
-  const valueRows = rows.filter((row) => typeof row.outcomeValue === "number" && Number.isFinite(row.outcomeValue));
-  return [
-    {
-      key: "human-overrides",
-      label: "Human overrides",
-      count: rows.filter((row) => row.humanOverride && row.humanDecision && row.humanDecision !== row.agentDecision).length,
-      query: { override: "yes" },
-      enabled: rows.some((row) => row.humanOverride && row.humanDecision && row.humanDecision !== row.agentDecision),
-      description: "Cases where humans changed the agent decision."
-    },
-    {
-      key: "agent-errors",
-      label: "Agent errors / incorrect grades",
-      count: rows.filter((row) => row.grade === "INCORRECT").length,
-      query: { grade: "INCORRECT" },
-      enabled: rows.some((row) => row.grade === "INCORRECT"),
-      description: "Rows explicitly graded incorrect."
-    },
-    {
-      key: "edge-cases",
-      label: "Edge cases",
-      count: rows.filter((row) => row.isEdgeCase).length,
-      query: { edge: "yes" },
-      enabled: rows.some((row) => row.isEdgeCase),
-      description: "Cases marked as edge cases."
-    },
-    {
-      key: "unresolved",
-      label: "Unresolved cases",
-      count: rows.filter((row) => deriveCaseResolvedStatus(row) === "unresolved").length,
-      query: { resolved: "unresolved" },
-      enabled: rows.some((row) => deriveCaseResolvedStatus(row) === "unresolved"),
-      description: "Rows missing an outcome and resolvable grade."
-    },
-    {
-      key: "longest-feedback",
-      label: "Longest feedback",
-      count: Math.min(5, latencyRows.length),
-      query: { slice: "longest-feedback" },
-      enabled: latencyRows.length > 0,
-      description: "Cases with the longest decision-to-outcome latency."
-    },
-    {
-      key: "highest-impact",
-      label: "Highest economic impact",
-      count: Math.min(5, valueRows.length),
-      query: { slice: "highest-impact" },
-      enabled: valueRows.length > 0,
-      description: "Cases with the largest absolute recorded economic outcome."
-    }
-  ];
-}
-
-export function applyExperienceSlice(rows: ScorebookCaseInput[], slice: string | null | undefined) {
-  if (slice === "longest-feedback") {
-    return [...rows]
-      .filter((row) => feedbackLatencyDays(row) !== null)
-      .sort((a, b) => (feedbackLatencyDays(b) ?? -1) - (feedbackLatencyDays(a) ?? -1))
-      .slice(0, 5);
-  }
-  if (slice === "highest-impact") {
-    return [...rows]
-      .filter((row) => typeof row.outcomeValue === "number" && Number.isFinite(row.outcomeValue))
-      .sort((a, b) => Math.abs(b.outcomeValue ?? 0) - Math.abs(a.outcomeValue ?? 0))
-      .slice(0, 5);
-  }
-  return rows;
-}
-
-export function deriveExperienceCoverage(rows: ScorebookCaseInput[], provenance: GuidedProvenanceLabel): ExperienceQualityDimension[] {
-  const metrics = calculateScorebookMetrics(rows);
-  const actionCount = rows.filter((row) => row.actionTaken).length;
-  return [
-    { label: "Outcome completeness", value: metrics.outcomeCompletionRate === null ? "Unavailable" : `${Math.round(metrics.outcomeCompletionRate * 100)}%`, sample: `${metrics.resolvedCases}/${metrics.totalCases} cases`, provenance },
-    { label: "Grade coverage", value: metrics.gradeCoverage === null ? "Unavailable" : `${Math.round(metrics.gradeCoverage * 100)}%`, sample: `${metrics.gradedCases}/${metrics.totalCases} cases`, provenance },
-    { label: "Feedback timing", value: metrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${metrics.medianFeedbackLatencyDays} day median`, sample: `available for ${metrics.feedbackLatencySampleSize}/${metrics.totalCases}`, provenance },
-    { label: "Decision/action coverage", value: metrics.totalCases === 0 ? "Unavailable" : `${Math.round((actionCount / metrics.totalCases) * 100)}%`, sample: `${actionCount}/${metrics.totalCases} cases with action taken`, provenance },
-    { label: "Provenance quality", value: provenance, sample: "Selected dataset", provenance }
-  ];
-}
-
-export function deriveExperienceCanCannot(rows: ScorebookCaseInput[]): ExperienceCanCannot {
-  const baseCanTellUs = [
-    "whether decisions, actions, outcomes, and grades are represented",
-    "grade coverage and outcome completion",
-    "feedback latency where timestamps exist",
-    "human override frequency",
-    "descriptive grade, action, and decision distributions",
-    "whether pooled segment history predicts held-out grades better than local history",
-    "whether successive historical cohorts improve a fixed predictor on later cases",
-    "how much observed history is needed to reproduce near-full predictive performance"
-  ];
-  const cannotTellUs = [
-    "whether accumulated cases cause future performance improvement through deployed action-policy changes",
-    "whether pooled learning improves actions for identified held-out customers",
-    "whether the company has contractual rights to pool or use experience",
-    "whether the expertise is hard for competitors to reproduce",
-    "whether historical experience is compressible into a reproducible policy",
-    "whether a Compounding Expertise mechanism creates durable Power"
-  ];
-  return {
-    canTellUs: baseCanTellUs,
-    cannotTellUs
-  };
-}
-
-export function deriveCaseInspectionReasons(row: ScorebookCaseInput): string[] {
-  const reasons = [
-    row.humanOverride ? "Human override" : null,
-    row.grade === "INCORRECT" ? "Agent incorrect" : null,
-    row.grade === "PARTIALLY_CORRECT" ? "Partially correct grade" : null,
-    row.isEdgeCase ? "Edge case" : null,
-    typeof row.outcomeValue === "number" && Number.isFinite(row.outcomeValue) ? "Economic value recorded" : null,
-    feedbackLatencyDays(row) !== null && feedbackLatencyDays(row)! > 30 ? "Long feedback" : null,
-    deriveCaseResolvedStatus(row) === "unresolved" ? "Unresolved" : null
-  ];
-  return reasons.filter((reason): reason is string => Boolean(reason));
-}
-
-function valueIncludes(value: string | null | undefined, terms: string[]) {
-  const normalized = String(value ?? "").toUpperCase();
-  if (/^\s*(UNKNOWN|NOT KNOWN|NOT ESTABLISHED|UNDETERMINED)\b/.test(normalized)) return false;
-  return terms.some((term) => normalized.includes(term.toUpperCase()));
-}
-
-export function classifyLearningRights(value: string | null | undefined): "ALLOWED" | "RESTRICTED" | "UNKNOWN" {
-  const normalized = (value ?? "").trim().toUpperCase();
-  if (/^(NO|RESTRICTED|PROHIBITED|NOT ALLOWED|NOT PERMITTED|DISALLOWED)\b/.test(normalized)) return "RESTRICTED";
-  if (/^(YES|ALLOWED|PERMITTED)\b/.test(normalized)) return "ALLOWED";
-  return "UNKNOWN";
-}
-
-function analysisHref(path: string, analysisId?: string | null, caseSetId?: string | null, anchor?: string, dataset?: string | null) {
-  const params = new URLSearchParams();
-  if (analysisId) params.set("analysisId", analysisId);
-  if (caseSetId) params.set("caseSetId", caseSetId);
-  if (dataset) params.set("dataset", dataset);
-  const query = params.toString();
-  return `${path}${query ? `?${query}` : ""}${anchor ? `#${anchor}` : ""}`;
-}
-
-function debateFamilyFromQuestion(question: string): DebateFamily | null {
-  const text = question.toLowerCase();
-  if (text.includes("capture") || text.includes("workflow") || text.includes("decision") && text.includes("outcome")) return "EXPERIENCE_CAPTURE";
-  if (text.includes("improve future") || text.includes("causal") || text.includes("update") || text.includes("learning loop")) return "LEARNING_CAUSALITY";
-  if (text.includes("cross-customer") || text.includes("transfer")) return "CROSS_CUSTOMER_TRANSFER";
-  if (text.includes("marginal") || text.includes("additional graded") || text.includes("incremental")) return "MARGINAL_INFORMATION_VALUE";
-  if (text.includes("compress") || text.includes("simulate") || text.includes("relearn") || text.includes("challenger") || text.includes("rebuild")) return "REBUILDABILITY_COMPRESSION";
-  if (text.includes("rights") || text.includes("contract") || text.includes("legally")) return "LEARNING_RIGHTS";
-  if (text.includes("economic") || text.includes("value") || text.includes("matter")) return "ECONOMIC_MATERIALITY";
-  if (text.includes("deterministic") || text.includes("process power") || text.includes("switching")) return "ALTERNATIVE_POWER";
-  return null;
-}
-
-export function deriveCanonicalDebateProfile(analysis: CompanyThesisInput): DebateFamily[] {
-  const name = `${analysis.companyName} ${analysis.productCategory} ${analysis.thesis}`.toLowerCase();
-  if (name.includes("listen")) return ["EXPERIENCE_CAPTURE", "LEARNING_CAUSALITY", "CROSS_CUSTOMER_TRANSFER", "MARGINAL_INFORMATION_VALUE"];
-  if (name.includes("aaru") || name.includes("model-first")) return ["REBUILDABILITY_COMPRESSION", "MARGINAL_INFORMATION_VALUE", "CROSS_CUSTOMER_TRANSFER", "LEARNING_CAUSALITY"];
-  if (name.includes("maybern") || name.includes("deterministic")) return ["ALTERNATIVE_POWER", "ECONOMIC_MATERIALITY", "LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"];
-  if (name.includes("creative") || name.includes("marketing")) return ["LEARNING_CAUSALITY", "MARGINAL_INFORMATION_VALUE", "CROSS_CUSTOMER_TRANSFER", "REBUILDABILITY_COMPRESSION"];
-  return ["LEARNING_CAUSALITY", "CROSS_CUSTOMER_TRANSFER", "MARGINAL_INFORMATION_VALUE", "REBUILDABILITY_COMPRESSION", "LEARNING_RIGHTS"];
-}
-
-function debateTemplate(family: DebateFamily) {
-  const templates: Record<DebateFamily, Omit<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "companyAssessment" | "modeledAssessment" | "integratedConclusion" | "subclaimAssessments" | "observedExperiment" | "tenSecondSummary" | "evidenceCoverage" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceDashboard" | "highestValueDiligence" | "investorBelief" | "investorBeliefDivergence">> = {
-    EXPERIENCE_CAPTURE: {
-      family,
-      title: "Experience capture",
-      proposition: "Do the selected cases contain linked decisions, actions, outcomes, and grades?",
-      whyLoadBearing: "Compounding Expertise requires a scorebook-like loop, not merely activity or stored data.",
-      thesisImpact: "HIGH",
-      ifTrue: "A complete capture loop makes later learning and diligence tests feasible.",
-      ifFalse: "The company may have data, but not the graded operating experience required for Compounding Expertise.",
-      bestNextTest: "Inspect incomplete cases and grade reliability by decision class, then test whether using these grades improves held-out decisions.",
-      increaseBelief: "Most meaningful decisions have linked actions, outcomes, and explicit grades in the product workflow.",
-      decreaseBelief: "Decisions, actions, outcomes, or grades live outside the product or require manual backfill."
-    },
-    LEARNING_CAUSALITY: {
-      family,
-      title: "Learning causality",
-      proposition: "Do accumulated grades actually improve future decisions?",
-      whyLoadBearing: "A scorebook only matters strategically if grades change future behavior and improve decisions.",
-      thesisImpact: "VERY HIGH",
-      ifTrue: "The scorebook becomes a plausible mechanism for improving future decisions.",
-      ifFalse: "The dataset may be useful for reporting, but it does not establish Compounding Expertise.",
-      bestNextTest: "Compare performance before and after incorporating graded cases while controlling for foundation-model changes.",
-      increaseBelief: "A measured performance lift appears after grade-driven updates are deployed.",
-      decreaseBelief: "Performance does not improve after updates, or gains are explained by non-scorebook factors."
-    },
-    CROSS_CUSTOMER_TRANSFER: {
-      family,
-      title: "Cross-customer transfer",
-      proposition: "Does experience from one customer improve decisions for another?",
-      whyLoadBearing: "Cross-customer transfer is central to network-like compounding rather than isolated customer-specific learning.",
-      thesisImpact: "VERY HIGH",
-      ifTrue: "Additional customers may generate experience that improves value for other customers, making Network Economies more plausible.",
-      ifFalse: "Expertise may remain customer-specific; CE may exist locally, but the cross-customer compounding mechanism weakens.",
-      bestNextTest: "Compare held-out customer performance using customer-only history versus pooled cross-customer experience.",
-      increaseBelief: "Pooled cross-customer experience improves held-out customer decisions beyond local history.",
-      decreaseBelief: "Customer-specific models or policies outperform pooled learning with little transfer benefit."
-    },
-    MARGINAL_INFORMATION_VALUE: {
-      family,
-      title: "Marginal information value",
-      proposition: "Do additional graded cases continue to add useful decision-relevant information?",
-      whyLoadBearing: "High case volume does not matter if new cases are redundant or quickly exhausted.",
-      thesisImpact: "HIGH",
-      ifTrue: "Ongoing operation continues adding useful expertise rather than merely accumulating redundant logs.",
-      ifFalse: "The scorebook may plateau; historical cases may be compressible into rules, policies, or small calibration sets.",
-      bestNextTest: "Measure incremental performance gain from successive case cohorts after policy and model baselines are included.",
-      increaseBelief: "Recent cohorts continue improving decision quality or edge-case handling.",
-      decreaseBelief: "Performance plateaus quickly or new cases duplicate already-known lessons."
-    },
-    REBUILDABILITY_COMPRESSION: {
-      family,
-      title: "Rebuildability / compression",
-      proposition: "Could a capable challenger compress, infer, simulate, or relearn the useful scorebook knowledge?",
-      whyLoadBearing: "Valuable learning is not durable Power if competitors can cheaply reproduce it.",
-      thesisImpact: "VERY HIGH",
-      ifTrue: "If hard to rebuild, historical and ongoing experience may create durable separation.",
-      ifFalse: "The scorebook may be valuable operationally but unlikely to constitute durable Power.",
-      bestNextTest: "Give a challenger policy documentation plus limited calibration data and measure the performance gap versus the incumbent.",
-      increaseBelief: "A challenger remains materially behind after access to policy docs, public data, synthetic cases, and limited calibration.",
-      decreaseBelief: "A challenger reaches similar performance with compressed rules, simulated examples, or short relearning."
-    },
-    LEARNING_RIGHTS: {
-      family,
-      title: "Learning rights / privileged access",
-      proposition: "Can the company legally and operationally retain and exploit the experience?",
-      whyLoadBearing: "Rights and access determine whether captured experience can become a reusable learning asset.",
-      thesisImpact: "HIGH",
-      ifTrue: "The company may be able to pool and reuse experience in ways challengers or customers cannot easily replicate.",
-      ifFalse: "The company may observe cases but lack the rights to retain, pool, train on, or evaluate with them.",
-      bestNextTest: "Review contractual and data-governance rights for retention, derived features, evaluation, and cross-customer training.",
-      increaseBelief: "Contracts explicitly allow retention, derived features, evaluation, and cross-customer learning.",
-      decreaseBelief: "Customer contracts restrict retention, pooling, model training, or evaluation reuse."
-    },
-    ECONOMIC_MATERIALITY: {
-      family,
-      title: "Economic materiality",
-      proposition: "Does improved decision quality create enough economic value to matter?",
-      whyLoadBearing: "Compounding Expertise matters only if being right has meaningful economic consequences.",
-      thesisImpact: "HIGH",
-      ifTrue: "Decision improvement can translate into economically meaningful customer or company value.",
-      ifFalse: "Even real learning may be strategically weak if the value per better decision is small.",
-      bestNextTest: "Quantify economic outcome per correct, incorrect, overridden, and unresolved case.",
-      increaseBelief: "Outcome values show meaningful gains or avoided losses from better decisions.",
-      decreaseBelief: "Economic outcomes are small, noisy, or disconnected from decision quality."
-    },
-    ALTERNATIVE_POWER: {
-      family,
-      title: "Alternative Power",
-      proposition: "Does durable Power reside somewhere other than Compounding Expertise?",
-      whyLoadBearing: "A company can be attractive because of Process Power, switching costs, deterministic infrastructure, or distribution even if CE is modest.",
-      thesisImpact: "MEDIUM",
-      ifTrue: "The investment thesis may shift from CE to another Helmer mechanism.",
-      ifFalse: "The thesis depends more directly on proving the CE mechanism.",
-      bestNextTest: "Map which Helmer mechanism is supported by actual adoption, process, integration, or switching evidence.",
-      increaseBelief: "Customer behavior and operations show strong switching costs, Process Power, or infrastructure dependence.",
-      decreaseBelief: "Alternative Power claims are not supported beyond product aspiration."
-    }
-  };
-  return templates[family];
-}
-
-function evidenceItem(input: DebateEvidenceItem): DebateEvidenceItem {
-  return input;
-}
-
-function sourcedSupport(records: DebateEngineInput["evidenceRecords"], fieldTerms: string[]) {
-  return (records ?? []).some((record) => {
-    const haystack = `${record.fieldKey ?? ""} ${record.evidenceType ?? ""}`.toLowerCase();
-    return record.epistemicStatus?.toUpperCase() === "SOURCED" && fieldTerms.some((term) => haystack.includes(term));
-  });
-}
-
-function percentLabel(value: number | null) {
-  return value === null ? "Unavailable" : `${Math.round(value * 100)}%`;
-}
-
-function debateExperienceHref(input: DebateEngineInput, anchor = "case-explorer") {
-  return analysisHref("/compounding-expertise/scorebook", input.analysisId, input.caseSetId, anchor, input.dataset);
-}
-
-function debateCompanyModelHref(input: DebateEngineInput, anchor = "company-model-review") {
-  return analysisHref("/compounding-expertise/inputs", input.analysisId, input.caseSetId, anchor, input.dataset);
-}
-
-function debateEvidenceMatchesFamily(record: NonNullable<DebateEngineInput["evidenceRecords"]>[number], family: DebateFamily) {
-  const text = `${record.entityType ?? ""} ${record.fieldKey ?? ""} ${record.evidenceType ?? ""} ${record.sourceLabel ?? ""} ${record.valueSnapshot ?? ""} ${record.analystNotes ?? ""}`.toLowerCase();
-  const terms: Record<DebateFamily, string[]> = {
-    EXPERIENCE_CAPTURE: ["capture", "case", "outcome", "grade", "scorebook", "workflow"],
-    LEARNING_CAUSALITY: ["update", "deploy", "learning", "before", "after", "performance", "policy", "model"],
-    CROSS_CUSTOMER_TRANSFER: ["cross", "customer", "transfer", "pooled", "holdout", "segment"],
-    MARGINAL_INFORMATION_VALUE: ["marginal", "cohort", "incremental", "redund", "information", "learning curve"],
-    REBUILDABILITY_COMPRESSION: ["rebuild", "challenger", "compress", "simulate", "foundation", "benchmark"],
-    LEARNING_RIGHTS: ["right", "contract", "retain", "train", "pool", "governance"],
-    ECONOMIC_MATERIALITY: ["economic", "value", "outcome", "revenue", "cost", "loss"],
-    ALTERNATIVE_POWER: ["process", "switching", "deterministic", "infrastructure", "helmer", "distribution"]
-  };
-  return terms[family].some((term) => text.includes(term));
-}
-
-function evidenceText(record: NonNullable<DebateEngineInput["evidenceRecords"]>[number]) {
-  return `${record.entityType ?? ""} ${record.fieldKey ?? ""} ${record.evidenceType ?? ""} ${record.sourceLabel ?? ""} ${record.valueSnapshot ?? ""} ${record.analystNotes ?? ""} ${record.derivationMethod ?? ""}`.toLowerCase();
-}
-
-function hasAnyText(text: string, terms: string[]) {
-  return terms.some((term) => text.includes(term.toLowerCase()));
-}
-
-function hasNegatedSupportLanguage(text: string) {
-  return hasAnyText(text, [
-    "does not provide",
-    "does not establish",
-    "not evidence",
-    "no direct evidence",
-    "no evidence",
-    "without",
-    "absent",
-    "insufficient to establish",
-    "cannot establish"
-  ]);
-}
-
-/**
- * SUPPORTS: evidence directly raises support for this proposition.
- * CONTRADICTS: evidence directly lowers support for this proposition.
- * CONTEXT: evidence helps interpret the proposition but does not establish it.
- * IRRELEVANT: evidence belongs to the analysis but does not materially bear on this proposition.
- * MISSING is reserved for absent evidence requirements, not attached evidence records.
- */
-export function classifyEvidenceForDebate(
-  record: NonNullable<DebateEngineInput["evidenceRecords"]>[number],
-  family: DebateFamily
-): DebateEvidenceRelationship {
-  const text = evidenceText(record);
-  if (hasAnyText(text, ["contradict", "failed", "worse", "negative result"])) return "CONTRADICTS";
-  const negatedSupport = hasNegatedSupportLanguage(text);
-
-  if (family === "CROSS_CUSTOMER_TRANSFER") {
-    if (negatedSupport && hasAnyText(text, ["pooled-vs-local", "pooled vs local", "held-out customer", "cross-customer holdout", "transfer experiment", "cross-customer transfer"])) return "CONTEXT-DESCRIPTIVE";
-    if (hasAnyText(text, ["pooled-vs-local", "pooled vs local", "held-out customer", "customer a experience", "customer-only history", "cross-customer holdout", "transfer experiment"])) return "SUPPORTS";
-    if (hasAnyText(text, ["five credit unions", "multiple credit", "customer", "credit union", "customers", "interaction", "privacy", "aggregated", "workflow", "product", "platform"])) return "CONTEXT-DESCRIPTIVE";
-    return "IRRELEVANT";
-  }
-
-  if (family === "LEARNING_CAUSALITY") {
-    if (negatedSupport && hasAnyText(text, ["before/after", "before and after", "treatment", "control", "grade-driven", "model update", "policy update", "learning causality", "future decisions"])) return "CONTEXT-DESCRIPTIVE";
-    if (hasAnyText(text, ["before/after", "before and after", "treatment", "control", "grade-driven", "tied to graded outcomes", "model update record", "policy update record", "performance lift after"])) return "SUPPORTS";
-    if (hasAnyText(text, ["becomes more effective", "improve", "customer interaction", "savings", "loss", "resolution", "efficiency", "workflow", "operational", "performance"])) return "CONTEXT-DESCRIPTIVE";
-    return "IRRELEVANT";
-  }
-
-  if (family === "REBUILDABILITY_COMPRESSION") {
-    if (negatedSupport && hasAnyText(text, ["challenger benchmark", "calibration experiment", "reconstruction attempt", "incumbent-vs-challenger", "rebuild experiment", "relearning benchmark"])) return "CONTEXT-DESCRIPTIVE";
-    if (hasAnyText(text, ["challenger benchmark", "calibration experiment", "reconstruction attempt", "incumbent-vs-challenger", "rebuild experiment", "relearning benchmark"])) return "SUPPORTS";
-    if (hasAnyText(text, ["proprietary", "foundation", "model", "workflow", "regulatory", "operational"])) return "CONTEXT-DESCRIPTIVE";
-    return "IRRELEVANT";
-  }
-
-  if (family === "MARGINAL_INFORMATION_VALUE") {
-    if (negatedSupport && hasAnyText(text, ["cohort learning curve", "incremental performance", "successive case cohorts", "marginal information", "learning curve"])) return "CONTEXT-DESCRIPTIVE";
-    if (hasAnyText(text, ["cohort learning curve", "incremental performance", "successive case cohorts", "marginal information", "learning curve"])) return "SUPPORTS";
-    if (hasAnyText(text, ["case volume", "transactions", "five credit unions", "customer interaction", "capacity"])) return "CONTEXT-DESCRIPTIVE";
-    return "IRRELEVANT";
-  }
-
-  if (family === "LEARNING_RIGHTS") {
-    if (negatedSupport && hasAnyText(text, ["cross-customer training rights", "right to train", "right to retain", "derived features", "contractual rights"])) return "CONTEXT-DESCRIPTIVE";
-    if (hasAnyText(text, ["contract explicitly allow", "contracts explicitly allow", "cross-customer training rights", "right to train", "right to retain", "derived features"])) return "SUPPORTS";
-    if (hasAnyText(text, ["privacy", "according to their instructions", "aggregated", "analytics", "develop", "improve", "contract", "governance", "retain", "train", "pool"])) return "CONTEXT-DESCRIPTIVE";
-    return "IRRELEVANT";
-  }
-
-  if (family === "ECONOMIC_MATERIALITY") {
-    if (hasAnyText(text, ["savings", "cost", "loss", "writeoff", "writeoffs", "resolution time", "chargeback win", "capacity", "economic", "fraud loss", "error frequency declined"])) return "SUPPORTS";
-    if (hasAnyText(text, ["workflow", "operational", "product", "platform"])) return "CONTEXT-DESCRIPTIVE";
-    return "IRRELEVANT";
-  }
-
-  if (family === "EXPERIENCE_CAPTURE") {
-    if (hasAnyText(text, ["decision", "action", "outcome", "grade", "case-level", "production records", "scorebook"])) return "SUPPORTS";
-    if (hasAnyText(text, ["workflow", "intake", "chargeback", "tracking", "platform", "dispute", "merchant response", "outcome"])) return "CONTEXT-DESCRIPTIVE";
-    return "IRRELEVANT";
-  }
-
-  if (family === "ALTERNATIVE_POWER") {
-    if (hasAnyText(text, ["switching cost", "replacement", "process power", "deterministic", "regulatory barrier", "integration depth", "workflow dependency"])) return "SUPPORTS";
-    if (hasAnyText(text, ["workflow", "regulatory", "network", "chargeback", "operational", "compliance"])) return "CONTEXT-DESCRIPTIVE";
-    return "IRRELEVANT";
-  }
-
-  return debateEvidenceMatchesFamily(record, family) ? "CONTEXT-DESCRIPTIVE" : "IRRELEVANT";
-}
-
-function externalEvidenceForFamily(input: DebateEngineInput, family: DebateFamily): DebateEvidenceItem[] {
-  const externalTypes = new Set(["PUBLIC_SOURCE", "COMPANY_DOCUMENT", "UPSTREAM_APP", "ANALYST_INPUT", "LIVE", "EXTERNAL", "COMPETITIVE_BENCHMARK", "EXPERIMENT"]);
-  return (input.evidenceRecords ?? [])
-    .filter((record) => !record.sourceCaseSetId || record.sourceCaseSetId === (input.caseSetId ?? input.dataset))
-    .filter((record) => externalTypes.has(String(record.evidenceType ?? "").toUpperCase()) || record.epistemicStatus?.toUpperCase() === "SOURCED")
-    .map((record) => ({ record, relationship: classifyEvidenceForDebate(record, family) }))
-    .filter(({ relationship }) => relationship !== "IRRELEVANT")
-    .map(({ record, relationship }) => {
-      const direction = relationship === "IRRELEVANT" || relationship === "MISSING" ? "CONTEXT-DESCRIPTIVE" : relationship;
-      return evidenceItem({
-        source: record.sourceLabel || record.evidenceType || "Attached evidence",
-        value: record.valueSnapshot || record.analystNotes || "Evidence record attached.",
-        direction,
-        strength: direction === "CONTEXT-DESCRIPTIVE" ? "CONTEXT" : "INDIRECT",
-        provenance: record.epistemicStatus?.toUpperCase() === "SOURCED" ? "SOURCED â€” EXTERNAL EVIDENCE" : "ANALYST ASSUMPTION",
-        href: record.sourceUrl || undefined,
-        interpretation: record.derivationMethod || "Attached evidence relevant to this proposition.",
-        limitation: record.confidence ? `Confidence: ${record.confidence}. Review source scope before treating as decisive.` : "Review source scope before treating as decisive."
-      });
-    });
-}
-
-function missingMetric(label: string, source: GuidedProvenanceLabel = "UNKNOWN / DILIGENCE REQUIRED"): DebateDashboardMetric {
-  return { label, value: "Not available", provenance: source, unavailable: true };
-}
-
-function segmentDashboardBars(rows: ScorebookCaseInput[], href: string): DebateDashboardBar[] {
-  const total = rows.length;
-  const segments = new Map<string, ScorebookCaseInput[]>();
-  rows.forEach((row) => {
-    const key = row.customerSegment || "Unspecified";
-    segments.set(key, [...(segments.get(key) ?? []), row]);
-  });
-  return [...segments.entries()]
-    .map(([label, segmentRows]) => {
-      const graded = segmentRows.filter((row) => isResolvableGrade(row.grade));
-      const correct = graded.filter((row) => isCorrectGrade(row.grade));
-      return {
-        label,
-        value: `${segmentRows.length} cases Â· ${graded.length} graded Â· ${percentLabel(ratio(correct.length, graded.length))} correct/partial`,
-        count: segmentRows.length,
-        share: ratio(segmentRows.length, total),
-        href
-      };
-    })
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-}
-
-export function deriveDebateEvidenceDashboard(input: DebateEngineInput, family: DebateFamily): DebateEvidenceDashboard {
-  const metrics = calculateScorebookMetrics(input.rows);
-  const observed = (input.observedExperimentAdapter ?? runObservedDataExperimentAdapter(input.rows)).byFamily[family];
-  const rowsAreSynthetic = scorebookRowsAreSynthetic(input.rows);
-  const rowsAreSyntheticSimulation = scorebookRowsAreSyntheticSimulation(input.rows);
-  const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic, rowsAreSyntheticSimulation });
-  const experienceHref = debateExperienceHref(input);
-  const companyHref = debateCompanyModelHref(input);
-  const externalEvidence = externalEvidenceForFamily(input, family);
-  const actionCoverage = ratio(input.rows.filter((row) => row.actionTaken).length, metrics.totalCases);
-  const unresolvedShare = ratio(input.rows.filter((row) => deriveCaseResolvedStatus(row) === "unresolved").length, metrics.totalCases);
-  const gradeDistribution = deriveGradeDistribution(input.rows);
-  const edgeCaseCount = input.rows.filter((row) => row.isEdgeCase).length;
-  const decisionClassCount = new Set(input.rows.map((row) => row.decisionClassId).filter(Boolean)).size;
-  const sourceMixBars = distribution(input.rows.map((row) => row.isSynthetic ? (scorebookRowsAreSyntheticSimulation([row]) ? "Synthetic simulation" : "Synthetic fixture") : row.sourceLabel || "Company/source row"), metrics.totalCases).map((item) => ({ label: item.label, value: `${item.count} cases`, count: item.count, share: item.share, href: experienceHref }));
-
-  if (family === "CROSS_CUSTOMER_TRANSFER") {
-    const segmentCount = new Set(input.rows.map((row) => row.customerSegment).filter(Boolean)).size;
-    return {
-      family,
-      title: "Cross-customer transfer evidence dashboard",
-      summary: "Segment diversity is context, not proof. The adapter tests whether pooled segment experience beats local history on later selected cases, then keeps customer-level action-policy claims separate.",
-      externalEvidence,
-      sections: [
-        {
-          title: "Customer segment context",
-          note: "Multiple segments create an opportunity to test transfer, but do not establish it.",
-          metrics: [
-            { label: "Customer segments", value: String(segmentCount), sample: `${metrics.totalCases} active CaseSet cases`, provenance, href: experienceHref },
-            { label: "Cross-customer pooling architecture", value: input.learningArchitecture?.pooledAcrossCustomers || input.analysis.learnsAcrossCustomers || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
-            { label: "Learning rights state", value: input.learningArchitecture?.canTrainAcrossCustomers || input.analysis.contractualLearningRights || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
-            observed.status === "BLOCKED" ? missingMetric("Pooled-vs-local transfer experiment") : { label: "Segment transfer verdict", value: observed.verdict, sample: observed.headline, provenance, href: experienceHref }
-          ],
-          bars: segmentDashboardBars(input.rows, experienceHref)
-        },
-        {
-          title: "Transfer test availability",
-          note: observed.limitation,
-          metrics: [
-            { label: "Held-out pooled-vs-local result", value: observed.headline, sample: `n=${observed.sample}`, provenance, href: experienceHref },
-            missingMetric("Customer-level action-policy result")
-          ]
-        }
-      ]
-    };
-  }
-
-  if (family === "LEARNING_CAUSALITY") {
-    return {
-      family,
-      title: "Learning causality evidence dashboard",
-      summary: "Cases and grades are prerequisites, not proof that learning caused future performance improvement.",
-      externalEvidence,
-      sections: [
-        {
-          title: "Scorebook prerequisites",
-          metrics: [
-            { label: "Graded cases", value: String(metrics.gradedCases), sample: `${metrics.gradedCases}/${metrics.totalCases}`, provenance, href: experienceHref },
-            { label: "Grade coverage", value: percentLabel(metrics.gradeCoverage), sample: `${metrics.gradedCases}/${metrics.totalCases}`, provenance, href: experienceHref },
-            { label: "Human override rate", value: percentLabel(metrics.humanOverrideRate), sample: `${metrics.humanOverrideValue.count}/${metrics.totalCases}`, provenance, href: experienceHref },
-            { label: "Model/policy versions represented", value: "Not available", provenance: "UNKNOWN / DILIGENCE REQUIRED", unavailable: true }
-          ],
-          bars: gradeDistribution.map((item) => ({ label: item.label, value: `${item.count} cases`, count: item.count, share: item.share, href: experienceHref }))
-        },
-        {
-          title: "Causality test availability",
-          note: "Cases + grades â‰  evidence that learning caused future performance improvement.",
-          metrics: [
-            { label: "Update state", value: input.learningArchitecture?.usesOutcomeGradesForLearning || input.analysis.updatesModelPolicyRegularly || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
-            { label: "Deployment state", value: input.learningArchitecture?.deploymentCadence || input.analysis.deploysImprovementsQuickly || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
-            { label: "Chronological prediction result", value: observed.verdict, sample: observed.headline, provenance, href: experienceHref },
-            missingMetric("Before/after or treatment comparison"),
-            missingMetric("Performance by model/policy version")
-          ]
-        }
-      ]
-    };
-  }
-
-  if (family === "EXPERIENCE_CAPTURE") {
-    return {
-      family,
-      title: "Experience capture evidence dashboard",
-      summary: "Shows whether the active CaseSet is complete enough to function like a scorebook.",
-      externalEvidence,
-      sections: [
-        {
-          title: "Scorebook completeness",
-          metrics: [
-            { label: "Cases", value: String(metrics.totalCases), provenance, href: experienceHref },
-            { label: "Outcome completion", value: percentLabel(metrics.outcomeCompletionRate), sample: `${metrics.resolvedCases}/${metrics.totalCases}`, provenance, href: experienceHref },
-            { label: "Grade coverage", value: percentLabel(metrics.gradeCoverage), sample: `${metrics.gradedCases}/${metrics.totalCases}`, provenance, href: experienceHref },
-            { label: "Median feedback latency", value: metrics.medianFeedbackLatencyDays === null ? "Unavailable" : `${metrics.medianFeedbackLatencyDays} days`, sample: `n=${metrics.feedbackLatencySampleSize}`, provenance, href: experienceHref },
-            { label: "Action coverage", value: percentLabel(actionCoverage), sample: `${input.rows.filter((row) => row.actionTaken).length}/${metrics.totalCases}`, provenance, href: experienceHref },
-            { label: "Unresolved share", value: percentLabel(unresolvedShare), provenance, href: experienceHref },
-            { label: "Human override capture", value: percentLabel(metrics.humanOverrideRate), sample: `${metrics.humanOverrideValue.count}/${metrics.totalCases}`, provenance, href: experienceHref },
-            { label: "Provenance quality", value: provenance, sample: "Selected dataset", provenance }
-          ]
-        }
-      ]
-    };
-  }
-
-  if (family === "REBUILDABILITY_COMPRESSION") {
-    return {
-      family,
-      title: "Rebuildability / compression evidence dashboard",
-      summary: "Shows whether durable separation has been empirically tested against challengers, simulation, or relearning.",
-      externalEvidence,
-      sections: [
-        {
-          title: "Rebuildability context",
-          metrics: [
-            { label: "Historical case volume", value: String(metrics.totalCases), provenance, href: experienceHref },
-            { label: "Foundation-model substitution", value: input.competitiveArchitecture?.foundationModelSubstitutionRisk || input.analysis.foundationModelDependence || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
-            { label: "Competitor relearning difficulty", value: input.competitiveArchitecture?.competitorRelearningDifficulty || input.analysis.rebuildability || "Unknown", provenance: "ANALYST ASSUMPTION", href: companyHref },
-            { label: "History-compression proxy", value: observed.verdict, sample: observed.headline, provenance, href: experienceHref },
-            missingMetric("Challenger benchmark")
-          ],
-          bars: sourceMixBars
-        },
-        {
-          title: "Empirical test state",
-          note: `A competitor-access challenger has not been empirically tested. ${observed.limitation}`,
-          metrics: [{ label: "Observed proxy", value: observed.headline, sample: `n=${observed.sample}`, provenance, href: experienceHref }, missingMetric("Competitor-access calibration experiment")]
-        }
-      ]
-    };
-  }
-
-  if (family === "MARGINAL_INFORMATION_VALUE") {
-    const informationStructure = deriveInformationStructure(input.rows);
-    const diversitySummary = informationStructure.diversitySummary;
-    const topOutcomeAssociation = informationStructure.outcomeInformation.topAssociations[0];
-    return {
-      family,
-      title: "Marginal information value evidence dashboard",
-      summary: "Information Structure diagnostics are descriptive evidence about the active CaseSet, not proof that additional cases improve future performance.",
-      externalEvidence,
-      sections: [
-        {
-          title: "Information Structure context",
-          note: "NEW INFORMATION ENTERS THE SCOREBOOK is not the same as THE SYSTEM LEARNS FROM THAT INFORMATION.",
-          metrics: [
-            { label: "Total cases", value: String(metrics.totalCases), provenance, href: experienceHref },
-            informationStructure.available && diversitySummary
-              ? { label: `${diversitySummary.label} entropy`, value: diversitySummary.entropyBits === null ? "Unavailable" : `${round(diversitySummary.entropyBits, 2)} bits`, sample: `${diversitySummary.status}; n=${diversitySummary.usableCount}/${metrics.totalCases}`, provenance, href: experienceHref }
-              : missingMetric("Diversity entropy"),
-            informationStructure.available
-              ? { label: "Pattern repetition", value: percentLabel(informationStructure.patternRepetition.repetitionShare), sample: `${informationStructure.patternRepetition.repeatedPatternCases}/${metrics.totalCases} repeated-pattern cases`, provenance, href: experienceHref }
-              : missingMetric("Pattern repetition"),
-            informationStructure.available
-              ? { label: "Structural novelty", value: informationStructure.marginalNovelty.status, sample: informationStructure.marginalNovelty.latestCohortNoveltyRate === null ? "Reliable chronology required" : `latest cohort ${percentLabel(informationStructure.marginalNovelty.latestCohortNoveltyRate)}`, provenance, href: experienceHref }
-              : missingMetric("Structural novelty"),
-            topOutcomeAssociation
-              ? { label: `${topOutcomeAssociation.xLabel} â†’ grade`, value: topOutcomeAssociation.normalizedInformation === null ? "Unavailable" : `${Math.round(topOutcomeAssociation.normalizedInformation * 100)}% uncertainty reduction`, sample: `${round(topOutcomeAssociation.mutualInformationBits ?? 0, 2)} bits; ${topOutcomeAssociation.status}`, provenance, href: experienceHref }
-              : missingMetric("Outcome information"),
-            { label: "Successive-cohort test", value: observed.verdict, sample: observed.headline, provenance, href: experienceHref }
-          ],
-          bars: informationStructure.marginalNovelty.cohorts.map((cohort) => ({
-            label: `Cohort ${cohort.index}`,
-            value: `${cohort.newPatternSignatures} new patterns Â· novelty ${percentLabel(cohort.noveltyRate)}`,
-            count: cohort.newPatternSignatures,
-            share: cohort.noveltyRate,
-            href: experienceHref
-          }))
-        },
-        {
-          title: "Interpretation limits",
-          note: "Entropy, repetition, novelty, and mutual information do not establish learning causality, cross-customer transfer, compressibility, or durable Power.",
-          metrics: [
-            { label: "Learning-causality separation", value: "Context only", sample: "Information Structure evaluates scorebook contents, not whether the system learned from them.", provenance, href: companyHref },
-            { label: "Power separation", value: "No direct Power inference", sample: "Information exists is not the same as proprietary, performance-improving, irreproducible information.", provenance, href: companyHref }
-          ]
-        }
-      ]
-    };
-  }
-
-  const fallbackTemplate = debateTemplate(family);
-  return {
-    family,
-    title: `${fallbackTemplate.title} evidence dashboard`,
-    summary: "Shows currently attached data and explicit evidence gaps for this debate.",
-    externalEvidence,
-    sections: [
-      {
-        title: "Current evidence state",
-        metrics: [
-          { label: "Active CaseSet cases", value: String(metrics.totalCases), provenance, href: experienceHref },
-          { label: "External evidence records", value: String(externalEvidence.length), provenance: externalEvidence.length ? "SOURCED â€” EXTERNAL EVIDENCE" : "UNKNOWN / DILIGENCE REQUIRED" }
-        ]
-      }
-    ]
-  };
-}
-
-export function deriveDebateAssessment(input: DebateEngineInput, family: DebateFamily): Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "missingEvidence"> {
-  const metrics = calculateScorebookMetrics(input.rows);
-  const report = input.experienceAnalysis ?? analyzeExperience(input.rows);
-  const rowsAreSynthetic = scorebookRowsAreSynthetic(input.rows);
-  const rowsAreSyntheticSimulation = scorebookRowsAreSyntheticSimulation(input.rows);
-  const provenance = caseSetDerivedProvenanceLabel({ hasRows: input.rows.length > 0, rowsAreSynthetic, rowsAreSyntheticSimulation });
-  const companyModelHref = debateCompanyModelHref(input);
-  const experienceHref = debateExperienceHref(input);
-  const forEvidence: DebateEvidenceItem[] = [];
-  const againstEvidence: DebateEvidenceItem[] = [];
-  const missing: DebateEvidenceItem[] = [];
-  const selectedDatasetKey = input.caseSetId ?? input.dataset;
-  const experimentFindings = (input.evidenceRecords ?? [])
-    .filter(record => ["SYNTHETIC_EXPERIMENT", "SYNTHETIC_EXPERIMENT_SUITE"].includes(record.evidenceType ?? "") && Boolean(selectedDatasetKey) && record.sourceCaseSetId === selectedDatasetKey)
-    .flatMap(record => {
-      try {
-        const parsed = JSON.parse(record.valueSnapshot ?? "{}") as { assumptions?: string; findings?: Array<{ family?: string; verdict?: string; headline?: string; detail?: string; implication?: string; worksWhen?: string; failsWhen?: string; nextExperiment?: string }> };
-        return (parsed.findings ?? []).filter(finding => finding.family === family).map(finding => ({ ...finding, assumptions: parsed.assumptions, suite: record.evidenceType === "SYNTHETIC_EXPERIMENT_SUITE" }));
-      } catch {
-        return [];
-      }
-    });
-  const latestExperiment = experimentFindings.at(-1);
-  const addExperienceDescriptive = (value: string, interpretation: string, limitation: string) => {
-    forEvidence.push(evidenceItem({
-      source: "Experience â†’ active CaseSet",
-      value,
-      direction: "CONTEXT-DESCRIPTIVE",
-      strength: "CONTEXT",
-      provenance,
-      href: experienceHref,
-      interpretation,
-      limitation
-    }));
-  };
-  const addMissing = (source: string, value: string, interpretation: string, obtainVia = "Diligence / experiment", expectedEvidence = "Sourced evidence sufficient to evaluate the proposition.") => {
-    missing.push(evidenceItem({
-      source,
-      value,
-      direction: "MISSING",
-      strength: "MISSING",
-      provenance: "UNKNOWN / DILIGENCE REQUIRED",
-      interpretation,
-      limitation: "Missing evidence cannot support the proposition.",
-      obtainVia,
-      expectedEvidence
-    }));
-  };
-
-  for (const finding of report.findings.filter(item => item.family === family && item.id !== "capture")) {
-    addExperienceDescriptive(finding.summary, finding.interpretation, finding.nextTest);
-  }
-  for (const finding of experimentFindings.slice(-3)) {
-    forEvidence.push(evidenceItem({
-      source: finding.suite ? "Experience â†’ Automated Experiment Program" : "Experience â†’ Experiment Lab",
-      value: `${finding.verdict}: ${finding.headline} ${finding.detail}${finding.worksWhen ? ` Works when: ${finding.worksWhen}` : ""}${finding.failsWhen ? ` Fails when: ${finding.failsWhen}` : ""}`,
-      direction: "CONTEXT-DESCRIPTIVE",
-      strength: "CONTEXT",
-      provenance: "DERIVED â€” SYNTHETIC EXPERIMENT",
-      href: `${experienceHref.split("#")[0]}#experiment-lab`,
-      interpretation: `${finding.implication ?? "Conditional mechanism result."}${finding.nextExperiment ? ` Next experiment: ${finding.nextExperiment}` : ""}`,
-      limitation: finding.assumptions ?? "Applies only under the saved synthetic-world assumptions."
-    }));
-  }
-  if (family === "EXPERIENCE_CAPTURE") {
-    addExperienceDescriptive(`${metrics.gradedCases}/${metrics.totalCases} graded cases; ${metrics.resolvedCases}/${metrics.totalCases} outcomes represented.`, "Shows whether the active CaseSet is scorebook-like.", "Completeness alone does not prove learning improves future decisions.");
-    const linkedCases = input.rows.filter(row => row.agentDecision && row.actionTaken && row.outcome && isResolvableGrade(row.grade)).length;
-    if (metrics.totalCases > 0 && linkedCases / metrics.totalCases >= 0.75) {
-      forEvidence.push(evidenceItem({
-        source: "Experience â†’ active CaseSet",
-        value: `${metrics.gradedCases}/${metrics.totalCases} cases graded; ${metrics.resolvedCases}/${metrics.totalCases} outcomes represented; median feedback ${metrics.medianFeedbackLatencyDays ?? "unavailable"} days.`,
-        direction: "SUPPORTS",
-        strength: "INDIRECT",
-        provenance,
-        href: experienceHref,
-        interpretation: "Supports graded experience capture within the selected dataset.",
-        limitation: "Still does not prove that captured grades improve future behavior."
-      }));
-      return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Graded experience capture is supported in the selected dataset; learning improvement and durability require separate tests.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
-    }
-    if (metrics.totalCases > 0) addMissing("Experience â†’ incomplete cases", `${metrics.totalCases - linkedCases} cases lack a complete decision/action/outcome/grade chain.`, "Complete the feedback loop for missing rows.", "Case review", "Linked decisions, actions, outcomes and grades.");
-    if (metrics.totalCases === 0) addMissing("Experience â†’ active CaseSet", "No active CaseSet rows.", "No scorebook-like body of experience is available.", "Load or import a CaseSet", "Decision/action/outcome/grade rows for the active analysis.");
-    return { assessment: "UNPROVEN", confidence: "MEDIUM", assessmentReason: "Fewer than 75% of selected cases link a decision, action, outcome and resolved grade; inspect incomplete cases.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
-  }
-
-  if (family === "LEARNING_CAUSALITY") {
-    const update = input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly;
-    const deploy = input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly;
-    addExperienceDescriptive(`${metrics.gradedCases}/${metrics.totalCases} graded cases.`, "Grades exist to learn from if connected to updates.", "Grade coverage does not establish that grades improve future decisions.");
-    if (!valueIncludes(update, ["YES", "REGULAR", "DAILY", "WEEKLY"])) addMissing("Company Model â†’ Learning Loop â†’ UPDATE", String(update ?? "Unknown"), "No evidence currently shows that grades alter future model or policy behavior.", "Product/process diligence", "Model or policy update record tied to graded outcomes.");
-    if (!valueIncludes(deploy, ["YES", "FAST", "DAILY", "WEEKLY"])) addMissing("Company Model â†’ Learning Loop â†’ DEPLOY", String(deploy ?? "Unknown"), "No evidence currently shows learned improvements reach production.", "Release/process diligence", "Deployment history showing learned changes reached production.");
-    addMissing("Experience â†’ learning comparison", "No controlled before/after learning comparison.", "Compare held-out decisions with and without updates from accumulated grades.", "Experiment", "Versioned, held-out performance before and after learning from these cases.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${report.findings.find(item => item.id === "predictability")!.summary} Decision-policy improvement still requires a controlled test.`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
-  }
-
-  if (family === "CROSS_CUSTOMER_TRANSFER") {
-    const experiment = runExperienceTransferExperiment(input.rows);
-    addExperienceDescriptive(`${experiment.sharedPatterns}/${experiment.patternCount} decision-class/case-type patterns occur across segments; ${experiment.sharedCases}/${experiment.eligible} eligible cases belong to shared patterns.`, "Measures whether segments share potentially reusable decision structure.", "Shared structure is a prerequisite for transfer, not its performance result.");
-    addExperienceDescriptive(`${experiment.finding}. ${experiment.scored} held-out cases; local Brier ${experiment.local?.toFixed(3) ?? "unavailable"}, pooled ${experiment.pooled?.toFixed(3) ?? "unavailable"}.`, experiment.method, experiment.scope);
-    addMissing("Experience â†’ action-policy experiment", experiment.enough ? "Grade prediction tested; decision-policy improvement remains untested." : "Insufficient grade-prediction coverage; decision-policy improvement remains untested.", "Use identified customers and compare local versus pooled policies on held-out decisions, measuring correctness and economic outcomes.", "Policy experiment", "Local versus pooled customer-level held-out policy comparison and segment harm analysis.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${experiment.finding}${experiment.delta === null ? "" : ` (local minus pooled Brier: ${experiment.delta.toFixed(3)})`}. Shared patterns: ${experiment.sharedPatterns}/${experiment.patternCount}. This narrows the transfer question to whether pooled learning improves actions, not just grade prediction.${latestExperiment ? ` Conditional simulation: ${latestExperiment.headline}` : ""}`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
-  }
-
-  if (family === "MARGINAL_INFORMATION_VALUE") {
-    const information = deriveInformationStructure(input.rows);
-    addExperienceDescriptive(`${metrics.totalCases} cases. ${information.summary.diversity}; ${information.summary.patternRepetition}; ${information.summary.marginalNovelty}.`, "Pattern diversity and cohort novelty describe the supply of new information available to learn from.", "A held-out learning curve is needed to connect novelty to performance gain.");
-    addMissing("Experience / future experiment", report.ready ? "Predictive learning curve measured; policy-value curve still needed." : "Insufficient cases for a held-out learning curve.", "Measure action-policy performance across successive training cohorts.", "Experiment", "Decision-policy value by successive cohort on a fixed evaluation set.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${information.summary.marginalNovelty}. ${report.findings.find(item => item.id === "learning-curve")!.summary}${latestExperiment ? ` Conditional simulation: ${latestExperiment.headline}` : ""}`, evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
-  }
-
-  if (family === "REBUILDABILITY_COMPRESSION") {
-    const difficulty = input.competitiveArchitecture?.competitorRelearningDifficulty ?? input.analysis.rebuildability;
-    const foundationRisk = input.competitiveArchitecture?.foundationModelSubstitutionRisk ?? input.analysis.foundationModelDependence;
-    if (difficulty) forEvidence.push(evidenceItem({ source: "Company Model â†’ Competitive Architecture", value: `Relearning difficulty: ${difficulty}`, direction: "CONTEXT-DESCRIPTIVE", strength: "CONTEXT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Frames the rebuildability hypothesis.", limitation: "Assumption is not a challenger benchmark." }));
-    if (valueIncludes(foundationRisk, ["HIGH", "FAST"])) againstEvidence.push(evidenceItem({ source: "Company Model â†’ Competitive Architecture", value: `Foundation-model substitution risk: ${foundationRisk}`, direction: "CONTRADICTS", strength: "INDIRECT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "A high substitution risk weakens durable CE Power.", limitation: "Still requires direct benchmark evidence." }));
-    addMissing("Future challenger benchmark", "No compression/relearning benchmark.", "Need evidence that a capable challenger cannot reproduce performance cheaply.", "Benchmark", "Incumbent-vs-challenger performance gap after policy docs, public data, synthetic cases, and limited calibration.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: `${report.findings.find(item => item.id === "reconstruction-proxy")!.summary}${latestExperiment ? ` Conditional simulation: ${latestExperiment.headline}` : " Restricted-access challenger performance remains untested."}`, evidenceFor: forEvidence, evidenceAgainst: againstEvidence, missingEvidence: missing };
-  }
-
-  if (family === "LEARNING_RIGHTS") {
-    const rights = input.learningArchitecture?.canTrainAcrossCustomers ?? input.analysis.contractualLearningRights;
-    const rightsState = classifyLearningRights(rights);
-    const hasSource = sourcedSupport(input.evidenceRecords?.filter(record => !record.sourceCaseSetId || record.sourceCaseSetId === (input.caseSetId ?? input.dataset)), ["right", "contract", "train", "retain"]);
-    if (rights) forEvidence.push(evidenceItem({ source: "Company Model â†’ Learning rights", value: `Learning rights: ${rights}`, direction: rightsState === "RESTRICTED" ? "CONTRADICTS" : rightsState === "ALLOWED" && hasSource ? "SUPPORTS" : "CONTEXT-DESCRIPTIVE", strength: hasSource ? "DIRECT" : rightsState === "RESTRICTED" ? "INDIRECT" : "CONTEXT", provenance: hasSource ? "SOURCED â€” EXTERNAL EVIDENCE" : "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "Rights determine whether experience can be retained and reused.", limitation: hasSource ? "Review scope of allowed uses." : "Analyst assumption is not contractual evidence." }));
-    if (rightsState === "RESTRICTED") return { assessment: "LEANING AGAINST", confidence: hasSource ? "MEDIUM" : "LOW", assessmentReason: "The recorded rights position is restrictive; review the scope of the restriction.", evidenceFor: [], evidenceAgainst: forEvidence, missingEvidence: [] };
-    if (rightsState === "ALLOWED" && hasSource) return { assessment: "LEANING SUPPORTED", confidence: "MEDIUM", assessmentReason: "Sourced rights evidence supports retention/use, subject to scope review.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: [] };
-    addMissing("Contracts / data governance", "No sourced contractual rights evidence.", "Need retention, derived-feature, evaluation, and cross-customer training rights.", "Legal/data-room review", "Contractual language covering retention, derived features, evaluation, and cross-customer training.");
-    return { assessment: rightsState === "UNKNOWN" ? "UNKNOWN" : "UNPROVEN", confidence: "LOW", assessmentReason: "Learning rights are not established. Unknown permission is not evidence of a restriction.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
-  }
-
-  if (family === "ECONOMIC_MATERIALITY") {
-    if (metrics.outcomeValueSampleSize > 0) addExperienceDescriptive(`${metrics.outcomeValueSampleSize}/${metrics.totalCases} cases include outcome value; total ${metrics.totalOutcomeValue}.`, "Shows economic outcome fields are represented.", "Economic values alone do not prove improved decisions caused value.");
-    else addMissing("Experience â†’ economic outcomes", "No outcome value rows.", "Need economic outcome values tied to decisions and grades.", "CaseSet enrichment", "Economic outcome values joined to decision/action/outcome/grade rows.");
-    addMissing("Experience â†’ incremental economic value", "No matched policy-value comparison.", "Compare outcomes under a baseline and an improved decision policy, with consistent value units and comparable case mix.", "Policy-value experiment", "Incremental economic value attributable to changed decisions, including intervention costs.");
-    return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: metrics.outcomeValueSampleSize > 0 ? `Recorded economic stakes are measurable in ${metrics.outcomeValueSampleSize} cases. Additional value caused by better decisions has not been tested.` : "Economic stakes and incremental decision value cannot yet be assessed from these cases.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
-  }
-
-  const deterministic = input.competitiveArchitecture?.deterministicInfrastructureStrength ?? input.analysis.deterministicInfrastructure;
-  if (deterministic) forEvidence.push(evidenceItem({ source: "Company Model â†’ Competitive Architecture", value: `Deterministic infrastructure: ${deterministic}`, direction: "CONTEXT-DESCRIPTIVE", strength: "CONTEXT", provenance: "ANALYST ASSUMPTION", href: companyModelHref, interpretation: "May indicate Power outside CE.", limitation: "Does not itself prove a Helmer mechanism." }));
-  addMissing("Strategic evidence", "No adoption/process/switching evidence.", "Need direct evidence for Process Power, switching costs, or infrastructure dependence.", "Customer/process diligence", "Adoption, workflow, switching, or infrastructure evidence tied to a Helmer mechanism.");
-  return { assessment: "UNPROVEN", confidence: "LOW", assessmentReason: "Alternative Power may be plausible but is not established by the current CE evidence model.", evidenceFor: forEvidence, evidenceAgainst: [], missingEvidence: missing };
-}
-
-export function deriveDebateEvidenceRegistry(input: DebateEngineInput): Record<DebateFamily, Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceDashboard" | "evidenceCoverage" | "tenSecondSummary" | "highestValueDiligence">> {
-  input = { ...input, experienceAnalysis: input.experienceAnalysis ?? analyzeExperience(input.rows), observedExperimentAdapter: input.observedExperimentAdapter ?? runObservedDataExperimentAdapter(input.rows) };
-  const families: DebateFamily[] = [
-    "EXPERIENCE_CAPTURE",
-    "LEARNING_CAUSALITY",
-    "CROSS_CUSTOMER_TRANSFER",
-    "MARGINAL_INFORMATION_VALUE",
-    "REBUILDABILITY_COMPRESSION",
-    "LEARNING_RIGHTS",
-    "ECONOMIC_MATERIALITY",
-    "ALTERNATIVE_POWER"
-  ];
-
-  return families.reduce<Record<DebateFamily, Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceDashboard" | "evidenceCoverage" | "tenSecondSummary" | "highestValueDiligence">>>((registry, family) => {
-    const raw = deriveDebateAssessment(input, family);
-    const evidenceDashboard = deriveDebateEvidenceDashboard(input, family);
-    const evidenceFor = raw.evidenceFor.filter((item) => item.direction === "SUPPORTS");
-    const contextEvidence = raw.evidenceFor.filter((item) => item.direction === "CONTEXT-DESCRIPTIVE");
-    const evidenceAgainst = raw.evidenceAgainst.filter((item) => item.direction === "CONTRADICTS");
-    const missingEvidence = raw.missingEvidence.map((item) => ({ ...item, href: undefined }));
-    const evidenceCoverage = `${evidenceFor.length} supports Â· ${evidenceAgainst.length} contradicts Â· ${contextEvidence.length} context Â· ${missingEvidence.length} missing`;
-    const highestValueDiligence = missingEvidence[0]?.interpretation || debateTemplate(family).bestNextTest;
-    const tenSecondSummary = `${raw.assessment} / ${raw.confidence} confidence. ${raw.assessmentReason}`;
-    registry[family] = {
-      ...raw,
-      evidenceFor,
-      evidenceAgainst,
-      contextEvidence,
-      missingEvidence,
-      evidenceDashboard,
-      evidenceCoverage,
-      tenSecondSummary,
-      highestValueDiligence
-    };
-    return registry;
-  }, {} as Record<DebateFamily, Pick<DerivedDebateCandidate, "assessment" | "confidence" | "assessmentReason" | "evidenceFor" | "evidenceAgainst" | "contextEvidence" | "missingEvidence" | "evidenceDashboard" | "evidenceCoverage" | "tenSecondSummary" | "highestValueDiligence">>);
-}
-
-export function deriveHighestValueDiligenceQueue(candidates: DerivedDebateCandidate[], limit = 5) {
-  const impactOrder: Record<DebateThesisImpact, number> = { "VERY HIGH": 0, HIGH: 1, MEDIUM: 2 };
-  return candidates
-    .filter((candidate) => candidate.missingEvidence.length > 0 || candidate.assessment === "UNPROVEN" || candidate.assessment === "UNKNOWN")
-    .sort((a, b) => impactOrder[a.thesisImpact] - impactOrder[b.thesisImpact] || b.missingEvidence.length - a.missingEvidence.length || a.title.localeCompare(b.title))
-    .slice(0, limit)
-    .map((candidate) => ({
-      family: candidate.family,
-      title: candidate.title,
-      thesisImpact: candidate.thesisImpact,
-      test: candidate.bestNextTest,
-      reason: candidate.highestValueDiligence,
-      href: `#debate-${candidate.family}`
-    }));
-}
-
-type SavedSyntheticFinding = { verdict?: string; headline?: string; detail?: string; implication?: string };
-
-function latestSyntheticFinding(input: DebateEngineInput, family: DebateFamily): SavedSyntheticFinding | null {
-  const selectedDatasetKey = input.caseSetId ?? input.dataset;
-  if (!selectedDatasetKey) return null;
-  const findings = (input.evidenceRecords ?? [])
-    .filter(record => ["SYNTHETIC_EXPERIMENT", "SYNTHETIC_EXPERIMENT_SUITE"].includes(record.evidenceType ?? "") && record.sourceCaseSetId === selectedDatasetKey)
-    .flatMap(record => {
-      try {
-        const parsed = JSON.parse(record.valueSnapshot ?? "{}") as { findings?: Array<SavedSyntheticFinding & { family?: string }> };
-        return (parsed.findings ?? []).filter(finding => finding.family === family);
-      } catch {
-        return [];
-      }
-    });
-  return findings.at(-1) ?? null;
-}
-
-function modeledAssessmentFor(finding: SavedSyntheticFinding | null): ModeledMechanismAssessment {
-  if (finding?.verdict === "SUPPORTS") return "SUPPORTED CONDITIONALLY";
-  if (finding?.verdict === "CHALLENGES") return "CHALLENGED CONDITIONALLY";
-  if (finding) return "MIXED CONDITIONALLY";
-  return "NOT TESTED";
-}
-
-function caseStatus(verdict: ObservedExperimentVerdict): DebateSubclaimStatus {
-  if (verdict === "SUPPORTS") return "SUPPORTED BY SELECTED CASES";
-  if (verdict === "CHALLENGES") return "CHALLENGED BY SELECTED CASES";
-  return "MIXED / INCOMPLETE";
-}
-
-function conditionalStatus(modeled: ModeledMechanismAssessment): DebateSubclaimStatus {
-  if (modeled === "SUPPORTED CONDITIONALLY") return "SUPPORTED CONDITIONALLY";
-  if (modeled === "CHALLENGED CONDITIONALLY") return "CHALLENGED CONDITIONALLY";
-  return "MIXED / INCOMPLETE";
-}
-
-function resolveSubclaims(family: DebateFamily, observed: ObservedExperiment, modeled: ModeledMechanismAssessment, synthetic: SavedSyntheticFinding | null): ResolvedDebateSubclaim[] {
-  const claims = DEBATE_ARGUMENT_STRUCTURE[family].subclaims;
-  const row = (index: number, status: DebateSubclaimStatus, reason: string): ResolvedDebateSubclaim => ({ claim: claims[index], status, reason });
-  if (family === "EXPERIENCE_CAPTURE") return [
-    row(0, caseStatus(observed.verdict), observed.headline),
-    row(1, "MIXED / INCOMPLETE", "Resolved grades are present, but reliability still requires independent regrading."),
-    row(2, caseStatus(observed.verdict), observed.detail)
-  ];
-  if (family === "LEARNING_CAUSALITY") return [
-    row(0, "REQUIRES EXTERNAL / COMPANY EVIDENCE", "Cases do not identify which grades changed a model or policy version."),
-    row(1, caseStatus(observed.verdict), `${observed.headline} This tests later-case prediction, not deployed action improvement.`),
-    row(2, "REQUIRES EXTERNAL / COMPANY EVIDENCE", "Attribution requires a versioned, randomized, or otherwise controlled comparison.")
-  ];
-  if (family === "CROSS_CUSTOMER_TRANSFER") return [
-    row(0, observed.status === "BLOCKED" ? "MIXED / INCOMPLETE" : caseStatus(observed.verdict), observed.detail),
-    row(1, observed.status === "BLOCKED" ? conditionalStatus(modeled) : caseStatus(observed.verdict), observed.headline),
-    row(2, observed.status === "BLOCKED" ? conditionalStatus(modeled) : observed.metrics.negativeTransferSegments === 0 ? caseStatus(observed.verdict) : "MIXED / INCOMPLETE", `Negative-transfer check: ${observed.metrics.negativeTransferSegments ?? "unavailable"} evaluated segments show material harm. ${synthetic?.headline ?? "A customer-level policy test remains the decisive next step."}`)
-  ];
-  if (family === "MARGINAL_INFORMATION_VALUE") return [
-    row(0, caseStatus(observed.verdict), observed.headline),
-    row(1, caseStatus(observed.verdict), observed.detail),
-    row(2, modeled === "NOT TESTED" ? "MIXED / INCOMPLETE" : conditionalStatus(modeled), synthetic?.headline ?? "Persistence under drift has not been stress-tested.")
-  ];
-  if (family === "REBUILDABILITY_COMPRESSION") return [
-    row(0, "MIXED / INCOMPLETE", "The observed holdout measures predictive performance, but no external challenger benchmark establishes an incumbent gap."),
-    row(1, observed.status === "BLOCKED" ? conditionalStatus(modeled) : caseStatus(observed.verdict), `${observed.headline} ${synthetic?.headline ?? ""}`.trim()),
-    row(2, modeled === "NOT TESTED" ? "REQUIRES EXTERNAL / COMPANY EVIDENCE" : conditionalStatus(modeled), synthetic?.detail ?? "Catch-up cost under stronger foundation models requires a restricted challenger test.")
-  ];
-  if (family === "LEARNING_RIGHTS") return claims.map((claim, index) => row(index, "REQUIRES EXTERNAL / COMPANY EVIDENCE", ["Review retention and derived-feature clauses.", "Review evaluation, training, and cross-customer reuse permissions.", "Verify operational access, deletion, isolation, and governance controls."][index]));
-  if (family === "ECONOMIC_MATERIALITY") return [
-    row(0, observed.status === "BLOCKED" ? "MIXED / INCOMPLETE" : "SUPPORTED BY SELECTED CASES", observed.headline),
-    row(1, "MIXED / INCOMPLETE", "Outcome values describe stakes; a matched policy comparison is needed for incremental net value."),
-    row(2, "REQUIRES EXTERNAL / COMPANY EVIDENCE", "Value capture at scale requires pricing, retention, cost, and customer evidence.")
-  ];
-  return claims.map((claim, index) => row(index, "REQUIRES EXTERNAL / COMPANY EVIDENCE", ["Identify the specific non-CE mechanism and its benefit.", "Attach customer, cost, workflow, or competitive evidence of a barrier.", "Test whether the advantage survives without a compounding-learning assumption."][index]));
-}
-
-function integratedConclusionFor(family: DebateFamily, assessment: DebateAssessmentCategory, observed: ObservedExperiment, modeled: ModeledMechanismAssessment, synthetic: SavedSyntheticFinding | null) {
-  const direct = assessment === "SUPPORTED" || assessment === "LEANING SUPPORTED"
-    ? `Selected evidence supports the company-level thesis (${assessment.toLowerCase()}).`
-    : assessment === "CONTRADICTED" || assessment === "LEANING AGAINST"
-      ? `Selected evidence challenges the company-level thesis (${assessment.toLowerCase()}).`
-      : "The full company-level thesis is not yet resolved.";
-  const observedSentence = observed.status === "BLOCKED"
-    ? observed.headline
-    : `The selected cases ${observed.verdict === "SUPPORTS" ? "support" : observed.verdict === "CHALLENGES" ? "challenge" : "partially resolve"} a measurable component: ${observed.headline}`;
-  const modeledSentence = modeled === "NOT TESTED" ? "No applied synthetic mechanism result is attached to this dataset." : `The modeled mechanism is ${modeled.toLowerCase()}: ${synthetic?.headline ?? "see the applied experiment result."}`;
-  if (family === "LEARNING_RIGHTS" || family === "ALTERNATIVE_POWER") return `${direct} ${observedSentence}`;
-  return `${direct} ${observedSentence} ${modeledSentence}`;
-}
-
-export function deriveDebateCandidates(input: DebateEngineInput, take = 8): DerivedDebateCandidate[] {
-  input = { ...input, experienceAnalysis: input.experienceAnalysis ?? analyzeExperience(input.rows), observedExperimentAdapter: input.observedExperimentAdapter ?? runObservedDataExperimentAdapter(input.rows) };
-  const observedProgram = input.observedExperimentAdapter!;
-  const profile = deriveCanonicalDebateProfile(input.analysis);
-  const registry = deriveDebateEvidenceRegistry(input);
-  const families = new Set<DebateFamily>();
-  for (const debate of input.debates) {
-    const family = debateFamilyFromQuestion(debate.question);
-    if (family) families.add(family);
-  }
-  profile.forEach((family) => families.add(family));
-  families.add("EXPERIENCE_CAPTURE");
-  const candidates = [...families].slice(0, take).map((family) => {
-    const template = debateTemplate(family);
-    const sourceDebate = input.debates.find((debate) => debateFamilyFromQuestion(debate.question) === family);
-    const assessment = registry[family];
-    const observedExperiment = observedProgram.byFamily[family];
-    const syntheticFinding = latestSyntheticFinding(input, family);
-    const modeledAssessment = modeledAssessmentFor(syntheticFinding);
-    const investorBelief = sourceDebate?.probability ?? null;
-    const divergence = investorBelief !== null && assessment.assessment === "UNPROVEN" && investorBelief >= 60
-      ? "Your belief is more positive than the currently available evidence. Capture the private diligence or meeting evidence that supports it."
-      : investorBelief !== null && ["SUPPORTED", "LEANING SUPPORTED"].includes(assessment.assessment) && investorBelief <= 40
-        ? "Your belief is more skeptical than the current evidence model. Note the concern or alternative explanation."
-        : null;
-    return {
-      ...template,
-      ...assessment,
-      companyAssessment: assessment.assessment,
-      modeledAssessment,
-      integratedConclusion: integratedConclusionFor(family, assessment.assessment, observedExperiment, modeledAssessment, syntheticFinding),
-      subclaimAssessments: resolveSubclaims(family, observedExperiment, modeledAssessment, syntheticFinding),
-      observedExperiment,
-      analysisFindings: input.experienceAnalysis!.findings.filter(item => item.family === family),
-      transferExperiment: family === "CROSS_CUSTOMER_TRANSFER" ? runExperienceTransferExperiment(input.rows) : undefined,
-      proposition: sourceDebate?.question || template.proposition,
-      investorBelief,
-      investorBeliefDivergence: divergence,
-      sourceDebate
-    };
-  });
-  return candidates.sort((a, b) => {
-    const impactOrder: Record<DebateThesisImpact, number> = { "VERY HIGH": 0, HIGH: 1, MEDIUM: 2 };
-    return impactOrder[a.thesisImpact] - impactOrder[b.thesisImpact] || a.title.localeCompare(b.title);
-  });
-}
-
-const POWER_ORDER: Array<{ key: HelmerPowerKey; label: string; definition: string }> = [
-  { key: "scale_economies", label: "Scale Economies", definition: "Unit economics improve with volume in a way that is hard to match." },
-  { key: "network_economies", label: "Network Economies", definition: "Value to one customer improves from experience or usage generated by others." },
-  { key: "counter_positioning", label: "Counter-Positioning", definition: "Incumbents face structural business-model conflict in adopting the response." },
-  { key: "switching_costs", label: "Switching Costs", definition: "Customers face meaningful performance, workflow, migration, or risk costs when leaving." },
-  { key: "branding", label: "Branding", definition: "Trust or reputation changes willingness to buy/pay beyond functional utility alone." },
-  { key: "cornered_resource", label: "Cornered Resource", definition: "The company controls a scarce asset, right, or resource rivals cannot access or recreate cheaply." },
-  { key: "process_power", label: "Process Power", definition: "Operating routines and feedback loops compound into difficult-to-copy performance." }
-];
-
-function evidenceStrengthFromItems(forEvidence: DebateEvidenceItem[], againstEvidence: DebateEvidenceItem[], sourceHint = false): PowerEvidenceStrength {
-  if (forEvidence.some((item) => item.strength === "DIRECT" && item.provenance === "SOURCED â€” EXTERNAL EVIDENCE")) return "HIGH";
-  if (forEvidence.some((item) => item.direction === "SUPPORTS")) return sourceHint ? "MEDIUM" : "LOW";
-  if (againstEvidence.some((item) => item.direction === "CONTRADICTS")) return "LOW";
-  return "NONE";
-}
-
-function thesisFromAnalystValue(value: string | null | undefined): PowerThesisStrength {
-  if (valueIncludes(value, ["HIGH", "HARD", "YES", "DEEP"])) return "MODERATE";
-  if (valueIncludes(value, ["MEDIUM", "PARTIAL", "MODERATE"])) return "WEAK";
-  if (valueIncludes(value, ["LOW", "EASY", "NO"])) return "NONE";
-  return "UNPROVEN";
-}
-
-function thesisRank(value: PowerThesisStrength) {
-  const rank: Record<PowerThesisStrength, number> = { STRONG: 4, MODERATE: 3, WEAK: 2, UNPROVEN: 1, NONE: 0 };
-  return rank[value];
-}
-
-function evidenceRank(value: PowerEvidenceStrength) {
-  const rank: Record<PowerEvidenceStrength, number> = { HIGH: 3, MEDIUM: 2, LOW: 1, NONE: 0 };
-  return rank[value];
-}
-
-function strongestThesis(...values: PowerThesisStrength[]): PowerThesisStrength {
-  return values.sort((a, b) => thesisRank(b) - thesisRank(a))[0] ?? "UNPROVEN";
-}
-
-function storedHelmerAssessment(assessments: DimensionAssessmentInput[] | undefined, key: HelmerPowerKey): AnalystPowerAssessment | null {
-  const stored = assessments?.find((item) => item.framework === "HELMER" && item.dimension === key);
-  return stored ? { score: stored.score, confidence: stored.confidence, evidenceStatus: stored.evidenceStatus, rationale: stored.rationale } : null;
-}
-
-function analystImpliesThesis(assessment: AnalystPowerAssessment | null): PowerThesisStrength {
-  if (!assessment) return "UNPROVEN";
-  if (assessment.score >= 4) return "STRONG";
-  if (assessment.score === 3) return "MODERATE";
-  if (assessment.score > 0) return "WEAK";
-  return "NONE";
-}
-
-function powerEvidenceItem(source: string, value: string, direction: DebateEvidenceDirection, interpretation: string, href?: string): DebateEvidenceItem {
-  return {
-    source,
-    value,
-    direction,
-    strength: direction === "CONTEXT-DESCRIPTIVE" ? "CONTEXT" : "INDIRECT",
-    provenance: "ANALYST ASSUMPTION",
-    href,
-    interpretation,
-    limitation: "This is deterministic Power Map input, not a standalone proof of durable Power."
-  };
-}
-
-function powerMapExternalEvidence(input: DebateEngineInput, terms: string[]) {
-  return externalEvidenceForFamily(input, "ALTERNATIVE_POWER").filter((item) => {
-    const text = `${item.source} ${item.value} ${item.interpretation}`.toLowerCase();
-    return terms.some((term) => text.includes(term));
-  });
-}
-
-export function derivePowerMap(input: DebateEngineInput & { assessments?: DimensionAssessmentInput[] }): DerivedPowerMap {
-  const candidates = deriveDebateCandidates(input, 8);
-  const candidateByFamily = new Map(candidates.map((candidate) => [candidate.family, candidate]));
-  const companyHref = debateCompanyModelHref(input);
-  const experienceHref = debateExperienceHref(input);
-  const rowsAreSynthetic = scorebookRowsAreSynthetic(input.rows);
-  const supportByFamily = (family: DebateFamily) => [
-    ...(candidateByFamily.get(family)?.evidenceFor ?? []),
-    ...(candidateByFamily.get(family)?.evidenceDashboard.externalEvidence.filter((item) => item.direction === "SUPPORTS") ?? [])
-  ];
-  const againstByFamily = (family: DebateFamily) => candidateByFamily.get(family)?.evidenceAgainst ?? [];
-  const missingByFamily = (family: DebateFamily) => candidateByFamily.get(family)?.missingEvidence ?? [];
-  const hasSupport = (family: DebateFamily) => supportByFamily(family).length > 0;
-  const evidenceForPower = (families: DebateFamily[]) => families.flatMap((family) => supportByFamily(family));
-  const evidenceAgainstPower = (families: DebateFamily[]) => families.flatMap((family) => againstByFamily(family));
-  const missingForPower = (families: DebateFamily[]) => families.flatMap((family) => missingByFamily(family));
-  const segmentCount = new Set(input.rows.map((row) => row.customerSegment).filter(Boolean)).size;
-  const hasCaseRows = input.rows.length > 0;
-  const workflowEmbeddedness = input.competitiveArchitecture?.integrationDepth ?? input.analysis.workflowEmbeddedness;
-  const switchingCosts = input.competitiveArchitecture?.switchingCosts ?? input.analysis.switchingCostsAssumption;
-  const dataExclusive = input.competitiveArchitecture?.crossCustomerPoolExclusive ?? input.analysis.dataExclusivity;
-  const rebuildability = input.competitiveArchitecture?.competitorRelearningDifficulty ?? input.analysis.rebuildability;
-  const deterministic = input.competitiveArchitecture?.deterministicInfrastructureStrength ?? input.analysis.deterministicInfrastructure;
-  const distributionAdvantage = input.competitiveArchitecture?.distributionAdvantage ?? input.analysis.distributionAdvantage;
-  const regulatoryBarrier = input.competitiveArchitecture?.regulatoryBarrierStrength ?? input.analysis.regulatoryContractualBarriers;
-  const contractualBarrier = input.competitiveArchitecture?.contractualBarrierStrength ?? input.analysis.regulatoryContractualBarriers;
-  const scaleEvidence = powerMapExternalEvidence(input, ["scale", "unit cost", "fixed cost", "infrastructure", "amort"]);
-  const counterEvidence = powerMapExternalEvidence(input, ["counter", "incumbent", "cannibal", "conflict"]);
-  const brandEvidence = powerMapExternalEvidence(input, ["brand", "trust", "reputation", "willingness"]);
-
-  const definitions = new Map(POWER_ORDER.map((item) => [item.key, item]));
-  const build = (
-    key: HelmerPowerKey,
-    thesisStrength: PowerThesisStrength,
-    evidenceStrength: PowerEvidenceStrength,
-    mechanism: string,
-    why: string,
-    evidenceFor: DebateEvidenceItem[],
-    evidenceAgainst: DebateEvidenceItem[],
-    missingEvidence: DebateEvidenceItem[],
-    relevantDebates: DebateFamily[],
-    subdimensions: PowerSubdimension[]
-  ): DerivedPowerAssessment => {
-    const definition = definitions.get(key)!;
-    const analystAssessment = storedHelmerAssessment(input.assessments, key);
-    const analystDiverges = analystAssessment ? Math.abs(thesisRank(analystImpliesThesis(analystAssessment)) - thesisRank(thesisStrength)) >= 2 : false;
-    return {
-      key,
-      label: definition.label,
-      definition: definition.definition,
-      thesisStrength,
-      evidenceStrength,
-      mechanism,
-      why,
-      evidenceFor,
-      evidenceAgainst,
-      missingEvidence,
-      relevantDebates,
-      subdimensions,
-      analystAssessment,
-      analystDiverges
-    };
-  };
-
-  const networkSupport = evidenceForPower(["CROSS_CUSTOMER_TRANSFER"]);
-  const networkContext = candidateByFamily.get("CROSS_CUSTOMER_TRANSFER")?.contextEvidence ?? [];
-  const transferCandidate = candidateByFamily.get("CROSS_CUSTOMER_TRANSFER");
-  const networkThesis = hasSupport("CROSS_CUSTOMER_TRANSFER") ? "MODERATE" : transferCandidate?.observedExperiment.verdict === "SUPPORTS" || transferCandidate?.modeledAssessment === "SUPPORTED CONDITIONALLY" ? "WEAK" : "UNPROVEN";
-  const processSupport = evidenceForPower(["LEARNING_CAUSALITY", "EXPERIENCE_CAPTURE"]);
-  const processContext = [
-    ...(candidateByFamily.get("LEARNING_CAUSALITY")?.contextEvidence ?? []),
-    ...(candidateByFamily.get("MARGINAL_INFORMATION_VALUE")?.contextEvidence ?? []),
-    powerEvidenceItem("Company Model â†’ Learning Loop", `Update: ${input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly ?? "Unknown"}; deploy: ${input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly ?? "Unknown"}`, "CONTEXT-DESCRIPTIVE", "Closed-loop architecture is relevant but does not prove difficult-to-copy Process Power.", companyHref)
-  ];
-  const closedLoopClaim = valueIncludes(input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly, ["YES", "REGULAR", "DAILY", "WEEKLY"]) && valueIncludes(input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly, ["YES", "FAST", "DAILY", "WEEKLY"]);
-  const learningCandidate = candidateByFamily.get("LEARNING_CAUSALITY");
-  const marginalCandidate = candidateByFamily.get("MARGINAL_INFORMATION_VALUE");
-  const processThesis = hasSupport("LEARNING_CAUSALITY") && valueIncludes(rebuildability, ["HARD"]) ? "MODERATE" : closedLoopClaim || learningCandidate?.observedExperiment.verdict === "SUPPORTS" || marginalCandidate?.modeledAssessment === "SUPPORTED CONDITIONALLY" ? "WEAK" : "UNPROVEN";
-  const switchingSupport = valueIncludes(switchingCosts, ["HIGH"]) || valueIncludes(workflowEmbeddedness, ["HIGH", "DEEP"])
-    ? [powerEvidenceItem("Company Model â†’ Competitive Architecture", `Switching/workflow state: ${switchingCosts ?? "Unknown"} / ${workflowEmbeddedness ?? "Unknown"}`, "SUPPORTS", "Customer-specific accumulated state or deep workflow dependency may support switching costs.", companyHref)]
-    : [];
-  const switchingThesis = switchingSupport.length ? "MODERATE" : "UNPROVEN";
-  const corneredContext = valueIncludes(dataExclusive, ["HIGH"])
-    ? [powerEvidenceItem("Company Model â†’ Competitive Architecture", `Data exclusivity: ${dataExclusive}`, "CONTEXT-DESCRIPTIVE", "Proprietary data is relevant but insufficient if reproducible, compressible, or weakly protected.", companyHref)]
-    : [];
-  const reconstructionContext = candidateByFamily.get("REBUILDABILITY_COMPRESSION")?.contextEvidence ?? [];
-  const corneredSupport = valueIncludes(dataExclusive, ["HIGH"]) && valueIncludes(rebuildability, ["HARD"]) && hasSupport("LEARNING_RIGHTS")
-    ? [powerEvidenceItem("Company Model â†’ Competitive Architecture", "Exclusive rights plus hard relearning signal", "SUPPORTS", "Scarce privileged experience may support Cornered Resource if rights and rebuild difficulty are evidenced.", companyHref)]
-    : [];
-  const rebuildCandidate = candidateByFamily.get("REBUILDABILITY_COMPRESSION");
-  const corneredThesis = corneredSupport.length ? "MODERATE" : corneredContext.length || rebuildCandidate?.observedExperiment.verdict === "SUPPORTS" || rebuildCandidate?.modeledAssessment === "SUPPORTED CONDITIONALLY" ? "WEAK" : "UNPROVEN";
-  const scaleSupport = scaleEvidence.filter((item) => item.direction === "SUPPORTS");
-  const scaleThesis = scaleSupport.length ? "MODERATE" : "UNPROVEN";
-  const counterSupport = counterEvidence.filter((item) => item.direction === "SUPPORTS");
-  const counterThesis = counterSupport.length ? "MODERATE" : "UNPROVEN";
-  const brandSupport = brandEvidence.filter((item) => item.direction === "SUPPORTS");
-  const brandThesis = brandSupport.length ? "MODERATE" : "UNPROVEN";
-
-  const powers = [
-    build("scale_economies", scaleThesis, evidenceStrengthFromItems(scaleSupport, [], scaleSupport.length > 0), "Fixed-cost leverage or declining unit costs with scale.", scaleSupport.length ? "Attached evidence suggests scale economics may exist." : "No direct unit-cost or fixed-cost leverage evidence is attached.", scaleSupport, [], [], [], [
-      { label: "Unit cost decline", state: scaleThesis, evidence: evidenceStrengthFromItems(scaleSupport, [], scaleSupport.length > 0) },
-      { label: "Shared infrastructure leverage", state: "UNPROVEN", evidence: "NONE" }
-    ]),
-    build("network_economies", networkThesis, evidenceStrengthFromItems(networkSupport, [], false), "Cross-customer experience improves value for other customers.", hasSupport("CROSS_CUSTOMER_TRANSFER") ? "Cross-customer transfer evidence supports a network-like CE mechanism." : transferCandidate?.integratedConclusion ?? "Transfer experiment unavailable.", [...networkSupport, ...networkContext], [], missingForPower(["CROSS_CUSTOMER_TRANSFER"]), ["CROSS_CUSTOMER_TRANSFER"], [
-      { label: "Cross-customer transfer", state: networkThesis, evidence: evidenceStrengthFromItems(networkSupport, [], false) },
-      { label: "Pooling rights", state: thesisFromAnalystValue(input.learningArchitecture?.canTrainAcrossCustomers ?? input.analysis.contractualLearningRights), evidence: hasSupport("LEARNING_RIGHTS") ? "MEDIUM" : "LOW" },
-      { label: "Feedback velocity", state: hasCaseRows ? "WEAK" : "UNPROVEN", evidence: hasCaseRows ? "LOW" : "NONE" }
-    ]),
-    build("counter_positioning", counterThesis, evidenceStrengthFromItems(counterSupport, [], counterSupport.length > 0), "Incumbents cannot respond without damaging their existing business.", counterSupport.length ? "Attached evidence suggests incumbent conflict." : "No incumbent conflict or cannibalization evidence is attached.", counterSupport, [], [], [], [
-      { label: "Incumbent conflict", state: counterThesis, evidence: evidenceStrengthFromItems(counterSupport, [], counterSupport.length > 0) },
-      { label: "Business-model incompatibility", state: "UNPROVEN", evidence: "NONE" }
-    ]),
-    build("switching_costs", switchingThesis, switchingSupport.length ? "LOW" : "NONE", "Accumulated customer context, integrations, or workflow dependency make replacement costly.", switchingSupport.length ? "Company Model assumptions point to switching-cost mechanisms, but direct replacement-degradation evidence is still needed." : "No switching-cost mechanism is evidenced yet.", switchingSupport, [], [], [], [
-      { label: "Accumulated customer context", state: hasCaseRows ? "WEAK" : "UNPROVEN", evidence: hasCaseRows ? "LOW" : "NONE" },
-      { label: "Integration depth", state: thesisFromAnalystValue(workflowEmbeddedness), evidence: valueIncludes(workflowEmbeddedness, ["HIGH"]) ? "LOW" : "NONE" },
-      { label: "Replacement performance gap", state: "UNPROVEN", evidence: "NONE" }
-    ]),
-    build("branding", brandThesis, evidenceStrengthFromItems(brandSupport, [], brandSupport.length > 0), "Trust or reputation reduces buyer uncertainty or supports willingness to pay.", brandSupport.length ? "Attached evidence suggests a brand mechanism." : "No willingness-to-pay or trust evidence is attached.", brandSupport, [], [], [], [
-      { label: "Trust / reputation", state: brandThesis, evidence: evidenceStrengthFromItems(brandSupport, [], brandSupport.length > 0) },
-      { label: "Willingness to pay", state: "UNPROVEN", evidence: "NONE" }
-    ]),
-    build("cornered_resource", corneredThesis, evidenceStrengthFromItems(corneredSupport, [], false), "Scarce privileged data, rights, or relationships are hard for challengers to access.", corneredSupport.length ? "Rights plus hard rebuildability may support a Cornered Resource hypothesis." : rebuildCandidate?.integratedConclusion ?? "Proprietary data alone is not sufficient if reproducible or compressible.", [...corneredSupport, ...corneredContext, ...reconstructionContext], [], missingForPower(["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"]), ["LEARNING_RIGHTS", "REBUILDABILITY_COMPRESSION"], [
-      { label: "Exclusive cases/outcomes", state: thesisFromAnalystValue(dataExclusive), evidence: valueIncludes(dataExclusive, ["HIGH"]) ? "LOW" : "NONE" },
-      { label: "Learning rights", state: hasSupport("LEARNING_RIGHTS") ? "MODERATE" : "UNPROVEN", evidence: hasSupport("LEARNING_RIGHTS") ? "MEDIUM" : "NONE" },
-      { label: "Resistance to reproduction", state: valueIncludes(rebuildability, ["HARD"]) ? "WEAK" : "UNPROVEN", evidence: "LOW" }
-    ]),
-    build("process_power", processThesis, evidenceStrengthFromItems(processSupport, againstByFamily("LEARNING_CAUSALITY"), false), "Closed learning/update/deploy routines compound into hard-to-copy operating performance.", processThesis === "MODERATE" ? "Learning causality plus hard-to-reproduce process evidence supports Process Power." : learningCandidate?.integratedConclusion ?? (closedLoopClaim ? "A closed loop may exist, but reproducibility and measured learning causality remain under-evidenced." : "Capturing cases alone does not establish Process Power."), [...processSupport, ...processContext], evidenceAgainstPower(["LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"]), missingForPower(["LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"]), ["EXPERIENCE_CAPTURE", "LEARNING_CAUSALITY", "REBUILDABILITY_COMPRESSION"], [
-      { label: "Capture", state: hasSupport("EXPERIENCE_CAPTURE") ? "MODERATE" : "WEAK", evidence: hasSupport("EXPERIENCE_CAPTURE") ? "MEDIUM" : "LOW" },
-      { label: "Grade", state: hasCaseRows ? "WEAK" : "UNPROVEN", evidence: hasCaseRows ? "LOW" : "NONE" },
-      { label: "Update", state: thesisFromAnalystValue(input.learningArchitecture?.usesOutcomeGradesForLearning ?? input.analysis.updatesModelPolicyRegularly), evidence: "LOW" },
-      { label: "Deploy", state: thesisFromAnalystValue(input.learningArchitecture?.deploymentCadence ?? input.analysis.deploysImprovementsQuickly), evidence: "LOW" },
-      { label: "Reproducibility", state: valueIncludes(rebuildability, ["HARD"]) ? "WEAK" : "UNPROVEN", evidence: "LOW" }
-    ])
-  ];
-
-  const supportedPower = powers.filter((power) => thesisRank(power.thesisStrength) >= 3 && evidenceRank(power.evidenceStrength) >= 2);
-  const hypothesizedPower = powers.filter((power) => thesisRank(power.thesisStrength) >= 2).sort((a, b) => thesisRank(b.thesisStrength) - thesisRank(a.thesisStrength) || evidenceRank(b.evidenceStrength) - evidenceRank(a.evidenceStrength));
-  const classifications = new Set<CEPowerClassification>();
-  if (hasSupport("CROSS_CUSTOMER_TRANSFER") && hasSupport("LEARNING_CAUSALITY")) classifications.add("REINFORCES NETWORK ECONOMIES");
-  if (processThesis === "MODERATE") classifications.add("REINFORCES PROCESS POWER");
-  if (switchingThesis === "MODERATE" && !hasSupport("CROSS_CUSTOMER_TRANSFER")) classifications.add("REINFORCES SWITCHING COSTS");
-  if (corneredThesis === "MODERATE") classifications.add("REINFORCES CORNERED RESOURCE");
-  if (classifications.size === 0 && candidates.some(candidate => candidate.observedExperiment.verdict === "SUPPORTS" || candidate.modeledAssessment === "SUPPORTED CONDITIONALLY")) classifications.add("CAPABILITY ADVANTAGE ONLY");
-  if (classifications.size === 0 && powers.some((power) => thesisRank(power.thesisStrength) >= 2)) classifications.add("CAPABILITY ADVANTAGE ONLY");
-  if (classifications.size === 0 && candidates.some((candidate) => candidate.assessment === "UNPROVEN" || candidate.assessment === "UNKNOWN")) classifications.add("UNPROVEN MECHANISM");
-  if (classifications.size === 0) classifications.add("NO DURABLE ADVANTAGE DEMONSTRATED");
-
-  const ceMechanism = {
-    classifications: [...classifications],
-    summary: classifications.has("UNPROVEN MECHANISM")
-      ? hasSupport("EXPERIENCE_CAPTURE") ? "Graded capture is supported in the selected cases. Learning improvement, transfer, and resistance to reconstruction remain to be tested." : "The selected evidence does not yet establish the capture-to-learning mechanism."
-      : classifications.has("CAPABILITY ADVANTAGE ONLY")
-        ? "The current evidence suggests possible capability advantage, but not demonstrated durable Power."
-        : `Compounding Expertise may ${[...classifications].map((item) => item.toLowerCase()).join(", ")}.`
-  };
-
-  const conclusion = supportedPower.length
-    ? `The strongest demonstrated Power hypothesis is ${supportedPower[0].label}, with ${supportedPower[0].evidenceStrength.toLowerCase()} evidence.`
-    : hypothesizedPower.length
-      ? `The strongest current hypothesis is ${hypothesizedPower[0].label}, but direct evidence remains ${hypothesizedPower[0].evidenceStrength.toLowerCase()}.`
-      : "No durable Power is currently demonstrated by available evidence.";
-
-  const mechanismEdges: PowerMechanismEdge[] = [
-    { from: "Cross-customer transfer", to: "Network Economies", state: powers.find((power) => power.key === "network_economies")!.thesisStrength, evidence: powers.find((power) => power.key === "network_economies")!.evidenceStrength },
-    { from: "Learning causality + closed loop", to: "Process Power", state: powers.find((power) => power.key === "process_power")!.thesisStrength, evidence: powers.find((power) => power.key === "process_power")!.evidenceStrength },
-    { from: "Customer-specific accumulated state", to: "Switching Costs", state: powers.find((power) => power.key === "switching_costs")!.thesisStrength, evidence: powers.find((power) => power.key === "switching_costs")!.evidenceStrength },
-    { from: "Privileged experience + rights", to: "Cornered Resource", state: powers.find((power) => power.key === "cornered_resource")!.thesisStrength, evidence: powers.find((power) => power.key === "cornered_resource")!.evidenceStrength }
-  ];
-
-  return { powers, ceMechanism, conclusion, mechanismEdges, hasOverallMoatScore: false };
-}
-
-function evidenceQualityFromSynthesis(experience: ExperienceSnapshot, debates: DerivedDebateCandidate[], powerMap: DerivedPowerMap): InvestmentSynthesis["evidenceQuality"] {
-  if (experience.totalCases === 0 && debates.every((debate) => debate.evidenceFor.length === 0)) return "NONE";
-  if (powerMap.powers.some((power) => power.evidenceStrength === "HIGH")) return "HIGH";
-  if (powerMap.powers.some((power) => power.evidenceStrength === "MEDIUM")) return "MEDIUM";
-  if (debates.some((debate) => debate.evidenceFor.length > 0 || debate.contextEvidence.length > 0)) return "PARTIAL";
-  return "LOW";
-}
-
-function ceThesisFromDebates(debates: DerivedDebateCandidate[], powerMap: DerivedPowerMap): InvestmentSynthesis["ceThesis"] {
-  if (!debates.length) return "UNKNOWN";
-  if (debates.some((debate) => debate.assessment === "CONTRADICTED")) return "CONTRADICTED";
-  const supportedCore = debates.filter((debate) => ["EXPERIENCE_CAPTURE", "LEARNING_CAUSALITY", "CROSS_CUSTOMER_TRANSFER"].includes(debate.family) && ["SUPPORTED", "LEANING SUPPORTED"].includes(debate.assessment));
-  if (supportedCore.length >= 2 && !powerMap.ceMechanism.classifications.includes("UNPROVEN MECHANISM")) return "SUPPORTED";
-  if (supportedCore.length >= 1 && powerMap.powers.some((power) => thesisRank(power.thesisStrength) >= 2 && evidenceRank(power.evidenceStrength) >= 1)) return "PARTIALLY SUPPORTED";
-  if (debates.some((debate) => debate.assessment === "UNPROVEN")) return "UNPROVEN";
-  return "UNKNOWN";
-}
-
-function conciseEvidence(items: DebateEvidenceItem[], limit: number) {
-  const seen = new Set<string>();
-  const result: DebateEvidenceItem[] = [];
-  for (const item of items) {
-    const key = `${item.direction}:${item.source}:${item.value}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(item);
-    if (result.length >= limit) break;
-  }
-  return result;
-}
-
-function synthesisEvidenceBuckets(debates: DerivedDebateCandidate[], experience: ExperienceSnapshot): InvestmentSynthesis["evidenceBuckets"] {
-  const supports = conciseEvidence(debates.flatMap((debate) => debate.evidenceFor), 4);
-  const contradicts = conciseEvidence(debates.flatMap((debate) => debate.evidenceAgainst), 4);
-  const context = conciseEvidence(debates.flatMap((debate) => debate.contextEvidence), 4);
-  const limitations = conciseEvidence(debates.flatMap((debate) => debate.missingEvidence), 4);
-  return { supports, contradicts, context, limitations: conciseEvidence(limitations, 4) };
-}
-
-function investmentMemoText(input: InvestmentSynthesisInput, synthesis: Omit<InvestmentSynthesis, "memo">) {
-  const diligence = deriveHighestValueDiligenceQueue(input.debates, 5);
-  const experienceLine = `${input.experience.totalCases} cases; ${input.experience.gradedCases} graded; median feedback ${input.experience.medianFeedbackLatencyDays === null ? "unavailable" : `${input.experience.medianFeedbackLatencyDays}d`}; ${input.experience.humanOverrideCount} human overrides.`;
-  const stressLine = input.stressTest
-    ? `${input.stressTest.templateName}: ${input.stressTest.result.label}. ${input.stressTest.primaryChange}. 36-month modeled gap ${input.stressTest.result.month36Gap.toFixed(2)}. SCENARIO IMPLICATION â€” NOT EMPIRICAL EVIDENCE.`
-    : "No stress test has been run or reliably identified as current for this analysis.";
-  return [
-    `Investment Synthesis â€” ${input.analysis.companyName}`,
-    "",
-    `Current CE thesis: ${synthesis.ceThesis}. ${synthesis.currentThesis}`,
-    "",
-    `Power hypothesis: ${synthesis.primaryPowerHypothesis}. ${input.powerMap.conclusion}`,
-    "",
-    `Key supporting evidence: ${synthesis.evidenceBuckets.supports.length ? synthesis.evidenceBuckets.supports.map((item) => `${item.value} (${item.provenance})`).join("; ") : "No direct supporting evidence has been established yet."}`,
-    "",
-    `Contradicting / limiting evidence: ${[...synthesis.evidenceBuckets.contradicts, ...synthesis.evidenceBuckets.limitations].length ? [...synthesis.evidenceBuckets.contradicts, ...synthesis.evidenceBuckets.limitations].slice(0, 4).map((item) => `${item.value} (${item.provenance})`).join("; ") : "No explicit contradicting evidence has been attached; missing evidence remains material."}`,
-    "",
-    `Critical unresolved debates: ${input.debates.slice(0, 4).map((debate) => `${debate.title}: ${debate.assessment} / ${debate.confidence}`).join("; ") || "None generated."}`,
-    "",
-    `Highest-value diligence: ${diligence.map((item) => `${item.title} â€” ${item.test}`).join("; ") || "No diligence queue generated."}`,
-    "",
-    `Experience: ${experienceLine} Provenance: ${input.experience.provenance}.`,
-    `Experience experiments: ${input.debates.flatMap(debate => debate.analysisFindings ?? []).filter(finding => finding.status === "TESTED").map(finding => finding.summary).join(" ") || "No experiment met its data requirements."}`,
-    "",
-    `Stress-test finding: ${stressLine}`,
-    "",
-    `Investor view: ${synthesis.investorView.summary}`,
-    "",
-    "Assessments apply to the selected Experience dataset. Scenario results describe the specified assumptions."
-  ].join("\n");
-}
-
-export function deriveInvestmentSynthesis(input: InvestmentSynthesisInput): InvestmentSynthesis {
-  const ceThesis = ceThesisFromDebates(input.debates, input.powerMap);
-  const evidenceQuality = evidenceQualityFromSynthesis(input.experience, input.debates, input.powerMap);
-  const rankedPowers = [...input.powerMap.powers]
-    .filter((power) => power.thesisStrength !== "NONE")
-    .sort((a, b) => thesisRank(b.thesisStrength) - thesisRank(a.thesisStrength) || evidenceRank(b.evidenceStrength) - evidenceRank(a.evidenceStrength));
-  const primaryPower = rankedPowers[0];
-  const unresolved = input.debates.find((debate) => ["UNPROVEN", "UNKNOWN"].includes(debate.assessment)) ?? input.debates[0] ?? null;
-  const capture = input.debates.find(item => item.family === "EXPERIENCE_CAPTURE");
-  const experimentBoundaries = input.debates
-    .flatMap(debate => debate.contextEvidence)
-    .filter(item => item.source === "Experience â†’ Automated Experiment Program")
-    .slice(0, 3)
-    .map(item => item.value.split(/(?<=[.!?])\s/)[0]);
-  const boundarySummary = experimentBoundaries.length ? ` Conditional experiment boundaries: ${experimentBoundaries.join(" ")}` : "";
-  const transfer = input.debates.find(item => item.family === "CROSS_CUSTOMER_TRANSFER");
-  const currentThesis = `${input.experience.totalCases} selected cases, ${input.experience.gradedCases} graded. ${capture?.integratedConclusion ?? "Capture has not been assessed."} ${transfer?.integratedConclusion ?? ""}${boundarySummary} ${input.powerMap.ceMechanism.summary} ${input.powerMap.conclusion} The largest unresolved dependency is ${unresolved?.title ?? "not yet identified"}.`;
-  const evidenceBuckets = synthesisEvidenceBuckets(input.debates, input.experience);
-  const investorDebates = input.debates.filter((debate) => debate.investorBelief !== null);
-  const investorView = investorDebates.length
-    ? {
-      hasInvestorBelief: true,
-      summary: investorDebates.map((debate) => `${debate.title}: ${debate.investorBelief}% investor belief; CE assessment ${debate.assessment}. ${debate.investorBeliefDivergence ?? "Investor belief remains separate from CE evidence."}`).join(" ")
-    }
-    : { hasInvestorBelief: false, summary: "No investor overrides or beliefs have been recorded." };
-  const base = {
-    ceThesis,
-    evidenceQuality,
-    primaryPowerHypothesis: primaryPower?.label ?? "No demonstrated Power yet",
-    criticalUnresolvedDependency: unresolved?.title ?? "No unresolved debate identified",
-    currentThesis,
-    powerHighlights: rankedPowers.slice(0, 4).map((power) => ({
-      label: power.label,
-      thesisStrength: power.thesisStrength,
-      evidenceStrength: power.evidenceStrength,
-      why: power.why
-    })),
-    evidenceBuckets,
-    investorView
-  };
-  return { ...base, memo: investmentMemoText(input, base) };
-}
-
-export function deriveDecisionSystemMetrics(rows: ScorebookCaseInput[]): DecisionSystemDerivedMetrics {
-  const totalCases = rows.length;
-  const scorebook = calculateScorebookMetrics(rows);
-  const actionLatencyValues = rows.map(actionLatencyDays).filter((value): value is number => value !== null);
-  const outcomeLatencyValues = rows.map(feedbackLatencyDays).filter((value): value is number => value !== null);
-  const actionValues = rows
-    .map((row) => row.actionTaken ?? row.humanDecision ?? row.agentDecision)
-    .filter((value): value is string => Boolean(value));
-  const decisionDates = rows.map((row) => asDate(row.decisionAt)).filter((value): value is Date => value !== null);
-  const windowStart = decisionDates.length ? new Date(Math.min(...decisionDates.map((date) => date.getTime()))) : null;
-  const windowEnd = decisionDates.length ? new Date(Math.max(...decisionDates.map((date) => date.getTime()))) : null;
-  const windowDays = windowStart && windowEnd
-    ? Math.max(1, (windowEnd.getTime() - windowStart.getTime()) / (24 * 60 * 60 * 1000))
-    : null;
-
-  return {
-    totalCases,
-    resolvedCases: scorebook.resolvedCases,
-    gradedCases: scorebook.gradedCases,
-    gradeCoverage: scorebook.gradeCoverage,
-    outcomeCompletionRate: scorebook.outcomeCompletionRate,
-    medianDecisionToActionLatencyDays: median(actionLatencyValues),
-    medianDecisionToOutcomeLatencyDays: median(outcomeLatencyValues),
-    humanOverrideRate: scorebook.humanOverrideRate,
-    actionDistribution: distribution(actionValues, totalCases),
-    gradeDistribution: distribution(rows.map((row) => row.grade), totalCases),
-    edgeCaseShare: scorebook.edgeCaseShare,
-    totalOutcomeValue: scorebook.totalOutcomeValue,
-    averageOutcomeValue: scorebook.averageOutcomeValue,
-    customerSegmentCount: new Set(rows.map((row) => row.customerSegment).filter(Boolean)).size,
-    caseTypeCount: new Set(rows.map((row) => row.caseType).filter(Boolean)).size,
-    observedDecisionVolume: {
-      count: decisionDates.length,
-      windowStart,
-      windowEnd,
-      days: windowDays,
-      casesPerMonth: windowDays === null ? null : round(decisionDates.length / windowDays * 30, 2)
-    }
-  };
-}
-
-export function summarizeEvidenceCoverage(records: Array<{ epistemicStatus: string; evidenceType?: string }>): EvidenceCoverageSummary {
-  return records.reduce<EvidenceCoverageSummary>((summary, record) => {
-    if (record.evidenceType === "ANALYSIS_RUN") return summary;
-    const status = record.epistemicStatus.toUpperCase();
-    if (status === "DERIVED" || status === "OBSERVED") summary.derived += 1;
-    else if (status === "SOURCED") summary.sourced += 1;
-    else if (status === "ASSUMED") summary.assumed += 1;
-    else if (status === "INFERRED") summary.inferred += 1;
-    else summary.unknown += 1;
-    return summary;
-  }, { derived: 0, sourced: 0, assumed: 0, inferred: 0, unknown: 0 });
-}
-
-export function simulateScenario(input: SimulationScenarioInput, months = 36): SimulationSeries {
-  const scenario = sanitizeScenario(input);
-  const delayMonths = Math.max(0, Math.ceil(scenario.feedbackDelayDays / 30));
-  const pending: number[] = [];
-  let effectiveExperience = scenario.startingCases;
-  const points: SimulationPoint[] = [];
-
-  for (let month = 0; month <= months; month++) {
-    const expertise = scenario.baseCapability
-      + scenario.learningEfficiency
-      * scenario.informationValue
-      * scenario.transferability
-      * Math.log(1 + Math.max(0, effectiveExperience));
-
-    points.push({
-      month,
-      effectiveExperience: round(effectiveExperience, 2),
-      expertise: round(expertise, 4),
-      maturedCases: 0
-    });
-
-    if (month === months) break;
-    pending.push(scenario.casesPerMonth);
-    const maturedCases = delayMonths === 0
-      ? pending.shift() ?? 0
-      : pending.length > delayMonths
-        ? pending.shift() ?? 0
-        : 0;
-    effectiveExperience = (1 - scenario.stalenessRate) * effectiveExperience + maturedCases;
-    points[points.length - 1].maturedCases = round(maturedCases, 2);
-  }
-
-  return { scenario, points };
-}
-
-export function simulateComparison(scenarios: SimulationScenarioInput[], months = 36) {
-  return scenarios.map((scenario) => simulateScenario(scenario, months));
-}
-
-export function detectCrossover(a: SimulationSeries, b: SimulationSeries): Crossover | null {
-  const max = Math.min(a.points.length, b.points.length);
-  for (let index = 1; index < max; index++) {
-    const previousDelta = a.points[index - 1].expertise - b.points[index - 1].expertise;
-    const currentDelta = a.points[index].expertise - b.points[index].expertise;
-    if (previousDelta === 0) continue;
-    if ((previousDelta > 0 && currentDelta <= 0) || (previousDelta < 0 && currentDelta >= 0)) {
-      return {
-        month: a.points[index].month,
-        from: previousDelta > 0 ? a.scenario.name : b.scenario.name,
-        to: previousDelta > 0 ? b.scenario.name : a.scenario.name
-      };
-    }
-  }
-  return null;
-}
-
-export function explainSimulatorComparison(series: SimulationSeries[], crossover: Crossover | null) {
-  if (series.length < 2) return "Add two scenarios to compare trajectories. This is an exploratory scenario, not a forecast.";
-  const [a, b] = series;
-  const aEnd = a.points[a.points.length - 1]?.expertise ?? 0;
-  const bEnd = b.points[b.points.length - 1]?.expertise ?? 0;
-  const leader = aEnd >= bEnd ? a : b;
-  const trailer = aEnd >= bEnd ? b : a;
-  const reasons: string[] = [];
-  if (leader.scenario.startingCases > trailer.scenario.startingCases * 1.5) reasons.push("a larger starting stock of graded cases");
-  if (leader.scenario.feedbackDelayDays < trailer.scenario.feedbackDelayDays) reasons.push("faster modeled feedback maturation");
-  if (leader.scenario.learningEfficiency > trailer.scenario.learningEfficiency) reasons.push("higher learning efficiency");
-  if (leader.scenario.baseCapability > trailer.scenario.baseCapability) reasons.push("higher base/foundation-model capability");
-  if (leader.scenario.transferability > trailer.scenario.transferability) reasons.push("stronger assumed transferability");
-  if (leader.scenario.stalenessRate < trailer.scenario.stalenessRate) reasons.push("slower modeled staleness");
-  const reasonText = reasons.length ? reasons.join(", ") : "small combined parameter differences";
-
-  if (crossover) {
-    return `${crossover.to} overtakes ${crossover.from} around month ${crossover.month} in this toy model because ${reasonText}. This is an exploratory scenario, not a forecast.`;
-  }
-  return `${leader.scenario.name} remains ahead over the modeled horizon primarily because of ${reasonText}. This is an exploratory scenario, not a forecast.`;
-}
-
-export function getStressTestTemplate(id: string | null | undefined): StressTestTemplate {
-  return STRESS_TEST_TEMPLATES.find((template) => template.id === id) ?? STRESS_TEST_TEMPLATES[0];
-}
-
-export function visibleStressTestChangedParameters(templateId: string | null | undefined) {
-  const template = getStressTestTemplate(templateId);
-  const keys = new Set(template.changedParameterKeys);
-  return SIMULATOR_PARAMETER_DEFINITIONS.filter((definition) => keys.has(definition.key));
-}
-
-function stressValueText(value: number | null | undefined) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "not set";
-  return Number.isInteger(value) ? `${value}` : `${round(value, 3)}`;
-}
-
-export function summarizeStressTestPrimaryChange(
-  templateId: string | null | undefined,
-  scenarios: SimulationScenarioInput[],
-  baselineScenarios: SimulationScenarioInput[]
-): StressTestPrimaryChange {
-  const template = getStressTestTemplate(templateId);
-  const definitions = visibleStressTestChangedParameters(template.id);
-  if (template.id === "custom") {
-    return {
-      label: "Custom assumptions",
-      incumbentValue: null,
-      challengerValue: null,
-      incumbentBaseline: null,
-      challengerBaseline: null,
-      summary: "Custom scenario - review the full assumptions before running."
-    };
-  }
-  if (definitions.length === 0) {
-    return {
-      label: "Baseline assumptions",
-      incumbentValue: null,
-      challengerValue: null,
-      incumbentBaseline: null,
-      challengerBaseline: null,
-      summary: "No template condition is changed."
-    };
-  }
-  const definition = definitions[0];
-  const incumbentValue = Number(scenarios[0]?.[definition.key]);
-  const challengerValue = Number(scenarios[1]?.[definition.key]);
-  const incumbentBaseline = Number(baselineScenarios[0]?.[definition.key]);
-  const challengerBaseline = Number(baselineScenarios[1]?.[definition.key]);
-  const incumbentChanged = incumbentValue !== incumbentBaseline;
-  const challengerChanged = challengerValue !== challengerBaseline;
-  const actor = incumbentChanged && !challengerChanged
-    ? scenarios[0]?.name || "Incumbent"
-    : challengerChanged && !incumbentChanged
-      ? scenarios[1]?.name || "Challenger"
-      : "Scenario";
-  const fromValue = incumbentChanged && !challengerChanged ? incumbentBaseline : challengerBaseline;
-  const toValue = incumbentChanged && !challengerChanged ? incumbentValue : challengerValue;
-
-  return {
-    label: definition.label,
-    incumbentValue,
-    challengerValue,
-    incumbentBaseline,
-    challengerBaseline,
-    summary: `${actor} ${definition.label.toLowerCase()} ${stressValueText(fromValue)} -> ${stressValueText(toValue)}`
-  };
-}
-
-export function stressTestRunSearchParams({
-  analysisId,
-  caseSetId,
-  dataset,
-  templateId,
-  scenarios,
-  includeRun = true
-}: StressTestRunQueryInput): URLSearchParams {
-  const params = new URLSearchParams({ analysisId, template: templateId });
-  if (caseSetId) params.set("caseSetId", caseSetId);
-  if (dataset) params.set("dataset", dataset);
-  if (includeRun) params.set("run", "1");
-  scenarios.slice(0, 2).map((scenario) => sanitizeScenario(scenario)).forEach((scenario) => {
-    params.append("scenarioId", scenario.id ?? "");
-    params.append("name", scenario.name);
-    for (const key of STRESS_TEST_SCENARIO_QUERY_KEYS) {
-      params.append(key, `${scenario[key]}`);
-    }
-  });
-  return params;
-}
-
-export function stressTestRunHref(basePath: string, input: StressTestRunQueryInput) {
-  return `${basePath}?${stressTestRunSearchParams(input).toString()}`;
-}
-
-export function hasExplicitStressTestRunContext(params: URLSearchParams) {
-  return params.get("run") === "1"
-    && Boolean(params.get("template"))
-    && params.getAll("startingCases").length >= 2
-    && params.getAll("name").length >= 2;
-}
-
-export function applyStressTestTemplate(
-  scenarios: SimulationScenarioInput[],
-  templateId: string | null | undefined
-): SimulationScenarioInput[] {
-  const sanitized = scenarios.slice(0, 2).map((scenario) => sanitizeScenario(scenario));
-  const [rawIncumbent, rawChallenger] = sanitized.length >= 2 ? sanitized : DEFAULT_SCENARIOS;
-  const incumbent: SimulationScenarioInput = { ...rawIncumbent, name: rawIncumbent.name || "Incumbent / Company" };
-  const challenger: SimulationScenarioInput = { ...rawChallenger, name: rawChallenger.name || "Challenger / Alternative" };
-  const template = getStressTestTemplate(templateId);
-
-  if (template.id === "baseline" || template.id === "custom") return [incumbent, challenger];
-  if (template.id === "better_foundation_model") {
-    return [incumbent, { ...challenger, baseCapability: clamp(Math.max(challenger.baseCapability, incumbent.baseCapability + 0.7), 0, 5) }];
-  }
-  if (template.id === "faster_learner") {
-    return [incumbent, { ...challenger, learningEfficiency: clamp(Math.max(challenger.learningEfficiency, incumbent.learningEfficiency + 0.2), 0, 1) }];
-  }
-  if (template.id === "transfer_breakdown") {
-    return [{ ...incumbent, transferability: clamp(Math.min(incumbent.transferability, 0.35), 0, 1) }, challenger];
-  }
-  if (template.id === "feedback_delay") {
-    return [{ ...incumbent, feedbackDelayDays: Math.max(incumbent.feedbackDelayDays, 90) }, challenger];
-  }
-  if (template.id === "experience_staleness") {
-    return [{ ...incumbent, stalenessRate: clamp(Math.max(incumbent.stalenessRate, 0.055), 0, 1) }, challenger];
-  }
-  if (template.id === "continuous_capture") {
-    return [
-      { ...incumbent, casesPerMonth: Math.max(incumbent.casesPerMonth, challenger.casesPerMonth * 2) },
-      challenger
-    ];
-  }
-  return [incumbent, challenger];
-}
-
-function pointAt(series: SimulationSeries, month: number) {
-  return series.points.find((point) => point.month === month) ?? series.points[series.points.length - 1];
-}
-
-function stressLabel(classification: StressTestResultClassification) {
-  return classification.split("_").map((word) => word[0] + word.slice(1).toLowerCase()).join(" ");
-}
-
-export function classifyStressTestResult(series: SimulationSeries[], crossover: Crossover | null): StressTestResultSummary {
-  if (series.length < 2) {
-    return {
-      classification: "NO_MATERIAL_INITIAL_ADVANTAGE",
-      label: stressLabel("NO_MATERIAL_INITIAL_ADVANTAGE"),
-      initialGap: 0,
-      month12Gap: 0,
-      month36Gap: 0,
-      incumbentFinalExpertise: 0,
-      challengerFinalExpertise: 0,
-      gapDirection: "stable",
-      crossoverMonth: null
-    };
-  }
-  const [incumbent, challenger] = series;
-  const initialGap = round(pointAt(incumbent, 0).expertise - pointAt(challenger, 0).expertise, 4);
-  const month12Gap = round(pointAt(incumbent, 12).expertise - pointAt(challenger, 12).expertise, 4);
-  const finalMonth = Math.max(incumbent.points[incumbent.points.length - 1]?.month ?? 36, challenger.points[challenger.points.length - 1]?.month ?? 36);
-  const month36Gap = round(pointAt(incumbent, finalMonth).expertise - pointAt(challenger, finalMonth).expertise, 4);
-  const incumbentFinalExpertise = pointAt(incumbent, finalMonth).expertise;
-  const challengerFinalExpertise = pointAt(challenger, finalMonth).expertise;
-  const materialGap = 0.1;
-  const initialAbs = Math.abs(initialGap);
-  const finalAbs = Math.abs(month36Gap);
-  let classification: StressTestResultClassification;
-
-  if (initialGap <= materialGap) classification = "NO_MATERIAL_INITIAL_ADVANTAGE";
-  else if (initialGap > materialGap && month36Gap < -materialGap) classification = "CHALLENGER_OVERTAKES";
-  else if (initialGap > materialGap && (crossover || finalAbs < materialGap)) classification = "CHALLENGER_CATCHES_UP";
-  else if (initialGap > materialGap && month36Gap > 0 && finalAbs < initialAbs * 0.6) classification = "ADVANTAGE_COMPRESSES";
-  else classification = "ADVANTAGE_PERSISTS";
-
-  const gapDirection: StressTestResultSummary["gapDirection"] =
-    initialGap > materialGap && month36Gap < -materialGap
-      ? "reversed"
-      : finalAbs < initialAbs * 0.85
-        ? "compressing"
-        : finalAbs > initialAbs * 1.15
-          ? "widening"
-          : "stable";
-
-  return {
-    classification,
-    label: stressLabel(classification),
-    initialGap,
-    month12Gap,
-    month36Gap,
-    incumbentFinalExpertise,
-    challengerFinalExpertise,
-    gapDirection,
-    crossoverMonth: crossover?.month ?? null
-  };
-}
-
-export function deriveStressTestDrivers(series: SimulationSeries[], result: StressTestResultSummary): StressTestDriver[] {
-  if (series.length < 2) return [];
-  const [incumbent, challenger] = series.map((item) => item.scenario);
-  const candidates: StressTestDriver[] = [
-    {
-      title: "Starting experience",
-      detail: `${incumbent.name} starts with ${round(incumbent.startingCases / Math.max(challenger.startingCases, 1), 2)}x the graded cases, but the model uses logarithmic returns to experience.`,
-      magnitude: Math.abs(Math.log1p(incumbent.startingCases) - Math.log1p(challenger.startingCases))
-    },
-    {
-      title: "New experience generation",
-      detail: `${incumbent.name} generates ${round(incumbent.casesPerMonth - challenger.casesPerMonth, 2)} more cases per month than ${challenger.name}.`,
-      magnitude: Math.abs(incumbent.casesPerMonth - challenger.casesPerMonth) / Math.max(incumbent.casesPerMonth, challenger.casesPerMonth, 1)
-    },
-    {
-      title: "Feedback maturation",
-      detail: `${incumbent.name} feedback delay is ${incumbent.feedbackDelayDays} days versus ${challenger.feedbackDelayDays} days for ${challenger.name}.`,
-      magnitude: Math.abs(incumbent.feedbackDelayDays - challenger.feedbackDelayDays) / Math.max(incumbent.feedbackDelayDays, challenger.feedbackDelayDays, 1)
-    },
-    {
-      title: "Learning efficiency",
-      detail: `${challenger.name} learning efficiency is ${challenger.learningEfficiency} versus ${incumbent.learningEfficiency} for ${incumbent.name}.`,
-      magnitude: Math.abs(challenger.learningEfficiency - incumbent.learningEfficiency)
-    },
-    {
-      title: "Base capability",
-      detail: `${challenger.name} base capability is ${challenger.baseCapability} versus ${incumbent.baseCapability} for ${incumbent.name}.`,
-      magnitude: Math.abs(challenger.baseCapability - incumbent.baseCapability) / 5
-    },
-    {
-      title: "Transferability",
-      detail: `${incumbent.name} transferability is ${incumbent.transferability} versus ${challenger.transferability} for ${challenger.name}.`,
-      magnitude: Math.abs(incumbent.transferability - challenger.transferability)
-    },
-    {
-      title: "Staleness",
-      detail: `${incumbent.name} monthly staleness is ${incumbent.stalenessRate} versus ${challenger.stalenessRate} for ${challenger.name}.`,
-      magnitude: Math.abs(incumbent.stalenessRate - challenger.stalenessRate) * 8
-    }
-  ];
-  const ranked = candidates
-    .filter((driver) => driver.magnitude > 0.02)
-    .sort((a, b) => b.magnitude - a.magnitude)
-    .slice(0, 4);
-  if (ranked.length > 0) return ranked;
-  return [{
-    title: "Small combined differences",
-    detail: `No single parameter dominates the ${result.label.toLowerCase()} result in this scenario model.`,
-    magnitude: 0
-  }];
-}
-
-export function summarizeTopStressTestDrivers(drivers: StressTestDriver[], limit = 3) {
-  return drivers.slice(0, Math.max(0, limit));
-}
-
-export function deriveStressTestPowerImplication(templateId: string | null | undefined, result: StressTestResultSummary) {
-  const template = getStressTestTemplate(templateId);
-  if (template.id === "better_foundation_model" && ["CHALLENGER_CATCHES_UP", "CHALLENGER_OVERTAKES", "ADVANTAGE_COMPRESSES"].includes(result.classification)) {
-    return "Higher base capability compresses the modeled advantage, weakening a thesis that historical experience alone creates durable Power.";
-  }
-  if (template.id === "continuous_capture" && result.classification === "ADVANTAGE_PERSISTS") {
-    return "The result strengthens the scenario hypothesis that owning the ongoing experience-generation loop matters more than a static historical scorebook.";
-  }
-  if (template.id === "transfer_breakdown" && result.classification !== "ADVANTAGE_PERSISTS") {
-    return "Weak transferability reduces the plausibility of Network Economy interpretations of Compounding Expertise.";
-  }
-  if (template.id === "experience_staleness" && result.classification !== "ADVANTAGE_PERSISTS") {
-    return "Fast staleness suggests historical experience may be useful without being durable.";
-  }
-  if (template.id === "feedback_delay" && result.classification !== "ADVANTAGE_PERSISTS") {
-    return "Delayed feedback slows modeled compounding and weakens claims that experience accumulates quickly enough to defend the position.";
-  }
-  if (template.id === "faster_learner" && ["CHALLENGER_CATCHES_UP", "CHALLENGER_OVERTAKES", "ADVANTAGE_COMPRESSES"].includes(result.classification)) {
-    return "A faster learner can reduce the value of a starting scorebook advantage in this model, making learning velocity a key diligence question.";
-  }
-  if (result.classification === "ADVANTAGE_PERSISTS") {
-    return "The scenario is consistent with an experience advantage persisting under these assumptions, but it remains a scenario implication rather than empirical evidence.";
-  }
-  return "The scenario weakens a simple historical-scorebook Power thesis and points back to Debates and Power for evidence on transferability, learning causality, and defensibility.";
-}
-
-export function defaultAssessments(): DimensionAssessmentInput[] {
-  return ALL_DIMENSIONS.map((definition) => ({
-    framework: definition.framework,
-    dimension: definition.dimension,
-    score: 0,
-    confidence: "LOW",
-    rationale: "",
-    evidenceStatus: "UNKNOWN",
-    source: "USER"
-  }));
-}
-
-export const DIAGNOSTIC_QUESTIONS = [
-  {
-    title: "Is valuable expertise being created?",
-    description: "Does each case teach something decision-relevant, economically meaningful, and causally interpretable?",
-    items: [
-      { framework: "SUN", dimension: "objective_grading" },
-      { framework: "SUN", dimension: "economic_value_of_being_right" },
-      { framework: "WOLFE", dimension: "marginal_information_gain" },
-      { framework: "WOLFE", dimension: "causal_quality" }
-    ]
-  },
-  {
-    title: "Does the expertise compound?",
-    description: "Does feedback arrive fast enough, remain fresh, cover edge cases, and transfer across customers?",
-    items: [
-      { framework: "SUN", dimension: "feedback_speed" },
-      { framework: "SUN", dimension: "freshness" },
-      { framework: "SUN", dimension: "cross_customer_learning" },
-      { framework: "SUN", dimension: "diversity_edge_cases" },
-      { framework: "WOLFE", dimension: "cross_customer_transferability" },
-      { framework: "WOLFE", dimension: "customer_heterogeneity" },
-      { framework: "WOLFE", dimension: "nonstationarity" },
-      { framework: "WOLFE", dimension: "learning_efficiency" }
-    ]
-  },
-  {
-    title: "Is the expertise defensible?",
-    description: "Can competitors reproduce, compress, infer, or legally access the useful learning loop?",
-    items: [
-      { framework: "SUN", dimension: "workflow_capture_position" },
-      { framework: "SUN", dimension: "contractual_rights_consent" },
-      { framework: "WOLFE", dimension: "knowledge_compressibility" }
-    ]
-  }
-] satisfies Array<{
-  title: string;
-  description: string;
-  items: Array<{ framework: CompoundingFramework; dimension: string }>;
-}>;
-
-export function sortedHighLeverageDebates(debates: KeyDebateInput[], take = 4) {
-  return [...debates]
-    .sort((a, b) => Math.abs(50 - a.probability) - Math.abs(50 - b.probability))
-    .slice(0, take);
-}
-
-export function strongestEvidence(assessments: DimensionAssessmentInput[], take = 3) {
-  return assessments
-    .filter((item) => item.score >= 4)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, take);
-}
-
-export function strongestChallenges(assessments: DimensionAssessmentInput[], take = 3) {
-  return assessments
-    .filter((item) => item.score <= 2)
-    .sort((a, b) => a.score - b.score)
-    .slice(0, take);
-}
-
-export function apparentPowerLocations(assessments: DimensionAssessmentInput[]) {
-  const labels = new Set<string>();
-  for (const item of assessments) {
-    if (item.score < 4 || item.confidence === "LOW") continue;
-    if (item.framework === "SUN") {
-      if (item.dimension === "workflow_capture_position") labels.add("capture point");
-      if (["objective_grading", "feedback_speed", "diversity_edge_cases", "cross_customer_learning"].includes(item.dimension)) labels.add("scorebook");
-    }
-    if (item.framework === "HELMER") {
-      const label = HELMER_POWERS.find((power) => power.dimension === item.dimension)?.label;
-      if (label) labels.add(label);
-    }
-  }
-  if (labels.size > 1) labels.add("combination");
-  if (labels.size === 0) labels.add("no demonstrated Power yet");
-  return [...labels];
-}
-
-function includesAny(values: Array<string | null | undefined>, targets: string[]) {
-  return values.some((value) => value ? targets.includes(value) : false);
-}
-
-export function summarizeConclusion(input: {
-  analysis: CompanyThesisInput;
-  metrics: ScorebookMetrics;
-  assessments: DimensionAssessmentInput[];
-  debates: KeyDebateInput[];
-}) {
-  const opportunityFavorable = includesAny([
-    input.analysis.economicCostWrongDecision,
-    input.analysis.outcomeObjectivity,
-    input.analysis.naturalFeedbackTime
-  ], ["High", "Objective / deterministic", "Minutes", "Days", "Weeks"]);
-  const opportunityUnfavorable = includesAny([
-    input.analysis.outcomeObjectivity,
-    input.analysis.foundationModelImprovementRate,
-    input.analysis.environmentalChangeRate
-  ], ["Subjective", "Fast", "Rapidly changing"]);
-  const capabilityStrongCount = [
-    input.analysis.ownsDecisionPoint,
-    input.analysis.observesOutcome,
-    input.analysis.capturesOverrides,
-    input.analysis.capturesGrades,
-    input.analysis.learnsAcrossCustomers,
-    input.analysis.contractualLearningRights,
-    input.analysis.runsControlledExperiments,
-    input.analysis.updatesModelPolicyRegularly,
-    input.analysis.deploysImprovementsQuickly
-  ].filter((value) => value === "Yes").length;
-  const capabilityWeakCount = [
-    input.analysis.ownsDecisionPoint,
-    input.analysis.observesOutcome,
-    input.analysis.capturesGrades,
-    input.analysis.learnsAcrossCustomers,
-    input.analysis.contractualLearningRights
-  ].filter((value) => value === "No").length;
-  const evidenceQuality = input.metrics.totalCases < 5 || input.metrics.gradeCoverage === null || input.metrics.gradeCoverage < 0.35
-    ? "Weak / insufficient"
-    : input.metrics.gradeCoverage >= 0.75 && input.metrics.feedbackLatencySampleSize >= 5
-      ? "Strong"
-      : "Partial";
-  const biggestDebate = sortedHighLeverageDebates(input.debates, 1)[0] ?? null;
-  const nextExperiment = biggestDebate?.evidenceNeeded
-    || (input.metrics.humanOverrideValue.count > 0
-      ? "Compare human overrides with eventual outcomes to determine whether overrides add decision value."
-      : "Run a held-out-customer test to see whether pooled experience improves decisions beyond customer-specific history.");
-
-  return {
-    opportunity: opportunityFavorable && !opportunityUnfavorable ? "Favorable" : opportunityUnfavorable && !opportunityFavorable ? "Unfavorable" : "Uncertain",
-    opportunityWhy: "Based on exogenous assumptions about decision value, outcome objectivity, feedback timing, nonstationarity, and model improvement.",
-    capability: capabilityStrongCount >= 6 && capabilityWeakCount === 0 ? "Strong" : capabilityWeakCount >= 2 ? "Weak" : "Uncertain",
-    capabilityWhy: "Based on endogenous assumptions about capture position, outcome visibility, override/grade capture, rights, experimentation, and deployment velocity.",
-    evidenceQuality,
-    evidenceWhy: `Based on ${input.metrics.totalCases} cases, ${input.metrics.gradedCases} graded rows, and ${input.metrics.feedbackLatencySampleSize} latency observations.`,
-    biggestDebate,
-    nextExperiment
-  };
-}
-
-export function composeMemo(input: {
-  analysis: CompanyThesisInput;
-  debates: KeyDebateInput[];
-  assessments: DimensionAssessmentInput[];
-}) {
-  const evidence = strongestEvidence(input.assessments);
-  const challenges = strongestChallenges(input.assessments);
-  const unresolved = sortedHighLeverageDebates(input.debates);
-  const power = apparentPowerLocations(input.assessments);
-
-  return {
-    currentThesis: input.analysis.thesis,
-    strongestEvidence: evidence.map((item) => `${item.framework}: ${item.dimension} scored ${item.score}/5 (${item.evidenceStatus.toLowerCase()}). ${item.rationale || "No rationale supplied."}`),
-    strongestChallenges: challenges.map((item) => `${item.framework}: ${item.dimension} scored ${item.score}/5 (${item.evidenceStatus.toLowerCase()}). ${item.rationale || "No rationale supplied."}`),
-    unresolvedDebates: unresolved.map((debate) => ({
-      question: debate.question,
-      probability: debate.probability,
-      increaseBelief: debate.increaseBelief,
-      decreaseBelief: debate.decreaseBelief
-    })),
-    powerLocations: power,
-    evidenceRequests: unresolved.slice(0, 3).map((debate) => debate.evidenceNeeded),
-    wolfeStressTest:
-      "Could the useful information in the historical scorebook be compressed, inferred, simulated, or relearned by a capable challenger?"
-  };
-}
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×Núß´èµ©hºÚn¶X§zÍZ[\ÜÈ[˜[^™Q^\šY[˜ÙK\H^\šY[˜ÙP[˜[\Ú\Ë\H^\šY[˜ÙQš[™[™ÈHœ›ÛH‹‹Ù^\šY[˜ÙKX[˜[\Ú\ÈŽÂš[\ÜÈ[‘^\šY[˜ÙU˜[œÙ™\‘^\š[Y[\H^\šY[˜ÙU˜[œÙ™\‘^\š[Y[Hœ›ÛH‹‹Ù^\šY[˜ÙK]˜[œÙ™\‹Y^\š[Y[ŽÂš[\ÜÈ[“ØœÙ\™Y]Q^\š[Y[Y\\‹\HØœÙ\™Y^\š[Y[\HØœÙ\™Y^\š[Y[Y\\”™\Ý[\HØœÙ\™Y^\š[Y[™\™XÝHœ›ÛH‹‹ÛØœÙ\™YY^\š[Y[XY\\ˆŽÂš[\ÜÈPUWÐT‘ÕSQS•ÔÕ•PÕT‘HHœ›ÛH‹‹ÙX˜]KX\™Ý[Y[\ÝXÝ\™HŽÂ‚™^Ü\HÛÛ\Ý[™[™Ñœ˜[Y]ÛÜšÈH’SQTˆˆ”ÕSˆˆ•ÓÓ‘HŽÂ™^Ü\HÛÛ\Ý[™[™ÐÛÛ™šY[˜ÙHH“ÕÈˆ“QQUSHˆ’QÒŽÂ™^Ü\HÛÛ\Ý[™[™Ñ]šY[˜ÙTÝ]\ÈH“Ð”ÑT•‘Qˆ”ÓÕTÑQˆTÔÕSQQˆ•S’Ó“ÕÓˆŽÂ™^Ü\HÛÛ\Ý[™[™ÑX˜]TÛÝ\˜ÙHH”ÕSˆˆ•ÓÓ‘Hˆ•TÑTˆˆRHŽÂ™^Ü\HÛÛ\Ý[™[™ÐØ\ÙQÜ˜YHHÓÔ”‘PÕˆ”T•PSWÐÓÔ”‘PÕˆ’SÓÔ”‘PÕˆ•S”‘TÓÓ‘QŽÂ™^Ü\HÛÛ\Ý[™[™Ñ^[\RYH˜Ø\Ø\ˆ›\Ý[‹[XœÈˆ˜X\Hˆ›X^X™\›ˆˆ˜Ü™X]]™KXYÙ[ŽÂ™^Ü\HX›XÑ]šY[˜ÙP[˜[\Ú\ÒYH˜Ø\Ø\\X›XËLŒ‹LHŽÂ™^Ü\HØ[›ÛšXØ[\Ý\HBˆ”ÔÒUU‘WÕTÕ‚ˆ“ÕS‘T–WÕTÕ‚ˆ”ÕP”ÕUUSÓ—ÐÓÓT‘TÔÒSÓ—ÕTÕ‚ˆST“UU‘WÔÕÑT—ÕTÕ‚ˆ“‘QÐUU‘WÐÓÓ•“ÓŽÂ™^Ü\HØ\ÙTÙ]ÛÝ\˜ÙU\HHÐS“Ó’PÐSÔÖS•UPÈˆ”ÖS•UP×ÔÒSUSUSÓˆˆ‘U’QÓÓ‘WÐTˆÔÕˆˆ‘ÓÓÑÓWÔÒQUÈˆ“U‘Hˆ‘VT“Sˆ“PS•PSŽÂ™^Ü\HÛÛ\Ý[™[™Ñ]šY[˜ÙU\HBˆÐTÑTÑUÑT’U‘Q‚ˆ•TÕ‘PSWÐT‚ˆ”P“P×ÔÓÕTÑH‚ˆÓÓTS–WÑÐÕSQS•‚ˆSSTÕÒS”U‚ˆ“SÑSÒS‘‘T‘SÑH‚ˆ”ÖS•UP×ÐTÔÕSTSÓˆ‚ˆ•S’Ó“ÕÓˆŽÂ™^Ü\HÛÛ\Ý[™[™Ñ\\Ý[ZXÔÝ]\ÈH“Ð”ÑT•‘Qˆ‘T’U‘Qˆ”ÓÕTÑQˆTÔÕSQQˆ’S‘‘T”‘Qˆ•S’Ó“ÕÓˆŽÂ™^Ü\HÛÛ\Ý[™[™ÑšY[ÛÛ™šY[˜ÙHH“ÕÈˆ“QQUSHˆ’QÒˆ•S’Ó“ÕÓˆŽÂ™^Ü\HÝZYY›Ý™[˜[˜ÙSX™[Bˆ“Ð”ÑT•‘Q8 %ÓÓTS–HUH‚ˆ”ÓÕTÑQ8 %VT“SU’QSÑH‚ˆ‘T’U‘Q8 %ÓÓTS–HUH‚ˆ‘T’U‘Q8 %ÖS•UPÈ’VT‘H‚ˆ‘T’U‘Q8 %ÖS•UPÈÒSUSUSÓˆ‚ˆ‘T’U‘Q8 %ÖS•UPÈVT’SQS•‚ˆSSTÕTÔÕSTSÓˆ‚ˆTÒUTHTÔÕSTSÓˆ‚ˆ“SÑSS‘‘T‘SÑH‚ˆ•S’Ó“ÕÓˆÈSQÑSÑH‘TURT‘QŽÂ‚™^ÜÛÛœÝÕRQQÔ“Õ‘SSÑWÓP‘SÎˆ™XYÛ›HÝZYY›Ý™[˜[˜ÙSX™[×HHÂˆ“Ð”ÑT•‘Q8 %ÓÓTS–HUH‹ˆ”ÓÕTÑQ8 %VT“SU’QSÑH‹ˆ‘T’U‘Q8 %ÓÓTS–HUH‹ˆ‘T’U‘Q8 %ÖS•UPÈ’VT‘H‹ˆ‘T’U‘Q8 %ÖS•UPÈÒSUSUSÓˆ‹ˆ‘T’U‘Q8 %ÖS•UPÈVT’SQS•‹ˆSSTÕTÔÕSTSÓˆ‹ˆTÒUTHTÔÕSTSÓˆ‹ˆ“SÑSS‘‘T‘SÑH‹ˆ•S’Ó“ÕÓˆÈSQÑSÑH‘TURT‘Q‚—H\ÈÛÛœÝÂ‚™^Ü[˜Ý[ÛˆØ\ÙTÙ]\š]™Y›Ý™[˜[˜ÙSX™[
+Âˆ\Ô›ÝÜËˆ›ÝÜÐ\™TÞ[]XËˆ›ÝÜÐ\™TÞ[]XÔÚ[][][ÛˆH˜[ÙBŸNˆÂˆ\Ô›ÝÜÎˆ›ÛÛX[ŽÂˆ›ÝÜÐ\™TÞ[]XÎˆ›ÛÛX[ŽÂˆ›ÝÜÐ\™TÞ[]XÔÚ[][][ÛÎˆ›ÛÛX[ŽÂŸJNˆÝZYY›Ý™[˜[˜ÙSX™[ÂˆYˆ
+Z\Ô›ÝÜÊH™]\›ˆ•S’Ó“ÕÓˆÈSQÑSÑH‘TURT‘QŽÂˆYˆ
+›ÝÜÐ\™TÞ[]XÔÚ[][][ÛŠH™]\›ˆ‘T’U‘Q8 %ÖS•UPÈÒSUSUSÓˆŽÂˆ™]\›ˆ›ÝÜÐ\™TÞ[]XÈÈ‘T’U‘Q8 %ÖS•UPÈ’VT‘Hˆˆ‘T’U‘Q8 %ÓÓTS–HUHŽÂŸB‚™^Ü\HÛÛ\[žU\Ú\Ò[œ]HÂˆÛÛ\[žS˜[YNˆÝš[™ÎÂˆÛÛ\[žU\›ÎˆÝš[™È[Âˆ›ÙXÝØ]YÛÜžOÎˆÝš[™È[Âˆ›ÙXÝ\ØÜš\[ÛŽˆÝš[™ÎÂˆ\™Ù]Ý\ÝÛY\ŽˆÝš[™ÎÂˆ\Ú[™\ÜÓ[Ù[ÎˆÝš[™È[ÂˆÛÜšÙ›ÝÎˆÝš[™ÎÂˆXÚ\Ú[Û‘\ØÜš\[ÛŽˆÝš[™ÎÂˆXÝ[Û”ÜXÙOÎˆÝš[™È[ÂˆÛÛ\[žTÝYÙOÎˆÝš[™È[Âˆ\Ú\ÎˆÝš[™ÎÂˆXÛÛ›ÛZXÐÛÜÝÜ›Û™ÑXÚ\Ú[ÛÎˆÝš[™È[ÂˆÝ]ÛÛYSØš™XÝ]š]OÎˆÝš[™È[Âˆ˜]\˜[™YY˜XÚÕ[YOÎˆÝš[™È[ÂˆØ\ÙQœ™\]Y[˜ÞOÎˆÝš[™È[ÂˆÝ\ÝÛY\Ø\ÙR]\›ÙÙ[™Z]OÎˆÝš[™È[Âˆ[š\›Û›Y[[Ú[™ÙT˜]OÎˆÝš[™È[Âˆ›Ý[™][Û“[Ù[[\›Ý™[Y[˜]OÎˆÝš[™È[ÂˆÝÛœÑXÚ\Ú[Û”Ú[ÎˆÝš[™È[ÂˆÛÛ›ÛÐXÝ[ÛÎˆÝš[™È[ÂˆØœÙ\™\ÓÝ]ÛÛYOÎˆÝš[™È[ÂˆØ\\™\ÓÝ™\œšY\ÏÎˆÝš[™È[ÂˆØ\\™\ÑÜ˜Y\ÏÎˆÝš[™È[ÂˆX\›œÐXÜ›ÜÜÐÝ\ÝÛY\œÏÎˆÝš[™È[ÂˆÛÛ˜XÝX[X\›š[™ÔšYÚÏÎˆÝš[™È[Âˆ[œÐÛÛ›ÛY^\š[Y[ÏÎˆÝš[™È[Âˆ\]\Ó[Ù[ÛXÞT™YÝ[\›OÎˆÝš[™È[Âˆ\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛOÎˆÝš[™È[Âˆ]Q^Û\Ú]š]OÎˆÝš[™È[ÂˆÛÜšÙ›ÝÑ[X™YY™\ÜÏÎˆÝš[™È[ÂˆÝÚ]Ú[™ÐÛÜÝÐ\ÜÝ[\[ÛÎˆÝš[™È[Âˆ™XZ[Xš[]OÎˆÝš[™È[Âˆ›Ý[™][Û“[Ù[\[™[˜ÙOÎˆÝš[™È[Âˆ]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™OÎˆÝš[™È[Âˆ\ÝšX][ÛY˜[YÙOÎˆÝš[™È[Âˆ™YÝ[]ÜžPÛÛ˜XÝX[˜\œšY\œÏÎˆÝš[™È[ÂŸNÂ‚™^Ü\HÙ^QX˜]R[œ]HÂˆYÎˆÝš[™ÎÂˆ]Y\Ý[ÛŽˆÝš[™ÎÂˆ[Ø\ÙNˆÝš[™ÎÂˆ™X\Ø\ÙNˆÝš[™ÎÂˆ]šY[˜ÙS™YYYˆÝš[™ÎÂˆ[˜Ü™X\ÙP™[YYŽˆÝš[™ÎÂˆXÜ™X\ÙP™[YYŽˆÝš[™ÎÂˆ›Ø˜Xš[]Nˆ[X™\ŽÂˆÛÝ\˜ÙNˆÛÛ\Ý[™[™ÑX˜]TÛÝ\˜ÙNÂŸNÂ‚™^Ü\H[Y[œÚ[Û‘Yš[š][ÛˆHÂˆœ˜[Y]ÛÜšÎˆÛÛ\Ý[™[™Ñœ˜[Y]ÛÜšÎÂˆ[Y[œÚ[ÛŽˆÝš[™ÎÂˆX™[ˆÝš[™ÎÂˆ\ØÜš\[ÛŽˆÝš[™ÎÂŸNÂ‚™^Ü\H[Y[œÚ[Û\ÜÙ\ÜÛY[[œ]HÂˆYÎˆÝš[™ÎÂˆœ˜[Y]ÛÜšÎˆÛÛ\Ý[™[™Ñœ˜[Y]ÛÜšÎÂˆ[Y[œÚ[ÛŽˆÝš[™ÎÂˆØÛÜ™Nˆ[X™\ŽÂˆÛÛ™šY[˜ÙNˆÛÛ\Ý[™[™ÐÛÛ™šY[˜ÙNÂˆ˜][Û˜[NˆÝš[™ÎÂˆ]šY[˜ÙTÝ]\ÎˆÛÛ\Ý[™[™Ñ]šY[˜ÙTÝ]\ÎÂˆÛÝ\˜ÙOÎˆÛÛ\Ý[™[™ÑX˜]TÛÝ\˜ÙNÂŸNÂ‚™^Ü\HÚ[][][Û”ØÙ[˜\š[Ò[œ]HÂˆYÎˆÝš[™ÎÂˆ˜[YNˆÝš[™ÎÂˆÝ\[™ÐØ\Ù\Îˆ[X™\ŽÂˆØ\Ù\Ô\“[Ûˆ[X™\ŽÂˆ™YY˜XÚÑ[^Q^\Îˆ[X™\ŽÂˆ˜[œÙ™\˜Xš[]Nˆ[X™\ŽÂˆ[™›Ü›X][Û•˜[YNˆ[X™\ŽÂˆX\›š[™ÑY™šXÚY[˜ÞNˆ[X™\ŽÂˆÝ[[™\ÜÔ˜]Nˆ[X™\ŽÂˆ˜\ÙPØ\Xš[]Nˆ[X™\ŽÂŸNÂ‚™^Ü\HÚ[][][Û”Ú[HÂˆ[Ûˆ[X™\ŽÂˆY™™XÝ]™Q^\šY[˜ÙNˆ[X™\ŽÂˆ^\\ÙNˆ[X™\ŽÂˆX]\™YØ\Ù\Îˆ[X™\ŽÂŸNÂ‚™^Ü\HÚ[][][Û”Ù\šY\ÈHÂˆØÙ[˜\š[ÎˆÚ[][][Û”ØÙ[˜\š[Ò[œ]ÂˆÚ[ÎˆÚ[][][Û”Ú[×NÂŸNÂ‚™^Ü\HÝ™\ÜÕ\Ý[\]RYBˆ˜˜\Ù[[™H‚ˆ˜™]\—Ù›Ý[™][Û—Û[Ù[‚ˆ™˜\Ý\—ÛX\›™\ˆ‚ˆ˜[œÙ™\—Øœ™XZÙÝÛˆ‚ˆ™™YY˜XÚ×Ù[^H‚ˆ™^\šY[˜ÙWÜÝ[[™\ÜÈ‚ˆ˜ÛÛ[[Ý\×ØØ\\™H‚ˆ˜Ý\ÝÛHŽÂ‚™^Ü\HÝ™\ÜÕ\Ý[\]HHÂˆYˆÝ™\ÜÕ\Ý[\]RYÂˆ˜[YNˆÝš[™ÎÂˆ]Y\Ý[ÛŽˆÝš[™ÎÂˆÚ[™ÙY˜\šXX›\ÎˆÝš[™Ö×NÂˆÚ[™ÙY\˜[Y]\’Ù^\Îˆ\œ˜^OÙ^[ÙˆÚ[][][Û”ØÙ[˜\š[Ò[œ]ŽÂˆÚSX]\œÎˆÝš[™ÎÂŸNÂ‚™^Ü\HÝ™\ÜÕ\Ýš[X\žPÚ[™ÙHHÂˆX™[ˆÝš[™ÎÂˆ[˜Ý[X™[˜[YNˆ[X™\ˆ[ÂˆÚ[[™Ù\•˜[YNˆ[X™\ˆ[Âˆ[˜Ý[X™[˜\Ù[[™Nˆ[X™\ˆ[ÂˆÚ[[™Ù\˜\Ù[[™Nˆ[X™\ˆ[ÂˆÝ[[X\žNˆÝš[™ÎÂŸNÂ‚™^Ü\HÝ™\ÜÕ\ÝØÙ[˜\š[ÑÜ›Ý[™[™ÈH‘UKQÔ“ÕS‘Qˆ”T•PSHÔ“ÕS‘QˆTÔÕSTSÓ‹Q’U‘SˆŽÂ‚™^Ü\HÝ™\ÜÕ\Ý[”]Y\žR[œ]HÂˆ[˜[\Ú\ÒYˆÝš[™ÎÂˆØ\ÙTÙ]YÎˆÝš[™È[Âˆ]\Ù]ÎˆÝš[™È[Âˆ[\]RYˆÝš[™ÎÂˆØÙ[˜\š[ÜÎˆÚ[][][Û”ØÙ[˜\š[Ò[œ]×NÂˆ[˜ÛYT[Îˆ›ÛÛX[ŽÂŸNÂ‚™^Ü\HÝ™\ÜÕ\Ý™\Ý[Û\ÜÚYšXØ][ÛˆBˆQS•QÑWÔT”ÒTÕÈ‚ˆQS•QÑWÐÓÓT‘TÔÑTÈ‚ˆÒSS‘ÑT—ÐÐUÒT×ÕT‚ˆÒSS‘ÑT—ÓÕ‘T•RÑTÈ‚ˆ““×ÓPUT’PSÒS’UPSÐQS•QÑHŽÂ‚™^Ü\HÝ™\ÜÕ\Ý™\Ý[Ý[[X\žHHÂˆÛ\ÜÚYšXØ][ÛŽˆÝ™\ÜÕ\Ý™\Ý[Û\ÜÚYšXØ][ÛŽÂˆX™[ˆÝš[™ÎÂˆ[š]X[Ø\ˆ[X™\ŽÂˆ[ÛL‘Ø\ˆ[X™\ŽÂˆ[ÛÍ‘Ø\ˆ[X™\ŽÂˆ[˜Ý[X™[š[˜[^\\ÙNˆ[X™\ŽÂˆÚ[[™Ù\‘š[˜[^\\ÙNˆ[X™\ŽÂˆØ\\™XÝ[ÛŽˆÚY[š[™Èˆ˜ÛÛ\™\ÜÚ[™Èˆœ™]™\œÙYˆœÝX›HŽÂˆÜ›ÜÜÛÝ™\“[Ûˆ[X™\ˆ[ÂŸNÂ‚™^Ü\HÝ™\ÜÕ\Ýš]™\ˆHÂˆ]NˆÝš[™ÎÂˆ]Z[ˆÝš[™ÎÂˆXYÛš]YNˆ[X™\ŽÂŸNÂ‚™^Ü\HÚ[][]Ü”\˜[Y]\‘Yš[š][ÛˆHÂˆÙ^NˆÙ^[ÙˆÛZ]Ú[][][Û”ØÙ[˜\š[Ò[œ]šYˆ›˜[YHŽÂˆX™[ˆÝš[™ÎÂˆÜ›Ý\ˆ‘^\šY[˜ÙHY˜[YÙHˆ“X\›š[™È[˜[ZXÜÈˆÛÛ\]]]™HÈ[š\›Û›Y[[ÛÛ™][ÛœÈŽÂˆ\\Ý[ZXÎˆ“Ð”ÑT•‘QÈT’U‘Qˆ‘S‘ÑÑS“ÕTÈTÔÕSTSÓˆˆ‘VÑÑS“ÕTÈTÔÕSTSÓˆŽÂˆ[ˆÝš[™ÎÂˆZ[Žˆ[X™\ŽÂˆX^Îˆ[X™\ŽÂˆÝ\ˆ[X™\ŽÂŸNÂ‚™^Ü\HÜ›ÜÜÛÝ™\ˆHÂˆ[Ûˆ[X™\ŽÂˆœ›ÛNˆÝš[™ÎÂˆÎˆÝš[™ÎÂŸNÂ‚™^Ü\H˜[Y][Û”™\Ý[HÂˆÚÎˆ›ÛÛX[ŽÂˆ\œ›ÜœÎˆÝš[™Ö×NÂŸNÂ‚™^Ü\HØÛÜ™X›ÛÚÐØ\ÙR[œ]HÂˆYÎˆÝš[™ÎÂˆØ\ÙTÙ]YÎˆÝš[™È[ÂˆXÚ\Ú[ÛÛ\ÜÒYÎˆÝš[™È[ÂˆYÙ[XÚ\Ú[ÛXÝ[Û’YÎˆÝš[™È[Âˆ[X[‘XÚ\Ú[ÛXÝ[Û’YÎˆÝš[™È[ÂˆXÝ[Û•ZÙ[XÝ[Û’YÎˆÝš[™È[Âˆ^\›˜[Ø\ÙRYˆÝš[™ÎÂˆÝ\ÝÛY\”ÙYÛY[ˆÝš[™ÎÂˆØ\ÙU\NˆÝš[™ÎÂˆÛÛ^ˆÝš[™ÎÂˆYÙ[XÚ\Ú[ÛŽˆÝš[™ÎÂˆYÙ[ÛÛ™šY[˜ÙOÎˆ[X™\ˆ[Âˆ[X[‘XÚ\Ú[ÛÎˆÝš[™È[Âˆ[X[“Ý™\œšYNˆ›ÛÛX[ŽÂˆXÝ[Û•ZÙ[ÎˆÝš[™È[ÂˆÝ]ÛÛYOÎˆÝš[™È[ÂˆÝ]ÛÛYU˜[YOÎˆ[X™\ˆ[ÂˆÜ˜YNˆÛÛ\Ý[™[™ÐØ\ÙQÜ˜YNÂˆÜ˜YPÛÛ™šY[˜ÙOÎˆ[X™\ˆ[ÂˆXÚ\Ú[Û]Îˆ]HÝš[™È[ÂˆXÝ[Û]Îˆ]HÝš[™È[ÂˆÝ]ÛÛYP]Îˆ]HÝš[™È[Âˆ\ÑYÙPØ\ÙNˆ›ÛÛX[ŽÂˆ\ÔÞ[]XÎˆ›ÛÛX[ŽÂˆÛÝ\˜ÙSX™[ˆÝš[™ÎÂˆÛÝ\˜ÙT™XÛÜ™YÎˆÝš[™È[ÂˆÛÝ\˜ÙT™XÛÜ™\OÎˆÝš[™È[ÂˆÛÝ\˜ÙT™XÛÜ™›Ý]OÎˆÝš[™È[Âˆ›Ý\ÏÎˆÝš[™È[ÂŸNÂ‚™^Ü\HØ\ÙTÙ][œ]HÂˆYÎˆÝš[™ÎÂˆ[˜[\Ú\ÒYÎˆÝš[™È[ÂˆÛÜšÙ›ÝÒYÎˆÝš[™È[ÂˆXÚ\Ú[ÛÛ\ÜÒYÎˆÝš[™È[Âˆ˜[YNˆÝš[™ÎÂˆ\ØÜš\[ÛÎˆÝš[™È[ÂˆÛÝ\˜ÙU\NˆØ\ÙTÙ]ÛÝ\˜ÙU\NÂˆÛÝ\˜ÙTÞ\Ý[RÙ^OÎˆÝš[™È[ÂˆÛÝ\˜ÙTÞ\Ý[SX™[ÎˆÝš[™È[ÂˆÛÝ\˜ÙT[’YÎˆÝš[™È[ÂˆÛÝ\˜ÙT[“X™[ÎˆÝš[™È[ÂˆÛÝ\˜ÙT[•\OÎˆÝš[™È[ÂˆÛÝ\˜ÙT›Ý]OÎˆÝš[™È[ÂˆÛÝ\˜ÙQ^\›˜[\›ÎˆÝš[™È[ÂˆÙ[™\˜]Y]Îˆ]HÝš[™È[Âˆ[\ÜY]Îˆ]HÝš[™È[Âˆ[Ù[™\œÚ[ÛÎˆÝš[™È[ÂˆÛXÞU™\œÚ[ÛÎˆÝš[™È[Âˆ^\š[Y[YÎˆÝš[™È[Âˆ[YUÚ[™ÝÔÝ\Îˆ]HÝš[™È[Âˆ[YUÚ[™ÝÑ[™Îˆ]HÝš[™È[Âˆ\ÔÞ[]XÎˆ›ÛÛX[ŽÂˆ›Ý™[˜[˜ÙSX™[ˆÝš[™ÎÂˆØ\ÙPÛÝ[ˆ[X™\ŽÂˆ\™[Ø\ÙTÙ]YÎˆÝš[™È[Âˆ\š]˜][Û‘\ØÜš\[ÛÎˆÝš[™È[ÂŸNÂ‚™^Ü\HØ\ÙTÙ]\\Ý[ZXÕ\HH“Ð”ÑT•‘Qˆ”‘PÓÓ”Õ•PÕQˆ”ÖS•UPÈŽÂ™^Ü\H[˜[]XØ[]\Ù]Ú[™Bˆ“Ð”ÑT•‘QÔ“ÑPÕSÓˆ‚ˆ”‘PÓÓ”Õ•PÕQÔÓÕTÑQ‚ˆ”ÖS•UP×ÔÒSUSUSÓˆ‚ˆÐS“Ó’PÐSÔÖS•UPÈ‚ˆ““Ó‘HŽÂ™^Ü\H[˜[]XØ[]\Ù]Ù[XÝ[Û“[ÙHHUU×ÔÑSPÕQˆ•TÑT—ÔÑSPÕQŽÂ‚™^Ü\H[˜[]XØ[Ø\ÙTÙ]ZÙHHÂˆYÎˆÝš[™È[ÂˆÛÝ\˜ÙU\OÎˆÝš[™È[ÂˆÛÝ\˜ÙTÞ\Ý[RÙ^OÎˆÝš[™È[ÂˆÛÝ\˜ÙTÞ\Ý[SX™[ÎˆÝš[™È[Âˆ\ÔÞ[]XÏÎˆ›ÛÛX[ˆ[Âˆ›Ý™[˜[˜ÙSX™[ÎˆÝš[™È[Âˆ\š]˜][Û‘\ØÜš\[ÛÎˆÝš[™È[Âˆ˜[YNˆÝš[™ÎÂˆ\ØÜš\[ÛÎˆÝš[™È[ÂˆØ\ÙPÛÝ[Îˆ[X™\ˆ[ÂŸNÂ‚™^Ü\H[˜[]XØ[]\Ù]Ü[ÛˆHÂˆ]\Ù]Ù^NˆÝš[™ÎÂˆØ\ÙTÙ]YˆÝš[™È[Âˆ˜[YNˆÝš[™ÎÂˆÚ[™ˆ[˜[]XØ[]\Ù]Ú[™ÂˆØ\ÙPÛÝ[ˆ[X™\ŽÂˆ›Ý™[˜[˜ÙSX™[ˆÝš[™ÎÂˆÛÝ\˜ÙTÞ\Ý[SX™[ÎˆÝš[™È[Âˆ\ØÜš\[ÛÎˆÝš[™È[Âˆ\Õš\X[ˆ›ÛÛX[ŽÂˆØ\ÙTÙ]Îˆ[˜[]XØ[Ø\ÙTÙ]ZÙH[ÂŸNÂ‚™^Ü\H™\ÛÛ™Y[˜[]XØ[]\Ù]HÂˆÙ[XÝYˆ[˜[]XØ[]\Ù]Ü[ÛŽÂˆÜ[ÛœÎˆ[˜[]XØ[]\Ù]Ü[Û–×NÂˆÙ[XÝ[Û“[ÙNˆ[˜[]XØ[]\Ù]Ù[XÝ[Û“[ÙNÂˆ™X\ÛÛŽˆÝš[™ÎÂŸNÂ‚™^Ü\H›Ü›X[^™YÛÛ\[žT›Ùš[R[œ]HÂˆ˜[YNˆÝš[™ÎÂˆÙXœÚ]OÎˆÝš[™È[Âˆ[™\ÝžOÎˆÝš[™È[Âˆ›ÙXÝØ]YÛÜžOÎˆÝš[™È[Âˆ›ÙXÝ\ØÜš\[ÛÎˆÝš[™È[ÂˆÛÛ\[žTÝYÙOÎˆÝš[™È[ÂˆÙ[ÙÜ˜\OÎˆÝš[™È[ÂˆÝ\ÝÛY\•\OÎˆÝš[™È[ÂˆÝ\ÝÛY\”ÙYÛY[ÏÎˆÝš[™È[Âˆ™]™[YS[Ù[ÎˆÝš[™È[ÂˆšXÚ[™Õ[š]ÎˆÝš[™È[Âˆ\Ú[™\ÜÓ[Ù[›Ý\ÏÎˆÝš[™È[ÂˆÜ›ÜÜÓX\™Ú[”›Ùš[OÎˆÝš[™È[ÂˆXÛÛ›ÛZXÕ˜[YU[š]ÎˆÝš[™È[ÂˆXÛÛ›ÛZXÜÓ›Ý\ÏÎˆÝš[™È[ÂˆX\šÙ]ÛÛ^ÎˆÝš[™È[Âˆ[˜[\Ý\Ú\ÏÎˆÝš[™È[ÂŸNÂ‚™^Ü\H›Ü›X[^™YÛÜšÙ›ÝÔÝYÙR[œ]HÂˆÙ^NˆÝš[™ÎÂˆ˜[YNˆÝš[™ÎÂˆ\ØÜš\[ÛÎˆÝš[™È[ÂˆÜÚ][ÛŽˆ[X™\ŽÂˆÝYÙU\NˆÝš[™ÎÂŸNÂ‚™^Ü\H›Ü›X[^™YXÚ\Ú[ÛXÝ[Û’[œ]HÂˆÙ^NˆÝš[™ÎÂˆX™[ˆÝš[™ÎÂˆ\ØÜš\[ÛÎˆÝš[™È[Âˆ™]™\œÚX›OÎˆÝš[™ÎÂˆ™\]Z\™\Ò[X[\›Ý˜[Îˆ›ÛÛX[ŽÂˆXÛÛ›ÛZXÑ^ÜÝ\™OÎˆÝš[™È[Âˆ™YÝ[]ÜžQ^ÜÝ\™OÎˆÝš[™È[ÂŸNÂ‚™^Ü\H›Ü›X[^™YXÚ\Ú[ÛÛ\ÜÒ[œ]HÂˆÙ^NˆÝš[™ÎÂˆÝYÙRÙ^OÎˆÝš[™È[Âˆ˜[YNˆÝš[™ÎÂˆ\ØÜš\[ÛÎˆÝš[™È[ÂˆXÚ\Ú[Û“XZÙ\•\NˆÝš[™ÎÂˆXÚ\Ú[Û‘œ™\]Y[˜ÞOÎˆÝš[™È[Âˆ\Ý[X]YØ\Ù\Ô\”\š[ÙÎˆ[X™\ˆ[Âˆœ™\]Y[˜ÞT\š[ÙÎˆÝš[™È[ÂˆXÛÛ›ÛZXÔÝZÙ\ÎˆÝš[™ÎÂˆ™]™\œÚXš[]NˆÝš[™ÎÂˆ™YÝ[]ÜžTš\ÚÎˆÝš[™ÎÂˆÜ\˜][Û˜[š\ÚÎˆÝš[™ÎÂˆÝ]ÛÛYSØœÙ\˜Xš[]NˆÝš[™ÎÂˆÜ˜YSØš™XÝ]š]NˆÝš[™ÎÂˆ˜]\˜[™YY˜XÚÓ][˜ÞQ^\ÏÎˆ[X™\ˆ[Âˆ[X[”™]šY]Ó[ÙNˆÝš[™ÎÂˆÝ\œ™[]]Û›Û^S[ÙNˆÝš[™ÎÂˆXÝ[Û’Ù^\ÎˆÝš[™Ö×NÂŸNÂ‚™^Ü\H›Ü›X[^™YÛÜšÙ›ÝÒ[œ]HÂˆÙ^NˆÝš[™ÎÂˆ˜[YNˆÝš[™ÎÂˆ\ØÜš\[ÛÎˆÝš[™È[ÂˆÜÚ][ÛŽˆ[X™\ŽÂˆÝYÙ\Îˆ›Ü›X[^™YÛÜšÙ›ÝÔÝYÙR[œ]×NÂˆXÚ\Ú[ÛÛ\ÜÙ\Îˆ›Ü›X[^™YXÚ\Ú[ÛÛ\ÜÒ[œ]×NÂˆXÝ[ÛœÎˆ›Ü›X[^™YXÚ\Ú[ÛXÝ[Û’[œ]×NÂŸNÂ‚™^Ü\H›Ü›X[^™Y[š\›Û›Y[[œ]HÂˆ˜]\˜[Ø\ÙQœ™\]Y[˜ÞOÎˆÝš[™È[Âˆ\Ý[X]YØ\Ù\Ô\”\š[ÙÎˆ[X™\ˆ[Âˆœ™\]Y[˜ÞT\š[ÙÎˆÝš[™È[Âˆ\XØ[XÛÛ›ÛZXÐÛÜÝÙ‘\œ›ÜÎˆÝš[™È[Âˆ\XØ[˜[YSÙÛÜœ™XÝXÚ\Ú[ÛÎˆÝš[™È[ÂˆÝ]ÛÛYSØœÙ\˜Xš[]OÎˆÝš[™È[ÂˆÝ]ÛÛYSØš™XÝ]š]OÎˆÝš[™È[Âˆ˜]\˜[™YY˜XÚÓ][˜ÞQ^\ÏÎˆ[X™\ˆ[ÂˆÝ\ÝÛY\’]\›ÙÙ[™Z]OÎˆÝš[™È[ÂˆØ\ÙR]\›ÙÙ[™Z]OÎˆÝš[™È[Âˆ[š\›Û›Y[[›ÛœÝ][Û˜\š]OÎˆÝš[™È[Âˆ™YÝ[]ÜžPÚ[™ÙT˜]OÎˆÝš[™È[Âˆ›Ý[™][Û“[Ù[[\›Ý™[Y[˜]OÎˆÝš[™È[Âˆ›Ý\ÏÎˆÝš[™È[ÂŸNÂ‚™^Ü\H›Ü›X[^™YX\›š[™Ð\˜Ú]XÝ\™R[œ]HÂˆØ\\™\ÐÛÛ^ˆÝš[™ÎÂˆØ\\™\ÐYÙ[XÚ\Ú[ÛŽˆÝš[™ÎÂˆØ\\™\Ò[X[‘XÚ\Ú[ÛŽˆÝš[™ÎÂˆØ\\™\ÐXÝ[Û•ZÙ[ŽˆÝš[™ÎÂˆØ\\™\ÓÝ]ÛÛYNˆÝš[™ÎÂˆØ\\™\Ñ^XÚ]Ü˜YNˆÝš[™ÎÂˆÝ]ÛÛYPÛÛ\][Û“YXÚ[š\ÛOÎˆÝš[™È[ÂˆÜ˜YQÙ[™\˜][Û“Y]ÙÎˆÝš[™È[Âˆ™YY˜XÚÓ][˜ÞSYXÚ[š\ÛOÎˆÝš[™È[ÂˆÛÛYXÜ›ÜÜÐÝ\ÝÛY\œÎˆÝš[™ÎÂˆÝ\ÝÛY\”ÜXÚYšXÐY\][ÛŽˆÝš[™ÎÂˆ\Ù\Ò[X[“Ý™\œšY\Ñ›Ü“X\›š[™ÎˆÝš[™ÎÂˆ\Ù\ÓÝ]ÛÛYQÜ˜Y\Ñ›Ü“X\›š[™ÎˆÝš[™ÎÂˆ^\š[Y[][Û“[ÙOÎˆÝš[™È[Âˆ[Ù[\]PØY[˜ÙOÎˆÝš[™È[ÂˆÛXÞU\]PØY[˜ÙOÎˆÝš[™È[Âˆ\Þ[Y[[ÙOÎˆÝš[™È[Âˆ\Þ[Y[ØY[˜ÙOÎˆÝš[™È[Âˆ[X[\›Ý˜[›Ü”ÛXÞPÚ[™Ù\ÎˆÝš[™ÎÂˆØ[”™]Z[Ø\Ù\ÎˆÝš[™ÎÂˆØ[”™]Z[‘\š]™Y™X]\™\ÎˆÝš[™ÎÂˆØ[•˜Z[XÜ›ÜÜÐÝ\ÝÛY\œÎˆÝš[™ÎÂˆØ[•\ÙQ›Ü‘]˜[X][ÛŽˆÝš[™ÎÂˆÛÛ˜XÝX[™\ÝšXÝ[ÛœÏÎˆÝš[™È[Âˆ›Ý\ÏÎˆÝš[™È[ÂŸNÂ‚™^Ü\H›Ü›X[^™YÛÛ\]]]™P\˜Ú]XÝ\™R[œ]HÂˆ˜]ÐØ\Ù\Ñ^Û\Ú]™NˆÝš[™ÎÂˆÝ]ÛÛY\Ñ^Û\Ú]™NˆÝš[™ÎÂˆ[X[ÛÜœ™XÝ[ÛœÑ^Û\Ú]™NˆÝš[™ÎÂˆÜ›ÜÜÐÝ\ÝÛY\”ÛÛ^Û\Ú]™NˆÝš[™ÎÂˆÝ\ÝÛY\Ø[‘^Ü]NˆÝš[™ÎÂˆÛÛ\]]ÜØ[XØÙ\ÜÑ\]Z]˜[[]NˆÝš[™ÎÂˆÞ\Ý[SÙ”™XÛÜ™ˆÝš[™ÎÂˆÞ\Ý[SÙ‘XÚ\Ú[ÛŽˆÝš[™ÎÂˆÞ\Ý[SÙXÝ[ÛŽˆÝš[™ÎÂˆÞ\Ý[SÙ“Ý]ÛÛYPØ\\™NˆÝš[™ÎÂˆ[YÜ˜][Û‘\ÎˆÝš[™È[Âˆ™\XÙ[Y[ÛÛ\^]OÎˆÝš[™È[ÂˆX›XÑ]TÝXœÝ]][Û”š\ÚÏÎˆÝš[™È[ÂˆÞ[]XÑ]TÝXœÝ]][Û”š\ÚÏÎˆÝš[™È[Âˆ›Ý[™][Û“[Ù[ÝXœÝ]][Û”š\ÚÏÎˆÝš[™È[ÂˆÛÛ\]]Ü”™[X\›š[™ÑY™šXÝ[OÎˆÝš[™È[Âˆ]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™TÝ™[™ÝÎˆÝš[™È[Âˆ\ÝšX][ÛY˜[YÙOÎˆÝš[™È[Âˆ™YÝ[]ÜžP˜\œšY\”Ý™[™ÝÎˆÝš[™È[ÂˆÛÛ˜XÝX[˜\œšY\”Ý™[™ÝÎˆÝš[™È[Âˆ›Ý\ÏÎˆÝš[™È[ÂŸNÂ‚™^Ü\H›Ü›X[^™Y]šY[˜ÙR[œ]HÂˆ[]U\NˆÝš[™ÎÂˆ[]RÙ^OÎˆÝš[™È[ÂˆšY[Ù^NˆÝš[™ÎÂˆ]šY[˜ÙU\NˆÛÛ\Ý[™[™Ñ]šY[˜ÙU\NÂˆ\\Ý[ZXÔÝ]\ÎˆÛÛ\Ý[™[™Ñ\\Ý[ZXÔÝ]\ÎÂˆ˜[YTÛ˜\ÚÝÎˆÝš[™È[ÂˆÛÝ\˜ÙSX™[ˆÝš[™ÎÂˆÛÝ\˜ÙU\›ÎˆÝš[™È[ÂˆÛÝ\˜ÙT™XÛÜ™YÎˆÝš[™È[ÂˆÛÝ\˜ÙPØ\ÙTÙ]Ù^OÎˆÝš[™È[ÂˆÛÛ™šY[˜ÙNˆÛÛ\Ý[™[™ÑšY[ÛÛ™šY[˜ÙNÂˆØœÙ\™Y]Îˆ]HÝš[™È[Âˆ\š]˜][Û“Y]ÙÎˆÝš[™È[Âˆ[˜[\Ý›Ý\ÏÎˆÝš[™È[ÂŸNÂ‚™^Ü\H›Ü›X[^™Y^[\S[Ù[HÂˆ›Ùš[Nˆ›Ü›X[^™YÛÛ\[žT›Ùš[R[œ]ÂˆÛÜšÙ›ÝÎˆ›Ü›X[^™YÛÜšÙ›ÝÒ[œ]Âˆ[š\›Û›Y[ˆ›Ü›X[^™Y[š\›Û›Y[[œ]ÂˆX\›š[™Ð\˜Ú]XÝ\™Nˆ›Ü›X[^™YX\›š[™Ð\˜Ú]XÝ\™R[œ]ÂˆÛÛ\]]]™P\˜Ú]XÝ\™Nˆ›Ü›X[^™YÛÛ\]]]™P\˜Ú]XÝ\™R[œ]Âˆ]šY[˜ÙNˆ›Ü›X[^™Y]šY[˜ÙR[œ]×NÂŸNÂ‚™^Ü\HX›XÑ]šY[˜ÙP[˜[\Ú\Ñš^\™HHÂˆYˆX›XÑ]šY[˜ÙP[˜[\Ú\ÒYÂˆX™[ˆÝš[™ÎÂˆX›XÔÛÝ\˜ÙSX™[ˆÝš[™ÎÂˆ[˜[\Ú\ÎˆÛÛ\[žU\Ú\Ò[œ]Âˆ›Ü›X[^™Yˆ›Ü›X[^™Y^[\S[Ù[ÂˆX˜]\ÎˆÙ^QX˜]R[œ]×NÂˆØÙ[˜\š[ÜÎˆÚ[][][Û”ØÙ[˜\š[Ò[œ]×NÂŸNÂ‚™^Ü\H]šY[˜ÙPÛÝ™\˜YÙTÝ[[X\žHHÂˆ\š]™Yˆ[X™\ŽÂˆÛÝ\˜ÙYˆ[X™\ŽÂˆ\ÜÝ[YYˆ[X™\ŽÂˆ[™™\œ™Yˆ[X™\ŽÂˆ[šÛ›ÝÛŽˆ[X™\ŽÂŸNÂ‚™^Ü[˜Ý[ÛˆÛÛ\Ý[™[™Ð[˜[\Ú\ÐXØÙ\ÜÕÚ\™JXØÛÝ[\Ù\’YˆÝš[™È[[˜[\Ú\ÒYÎˆÝš[™È[
+HÂˆÛÛœÝXØÙ\ÜÈHXØÛÝ[\Ù\’YˆÈÈÔŽˆÞÈXØÛÝ[\Ù\’YKÈXØÛÝ[\Ù\’Yˆ[WHBˆˆÈXØÛÝ[\Ù\’Yˆ[NÂˆ™]\›ˆ[˜[\Ú\ÒYÈÈYˆ[˜[\Ú\ÒY‹‹˜XØÙ\ÜÈHˆXØÙ\ÜÎÂŸB‚™^Ü\HXÚ\Ú[Û”Þ\Ý[Q\š]™YY]šXÜÈHÂˆÝ[Ø\Ù\Îˆ[X™\ŽÂˆ™\ÛÛ™YØ\Ù\Îˆ[X™\ŽÂˆÜ˜YYØ\Ù\Îˆ[X™\ŽÂˆÜ˜YPÛÝ™\˜YÙNˆ[X™\ˆ[ÂˆÝ]ÛÛYPÛÛ\][Û”˜]Nˆ[X™\ˆ[ÂˆYYX[‘XÚ\Ú[Û•ÐXÝ[Û“][˜ÞQ^\Îˆ[X™\ˆ[ÂˆYYX[‘XÚ\Ú[Û•ÓÝ]ÛÛYS][˜ÞQ^\Îˆ[X™\ˆ[Âˆ[X[“Ý™\œšYT˜]Nˆ[X™\ˆ[ÂˆXÝ[Û‘\ÝšX][ÛŽˆÈX™[ˆÝš[™ÎÈÛÝ[ˆ[X™\ŽÈÚ\™Nˆ[X™\ˆ[V×NÂˆÜ˜YQ\ÝšX][ÛŽˆÈX™[ˆÛÛ\Ý[™[™ÐØ\ÙQÜ˜YNÈÛÝ[ˆ[X™\ŽÈÚ\™Nˆ[X™\ˆ[V×NÂˆYÙPØ\ÙTÚ\™Nˆ[X™\ˆ[ÂˆÝ[Ý]ÛÛYU˜[YNˆ[X™\ˆ[Âˆ]™\˜YÙSÝ]ÛÛYU˜[YNˆ[X™\ˆ[ÂˆÝ\ÝÛY\”ÙYÛY[ÛÝ[ˆ[X™\ŽÂˆØ\ÙU\PÛÝ[ˆ[X™\ŽÂˆØœÙ\™YXÚ\Ú[Û•›Û[YNˆÂˆÛÝ[ˆ[X™\ŽÂˆÚ[™ÝÔÝ\ˆ]H[ÂˆÚ[™ÝÑ[™ˆ]H[Âˆ^\Îˆ[X™\ˆ[ÂˆØ\Ù\Ô\“[Ûˆ[X™\ˆ[ÂˆNÂŸNÂ‚™^Ü\HØÛÜ™X›ÛÚÓY]šXÜÈHÂˆÝ[Ø\Ù\Îˆ[X™\ŽÂˆ™\ÛÛ™YØ\Ù\Îˆ[X™\ŽÂˆÜ˜YYØ\Ù\Îˆ[X™\ŽÂˆÝ]ÛÛYPÛÛ\][Û”˜]Nˆ[X™\ˆ[ÂˆÜ˜YPÛÝ™\˜YÙNˆ[X™\ˆ[ÂˆYÙ[ÛÜœ™XÝ™\ÜÔ˜]Nˆ[X™\ˆ[Âˆ[X[“Ý™\œšYT˜]Nˆ[X™\ˆ[ÂˆYYX[‘™YY˜XÚÓ][˜ÞQ^\Îˆ[X™\ˆ[Âˆ™YY˜XÚÓ][˜ÞTØ[\TÚ^™Nˆ[X™\ŽÂˆYÙPØ\ÙTÚ\™Nˆ[X™\ˆ[ÂˆÝ]ÛÛYU˜[YTØ[\TÚ^™Nˆ[X™\ŽÂˆÝ[Ý]ÛÛYU˜[YNˆ[X™\ˆ[Âˆ]™\˜YÙSÝ]ÛÛYU˜[YNˆ[X™\ˆ[ÂˆÞ[]XÐØ\ÙPÛÝ[ˆ[X™\ŽÂˆ[X[“Ý™\œšYU˜[YNˆÂˆÛÝ[ˆ[X™\ŽÂˆÚ\™SÙØ\Ù\Îˆ[X™\ˆ[Âˆ™\ÛÛ˜X›PÛÝ[ˆ[X™\ŽÂˆÛÜœ™XÝÛÝ[ˆ[X™\ŽÂˆ[˜ÛÜœ™XÝÛÝ[ˆ[X™\ŽÂˆÛÜœ™XÝ˜]Nˆ[X™\ˆ[Âˆ[˜ÛÜœ™XÝ˜]Nˆ[X™\ˆ[ÂˆÝ]ÛÛYU˜[YTØ[\TÚ^™Nˆ[X™\ŽÂˆÝ[Ý]ÛÛYU˜[YNˆ[X™\ˆ[Âˆ]™\˜YÙSÝ]ÛÛYU˜[YNˆ[X™\ˆ[ÂˆNÂŸNÂ‚™^Ü\HØÛÜ™X›ÛÚÑ\š]™YÚ[][]Ü•˜[Y\ÈHÂˆÝ\[™ÑÜ˜YYØ\Ù\Îˆ[X™\ŽÂˆ™YY˜XÚÑ[^Q^\Îˆ[X™\ˆ[Âˆ™YY˜XÚÑ[^TØ[\TÚ^™Nˆ[X™\ŽÂŸNÂ‚™^Ü\H^\šY[˜ÙTÛ˜\ÚÝHÂˆÝ[Ø\Ù\Îˆ[X™\ŽÂˆÝ]ÛÛY\ÓØœÙ\™Yˆ[X™\ŽÂˆÜ˜YYØ\Ù\Îˆ[X™\ŽÂˆÝ]ÛÛYPÛÛ\][Û”˜]Nˆ[X™\ˆ[ÂˆÜ˜YPÛÝ™\˜YÙNˆ[X™\ˆ[ÂˆYYX[‘™YY˜XÚÓ][˜ÞQ^\Îˆ[X™\ˆ[Âˆ™YY˜XÚÓ][˜ÞTØ[\TÚ^™Nˆ[X™\ŽÂˆ[X[“Ý™\œšYPÛÝ[ˆ[X™\ŽÂˆ[X[“Ý™\œšYT˜]Nˆ[X™\ˆ[ÂˆYÙPØ\ÙPÛÝ[ˆ[X™\ŽÂˆYÙPØ\ÙT˜]Nˆ[X™\ˆ[Âˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[ÂŸNÂ‚™^Ü\H^\šY[˜ÙQ\ÝšX][Û’][HHÂˆX™[ˆÝš[™ÎÂˆÛÝ[ˆ[X™\ŽÂˆÚ\™Nˆ[X™\ˆ[ÂŸNÂ‚™^Ü\H™YY˜XÚÓ][˜ÞPXÚÙ]H^\šY[˜ÙQ\ÝšX][Û’][H	ˆÂˆÙ^NˆŒÍÈˆŽÌMˆŒMWÌÌˆŒÌWÔTÈˆ•SURSP“HŽÂŸNÂ‚™^Ü\H^\šY[˜ÙR[œÚYÚHÂˆÛ™Nˆœ]\›ˆˆ˜Ø]][Ûˆˆ™Ø\ŽÂˆÝ][Y[ˆÝš[™ÎÂˆÝ\ÜˆÝš[™ÎÂŸNÂ‚™^Ü\H[\™\Ý[™ÔÛXÙHHÂˆÙ^Nˆš[X[‹[Ý™\œšY\Èˆ˜YÙ[Y\œ›ÜœÈˆ™YÙKXØ\Ù\Èˆ[œ™\ÛÛ™Yˆ›Û™Ù\ÝY™YY˜XÚÈˆšYÚ\ÝZ[\XÝŽÂˆX™[ˆÝš[™ÎÂˆÛÝ[ˆ[X™\ŽÂˆ]Y\žNˆ™XÛÜ™Ýš[™ËÝš[™ÏŽÂˆ[˜X›Yˆ›ÛÛX[ŽÂˆ\ØÜš\[ÛŽˆÝš[™ÎÂŸNÂ‚™^Ü\H^\šY[˜ÙT]X[]Q[Y[œÚ[ÛˆHÂˆX™[ˆÝš[™ÎÂˆ˜[YNˆÝš[™ÎÂˆØ[\NˆÝš[™ÎÂˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[ÂŸNÂ‚™^Ü\H^\šY[˜ÙPØ[Ø[››ÝHÂˆØ[•[\ÎˆÝš[™Ö×NÂˆØ[››Ý[\ÎˆÝš[™Ö×NÂŸNÂ‚™^Ü\H[™›Ü›X][Û”Ø[\TÝ]HH•SURSP“Hˆ’S”ÕQ‘’PÒQS•UHˆ”ÓPSÐSTHÈTÐÔ’TU‘HÓ“Hˆ‘TÐÔ’TU‘HŽÂ™^Ü\H[™›Ü›X][Û‘]™\œÚ]SX™[H’QÒU‘T”ÒUHˆ“SÑTUHU‘T”ÒUHˆÓÓÑS•UQˆ’S”ÕQ‘’PÒQS•UHˆ•SURSP“HŽÂ™^Ü\H]\›”™\]][Û“X™[H’QÒ‘TUUSÓˆˆ“SÑTUH‘TUUSÓˆˆ“ÕÈ‘TUUSÓˆˆ’S”ÕQ‘’PÒQS•UHˆ•SURSP“HŽÂ™^Ü\HX\™Ú[˜[›Ý™[SX™[H““Õ‘SHT”ÒTÕS‘Èˆ““Õ‘SHPÓS’S‘ÈˆTT‘S•ÐUTUSÓˆˆ’S”ÕQ‘’PÒQS•UHˆ•SURSP“HŽÂ™^Ü\HÝ]ÛÛYR[™›Ü›X][Û“X™[H“QPTÕTP“Hˆ”ÓPSÐSTHÈTÐÔ’TU‘HÓ“Hˆ”ÔT”ÑHÐUQÓÔ’QTÈ8 %S•T”‘UÐUUSÕTÓHˆ’S”ÕQ‘’PÒQS•UHˆ•SURSP“HŽÂ™^Ü\H[™›Ü›X][Û”ÝXÝ\™QšY[Ù^HBˆ™XÚ\Ú[ÛÛ\ÜÈ‚ˆ˜Ø\ÙU\H‚ˆ˜Ý\ÝÛY\”ÙYÛY[‚ˆ˜XÝ[Û•ZÙ[ˆ‚ˆ™Ü˜YH‚ˆš[X[“Ý™\œšYH‚ˆ™YÙPØ\ÙHŽÂ‚™^Ü\HØ]YÛÜšXØ[[™›Ü›X][Û‘XYÛ›ÜÝXÈHÂˆšY[ˆ[™›Ü›X][Û”ÝXÝ\™QšY[Ù^NÂˆX™[ˆÝš[™ÎÂˆÝ]\Îˆ[™›Ü›X][Û‘]™\œÚ]SX™[ÂˆØ[\TÝ]Nˆ[™›Ü›X][Û”Ø[\TÝ]NÂˆ\ØX›PÛÝ[ˆ[X™\ŽÂˆÝ[Ø\Ù\Îˆ[X™\ŽÂˆZ\ÜÚ[™ÔÚ\™Nˆ[X™\ˆ[Âˆ[Z]YÛÝ™\˜YÙNˆ›ÛÛX[ŽÂˆØ]YÛÜžPÛÝ[ˆ[X™\ŽÂˆ[›ÜPš]Îˆ[X™\ˆ[ÂˆX^[›ÜPš]Îˆ[X™\ˆ[Âˆ›Ü›X[^™Y[›ÜNˆ[X™\ˆ[ÂˆÛZ[˜[Ø]YÛÜžNˆÝš[™È[ÂˆÛZ[˜[Ú\™Nˆ[X™\ˆ[Âˆ[\œ™]][ÛŽˆÝš[™ÎÂˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[ÂŸNÂ‚™^Ü\H]\›”™\]][Û‘XYÛ›ÜÝXÈHÂˆÝ]\Îˆ]\›”™\]][Û“X™[ÂˆØ[\TÝ]Nˆ[™›Ü›X][Û”Ø[\TÝ]NÂˆÝ[Ø\Ù\Îˆ[X™\ŽÂˆÚYÛ˜]\™QšY[ÎˆÝš[™Ö×NÂˆ[š\]YT]\›ÛÝ[ˆ[X™\ŽÂˆ™\X]Y]\›Ø\Ù\Îˆ[X™\ŽÂˆÚ[™Û]Û”]\›œÎˆ[X™\ŽÂˆ™\]][Û”Ú\™Nˆ[X™\ˆ[Âˆ[ÜÝÛÛ[[Û”]\›œÎˆ\œ˜^OÈÚYÛ˜]\™NˆÝš[™ÎÈÛÝ[ˆ[X™\ŽÈÚ\™Nˆ[X™\ˆ[OŽÂˆ[\œ™]][ÛŽˆÝš[™ÎÂˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[ÂŸNÂ‚™^Ü\HX\™Ú[˜[›Ý™[PÛÚÜHÂˆ[™^ˆ[X™\ŽÂˆØ\Ù\Îˆ[X™\ŽÂˆ™]š[Ý\ÛSØœÙ\™Y]\›œÎˆ[X™\ŽÂˆ™]Ô]\›”ÚYÛ˜]\™\Îˆ[X™\ŽÂˆ›Ý™[T˜]Nˆ[X™\ˆ[ÂˆÝ[][]]™U[š\]YT]\›œÎˆ[X™\ŽÂŸNÂ‚™^Ü\HX\™Ú[˜[›Ý™[QXYÛ›ÜÝXÈHÂˆÝ]\ÎˆX\™Ú[˜[›Ý™[SX™[ÂˆØ[\TÝ]Nˆ[™›Ü›X][Û”Ø[\TÝ]NÂˆÝ[Ø\Ù\Îˆ[X™\ŽÂˆ\ØX›PÚ›Û›ÛÙÞPÛÝ[ˆ[X™\ŽÂˆÚ›Û›ÛÙÞPÛÝ™\˜YÙNˆ[X™\ˆ[ÂˆÛÚÜÛÝ[ˆ[X™\ŽÂˆÛÚÜÎˆX\™Ú[˜[›Ý™[PÛÚÜ×NÂˆš\œÝÛÚÜ›Ý™[T˜]Nˆ[X™\ˆ[Âˆ]\ÝÛÚÜ›Ý™[T˜]Nˆ[X™\ˆ[Âˆ™]Ù\ÝÛÚÜ[š\]YTÚ\™Nˆ[X™\ˆ[Âˆ[\œ™]][ÛŽˆÝš[™ÎÂˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[Âˆ[˜]˜Z[X›T™X\ÛÛÎˆÝš[™ÎÂŸNÂ‚™^Ü\H]]X[[™›Ü›X][Û‘XYÛ›ÜÝXÈHÂˆšY[ˆ[™›Ü›X][Û”ÝXÝ\™QšY[Ù^NÂˆX™[ˆÝš[™ÎÂˆQšY[ˆ™Ü˜YHŽÂˆSX™[ˆÝš[™ÎÂˆÝ]\ÎˆÝ]ÛÛYR[™›Ü›X][Û“X™[ÂˆØ[\TÝ]Nˆ[™›Ü›X][Û”Ø[\TÝ]NÂˆ\ØX›PÛÝ[ˆ[X™\ŽÂˆÝ[Ø\Ù\Îˆ[X™\ŽÂˆZ\ÜÚ[™ÔÚ\™Nˆ[X™\ˆ[ÂˆØ]YÛÜžPÛÝ[ˆ[X™\ŽÂˆPØ]YÛÜžPÛÝ[ˆ[X™\ŽÂˆ]]X[[™›Ü›X][Ûš]Îˆ[X™\ˆ[ÂˆÝ]ÛÛYQ[›ÜPš]Îˆ[X™\ˆ[Âˆ›Ü›X[^™Y[™›Ü›X][ÛŽˆ[X™\ˆ[ÂˆÜ\œÙPØ]YÛÜšY\Îˆ›ÛÛX[ŽÂˆ[\œ™]][ÛŽˆÝš[™ÎÂˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[ÂŸNÂ‚™^Ü\H[™›Ü›X][Û”ÝXÝ\™QXYÛ›ÜÝXÈHÂˆ]˜Z[X›Nˆ›ÛÛX[ŽÂˆÝ[Ø\Ù\Îˆ[X™\ŽÂˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[ÂˆØ[\TÝ]Nˆ[™›Ü›X][Û”Ø[\TÝ]NÂˆ›ÝÜÐ\™TÞ[]XÎˆ›ÛÛX[ŽÂˆ[˜]˜Z[X›T™X\ÛÛÎˆÝš[™ÎÂˆ]šY[˜ÙS™YYYˆÝš[™Ö×NÂˆ]™\œÚ]NˆØ]YÛÜšXØ[[™›Ü›X][Û‘XYÛ›ÜÝXÖ×NÂˆ]™\œÚ]TÝ[[X\žNˆØ]YÛÜšXØ[[™›Ü›X][Û‘XYÛ›ÜÝXÈ[Âˆ]\›”™\]][ÛŽˆ]\›”™\]][Û‘XYÛ›ÜÝXÎÂˆX\™Ú[˜[›Ý™[NˆX\™Ú[˜[›Ý™[QXYÛ›ÜÝXÎÂˆÝ]ÛÛYR[™›Ü›X][ÛŽˆÂˆÝ]\ÎˆÝ]ÛÛYR[™›Ü›X][Û“X™[ÂˆØ[\TÝ]Nˆ[™›Ü›X][Û”Ø[\TÝ]NÂˆÜ\ÜÛØÚX][ÛœÎˆ]]X[[™›Ü›X][Û‘XYÛ›ÜÝXÖ×NÂˆ[\œ™]][ÛŽˆÝš[™ÎÂˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[ÂˆNÂˆÝ[[X\žNˆÂˆ]™\œÚ]NˆÝš[™ÎÂˆ]\›”™\]][ÛŽˆÝš[™ÎÂˆX\™Ú[˜[›Ý™[NˆÝš[™ÎÂˆÝ]ÛÛYR[™›Ü›X][ÛŽˆÝš[™ÎÂˆNÂˆÙR[\œ™]][ÛŽˆÝš[™Ö×NÂŸNÂ‚™^Ü\HX˜]P\ÜÙ\ÜÛY[Ø]YÛÜžHBˆ”ÕTÔ•Q‚ˆ“PS’S‘ÈÕTÔ•Q‚ˆ•S”“Õ‘Sˆ‚ˆ“PS’S‘ÈQÐRS”Õ‚ˆÓÓ•QPÕQ‚ˆ•S’Ó“ÕÓˆŽÂ‚™^Ü\HX˜]Q]šY[˜ÙPÛÛ™šY[˜ÙHH’QÒˆ“QQUSHˆ“ÕÈŽÂ™^Ü\HX˜]U\Ú\Ò[\XÝH•‘T–HQÒˆ’QÒˆ“QQUSHŽÂ™^Ü\HX˜]Q]šY[˜ÙQ\™XÝ[ÛˆH”ÕTÔ•ÈˆÓÓ•QPÕÈˆÓÓ•VQTÐÔ’TU‘Hˆ“RTÔÒS‘ÈŽÂ™^Ü\HX˜]Q]šY[˜ÙT™[][ÛœÚ\HX˜]Q]šY[˜ÙQ\™XÝ[Ûˆ’T”‘SUS•ŽÂ™^Ü\HX˜]Q]šY[˜ÙTÝ™[™ÝH‘T‘PÕˆ’S‘T‘PÕˆÓÓ•Vˆ“RTÔÒS‘ÈŽÂ™^Ü\HÝÙ\•\Ú\ÔÝ™[™ÝH”Õ“Ó‘Èˆ“SÑTUHˆ•ÑPRÈˆ““Ó‘Hˆ•S”“Õ‘SˆŽÂ™^Ü\HÝÙ\‘]šY[˜ÙTÝ™[™ÝH’QÒˆ“QQUSHˆ“ÕÈˆ““Ó‘HŽÂ™^Ü\HX˜]Q˜[Z[HBˆ‘VT’QSÑWÐÐTT‘H‚ˆ“PT“’S‘×ÐÐUTÐSUH‚ˆÔ“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘Tˆ‚ˆ“PT‘ÒSSÒS‘“Ô“PUSÓ—ÕSQH‚ˆ”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆ‚ˆ“PT“’S‘×Ô’QÒÈ‚ˆ‘PÓÓ“ÓRP×ÓPUT’PSUH‚ˆST“UU‘WÔÕÑTˆŽÂ‚™^Ü\H[Ù[YYXÚ[š\ÛP\ÜÙ\ÜÛY[H”ÕTÔ•QÓÓ‘USÓSHˆÒSS‘ÑQÓÓ‘USÓSHˆ“RVQÓÓ‘USÓSHˆ““ÕTÕQŽÂ™^Ü\HX˜]TÝX˜ÛZ[TÝ]\ÈBˆ”ÕTÔ•Q–HÑSPÕQÐTÑTÈ‚ˆÒSS‘ÑQ–HÑSPÕQÐTÑTÈ‚ˆ”ÕTÔ•QÓÓ‘USÓSH‚ˆÒSS‘ÑQÓÓ‘USÓSH‚ˆ“RVQÈSÓÓTUH‚ˆ”‘TURT‘TÈVT“SÈÓÓTS–HU’QSÑHŽÂ‚™^Ü\H™\ÛÛ™YX˜]TÝX˜ÛZ[HHÂˆÛZ[NˆÝš[™ÎÂˆÝ]\ÎˆX˜]TÝX˜ÛZ[TÝ]\ÎÂˆ™X\ÛÛŽˆÝš[™ÎÂŸNÂ‚™^Ü\HX˜]Q]šY[˜ÙR][HHÂˆÛÝ\˜ÙNˆÝš[™ÎÂˆ˜[YNˆÝš[™ÎÂˆ\™XÝ[ÛŽˆX˜]Q]šY[˜ÙQ\™XÝ[ÛŽÂˆÝ™[™ÝˆX˜]Q]šY[˜ÙTÝ™[™ÝÂˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[Âˆ™YÎˆÝš[™ÎÂˆ[\œ™]][ÛŽˆÝš[™ÎÂˆ[Z]][ÛŽˆÝš[™ÎÂˆØZ[•šXOÎˆÝš[™ÎÂˆ^XÝY]šY[˜ÙOÎˆÝš[™ÎÂŸNÂ‚™^Ü\HX˜]Q\Ú›Ø\™Y]šXÈHÂˆX™[ˆÝš[™ÎÂˆ˜[YNˆÝš[™ÎÂˆØ[\OÎˆÝš[™ÎÂˆ›Ý™[˜[˜ÙNˆÝZYY›Ý™[˜[˜ÙSX™[Âˆ™YÎˆÝš[™ÎÂˆ[˜]˜Z[X›OÎˆ›ÛÛX[ŽÂŸNÂ‚™^Ü\HX˜]Q\Ú›Ø\™˜\ˆHÂˆX™[ˆÝš[™ÎÂˆ˜[YNˆÝš[™ÎÂˆÛÝ[ˆ[X™\ŽÂˆÚ\™Nˆ[X™\ˆ[Âˆ™YÎˆÝš[™ÎÂŸNÂ‚™^Ü\HX˜]Q\Ú›Ø\™ÙXÝ[ÛˆHÂˆ]NˆÝš[™ÎÂˆ›ÝOÎˆÝš[™ÎÂˆY]šXÜÏÎˆX˜]Q\Ú›Ø\™Y]šXÖ×NÂˆ˜\œÏÎˆX˜]Q\Ú›Ø\™˜\–×NÂŸNÂ‚™^Ü\HX˜]Q]šY[˜ÙQ\Ú›Ø\™HÂˆ˜[Z[NˆX˜]Q˜[Z[NÂˆ]NˆÝš[™ÎÂˆÝ[[X\žNˆÝš[™ÎÂˆÙXÝ[ÛœÎˆX˜]Q\Ú›Ø\™ÙXÝ[Û–×NÂˆ^\›˜[]šY[˜ÙNˆX˜]Q]šY[˜ÙR][V×NÂŸNÂ‚™^Ü\H\š]™YX˜]PØ[™Y]HHÂˆ[˜[\Ú\Ñš[™[™ÜÏÎˆ^\šY[˜ÙQš[™[™Ö×NÂˆ˜[œÙ™\‘^\š[Y[Îˆ^\šY[˜ÙU˜[œÙ™\‘^\š[Y[Âˆ˜[Z[NˆX˜]Q˜[Z[NÂˆ]NˆÝš[™ÎÂˆ›ÜÜÚ][ÛŽˆÝš[™ÎÂˆÚSØY™X\š[™ÎˆÝš[™ÎÂˆ\ÜÙ\ÜÛY[ˆX˜]P\ÜÙ\ÜÛY[Ø]YÛÜžNÂˆÛÛ™šY[˜ÙNˆX˜]Q]šY[˜ÙPÛÛ™šY[˜ÙNÂˆ\ÜÙ\ÜÛY[™X\ÛÛŽˆÝš[™ÎÂˆÛÛ\[žP\ÜÙ\ÜÛY[ˆX˜]P\ÜÙ\ÜÛY[Ø]YÛÜžNÂˆ[Ù[Y\ÜÙ\ÜÛY[ˆ[Ù[YYXÚ[š\ÛP\ÜÙ\ÜÛY[Âˆ[YÜ˜]YÛÛ˜Û\Ú[ÛŽˆÝš[™ÎÂˆÝX˜ÛZ[P\ÜÙ\ÜÛY[Îˆ™\ÛÛ™YX˜]TÝX˜ÛZ[V×NÂˆØœÙ\™Y^\š[Y[ˆØœÙ\™Y^\š[Y[Âˆ[”ÙXÛÛ™Ý[[X\žNˆÝš[™ÎÂˆ]šY[˜ÙPÛÝ™\˜YÙNˆÝš[™ÎÂˆ\Ú\Ò[\XÝˆX˜]U\Ú\Ò[\XÝÂˆ]šY[˜ÙQ›ÜŽˆX˜]Q]šY[˜ÙR][V×NÂˆ]šY[˜ÙPYØZ[œÝˆX˜]Q]šY[˜ÙR][V×NÂˆÛÛ^]šY[˜ÙNˆX˜]Q]šY[˜ÙR][V×NÂˆZ\ÜÚ[™Ñ]šY[˜ÙNˆX˜]Q]šY[˜ÙR][V×NÂˆ]šY[˜ÙQ\Ú›Ø\™ˆX˜]Q]šY[˜ÙQ\Ú›Ø\™ÂˆYÚ\Ý˜[YQ[YÙ[˜ÙNˆÝš[™ÎÂˆY•YNˆÝš[™ÎÂˆY‘˜[ÙNˆÝš[™ÎÂˆ™\Ý™^\ÝˆÝš[™ÎÂˆ[˜Ü™X\ÙP™[YYŽˆÝš[™ÎÂˆXÜ™X\ÙP™[YYŽˆÝš[™ÎÂˆ[™\ÝÜ™[YYŽˆ[X™\ˆ[Âˆ[™\ÝÜ™[YY‘]™\™Ù[˜ÙNˆÝš[™È[ÂˆÛÝ\˜ÙQX˜]OÎˆÙ^QX˜]R[œ]ÂŸNÂ‚™^Ü\HX˜]Q[™Ú[™R[œ]HÂˆ^\šY[˜ÙP[˜[\Ú\ÏÎˆ^\šY[˜ÙP[˜[\Ú\ÎÂˆØœÙ\™Y^\š[Y[Y\\ÎˆØœÙ\™Y^\š[Y[Y\\”™\Ý[Âˆ[˜[\Ú\ÎˆÛÛ\[žU\Ú\Ò[œ]ÂˆX˜]\ÎˆÙ^QX˜]R[œ]×NÂˆ›ÝÜÎˆØÛÜ™X›ÛÚÐØ\ÙR[œ]×NÂˆ[˜[\Ú\ÒYÎˆÝš[™È[ÂˆØ\ÙTÙ]YÎˆÝš[™È[Âˆ]\Ù]ÎˆÝš[™È[ÂˆX\›š[™Ð\˜Ú]XÝ\™OÎˆÂˆÛÛYXÜ›ÜÜÐÝ\ÝÛY\œÏÎˆÝš[™È[ÂˆØ\\™\ÓÝ]ÛÛYOÎˆÝš[™È[ÂˆØ\\™\Ñ^XÚ]Ü˜YOÎˆÝš[™È[Âˆ\Ù\ÓÝ]ÛÛYQÜ˜Y\Ñ›Ü“X\›š[™ÏÎˆÝš[™È[Âˆ\Þ[Y[ØY[˜ÙOÎˆÝš[™È[ÂˆØ[•˜Z[XÜ›ÜÜÐÝ\ÝÛY\œÏÎˆÝš[™È[ÂˆØ[•\ÙQ›Ü‘]˜[X][ÛÎˆÝš[™È[ÂˆØ[”™]Z[Ø\Ù\ÏÎˆÝš[™È[ÂˆÛÛ˜XÝX[™\ÝšXÝ[ÛœÏÎˆÝš[™È[ÂˆH[ÂˆÛÛ\]]]™P\˜Ú]XÝ\™OÎˆÂˆ˜]ÐØ\Ù\Ñ^Û\Ú]™OÎˆÝš[™È[ÂˆÝ]ÛÛY\Ñ^Û\Ú]™OÎˆÝš[™È[Âˆ[X[ÛÜœ™XÝ[ÛœÑ^Û\Ú]™OÎˆÝš[™È[ÂˆÜ›ÜÜÐÝ\ÝÛY\”ÛÛ^Û\Ú]™OÎˆÝš[™È[ÂˆÛÛ\]]ÜØ[XØÙ\ÜÑ\]Z]˜[[]OÎˆÝš[™È[ÂˆÞ\Ý[SÙ”™XÛÜ™ÎˆÝš[™È[ÂˆÞ\Ý[SÙ‘XÚ\Ú[ÛÎˆÝš[™È[ÂˆÞ\Ý[SÙXÝ[ÛÎˆÝš[™È[ÂˆÞ\Ý[SÙ“Ý]ÛÛYPØ\\™OÎˆÝš[™È[Âˆ[YÜ˜][Û‘\ÎˆÝš[™È[Âˆ™\XÙ[Y[ÛÛ\^]OÎˆÝš[™È[ÂˆÛÛ\]]Ü”™[X\›š[™ÑY™šXÝ[OÎˆÝš[™È[Âˆ›Ý[™][Û“[Ù[ÝXœÝ]][Û”š\ÚÏÎˆÝš[™È[ÂˆÞ[]XÑ]TÝXœÝ]][Û”š\ÚÏÎˆÝš[™È[Âˆ]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™TÝ™[™ÝÎˆÝš[™È[Âˆ\ÝšX][ÛY˜[YÙOÎˆÝš[™È[Âˆ™YÝ[]ÜžP˜\œšY\”Ý™[™ÝÎˆÝš[™È[ÂˆÛÛ˜XÝX[˜\œšY\”Ý™[™ÝÎˆÝš[™È[ÂˆÝÚ]Ú[™ÐÛÜÝÏÎˆÝš[™È[ÂˆH[Âˆ]šY[˜ÙT™XÛÜ™ÏÎˆ\œ˜^OÂˆ[]U\OÎˆÝš[™È[Âˆ[]RYÎˆÝš[™È[ÂˆšY[Ù^OÎˆÝš[™È[Âˆ]šY[˜ÙU\OÎˆÝš[™È[Âˆ\\Ý[ZXÔÝ]\ÎˆÝš[™ÎÂˆ˜[YTÛ˜\ÚÝÎˆÝš[™È[ÂˆÛÝ\˜ÙSX™[ÎˆÝš[™È[ÂˆÛÝ\˜ÙU\›ÎˆÝš[™È[ÂˆÛÝ\˜ÙT™XÛÜ™YÎˆÝš[™È[ÂˆÛÝ\˜ÙPØ\ÙTÙ]YÎˆÝš[™È[ÂˆÛÛ™šY[˜ÙOÎˆÝš[™È[ÂˆØœÙ\™Y]Îˆ]HÝš[™È[Âˆ\š]˜][Û“Y]ÙÎˆÝš[™È[Âˆ[˜[\Ý›Ý\ÏÎˆÝš[™È[ÂˆOˆ[ÂŸNÂ‚™^Ü\H[Y\”ÝÙ\’Ù^HBˆœØØ[WÙXÛÛ›ÛZY\È‚ˆ›™]ÛÜš×ÙXÛÛ›ÛZY\È‚ˆ˜ÛÝ[\—ÜÜÚ][Ûš[™È‚ˆœÝÚ]Ú[™×ØÛÜÝÈ‚ˆ˜œ˜[™[™È‚ˆ˜ÛÜ›™\™YÜ™\ÛÝ\˜ÙH‚ˆœ›ØÙ\Ü×ÜÝÙ\ˆŽÂ‚™^Ü\HÑTÝÙ\Û\ÜÚYšXØ][ÛˆBˆ’S‘TS‘S•ÕÑTˆÐS‘QUH‚ˆ”‘RS‘“ÔÑTÈ‘UÓÔ’ÈPÓÓ“ÓRQTÈ‚ˆ”‘RS‘“ÔÑTÈ“ÐÑTÔÈÕÑTˆ‚ˆ”‘RS‘“ÔÑTÈÕÒUÒS‘ÈÓÔÕÈ‚ˆ”‘RS‘“ÔÑTÈÓÔ“‘T‘Q‘TÓÕTÑH‚ˆÐTP’SUHQS•QÑHÓ“H‚ˆ•S”“Õ‘SˆQPÒS’TÓH‚ˆ““ÈTP“HQS•QÑHSSÓ”ÕUQŽÂ‚™^Ü\HÝÙ\”ÝX™[Y[œÚ[ÛˆHÂˆX™[ˆÝš[™ÎÂˆÝ]NˆÝÙ\•\Ú\ÔÝ™[™ÝÂˆ]šY[˜ÙNˆÝÙ\‘]šY[˜ÙTÝ™[™ÝÂŸNÂ‚™^Ü\H[˜[\ÝÝÙ\\ÜÙ\ÜÛY[HÂˆØÛÜ™Nˆ[X™\ŽÂˆÛÛ™šY[˜ÙNˆÛÛ\Ý[™[™ÐÛÛ™šY[˜ÙNÂˆ]šY[˜ÙTÝ]\ÎˆÛÛ\Ý[™[™Ñ]šY[˜ÙTÝ]\ÎÂˆ˜][Û˜[NˆÝš[™ÎÂŸNÂ‚™^Ü\H\š]™YÝÙ\\ÜÙ\ÜÛY[HÂˆÙ^Nˆ[Y\”ÝÙ\’Ù^NÂˆX™[ˆÝš[™ÎÂˆYš[š][ÛŽˆÝš[™ÎÂˆ\Ú\ÔÝ™[™ÝˆÝÙ\•\Ú\ÔÝ™[™ÝÂˆ]šY[˜ÙTÝ™[™ÝˆÝÙ\‘]šY[˜ÙTÝ™[™ÝÂˆYXÚ[š\ÛNˆÝš[™ÎÂˆÚNˆÝš[™ÎÂˆ]šY[˜ÙQ›ÜŽˆX˜]Q]šY[˜ÙR][V×NÂˆ]šY[˜ÙPYØZ[œÝˆX˜]Q]šY[˜ÙR][V×NÂˆZ\ÜÚ[™Ñ]šY[˜ÙNˆX˜]Q]šY[˜ÙR][V×NÂˆ™[]˜[X˜]\ÎˆX˜]Q˜[Z[V×NÂˆÝX™[Y[œÚ[ÛœÎˆÝÙ\”ÝX™[Y[œÚ[Û–×NÂˆ[˜[\Ý\ÜÙ\ÜÛY[ˆ[˜[\ÝÝÙ\\ÜÙ\ÜÛY[[Âˆ[˜[\Ý]™\™Ù\Îˆ›ÛÛX[ŽÂŸNÂ‚™^Ü\HÛÛ\Ý[™[™Ñ^\\ÙTÝÙ\”Ý[[X\žHHÂˆÛ\ÜÚYšXØ][ÛœÎˆÑTÝÙ\Û\ÜÚYšXØ][Û–×NÂˆÝ[[X\žNˆÝš[™ÎÂŸNÂ‚™^Ü\HÝÙ\“YXÚ[š\ÛQYÙHHÂˆœ›ÛNˆÝš[™ÎÂˆÎˆÝš[™ÎÂˆÝ]NˆÝÙ\•\Ú\ÔÝ™[™ÝÂˆ]šY[˜ÙNˆÝÙ\‘]šY[˜ÙTÝ™[™ÝÂŸNÂ‚™^Ü\H\š]™YÝÙ\“X\HÂˆÝÙ\œÎˆ\š]™YÝÙ\\ÜÙ\ÜÛY[×NÂˆÙSYXÚ[š\ÛNˆÛÛ\Ý[™[™Ñ^\\ÙTÝÙ\”Ý[[X\žNÂˆÛÛ˜Û\Ú[ÛŽˆÝš[™ÎÂˆYXÚ[š\ÛQYÙ\ÎˆÝÙ\“YXÚ[š\ÛQYÙV×NÂˆ\ÓÝ™\˜[[Ø]ØÛÜ™Nˆ˜[ÙNÂŸNÂ‚™^Ü\H[™\ÝY[Þ[\Ú\Ò[œ]HÂˆ[˜[\Ú\ÎˆÛÛ\[žU\Ú\Ò[œ]Âˆ^\šY[˜ÙNˆ^\šY[˜ÙTÛ˜\ÚÝÂˆX˜]\Îˆ\š]™YX˜]PØ[™Y]V×NÂˆÝÙ\“X\ˆ\š]™YÝÙ\“X\ÂˆÝ™\ÜÕ\ÝÎˆÂˆ[\]S˜[YNˆÝš[™ÎÂˆš[X\žPÚ[™ÙNˆÝš[™ÎÂˆ™\Ý[ˆÝ™\ÜÕ\Ý™\Ý[Ý[[X\žNÂˆ[\XØ][ÛŽˆÝš[™ÎÂˆH[ÂŸNÂ‚™^Ü\H[™\ÝY[Þ[\Ú\ÈHÂˆÙU\Ú\Îˆ”ÕTÔ•Qˆ”T•PSHÕTÔ•Qˆ•S”“Õ‘SˆˆÓÓ•QPÕQˆ•S’Ó“ÕÓˆŽÂˆ]šY[˜ÙT]X[]Nˆ’QÒˆ“QQUSHˆ“ÕÈˆ”T•PSˆ““Ó‘HŽÂˆš[X\žTÝÙ\’\Ý\Ú\ÎˆÝš[™ÎÂˆÜš]XØ[[œ™\ÛÛ™Y\[™[˜ÞNˆÝš[™ÎÂˆÝ\œ™[\Ú\ÎˆÝš[™ÎÂˆÝÙ\’YÚYÚÎˆ\œ˜^OÂˆX™[ˆÝš[™ÎÂˆ\Ú\ÔÝ™[™ÝˆÝÙ\•\Ú\ÔÝ™[™ÝÂˆ]šY[˜ÙTÝ™[™ÝˆÝÙ\‘]šY[˜ÙTÝ™[™ÝÂˆÚNˆÝš[™ÎÂˆOŽÂˆ]šY[˜ÙPXÚÙ]ÎˆÂˆÝ\ÜÎˆX˜]Q]šY[˜ÙR][V×NÂˆÛÛ˜YXÝÎˆX˜]Q]šY[˜ÙR][V×NÂˆÛÛ^ˆX˜]Q]šY[˜ÙR][V×NÂˆ[Z]][ÛœÎˆX˜]Q]šY[˜ÙR][V×NÂˆNÂˆ[™\ÝÜ•šY]ÎˆÂˆ\Ò[™\ÝÜ™[YYŽˆ›ÛÛX[ŽÂˆÝ[[X\žNˆÝš[™ÎÂˆNÂˆY[[ÎˆÝš[™ÎÂŸNÂ‚™^Ü\H\\Ý[ZXÒÚ[™H“Ð”ÑT•‘QÑT’U‘Qˆ”ÓÕTÑQˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆ•S’Ó“ÕÓˆŽÂ‚™^Ü\HÝXÝ\™Y[œ]Yš[š][ÛˆHÂˆÙ^NˆÙ^[ÙˆÛÛ\[žU\Ú\Ò[œ]ÂˆX™[ˆÝš[™ÎÂˆ\ØÜš\[ÛŽˆÝš[™ÎÂˆÜ[ÛœÎˆÝš[™Ö×NÂˆ\\Ý[ZXÒÚ[™ˆ\\Ý[ZXÒÚ[™ÂŸNÂ‚™^ÜÛÛœÝP—ÕÓÔ’Ñ“Õ×ÔÕTÈHÂˆÈ™YŽˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÛÝ™\šY]È‹X™[ˆ“Ý™\šY]È‹ÝYÙNˆŒ‹™\˜Žˆ•[™\œÝ[™ˆKˆÈ™YŽˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÚ[œ]È‹X™[ˆÛÛ\[žH[Ù[‹ÝYÙNˆŒH‹™\˜Žˆ•[™\œÝ[™ˆKˆÈ™YŽˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÜØÛÜ™X›ÛÚÈ‹X™[ˆ‘^\šY[˜ÙH‹ÝYÙNˆŒˆ‹™\˜Žˆ“ØœÙ\™HˆKˆÈ™YŽˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÙX˜]\È‹X™[ˆ’Ù^HX˜]\È‹ÝYÙNˆŒÈ‹™\˜Žˆ’\Ý\Ú^™HˆKˆÈ™YŽˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÙXYÛ›ÜÝXÈ‹X™[ˆ”ÝÙ\ˆ‹ÝYÙNˆ‹™\˜Žˆ’\Ý\Ú^™HˆKˆÈ™YŽˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÜÚ[][]Üˆ‹X™[ˆ”Ý™\ÜÈ\Ý‹ÝYÙNˆH‹™\˜Žˆ•\ÝˆKˆÈ™YŽˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÛY[[È‹X™[ˆÛÛ˜Û\Ú[Ûˆ‹ÝYÙNˆˆ‹™\˜Žˆ‘XÚYHˆB—H\ÈÛÛœÝÂ‚™^ÜÛÛœÝÓÓTS–WÓSÑSÑÐUTÈHÂˆÈYˆ™XÚ\Ú[Ûˆ‹X™[ˆ‘XÚ\Ú[ÛˆÜÜ[š]H‹ÚÜX™[ˆ‘XÚ\Ú[ÛˆÜÜ[š]H‹Ù\]Y[˜ÙNˆŒHˆKˆÈYˆ™™YY˜XÚÈ‹X™[ˆ‘™YY˜XÚÈ‹ÚÜX™[ˆ‘™YY˜XÚÈ‹Ù\]Y[˜ÙNˆŒˆˆKˆÈYˆ›X\›š[™Ë[ÛÜ‹X™[ˆ“X\›š[™ÈÛÜ‹ÚÜX™[ˆ“X\›š[™ÈÛÜ‹Ù\]Y[˜ÙNˆŒÈˆKˆÈYˆ™Y™[œÚXš[]H‹X™[ˆ‘Y™[œÚXš[]H‹ÚÜX™[ˆ‘Y™[œÚXš[]H‹Ù\]Y[˜ÙNˆˆB—H\ÈÛÛœÝÂ‚™^ÜÛÛœÝVÑÑS“ÕT×ÒS”UÎˆÝXÝ\™Y[œ]Yš[š][Û–×HHÂˆÈÙ^Nˆ™XÛÛ›ÛZXÐÛÜÝÜ›Û™ÑXÚ\Ú[Ûˆ‹X™[ˆ‘XÛÛ›ÛZXÈÛÜÝÙˆHÜ›Û™ÈXÚ\Ú[Ûˆ‹\ØÜš\[ÛŽˆ’ÝÈ]XÚ˜[YH\È]ÝZÙHÚ[ˆH›ÙXÝ\ÈÜ›Û™ÏÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ—K\\Ý[ZXÒÚ[™ˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ›Ý]ÛÛYSØš™XÝ]š]H‹X™[ˆ“Ý]ÛÛYHØš™XÝ]š]H‹\ØÜš\[ÛŽˆØ[ˆÝ]ÛÛY\È™HÜ˜YYØš™XÝ]™[H˜]\ˆ[ˆžH\ÝHÜˆÛ]XÜÏÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹”ÝXš™XÝ]™H‹“Z^Y‹“Øš™XÝ]™HÈ]\›Z[š\ÝXÈ—K\\Ý[ZXÒÚ[™ˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ›˜]\˜[™YY˜XÚÕ[YH‹X™[ˆ“˜]\˜[™YY˜XÚÈ[YH‹\ØÜš\[ÛŽˆ’ÝÈ]ZXÚÛHÙ\È™X[]H™]™X[Ú]\ˆHXÚ\Ú[ÛˆØ\ÈÛÛÙÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“Z[]\È‹‘^\È‹•ÙYZÜÈ‹“[ÛÈ‹–YX\œÈ—K\\Ý[ZXÒÚ[™ˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ˜Ø\ÙQœ™\]Y[˜ÞH‹X™[ˆØ\ÙHÈXÚ\Ú[Ûˆœ™\]Y[˜ÞH‹\ØÜš\[ÛŽˆ’ÝÈÙ[ˆÙ\ÈHÛÜšÙ›ÝÈÙ[™\˜]HYX[š[™Ù[XÚ\Ú[ÛˆØ\Ù\ÏÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ‹•™\žHYÚ—K\\Ý[ZXÒÚ[™ˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ˜Ý\ÝÛY\Ø\ÙR]\›ÙÙ[™Z]H‹X™[ˆÝ\ÝÛY\ˆÈØ\ÙH]\›ÙÙ[™Z]H‹\ØÜš\[ÛŽˆ’ÝÈY™™\™[\™HÝ\ÝÛY\œËØ\Ù\ËÛXÚY\Ë[™ÛÛ^ÏÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ—K\\Ý[ZXÒÚ[™ˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ™[š\›Û›Y[[Ú[™ÙT˜]H‹X™[ˆ‘[š\›Û›Y[[Ú[™ÙHÈ›ÛœÝ][Û˜\š]H‹\ØÜš\[ÛŽˆ’ÝÈ]ZXÚÛHÙ\ÈH›Ø›[H\ÝšX][ÛˆÚ[™ÙOÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹”ÝX›H‹“[Ù\˜]H‹”˜\YHÚ[™Ú[™È—K\\Ý[ZXÒÚ[™ˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ™›Ý[™][Û“[Ù[[\›Ý™[Y[˜]H‹X™[ˆ‘›Ý[™][Û‹[[Ù[[\›Ý™[Y[™[]]™HÈ\È\ÚÈ‹\ØÜš\[ÛŽˆ’ÝÈ]ZXÚÛHÙ[™\˜[[Ù[Ø\Xš[]HX^HÛÛ\™\ÜÈ›ÜšY]\žH^\šY[˜ÙHY˜[YÙKˆ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹”ÛÝÈ‹“[Ù\˜]H‹‘˜\Ý—K\\Ý[ZXÒÚ[™ˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆB—NÂ‚™^ÜÛÛœÝS‘ÑÑS“ÕT×ÒS”UÎˆÝXÝ\™Y[œ]Yš[š][Û–×HHÂˆÈÙ^Nˆ›ÝÛœÑXÚ\Ú[Û”Ú[‹X™[ˆ“ÝÛœÈÜˆ\XÚ\]\È\™XÝH[ˆXÚ\Ú[ÛˆÚ[È‹\ØÜš\[ÛŽˆØ[ˆH›ÙXÝÙYHHXÝX[XÚ\Ú[Ûˆ[ÛY[È‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹”\X[H‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ˜ÛÛ›ÛÐXÝ[Ûˆ‹X™[ˆÛÛ›ÛÈÜˆ^XÝ]\ÈXÝ[ÛÈ‹\ØÜš\[ÛŽˆ‘Ù\ÈH›ÙXÝXÝX[H^XÝ]HHXÝ[Û‹ÜˆÛ›H™XÛÛ[Y[™]È‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹”™XÛÛ[Y[™ÈÛ›H‹”\X[H‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ›ØœÙ\™\ÓÝ]ÛÛYH‹X™[ˆ“ØœÙ\™\È]™[X[Ý]ÛÛYOÈ‹\ØÜš\[ÛŽˆØ[ˆHÛÛ\[žHØœÙ\™HÚ]\[™YY\ˆHXÚ\Ú[ÛÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹”\X[H‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ˜Ø\\™\ÓÝ™\œšY\È‹X™[ˆØ\\™\È[X[ˆÝ™\œšY\ÏÈ‹\ØÜš\[ÛŽˆ\™H[X[ˆÛÜœ™XÝ[ÛœÈØ\\™Y\ÈX\›š[™ÈÚYÛ˜[È‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹”\X[H‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ˜Ø\\™\ÑÜ˜Y\È‹X™[ˆØ\\™\È^XÚ]Ü˜Y\ÏÈ‹\ØÜš\[ÛŽˆ\™HXÚ\Ú[ÛœÈ^XÚ]HÜ˜YYYØZ[œÝÝ]ÛÛY\ÏÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹”\X[H‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ›X\›œÐXÜ›ÜÜÐÝ\ÝÛY\œÈ‹X™[ˆØ[ˆX\›ˆXÜ›ÜÜÈÝ\ÝÛY\œÏÈ‹\ØÜš\[ÛŽˆØ[ˆX\›š[™Èœ›ÛHÛ™HÝ\ÝÛY\ˆ[\›Ý™H[›Ý\È‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹”\X[H‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ˜ÛÛ˜XÝX[X\›š[™ÔšYÚÈ‹X™[ˆ’\ÈÛÛ˜XÝX[šYÚÈÈX\›È‹\ØÜš\[ÛŽˆØ[ˆHÛÛ\[žHYØ[H\ÙHH™YY˜XÚÈÛÜÈ[\›Ý™OÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹”\X[È™\ÝšXÝY‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆœ[œÐÛÛ›ÛY^\š[Y[È‹X™[ˆ”[œÈÛÛ›ÛY^\š[Y[ÏÈ‹\ØÜš\[ÛŽˆØ[ˆHÛÛ\[žH\ÝÚ[™Ù\È˜]\ˆ[ˆ[™™\ˆœ›ÛH[™XÙÝ\ÏÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹”ÛÛY][Y\È‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ\]\Ó[Ù[ÛXÞT™YÝ[\›H‹X™[ˆ•\]\È[Ù[ÈÛXÞH™YÝ[\›OÈ‹\ØÜš\[ÛŽˆ‘Ù\ÈX\›š[™È™YY˜XÚÈ[ÈÞ\Ý[H™Z]š[ÜÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹“ØØØ\Ú[Û˜[H‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ™\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛH‹X™[ˆØ[ˆ\ÞH[\›Ý™[Y[È]ZXÚÛOÈ‹\ØÜš\[ÛŽˆ’ÝÈ]ZXÚÛHØ[ˆHÛÛ\[žH\›ˆX\›š[™È[ÈÚ[™ÙY™Z]š[ÜÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“›È‹”\X[H‹–Y\È—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆB—NÂ‚™^ÜÛÛœÝÓÓTUUU‘WÒS”UÎˆÝXÝ\™Y[œ]Yš[š][Û–×HHÂˆÈÙ^Nˆ™]Q^Û\Ú]š]H‹X™[ˆ‘]H^Û\Ú]š]H‹\ØÜš\[ÛŽˆØ[ˆš]˜[ÈXØÙ\ÜÈ\]Z]˜[[XÚ\Ú[Û‹ÛÝ]ÛÛYH]OÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^NˆÛÜšÙ›ÝÑ[X™YY™\ÜÈ‹X™[ˆ•ÛÜšÙ›ÝÈ[X™YY™\ÜÈ‹\ØÜš\[ÛŽˆ’ÝÈY\H\ÈH›ÙXÝ[X™YY[ˆHÜ\˜][™ÈÛÜšÙ›ÝÏÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^NˆœÝÚ]Ú[™ÐÛÜÝÐ\ÜÝ[\[Ûˆ‹X™[ˆ”ÝÚ]Ú[™ÈÛÜÝÈ‹\ØÜš\[ÛŽˆ•ÛÝ[Ý\ÝÛY\œÈ˜XÙHÜ\˜][Û˜[š\ÚËÜˆ[YÜ˜][ÛˆÛÜÝÈÈÝÚ]ÚÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆœ™XZ[Xš[]H‹X™[ˆ”™XZ[Xš[]H‹\ØÜš\[ÛŽˆ’ÝÈX\Ú[HÛÝ[HØ\X›HÚ[[™Ù\ˆ™XZ[H\ÙY[Þ\Ý[H[™X\›š[™ÈÛÜÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹‘X\ÞH‹“[Ù\˜]H‹’\™—K\\Ý[ZXÒÚ[™ˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ™›Ý[™][Û“[Ù[\[™[˜ÙH‹X™[ˆ‘›Ý[™][Û‹[[Ù[\[™[˜ÙH‹\ØÜš\[ÛŽˆ’ÝÈ\[™[\ÈHY˜[YÙHÛˆÛÛ[[Ù]^™Yœ›ÛY\ˆ[Ù[Ø\Xš[]OÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ—K\\Ý[ZXÒÚ[™ˆ‘VÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ™]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™H‹X™[ˆ‘]\›Z[š\ÝXÈÈÛXZ[ˆ[™œ˜\ÝXÝ\™H‹\ØÜš\[ÛŽˆ‘Ù\ÈY™[œÚXš[]H™\ÚYH[ˆ˜Z[ËØÚ[XKÛÛ›ÛËÜˆÛXZ[ˆ›ØÙ\ÜÈ˜]\ˆ[ˆÑOÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆ™\ÝšX][ÛY˜[YÙH‹X™[ˆ‘\ÝšX][ÛˆY˜[YÙH‹\ØÜš\[ÛŽˆ‘Ù\ÈHÛÛ\[žH]™HY˜[YÙYXØÙ\ÜÈÈÝ\ÝÛY\œÈÜˆÛÜšÙ›ÝÜÏÈ‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆKˆÈÙ^Nˆœ™YÝ[]ÜžPÛÛ˜XÝX[˜\œšY\œÈ‹X™[ˆ”™YÝ[]ÜžHÈÛÛ˜XÝX[˜\œšY\œÈ‹\ØÜš\[ÛŽˆ‘ÈÛÛ˜XÝËÛÛœÙ[Üˆ™YÝ[][ÛˆXZÙH™\XØ][Ûˆ\™\È‹Ü[ÛœÎˆÈ•[šÛ›ÝÛˆ‹“ÝÈ‹“YY][H‹’YÚ—K\\Ý[ZXÒÚ[™ˆ‘S‘ÑÑS“ÕT×ÐTÔÕSTSÓˆˆB—NÂ‚™^ÜÛÛœÝSQT—ÔÕÑT”Îˆ[Y[œÚ[Û‘Yš[š][Û–×HHÂˆÈœ˜[Y]ÛÜšÎˆ’SQTˆ‹[Y[œÚ[ÛŽˆœØØ[WÙXÛÛ›ÛZY\È‹X™[ˆ”ØØ[HXÛÛ›ÛZY\È‹\ØÜš\[ÛŽˆ•[š]XÛÛ›ÛZXÜÈ[\›Ý™HÚ]›Û[YH[ˆHØ^H]\È\™ÈX]ÚˆˆKˆÈœ˜[Y]ÛÜšÎˆ’SQTˆ‹[Y[œÚ[ÛŽˆ›™]ÛÜš×ÙXÛÛ›ÛZY\È‹X™[ˆ“™]ÛÜšÈXÛÛ›ÛZY\È‹\ØÜš\[ÛŽˆ”›ÙXÝ˜[YH[˜Ü™X\Ù\È\È[Ü™H\XÚ\[È›Ú[‹ˆˆKˆÈœ˜[Y]ÛÜšÎˆ’SQTˆ‹[Y[œÚ[ÛŽˆ˜ÛÝ[\—ÜÜÚ][Ûš[™È‹X™[ˆÛÝ[\‹TÜÚ][Ûš[™È‹\ØÜš\[ÛŽˆ•H[Ù[\È\™›Üˆ[˜Ý[X™[ÈÈÛÜHÚ]Ý][XYÚ[™ÈZ\ˆ^\Ý[™È\Ú[™\ÜËˆˆKˆÈœ˜[Y]ÛÜšÎˆ’SQTˆ‹[Y[œÚ[ÛŽˆœÝÚ]Ú[™×ØÛÜÝÈ‹X™[ˆ”ÝÚ]Ú[™ÈÛÜÝÈ‹\ØÜš\[ÛŽˆÝ\ÝÛY\œÈ˜XÙHYX[š[™Ù[ÛÜÝš\ÚËÜˆ\Ü\[ÛˆÚ[ˆX]š[™ËˆˆKˆÈœ˜[Y]ÛÜšÎˆ’SQTˆ‹[Y[œÚ[ÛŽˆ˜œ˜[™[™È‹X™[ˆœ˜[™[™È‹\ØÜš\[ÛŽˆœ˜[™YX[š[™ÈÝÙ\œÈXÜ]Z\Ú][ÛˆœšXÝ[ÛˆÜˆÝ\ÜÈšXÚ[™ÈÝÙ\‹ˆˆKˆÈœ˜[Y]ÛÜšÎˆ’SQTˆ‹[Y[œÚ[ÛŽˆ˜ÛÜ›™\™YÜ™\ÛÝ\˜ÙH‹X™[ˆÛÜ›™\™Y™\ÛÝ\˜ÙH‹\ØÜš\[ÛŽˆ•HÛÛ\[žHÛÛ›ÛÈHØØ\˜ÙH\ÜÙ]›ÝÙ[™\˜[H]˜Z[X›HÈš]˜[ËˆˆKˆÈœ˜[Y]ÛÜšÎˆ’SQTˆ‹[Y[œÚ[ÛŽˆœ›ØÙ\Ü×ÜÝÙ\ˆ‹X™[ˆ”›ØÙ\ÜÈÝÙ\ˆ‹\ØÜš\[ÛŽˆ“Ü\˜][Û˜[›Ý][™\ÈÛÛ\Ý[™[ÈY™šXÝ[]ËXÛÜH\™›Ü›X[˜ÙKˆˆB—NÂ‚™^ÜÛÛœÝÕS—ÑSQS”ÒSÓ”Îˆ[Y[œÚ[Û‘Yš[š][Û–×HHÂˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆÛÜšÙ›Ý×ØØ\\™WÜÜÚ][Ûˆ‹X™[ˆ•ÛÜšÙ›ÝÈÈØ\\™HÜÚ][Ûˆ‹\ØÜš\[ÛŽˆ•H›ÙXÝÚ]ÈÚ\™HXÚ\Ú[ÛœÈ[™Ý]ÛÛY\È\™H˜]\˜[HØ\\™YˆˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ›Øš™XÝ]™WÙÜ˜Y[™È‹X™[ˆ“Øš™XÝ]™HÜ˜Y[™È‹\ØÜš\[ÛŽˆ‘XÚ\Ú[ÛœÈØ[ˆ™HÜ˜YYYØZ[œÝÝ]ÛÛY\ÈÚ]™[]]™[HÝÈ[XšYÝZ]KˆˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ™™YY˜XÚ×ÜÜYY‹X™[ˆ‘™YY˜XÚÈÜYY‹\ØÜš\[ÛŽˆ•HÞ\Ý[H™XÙZ]™\ÈÝ]ÛÛYH™YY˜XÚÈ]ZXÚÛH[›ÝYÚÈX\›‹ˆˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ™œ™\Ú™\ÜÈ‹X™[ˆ‘œ™\Ú™\ÜÈ‹\ØÜš\[ÛŽˆ”™XÙ[Ø\Ù\È™[XZ[ˆ]˜Z[X›H[™™[]˜[È]\™HXÚ\Ú[ÛœËˆˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ™]™\œÚ]WÙYÙWØØ\Ù\È‹X™[ˆ‘]™\œÚ]HÈYÙHØ\Ù\È‹\ØÜš\[ÛŽˆ•HØÛÜ™X›ÛÚÈ[˜ÛY\È[›ÝYÚ˜\šYY[™˜\™HØ\Ù\ÈÈ[\›Ý™HYÛY[ˆˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ˜Ü›ÜÜ×ØÝ\ÝÛY\—ÛX\›š[™È‹X™[ˆÜ›ÜÜËXÝ\ÝÛY\ˆX\›š[™È‹\ØÜš\[ÛŽˆ“X\›š[™Èœ›ÛHÛ™HÝ\ÝÛY\ˆØ[ˆ[\›Ý™HXÚ\Ú[ÛœÈ›ÜˆÝ\œËˆˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ˜ÛÛ˜XÝX[ÜšYÚ×ØÛÛœÙ[‹X™[ˆÛÛ˜XÝX[šYÚÈÈÛÛœÙ[‹\ØÜš\[ÛŽˆ•HÛÛ\[žHØ[ˆYØ[H\ÙH™YY˜XÚÈÈ[\›Ý™HH›ÙXÝˆˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ™XÛÛ›ÛZX×Ý˜[YWÛÙ—Ø™Z[™×ÜšYÚ‹X™[ˆ‘XÛÛ›ÛZXÈ˜[YHÙˆ™Z[™ÈšYÚ‹\ØÜš\[ÛŽˆ™]\ˆXÚ\Ú[ÛœÈÜ™X]HYX[š[™Ù[Ý\ÝÛY\ˆÜˆÛÛ\[žH˜[YKˆˆB—NÂ‚™^ÜÛÛœÝÓÓ‘WÑSQS”ÒSÓ”Îˆ[Y[œÚ[Û‘Yš[š][Û–×HHÂˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ˜Ü›ÜÜ×ØÝ\ÝÛY\—Ý˜[œÙ™\˜Xš[]H‹X™[ˆÜ›ÜÜËXÝ\ÝÛY\ˆ˜[œÙ™\˜Xš[]H‹\ØÜš\[ÛŽˆ‘^\šY[˜ÙH˜[œÙ™\œÈXÜ›ÜÜÈÝ\ÝÛY\œÈÚ]Ý]™Z[™ÈÛÈÛÛ^\ÜXÚYšXËˆˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ˜Ý\ÝÛY\—Ú]\›ÙÙ[™Z]H‹X™[ˆÝ\ÝÛY\ˆ]\›ÙÙ[™Z]H‹\ØÜš\[ÛŽˆÝ\ÝÛY\ˆ˜\šX][Ûˆ\È[™\œÝÛÙ˜]\ˆ[ˆ]™\˜YÚ[™È]Ø^H[\Ü[Y™™\™[˜Ù\ËˆˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ›X\™Ú[˜[Ú[™›Ü›X][Û—ÙØZ[ˆ‹X™[ˆ“X\™Ú[˜[[™›Ü›X][ÛˆØZ[ˆ‹\ØÜš\[ÛŽˆ“™]ÈØ\Ù\ÈÝ[XXÚÛÛY][™È›Û‹[Øš[Ý\È˜]\ˆ[ˆ™\X][™ÈÛ›ÝÛˆ]\›œËˆˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆšÛ›ÝÛYÙWØÛÛ\™\ÜÚXš[]H‹X™[ˆ’Û›ÝÛYÙHÛÛ\™\ÜÚXš[]H‹\ØÜš\[ÛŽˆ•\ÙY[[™›Ü›X][ÛˆØ[››Ý™HX\Ú[HÛÛ\™\ÜÙY[ÈHÝ]XÈ^X›ÛÚÈÜˆ›Û\ˆˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ˜Ø]\Ø[Ü]X[]H‹X™[ˆØ]\Ø[]X[]H‹\ØÜš\[ÛŽˆ•HØÛÜ™X›ÛÚÈ\Ý[™ÝZ\Ú\ÈØ]\Ø[]Hœ›ÛHÛÜœ™[][ÛˆÜˆÛÛ™›Ý[™YÝ]ÛÛY\ËˆˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ››ÛœÝ][Û˜\š]H‹X™[ˆ“›ÛœÝ][Û˜\š]H‹\ØÜš\[ÛŽˆ•H[š\›Û›Y[Ú[™Ù\ÈÛÝÛH[›ÝYÚÜˆHX\›š[™ÈÛÜ\È˜\Ý[›ÝYÚÈÝ^H™[]˜[ˆˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ›X\›š[™×ÙY™šXÚY[˜ÞH‹X™[ˆ“X\›š[™ÈY™šXÚY[˜ÞH‹\ØÜš\[ÛŽˆ•HÜ™Ø[š^˜][Ûˆ\›œÈÜ˜YYØ\Ù\È[È›ÙXÝ[\›Ý™[Y[]ZXÚÛKˆˆB—NÂ‚™^ÜÛÛœÝSÑSQS”ÒSÓ”ÈHË‹‹’SQT—ÔÕÑT”Ë‹‹”ÕS—ÑSQS”ÒSÓ”Ë‹‹•ÓÓ‘WÑSQS”ÒSÓ”×NÂ‚™^ÜÛÛœÝÖS•UP×ÐÓRST×ÑVSTNˆÛÛ\[žU\Ú\Ò[œ]HÂˆÛÛ\[žS˜[YNˆ”Þ[]XÈÛZ[\È™\ÛÛ][ÛˆRH‹ˆ›ÙXÝ\ØÜš\[ÛŽ‚ˆHÞ[]XÈ^[\HÛÛ\[žH][È[œÝ\˜[˜ÙH[™X\šÙ]XÙHÜ\˜][ÛœÈX[\ÈšXYÙH\Ü]\Ë™XÛÛ[Y[™™\ÛÛ][ÛœË[™X\›ˆœ›ÛHÜ˜YYÝ]ÛÛY\Ëˆ‹ˆ\™Ù]Ý\ÝÛY\ŽˆÛZ[\Ë\ÝX[™\ØY™]K[™\Ü]HÜ\˜][ÛœÈX[\ÈÚ]™\X]YXÚ\Ú[ÛˆÛÜšÙ›ÝÜËˆ‹ˆÛÜšÙ›ÝÎˆÛZ[H[ZÙHOˆ]šY[˜ÙHÛÛXÝ[ÛˆOˆXÚ\Ú[Ûˆ™XÛÛ[Y[™][ÛˆOˆ[X[ˆ™]šY]ÈOˆÝ]ÛÛYH˜XÚÚ[™ÈOˆÜ˜YHØ\\™Kˆ‹ˆXÚ\Ú[Û‘\ØÜš\[ÛŽ‚ˆ•Ú]\ˆÈ\›Ý™K[žK\ØØ[]K™\]Y\Ý[Ü™H]šY[˜ÙKÜˆ›ÜÜÙHHÙ][Y[›ÜˆHÛZ[HÜˆ\Ü]Kˆ‹ˆ\Ú\Î‚ˆ•HÜÜÚX›HÝÙ\ˆÛÝ[ÛÛYHœ›ÛHÝÛš[™ÈHÛÛ[[Ý\ÈÜ˜YYXÚ\Ú[ÛˆÛÜ›Ýœ›ÛHHÝ]XÈ\ÝÜšXØ[]\Ù]ˆH]Y\Ý[Ûˆ\ÈÚ]\ˆœ™\Ú˜[œÙ™\˜X›KØš™XÝ]™[HÜ˜YYØ\Ù\È[\›Ý™H]]ÛX][Ûˆ˜\Ý\ˆ[ˆØ\X›HÚ[[™Ù\œÈØ[ˆ[™™\ˆÜˆ™[X\›ˆHØ[YHYÛY[ˆ‚ŸNÂ‚™^ÜÛÛœÝÖS•UP×ÑPUTÎˆÙ^QX˜]R[œ]×HHÂˆÂˆ]Y\Ý[ÛŽˆ‘Ù\ÈHÛÜšÙ›ÝÈ˜]\˜[HØ\\™H›ÝHXÚ\Ú[Ûˆ[™H]\ˆÝ]ÛÛYHÜ˜YOÈ‹ˆ[Ø\ÙNˆ•H›ÙXÝÚ]È[ˆHÜ\˜][Û˜[]ÛÈXÚ\Ú[ÛœË]šY[˜ÙKÝ]ÛÛY\Ë[™™]šY]Ù\ˆÛÜœ™XÝ[ÛœÈØ[ˆ™HØ\\™Y\È\Ùˆ›Ü›X[ÛÜšËˆ‹ˆ™X\Ø\ÙNˆ“Ý]ÛÛYHÜ˜Y\ÈX^H\œš]™HÝ]ÚYHH›ÙXÝ™H[^YYÜˆ™HÛÈÝXš™XÝ]™HÈÝ\Ü\˜X›HX\›š[™Ëˆ‹ˆ]šY[˜ÙS™YYYˆ’[œÝ[Y[][ÛˆX\Ý]ÛÛYHX™[Ë™]šY]Ù\ˆÝ™\œšYHÙÜË[™Ü˜YHÛÛ\][™\ÜÈžHÝ\ÝÛY\‹ˆ‹ˆ[˜Ü™X\ÙP™[YYŽˆHYÚÚ\™HÙˆXÚ\Ú[ÛœÈ™XÙZ]™HØš™XÝ]™HÝ]ÛÛYHÜ˜Y\ÈÚ]Ý]X[X[˜XÚÙš[ˆ‹ˆXÜ™X\ÙP™[YYŽˆ“[ÜÝÝ]ÛÛY\È\™HZ\ÜÚ[™ËÝXš™XÝ]™K[^YYÜˆÝÜ™Y[ˆÝ\ÝÛY\ˆÞ\Ý[\ÈH›ÙXÝØ[››Ý\ÙKˆ‹ˆ›Ø˜Xš[]NˆNˆÛÝ\˜ÙNˆ•TÑTˆ‚ˆKˆÂˆ]Y\Ý[ÛŽˆ’\ÈHØÛÜ™X›ÛÚÈ˜[œÙ™\˜X›HXÜ›ÜÜÈÝ\ÝÛY\œÈÚ]Ý]Ø\Ú[™ÈÝ]ØØ[ÛXÞHY™™\™[˜Ù\ÏÈ‹ˆ[Ø\ÙNˆ“X[žHÛZ[\ÈÚ\™HÛÛ[[Ûˆ]šY[˜ÙH]\›œËœ˜]YÚYÛ˜[Ë[™™\ÛÛ][Ûˆ˜Y[Ù™œÈXÜ›ÜÜÈÝ\ÝÛY\œËˆ‹ˆ™X\Ø\ÙNˆ‘XXÚÝ\ÝÛY\ˆ\ÈY™™\™[ÛXÞH[\Ëš\ÚÈÛ\˜[˜ÙK]HšY[Ë[™\ØØ[][Ûˆ™Z]š[Ü‹ˆ‹ˆ]šY[˜ÙS™YYYˆÜ›ÜÜËXÝ\ÝÛY\ˆÛÝ]\ÝË\‹XÝ\ÝÛY\ˆ\œ›Üˆ[˜[\Ú\Ë[™^[\\ÈÚ\™HÛØ˜[X\›š[™È[\›Ý™\ÈH™]ÈÝ\ÝÛY\‹ˆ‹ˆ[˜Ü™X\ÙP™[YYŽˆ‘ÛØ˜[Ø\Ù\È[\›Ý™HXØÝ\˜XÞHÜˆ[YK]Ë\™\ÛÛ][Ûˆ›ÜˆHÝ\ÝÛY\ˆ^ÛYYœ›ÛH˜Z[š[™Ëˆ‹ˆXÜ™X\ÙP™[YYŽˆÝ\ÝÛY\‹\ÜXÚYšXÈ[Ù[ÈÛÛœÚ\Ý[HÝ]\™›Ü›HÛØ˜[X\›š[™È[™È›Ý™[™Yš]œ›ÛHÚ\™YØ\Ù\Ëˆ‹ˆ›Ø˜Xš[]Nˆ‹ˆÛÝ\˜ÙNˆ•ÓÓ‘H‚ˆKˆÂˆ]Y\Ý[ÛŽˆÛÝ[HØ\X›HÚ[[™Ù\ˆÛÛ\™\ÜÈÜˆÚ[][]HH\ÙY[Û›ÝÛYÙHÚ]Ý]ÝÛš[™ÈH\ÝÜšXØ[ØÛÜ™X›ÛÚÏÈ‹ˆ[Ø\ÙNˆ•H\ÙY[^\\ÙHX^H™H›ØÙY\˜[[™XÚ][X™YY[ˆYÙHØ\Ù\È[™™]šY]Ù\ˆÛÜœ™XÝ[ÛœÈ]\™H\™È[™™\‹ˆ‹ˆ™X\Ø\ÙNˆ•H™\X]X›HYÛY[X^H™H™YXÚX›HÈÛXÚY\ËX›XÈ^[\\Ë›Ý[™][Û‹[[Ù[š[ÜœË[™HÚÜØ[Xœ˜][Ûˆ\š[Ùˆ‹ˆ]šY[˜ÙS™YYYˆ“X\›š[™ÈÝ\™\È›Üˆ™]È\Þ[Y[ËÞ[]XËY]H™[˜ÚX\šÜË[™XØÝ\˜XÞHY\ˆ[Z]YÝ\ÝÛY\‹\ÜXÚYšXÈØ[Xœ˜][Û‹ˆ‹ˆ[˜Ü™X\ÙP™[YYŽˆXØÝ\˜XÞHÛÛ[Y\È[\›Ýš[™ÈÚ]›ÜšY]\žHÜ˜YYØ\Ù\ÈY\ˆÛXÞH[™›Ý[™][Û‹[[Ù[˜\Ù[[™\È]X]Kˆ‹ˆXÜ™X\ÙP™[YYŽˆHÚ[[™Ù\ˆ™XXÚ\ÈÚ[Z[\ˆ\™›Ü›X[˜ÙHÚ]ÛXÞHØÜËÚ[][]YØ\Ù\Ë[™HÛX[œ™\ÚØ[\Kˆ‹ˆ›Ø˜Xš[]Nˆ‹ˆÛÝ\˜ÙNˆ•ÓÓ‘H‚ˆB—NÂ‚™^ÜÛÛœÝS’UPSÑPUTÎˆÙ^QX˜]R[œ]×HHÂˆÂˆ]Y\Ý[ÛŽˆ’\ÈH›ÙXÝÜÚ][Û™YÈØ\\™HÜ˜YYXÚ\Ú[ÛœÈ\È\ÙˆH˜]\˜[ÛÜšÙ›ÝÏÈ‹ˆ[Ø\ÙNˆ’YˆH›ÙXÝÝÛœÈHXÚ\Ú[ÛˆÛÜšÙ›ÝË]Ø[ˆØ\\™HØ\Ù\ËXÚ\Ú[ÛœËÝ]ÛÛY\Ë[™Ü˜Y\ÈÚ]Ý]™[Z[™ÈÛˆÙ\\˜]H™\Ü[™Ëˆ‹ˆ™X\Ø\ÙNˆ’YˆXÚ\Ú[Ûš[™ÈÜˆÝ]ÛÛY\È\[ˆÝ]ÚYHH›ÙXÝHØÛÜ™X›ÛÚÈX^H™H[˜ÛÛ\]HÜˆÛÈ[^YYÈÛÛ\Ý[™ˆ‹ˆ]šY[˜ÙS™YYYˆ•ÛÜšÙ›ÝÈX\[œÝ[Y[][Ûˆ[‹^[\\ÈÙˆXÚ\Ú[Ûˆ™XÛÜ™Ë[™ØœÙ\™YÜ˜YHØ\\™H˜]Kˆ‹ˆ[˜Ü™X\ÙP™[YYŽˆ“[ÜÝYX[š[™Ù[XÚ\Ú[ÛœÈ™XÙZ]™HÝ]ÛÛYHÜ˜Y\È[œÚYHH›ÙXÝ›ÝÈÚ]ÝÈX[X[Y™›Üˆ‹ˆXÜ™X\ÙP™[YYŽˆ‘Ü˜Y\È\™HÜ\œÙKX[X[ÝXš™XÝ]™KÜˆ\ØÛÛ›™XÝYœ›ÛHH›ÙXÝÛÜšÙ›ÝËˆ‹ˆ›Ø˜Xš[]NˆLˆÛÝ\˜ÙNˆ”ÕSˆ‚ˆKˆÂˆ]Y\Ý[ÛŽˆ‘Ù\ÈXXÚY][Û˜[Ü˜YYØ\ÙHY\ÙY[X\™Ú[˜[[™›Ü›X][ÛÈ‹ˆ[Ø\ÙNˆ“™]ÈØ\Ù\ÈX^H^ÜÙHYÙHÛÛ™][ÛœËÛXÞH[XšYÝZ]K[™ÛÜœ™XÝ[Ûˆ]\›œÈ][\›Ý™H]\™H]]ÛX][Û‹ˆ‹ˆ™X\Ø\ÙNˆ•H\ÙY[[™›Ü›X][ÛˆX^H]X]H]ZXÚÛHÛ˜ÙHÛÛ[[ÛˆØ\Ù\È[™[\È\™HØÝ[Y[Yˆ‹ˆ]šY[˜ÙS™YYYˆ“X\›š[™ÈÝ\™\Ë\œ›Üˆ[˜[\Ú\ÈžHØ\ÙHYÙK[™X\™Ú[˜[\™›Ü›X[˜ÙHØZ[ˆœ›ÛH[˜Ü™[Y[[Ø\ÙHÛÚÜËˆ‹ˆ[˜Ü™X\ÙP™[YYŽˆ”™XÙ[Ø\ÙHÛÚÜÈÛÛ[YH[\›Ýš[™ÈXÚ\Ú[ÛœÈY\ˆÛXÞH[™›Ý[™][Û‹[[Ù[˜\Ù[[™\È\™H[˜ÛYYˆ‹ˆXÜ™X\ÙP™[YYŽˆ”\™›Ü›X[˜ÙH]X]\È]ZXÚÛHÜˆ™]ÈØ\Ù\È\XØ]HÛ›ÝÛˆ\ÜÛÛœËˆ‹ˆ›Ø˜Xš[]NˆLˆÛÝ\˜ÙNˆ•ÓÓ‘H‚ˆKˆÂˆ]Y\Ý[ÛŽˆÛÝ[HØ\X›HÚ[[™Ù\ˆÛÛ\™\ÜË[™™\‹Ú[][]KÜˆ™[X\›ˆH\ÙY[ØÛÜ™X›ÛÚÈÛ›ÝÛYÙOÈ‹ˆ[Ø\ÙNˆ•H›ÜšY]\žHØÛÜ™X›ÛÚÈX^H[˜ÛÙH\™]ËXÛÜH™]šY]Ù\ˆÛÜœ™XÝ[ÛœËØ]\Ø[X™[Ë[™Ü\˜][Û˜[ÛÛ^ˆ‹ˆ™X\Ø\ÙNˆ•H\ÙY[YÛY[X^H™HØ\\™YžHX›XÈ[\Ë›Ý[™][Û‹[[Ù[š[ÜœËÞ[]XÈØ\Ù\ËÜˆHÚÜØ[Xœ˜][Ûˆ\š[Ùˆ‹ˆ]šY[˜ÙS™YYYˆÚ[[™Ù\‹\Ý[H™[˜ÚX\šËÞ[]XËXØ\ÙHÛÛ\\š\ÛÛ‹[™\™›Ü›X[˜ÙHY\ˆ[Z]Yœ™\ÚØ[Xœ˜][Û‹ˆ‹ˆ[˜Ü™X\ÙP™[YYŽˆHÚ[[™Ù\ˆÚ]ÛXÞHØÜÈ[™HÛX[Ø[\H™[XZ[œÈX]\šX[H™Z[™HØÛÜ™X›ÛÚÈÝÛ™\‹ˆ‹ˆXÜ™X\ÙP™[YYŽˆHÚ[[™Ù\ˆ™XXÚ\ÈÚ[Z[\ˆ\™›Ü›X[˜ÙHÚ]ÛÛ\™\ÜÙY[\ËÚ[][]Y^[\\ËÜˆÚÜ™[X\›š[™Ëˆ‹ˆ›Ø˜Xš[]NˆLˆÛÝ\˜ÙNˆ•ÓÓ‘H‚ˆB—NÂ‚™^Ü\HÛÛ\Ý[™[™Ñ^[\HHÂˆYˆÛÛ\Ý[™[™Ñ^[\RYÂˆX™[ˆÝš[™ÎÂˆ›ÛNˆÝš[™ÎÂˆÛÛ\[žS˜[YNˆÝš[™ÎÂˆ\Ý\NˆØ[›ÛšXØ[\Ý\NÂˆ\ÝX™[ˆÝš[™ÎÂˆØ[›ÛšXØ[]Y\Ý[ÛŽˆÝš[™ÎÂˆ›ÙXÝØ]YÛÜžNˆÝš[™ÎÂˆš[˜Ú\[XÚ\Ú[ÛŽˆÝš[™ÎÂˆÜ˜YSØš™XÝ]š]NˆÝš[™ÎÂˆ\XØ[™YY˜XÚÔÜYYˆÝš[™ÎÂˆXÛÛ›ÛZXÐÛÜÝÙ‘\œ›ÜŽˆÝš[™ÎÂˆØ\ÙQœ™\]Y[˜ÞNˆÝš[™ÎÂˆÜ›ÜÜÐÝ\ÝÛY\•˜[œÙ™\”Ý[X[ˆÝš[™ÎÂˆ\ÝÜšXØ[Ø\ÙQ\[™[˜ÙNˆÝš[™ÎÂˆš[X\žTÝÙ\’\Ý\Ú\ÎˆÝš[™ÎÂˆÛÛ\][™ÔÝÙ\’\Ý\Ú\ÎˆÝš[™ÎÂˆÚPØ[›ÛšXØ[ˆÝš[™ÎÂˆ^XÝY[Ü™]XØ[™Z]š[ÜŽˆÝš[™ÎÂˆX‘˜Z[\™PÛÛ™][ÛŽˆÝš[™ÎÂˆÛÝ\˜ÙP\Ù^OÎˆÝš[™È[ÂˆÞ[]XÑ]\Ù]X™[ˆÝš[™ÎÂˆØ\ÙTÙ]ˆÛZ]Ø\ÙTÙ][œ]˜[˜[\Ú\ÒYˆ˜Ø\ÙPÛÝ[ŽÂˆ[˜[\Ú\ÎˆÛÛ\[žU\Ú\Ò[œ]ÂˆX˜]\ÎˆÙ^QX˜]R[œ]×NÂˆØÙ[˜\š[ÜÎˆÚ[][][Û”ØÙ[˜\š[Ò[œ]×NÂˆØ\Ù\ÎˆØÛÜ™X›ÛÚÐØ\ÙR[œ]×NÂŸNÂ‚™[˜Ý[ÛˆY^\Ê]Nˆ]K^\Îˆ[X™\ŠHÂˆ™]\›ˆ™]È]J]K™Ù][YJ
+H
+È^\È
+ˆ
+ˆŒ
+ˆŒ
+ˆL
+NÂŸB‚™[˜Ý[ÛˆÜ™X]TÞ[]XÐØ\Ù\ÊÛÛ™šYÎˆÂˆ™Yš^ˆÝš[™ÎÂˆÛÝ\˜ÙSX™[ˆÝš[™ÎÂˆÙYÛY[ÎˆÝš[™Ö×NÂˆØ\ÙU\\ÎˆÝš[™Ö×NÂˆXÚ\Ú[ÛœÎˆÝš[™Ö×NÂˆÝ]ÛÛY\ÎˆÝš[™Ö×NÂˆÛÝ[ˆ[X™\ŽÂˆ[^T]\›Žˆ[X™\–×NÂˆ[œ™\ÛÛ™Y]™\žOÎˆ[X™\ŽÂˆÝ™\œšYQ]™\žOÎˆ[X™\ŽÂˆYÙQ]™\žOÎˆ[X™\ŽÂˆØš™XÝ]™PšX\ÏÎˆœÝ›Û™Èˆ›Z^YˆÙXZÈŽÂˆ˜[YP˜\ÙOÎˆ[X™\ŽÂŸJNˆØÛÜ™X›ÛÚÐØ\ÙR[œ]×HÂˆÛÛœÝ˜\ÙHH™]È]JŒŒ‹LKLULŽŒŒŒˆŠNÂˆ™]\›ˆ\œ˜^K™œ›ÛJÈ[™ÝˆÛÛ™šYË˜ÛÝ[K
+Ë[™^
+HOˆÂˆÛÛœÝ^\›˜[Ø\ÙRYH	ØÛÛ™šYËœ™Yš^KIÔÝš[™Ê[™^
+ÈJKœYÝ\
+ËŒŠ_XÂˆÛÛœÝ\Õ[œ™\ÛÛ™YHÛÛ™šYË[œ™\ÛÛ™Y]™\žHÈ
+[™^
+ÈJH	HÛÛ™šYË[œ™\ÛÛ™Y]™\žHOOHˆ˜[ÙNÂˆÛÛœÝ[X[“Ý™\œšYHHÛÛ™šYË›Ý™\œšYQ]™\žHÈ
+[™^
+ÈŠH	HÛÛ™šYË›Ý™\œšYQ]™\žHOOHˆ˜[ÙNÂˆÛÛœÝ\ÑYÙPØ\ÙHHÛÛ™šYË™YÙQ]™\žHÈ
+[™^
+ÈÊH	HÛÛ™šYË™YÙQ]™\žHOOHˆ˜[ÙNÂˆÛÛœÝ[^Q^\ÈHÛÛ™šYË™[^T]\›–Ú[™^	HÛÛ™šYË™[^T]\›‹›[™ÝNÂˆÛÛœÝXÚ\Ú[Û]HY^\Ê˜\ÙK[™^
+ˆŠNÂˆÛÛœÝÝ]ÛÛYP]H\Õ[œ™\ÛÛ™YÈ[ˆY^\ÊXÚ\Ú[Û][^Q^\ÊNÂˆÛÛœÝYÙ[XÚ\Ú[ÛˆHÛÛ™šYË™XÚ\Ú[ÛœÖÚ[™^	HÛÛ™šYË™XÚ\Ú[ÛœË›[™ÝNÂˆÛÛœÝ[X[‘XÚ\Ú[ÛˆH[X[“Ý™\œšYBˆÈÛÛ™šYË™XÚ\Ú[ÛœÖÊ[™^
+ÈJH	HÛÛ™šYË™XÚ\Ú[ÛœË›[™ÝBˆˆ[™^	HHOOHˆÈ[ˆˆYÙ[XÚ\Ú[ÛŽÂˆÛÛœÝÜ˜YNˆÛÛ\Ý[™[™ÐØ\ÙQÜ˜YHH\Õ[œ™\ÛÛ™YˆÈ•S”‘TÓÓ‘Q‚ˆˆÛÛ™šYË›Øš™XÝ]™PšX\ÈOOHÙXZÈ‚ˆÈ
+[™^	HOOHÈ’SÓÔ”‘PÕˆˆ[™^	HÈOOHÈ”T•PSWÐÓÔ”‘PÕˆˆÓÔ”‘PÕŠBˆˆÛÛ™šYË›Øš™XÝ]™PšX\ÈOOH›Z^Y‚ˆÈ
+[™^	HHOOHÈ’SÓÔ”‘PÕˆˆ[™^	HÈOOHÈ”T•PSWÐÓÔ”‘PÕˆˆÓÔ”‘PÕŠBˆˆ
+[™^	HOOHÈ’SÓÔ”‘PÕˆˆ[™^	HHOOHÈ”T•PSWÐÓÔ”‘PÕˆˆÓÔ”‘PÕŠNÂˆÛÛœÝÝ]ÛÛYU˜[YHH\Õ[œ™\ÛÛ™YˆÈ[ˆˆX]œ›Ý[™
+
+
+ÛÛ™šYË˜[YP˜\ÙHÏÈLŒ
+H
+È[™^
+ˆJH
+ˆ
+Ü˜YHOOH’SÓÔ”‘PÕˆÈLŒÍHˆÜ˜YHOOH”T•PSWÐÓÔ”‘PÕˆÈHˆJJNÂ‚ˆ™]\›ˆÂˆ^\›˜[Ø\ÙRYˆÝ\ÝÛY\”ÙYÛY[ˆÛÛ™šYËœÙYÛY[ÖÚ[™^	HÛÛ™šYËœÙYÛY[Ë›[™ÝKˆØ\ÙU\NˆÛÛ™šYË˜Ø\ÙU\\ÖÚ[™^	HÛÛ™šYË˜Ø\ÙU\\Ë›[™ÝKˆÛÛ^ˆ	ØÛÛ™šYËœÛÝ\˜ÙSX™[KˆÞ[]XÈØ\ÙHÛÛ^	Ú[™^
+È_NÈÙ[™\˜]YÈ\ÝØÛÜ™X›ÛÚÈ[œÜXÝ[Û‹›ÝÈ\ØÜšX™H™X[Ü\˜][ÛœË˜ˆYÙ[XÚ\Ú[Û‹ˆYÙ[ÛÛ™šY[˜ÙNˆX]›Z[ŠŽM‹M
+È
+[™^	HÊH
+ˆŒŠKˆ[X[‘XÚ\Ú[Û‹ˆ[X[“Ý™\œšYKˆXÝ[Û•ZÙ[Žˆ\Õ[œ™\ÛÛ™YÈ[ˆ[X[‘XÚ\Ú[ÛˆÏÈYÙ[XÚ\Ú[Û‹ˆÝ]ÛÛYNˆ\Õ[œ™\ÛÛ™YÈ[ˆÛÛ™šYË›Ý]ÛÛY\ÖÚ[™^	HÛÛ™šYË›Ý]ÛÛY\Ë›[™ÝKˆÝ]ÛÛYU˜[YKˆÜ˜YKˆÜ˜YPÛÛ™šY[˜ÙNˆ\Õ[œ™\ÛÛ™YÈ[ˆÛÛ™šYË›Øš™XÝ]™PšX\ÈOOHÙXZÈˆÈH
+È
+[™^	HÊH
+ˆŒˆŽ
+È
+[™^	H
+H
+ˆŒËˆXÚ\Ú[Û]ˆXÝ[Û]ˆ\Õ[œ™\ÛÛ™YÈ[ˆY^\ÊXÚ\Ú[Û]JKˆÝ]ÛÛYP]ˆ\ÑYÙPØ\ÙKˆ\ÔÞ[]XÎˆYKˆÛÝ\˜ÙSX™[ˆÛÛ™šYËœÛÝ\˜ÙSX™[ˆÛÝ\˜ÙT™XÛÜ™Yˆ^\›˜[Ø\ÙRYˆÛÝ\˜ÙT™XÛÜ™\Nˆ˜Ø[›ÛšXØ[ÜÞ[]X×Ùš^\™H‹ˆÛÝ\˜ÙT™XÛÜ™›Ý]Nˆ[ˆ›Ý\Îˆ\Õ[œ™\ÛÛ™YÈ“Ý]ÛÛYH›ÝY]ØœÙ\™YÈ[œ™\ÛÛ™Y›ÝÜÈÚÝ[™[XZ[ˆ[˜ÛÛ\]Kˆˆˆ”Þ[]XÈ[\Ý˜]]™H›ÝÈ›Üˆ[ÜžH\Ý[™Ëˆ‚ˆNÂˆJNÂŸB‚˜ÛÛœÝVSTWÑPUTÎˆÙ^QX˜]R[œ]×HHÂˆS’UPSÑPUTÖÌKˆS’UPSÑPUTÖÌWKˆS’UPSÑPUTÖÌ—B—NÂ‚˜ÛÛœÝÐTÐTÔÓÕTÑHH”ÖS•UPÈSTÕUU‘HUHHÞ[]XÈ\Ü]\ÈØÛÜ™X›ÛÚË›ÝØ\Ø\]HŽÂ˜ÛÛœÝTÕS—ÔÓÕTÑHH”ÖS•UPÈSTÕUU‘HUHHÞ[]XÈ™\ÙX\˜ÚÛ\Ý[š[™ÈØÛÜ™X›ÛÚË›Ý\Ý[ˆXœÈ]HŽÂ˜ÛÛœÝPT•WÔÓÕTÑHH”ÖS•UPÈSTÕUU‘HUHHÞ[]XÈ[Ù[Yš\œÝ™\ÙX\˜ÚØÛÜ™X›ÛÚË›ÝX\H]HŽÂ˜ÛÛœÝPVP‘T“—ÔÓÕTÑHH”ÖS•UPÈSTÕUU‘HUHHÞ[]XÈ]\›Z[š\ÝXË\˜Z[ÈØÛÜ™X›ÛÚË›ÝX^X™\›ˆ]HŽÂ˜ÛÛœÝÔ‘PUU‘WÔÓÕTÑHH”ÖS•UPÈSTÕUU‘HUHHÞ[]XÈÜ™X]]™HX\šÙ][™ÈYÙ[ØÛÜ™X›ÛÚÈŽÂ‚™^ÜÛÛœÝQUSÔÐÑST’SÔÎˆÚ[][][Û”ØÙ[˜\š[Ò[œ]×HHÂˆÂˆ˜[YNˆ’[˜Ý[X™[H‹ˆÝ\[™ÐØ\Ù\ÎˆLˆØ\Ù\Ô\“[Ûˆˆ™YY˜XÚÑ[^Q^\ÎˆŒKˆ˜[œÙ™\˜Xš[]NˆËˆ[™›Ü›X][Û•˜[YNˆŽˆX\›š[™ÑY™šXÚY[˜ÞNˆMKˆÝ[[™\ÜÔ˜]NˆŒMKˆ˜\ÙPØ\Xš[]Nˆ‹ˆKˆÂˆ˜[YNˆÚ[[™Ù\ˆˆ‹ˆÝ\[™ÐØ\Ù\ÎˆLˆØ\Ù\Ô\“[ÛˆLˆ™YY˜XÚÑ[^Q^\ÎˆËˆ˜[œÙ™\˜Xš[]NˆŽKˆ[™›Ü›X][Û•˜[YNˆŽKˆX\›š[™ÑY™šXÚY[˜ÞNˆÍKˆÝ[[™\ÜÔ˜]NˆŒL‹ˆ˜\ÙPØ\Xš[]Nˆ‹ŽBˆB—NÂ‚™^ÜÛÛœÝÕ‘TÔ×ÕTÕÕSTUTÎˆÝ™\ÜÕ\Ý[\]V×HHÂˆÂˆYˆ˜˜\Ù[[™H‹ˆ˜[YNˆ˜\Ù[[™H‹ˆ]Y\Ý[ÛŽˆ•Ú]\[œÈ[™\ˆHÝ\œ™[\ÜÝ[\[ÛœÏÈ‹ˆÚ[™ÙY˜\šXX›\ÎˆÈ“›È[\]HÚ[™Ù\È—KˆÚ[™ÙY\˜[Y]\’Ù^\Îˆ×KˆÚSX]\œÎˆ”›ÝšY\ÈH™Y™\™[˜ÙHØ\ÙH™Y›Ü™HÚ[™Ú[™ÈÛÛ\]]]™HÛÛ™][ÛœËˆ‚ˆKˆÂˆYˆ˜™]\—Ù›Ý[™][Û—Û[Ù[‹ˆ˜[YNˆ™]\ˆ›Ý[™][Ûˆ[Ù[‹ˆ]Y\Ý[ÛŽˆØ[ˆHÚ[[™Ù\ˆÛÛ\™\ÜÈH[˜Ý[X™[	ÜÈ\ÝÜšXØ[^\šY[˜ÙHY˜[YÙHÚ]YÚ\ˆ˜\ÙH[Ù[Ø\Xš[]OÈ‹ˆÚ[™ÙY˜\šXX›\ÎˆÈÚ[[™Ù\ˆ˜\ÙHØ\Xš[]H[˜Ü™X\Ù\È—KˆÚ[™ÙY\˜[Y]\’Ù^\ÎˆÈ˜˜\ÙPØ\Xš[]H—KˆÚSX]\œÎˆ•\ÝÈÚ]\ˆœ›ÛY\‹[[Ù[›ÙÜ™\ÜÈ™YXÙ\ÈH˜[YHÙˆ›ÜšY]\žHXØÝ[][]Y^\šY[˜ÙKˆ‚ˆKˆÂˆYˆ™˜\Ý\—ÛX\›™\ˆ‹ˆ˜[YNˆ‘˜\Ý\ˆX\›™\ˆ‹ˆ]Y\Ý[ÛŽˆØ[ˆHÚ[[™Ù\ˆØ]Ú\žH^˜XÝ[™È[Ü™HX\›š[™Èœ›ÛHXXÚØ\ÙOÈ‹ˆÚ[™ÙY˜\šXX›\ÎˆÈÚ[[™Ù\ˆX\›š[™ÈY™šXÚY[˜ÞH[˜Ü™X\Ù\È—KˆÚ[™ÙY\˜[Y]\’Ù^\ÎˆÈ›X\›š[™ÑY™šXÚY[˜ÞH—KˆÚSX]\œÎˆ•\ÝÈÚ]\ˆ™]\ˆX\›š[™È™[ØÚ]HØ[ˆÙ™œÙ]HÛX[\ˆÝ\[™ÈØÛÜ™X›ÛÚËˆ‚ˆKˆÂˆYˆ˜[œÙ™\—Øœ™XZÙÝÛˆ‹ˆ˜[YNˆ•˜[œÙ™\ˆœ™XZÙÝÛˆ‹ˆ]Y\Ý[ÛŽˆ•Ú]YˆXØÝ[][]Y^\šY[˜ÙH˜[œÙ™\œÈÛÜ›HXÜ›ÜÜÈÝ\ÝÛY\œÈÜˆÛÛ^ÏÈ‹ˆÚ[™ÙY˜\šXX›\ÎˆÈ’[˜Ý[X™[˜[œÙ™\˜Xš[]HXÜ™X\Ù\È—KˆÚ[™ÙY\˜[Y]\’Ù^\ÎˆÈ˜[œÙ™\˜Xš[]H—KˆÚSX]\œÎˆ•\ÝÈÚ]\ˆH^\šY[˜ÙHY˜[YÙH\[™ÈÛˆX\›š[™È]Ù[™\˜[^™\È™^[Û™HÜšYÚ[˜[Ø\Ù\Ëˆ‚ˆKˆÂˆYˆ™™YY˜XÚ×Ù[^H‹ˆ˜[YNˆ‘™YY˜XÚÈ[^H‹ˆ]Y\Ý[ÛŽˆ•Ú]Yˆ™X[]ÛÜ›Ý]ÛÛY\ÈZÙHÛ™Ù\ˆÈ\œš]™H[™Ü˜YOÈ‹ˆÚ[™ÙY˜\šXX›\ÎˆÈ’[˜Ý[X™[™YY˜XÚÈ[^H[˜Ü™X\Ù\È—KˆÚ[™ÙY\˜[Y]\’Ù^\ÎˆÈ™™YY˜XÚÑ[^Q^\È—KˆÚSX]\œÎˆ•\ÝÈÚ]\ˆÛÛ\Ý[™[™ÈÛÝÜÈÚ[ˆ^\šY[˜ÙHX]\™\È]Kˆ‚ˆKˆÂˆYˆ™^\šY[˜ÙWÜÝ[[™\ÜÈ‹ˆ˜[YNˆ‘^\šY[˜ÙHÝ[[™\ÜÈ‹ˆ]Y\Ý[ÛŽˆ•Ú]Yˆ\ÝÜšXØ[^\šY[˜ÙHÜÙ\È™[]˜[˜ÙH]ZXÚÛOÈ‹ˆÚ[™ÙY˜\šXX›\ÎˆÈ’[˜Ý[X™[Ý[[™\ÜÈ[˜Ü™X\Ù\È—KˆÚ[™ÙY\˜[Y]\’Ù^\ÎˆÈœÝ[[™\ÜÔ˜]H—KˆÚSX]\œÎˆ•\ÝÈÚ]\ˆ\ÝÜšXØ[Y˜[YÙH\È\˜X›HÚ[ˆH[š\›Û›Y[Ú[™Ù\Ëˆ‚ˆKˆÂˆYˆ˜ÛÛ[[Ý\×ØØ\\™H‹ˆ˜[YNˆÛÛ[[Ý\ÈØ\\™HY˜[YÙH‹ˆ]Y\Ý[ÛŽˆ•Ú]YˆH[˜Ý[X™[ÛÛ[[Ý\ÛHÙ[™\˜]\ÈÜ˜YY^\šY[˜ÙH˜\Ý\ˆ[ˆÚ[[™Ù\œÏÈ‹ˆÚ[™ÙY˜\šXX›\ÎˆÈ’[˜Ý[X™[Ø\Ù\È\ˆ[Û[˜Ü™X\Ù\È™[]]™HÈÚ[[™Ù\ˆ—KˆÚ[™ÙY\˜[Y]\’Ù^\ÎˆÈ˜Ø\Ù\Ô\“[Û—KˆÚSX]\œÎˆ•\ÝÈÚ]\ˆÝÛš[™ÈHÛ™ÛÚ[™È^\šY[˜ÙKYÙ[™\˜][ÛˆÛÜX]\œÈ[Ü™H[ˆHÝ]XÈ\ÝÜšXØ[ØÛÜ™X›ÛÚËˆ‚ˆKˆÂˆYˆ˜Ý\ÝÛH‹ˆ˜[YNˆÝ\ÝÛH‹ˆ]Y\Ý[ÛŽˆÜ™X]H[Ý\ˆÝÛˆÛÛ\]]]™HØÙ[˜\š[Ëˆ‹ˆÚ[™ÙY˜\šXX›\ÎˆÈ•\Ù\‹YYš[™Y—KˆÚ[™ÙY\˜[Y]\’Ù^\ÎˆÂˆœÝ\[™ÐØ\Ù\È‹ˆ˜Ø\Ù\Ô\“[Û‹ˆ™™YY˜XÚÑ[^Q^\È‹ˆ˜[œÙ™\˜Xš[]H‹ˆš[™›Ü›X][Û•˜[YH‹ˆ›X\›š[™ÑY™šXÚY[˜ÞH‹ˆœÝ[[™\ÜÔ˜]H‹ˆ˜˜\ÙPØ\Xš[]H‚ˆKˆÚSX]\œÎˆ•\ÙHÚ[ˆHØ[›ÛšXØ[Ý™\ÜÈ\ÝÈÈ›ÝX]ÚH]Y\Ý[Ûˆ[ÝHØ[È\ÚËˆ‚ˆB—NÂ‚™^ÜÛÛœÝÕ‘TÔ×ÕTÕÔÐÑST’S×ÔUQT–WÒÑVTÎˆ\œ˜^OÙ^[ÙˆÛZ]Ú[][][Û”ØÙ[˜\š[Ò[œ]šYˆ›˜[YHˆHÂˆœÝ\[™ÐØ\Ù\È‹ˆ˜Ø\Ù\Ô\“[Û‹ˆ™™YY˜XÚÑ[^Q^\È‹ˆ˜[œÙ™\˜Xš[]H‹ˆš[™›Ü›X][Û•˜[YH‹ˆ›X\›š[™ÑY™šXÚY[˜ÞH‹ˆœÝ[[™\ÜÔ˜]H‹ˆ˜˜\ÙPØ\Xš[]H‚—NÂ‚™^ÜÛÛœÝÒSUSUÔ—ÔTSQUT—ÑQ’S’USÓ”ÎˆÚ[][]Ü”\˜[Y]\‘Yš[š][Û–×HHÂˆÂˆÙ^NˆœÝ\[™ÐØ\Ù\È‹ˆX™[ˆ”Ý\[™ÈÜ˜YYØ\Ù\È‹ˆÜ›Ý\ˆ‘^\šY[˜ÙHY˜[YÙH‹ˆ\\Ý[ZXÎˆ“Ð”ÑT•‘QÈT’U‘Q‹ˆ[ˆ’ÝÈ]XÚX]\™Y^\šY[˜ÙHHÞ\Ý[H™YÚ[œÈÚ]ˆ‹ˆZ[ŽˆˆÝ\ˆBˆKˆÂˆÙ^Nˆ˜Ø\Ù\Ô\“[Û‹ˆX™[ˆØ\Ù\ÈÈ[Û‹ˆÜ›Ý\ˆ‘^\šY[˜ÙHY˜[YÙH‹ˆ\\Ý[ZXÎˆ‘S‘ÑÑS“ÕTÈTÔÕSTSÓˆ‹ˆ[ˆ’ÝÈ]ZXÚÛH™]ÈÝ[X[HX\›˜X›H^\šY[˜ÙH\ÈÙ[™\˜]Yˆ‹ˆZ[ŽˆˆÝ\ˆBˆKˆÂˆÙ^Nˆ™™YY˜XÚÑ[^Q^\È‹ˆX™[ˆ‘™YY˜XÚÈ[^H‹ˆÜ›Ý\ˆ“X\›š[™È[˜[ZXÜÈ‹ˆ\\Ý[ZXÎˆ“Ð”ÑT•‘QÈT’U‘Q‹ˆ[ˆ’ÝÈÛ™È™Y›Ü™HHXÚ\Ú[Ûˆ›ÙXÙ\È[ˆÝ]ÛÛYH]Ø[ˆ™HÜ˜YYˆ‹ˆZ[ŽˆˆÝ\ˆBˆKˆÂˆÙ^Nˆ›X\›š[™ÑY™šXÚY[˜ÞH‹ˆX™[ˆ“X\›š[™ÈY™šXÚY[˜ÞH‹ˆÜ›Ý\ˆ“X\›š[™È[˜[ZXÜÈ‹ˆ\\Ý[ZXÎˆ‘S‘ÑÑS“ÕTÈTÔÕSTSÓˆ‹ˆ[ˆ’ÝÈY™™XÝ]™[HHÞ\Ý[HÛÛ™\ÈÜ˜YY^\šY[˜ÙH[È[\›Ý™Y^\\ÙKˆ‹ˆZ[ŽˆˆX^ˆKˆÝ\ˆŒBˆKˆÂˆÙ^Nˆš[™›Ü›X][Û•˜[YH‹ˆX™[ˆ’[™›Ü›X][Ûˆ˜[YHÈØ\ÙH‹ˆÜ›Ý\ˆ“X\›š[™È[˜[ZXÜÈ‹ˆ\\Ý[ZXÎˆ‘VÑÑS“ÕTÈTÔÕSTSÓˆ‹ˆ[ˆ’ÝÈ]XÚ›Û‹\™Y[™[X\›š[™ÈH\XØ[Ø\ÙHÛÛšX]\Ëˆ\È™[XZ[œÈHØÙ[˜\š[È\ÜÝ[\[Ûˆ[[HÚ[››Ûˆ^Y\ˆ^\ÝËˆ‹ˆZ[ŽˆˆX^ˆKˆÝ\ˆŒBˆKˆÂˆÙ^Nˆ˜[œÙ™\˜Xš[]H‹ˆX™[ˆ•˜[œÙ™\˜Xš[]H‹ˆÜ›Ý\ˆ“X\›š[™È[˜[ZXÜÈ‹ˆ\\Ý[ZXÎˆ‘VÑÑS“ÕTÈTÔÕSTSÓˆ‹ˆ[ˆ’ÝÈ]XÚX\›š[™Èœ›ÛHš[ÜˆØ\Ù\È\Y\ÈÈ]\™KØÝ\ÝÛY\ˆÛÛ^Ëˆ‹ˆZ[ŽˆˆX^ˆKˆÝ\ˆŒBˆKˆÂˆÙ^Nˆ˜˜\ÙPØ\Xš[]H‹ˆX™[ˆ˜\ÙHØ\Xš[]H‹ˆÜ›Ý\ˆÛÛ\]]]™HÈ[š\›Û›Y[[ÛÛ™][ÛœÈ‹ˆ\\Ý[ZXÎˆ‘VÑÑS“ÕTÈTÔÕSTSÓˆ‹ˆ[ˆØ\Xš[]H]˜Z[X›HÚ]Ý]›ÜšY]\žHXØÝ[][]Y^\šY[˜ÙK›Üˆ^[\Hœ›ÛHH[™\›Z[™Èœ›ÛY\ˆ[Ù[ˆ‹ˆZ[ŽˆˆX^ˆKˆÝ\ˆŒBˆKˆÂˆÙ^NˆœÝ[[™\ÜÔ˜]H‹ˆX™[ˆ“[ÛHÝ[[™\ÜÈ‹ˆÜ›Ý\ˆÛÛ\]]]™HÈ[š\›Û›Y[[ÛÛ™][ÛœÈ‹ˆ\\Ý[ZXÎˆ‘VÑÑS“ÕTÈTÔÕSTSÓˆ‹ˆ[ˆ’ÝÈ]ZXÚÛHXØÝ[][]Y^\šY[˜ÙHÜÙ\È™[]˜[˜ÙKˆ‹ˆZ[ŽˆˆX^ˆKˆÝ\ˆŒBˆB—NÂ‚™^ÜÛÛœÝÓÓTÕS‘S‘×ÑVSTTÎˆÛÛ\Ý[™[™Ñ^[\V×HHÂˆÂˆYˆ˜Ø\Ø\‹ˆX™[ˆØ\Ø\‹ˆ›ÛNˆ”Ý›Û™ÈÛÛ\Ý[™[™È^\\ÙHØ[™Y]Kˆ‹ˆÛÛ\[žS˜[YNˆØ\Ø\‹ˆ\Ý\Nˆ”ÔÒUU‘WÕTÕ‹ˆ\ÝX™[ˆ”ÜÚ]]™H\Ý‹ˆØ[›ÛšXØ[]Y\Ý[ÛŽˆØ[ˆ™\X]YXÛÛ›ÛZXØ[HÛÛœÙ\]Y[X[Øš™XÝ]™[HÜ˜YYXÚ\Ú[ÛœÈÜ™X]H^\\ÙH]HØ\X›HÚ[[™Ù\ˆØ[››Ý]ZXÚÛH™\›ÙXÙOÈ‹ˆ›ÙXÝØ]YÛÜžNˆ‘\Ü]\ÈÈœ˜]YÈ^Ù\[Ûˆ™\ÛÛ][Ûˆ‹ˆš[˜Ú\[XÚ\Ú[ÛŽˆ‘\Ü]HÈœ˜]YÈ^Ù\[Ûˆ™\ÛÛ][ÛˆXÝ[Û‹ˆ‹ˆÜ˜YSØš™XÝ]š]Nˆ”™[]]™[HYÚ‹ˆ\XØ[™YY˜XÚÔÜYYˆ”™[]]™[H˜\ÝH^\ËÝÙYZÜÈ\È[ˆ\˜Ú]\H\ÜÝ[\[Ûˆ‹ˆXÛÛ›ÛZXÐÛÜÝÙ‘\œ›ÜŽˆ’YÚ‹ˆØ\ÙQœ™\]Y[˜ÞNˆ’YÚÈ™\X]YÛÜšÙ›ÝÈ‹ˆÜ›ÜÜÐÝ\ÝÛY\•˜[œÙ™\”Ý[X[ˆ”]\ÚX›HYÚ]™\]Z\™\È]šY[˜ÙH‹ˆ\ÝÜšXØ[Ø\ÙQ\[™[˜ÙNˆ”Ý[X[H[\Ü[‹ˆš[X\žTÝÙ\’\Ý\Ú\ÎˆÛÛ\Ý[™[™È^\\ÙKÝ[X[H™Z[™›Ü˜Ú[™È™]ÛÜšÈXÛÛ›ÛZY\È[™›ØÙ\ÜÈÝÙ\‹ˆ‹ˆÛÛ\][™ÔÝÙ\’\Ý\Ú\Îˆ•ÛÜšÙ›ÝÈ\ÝšX][Û‹›ØÙ\ÜÈ^XÝ][Û‹Üˆ]HšYÚÈX^HX]\ˆ\È]XÚ\ÈHØÛÜ™X›ÛÚËˆ‹ˆÚPØ[›ÛšXØ[ˆÛÜÙHÈHÝ›Û™Ù\Ý[Ü™]XØ[[š\›Û›Y[›Üˆ™[ˆÝ[‰ÜÈ\Ú\Îˆ™\X]YXÚ\Ú[ÛœËØœÙ\˜X›HÝ]ÛÛY\ËYX[š[™Ù[XÛÛ›ÛZXÜË[™ÛÜšÙ›ÝÈØ\\™Kˆ‹ˆ^XÝY[Ü™]XØ[™Z]š[ÜŽˆÛÛ\Ý[™[™È^\\ÙHÚÝ[™H]\ÚX›HYˆÜ›ÜÜËXÝ\ÝÛY\ˆ˜[œÙ™\ˆ[™™\Ú\Ý[˜ÙHÈÛÛ\™\ÜÚ[Ûˆ\™H[[ÛœÝ˜]Yˆ‹ˆX‘˜Z[\™PÛÛ™][ÛŽˆ’YˆHXˆ™Z™XÝÈÑHY\™[H™XØ]\ÙHØ\ÙHÛÝ[\È[Ù\ÝÜˆXØÙ\ÈÑHÚ]Ý]\Ý[™È˜[œÙ™\˜Xš[]KØÛÛ\™\ÜÚXš[]KHœ˜[Y]ÛÜšÈ\È™Z]š[™ÈÛÜ›Kˆ‹ˆÛÝ\˜ÙP\Ù^Nˆ[ˆÞ[]XÑ]\Ù]X™[ˆÐTÐTÔÓÕTÑKˆØ\ÙTÙ]ˆÂˆ˜[YNˆ”Þ[]XÈ\Ü]\ÈØÛÜ™X›ÛÚÈ‹ˆ\ØÜš\[ÛŽˆØ[›ÛšXØ[ÜÚ]]™K]\Ýš^\™H›ÜˆØš™XÝ]™[HÜ˜YY\Ü]H[™^Ù\[ÛˆXÚ\Ú[ÛœËˆ‹ˆÛÝ\˜ÙU\NˆÐS“Ó’PÐSÔÖS•UPÈ‹ˆÛÝ\˜ÙTÞ\Ý[RÙ^Nˆ˜Ø[›ÛšXØ[Ý\ÝÜÝZ]H‹ˆÛÝ\˜ÙTÞ\Ý[SX™[ˆØ[›ÛšXØ[\Ýš^\™H‹ˆÛÝ\˜ÙT[“X™[ˆØ\Ø\ÜÚ]]™H\Ýš^\™H‹ˆÛÝ\˜ÙT[•\NˆœÞ[]X×Ùš^\™H‹ˆÛÝ\˜ÙT›Ý]Nˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÛÝ™\šY]ÏØØ[›ÛšXØ[XØ\Ø\‹ˆÙ[™\˜]Y]ˆ™]È]JŒŒ‹LKLULŽŒŒŒˆŠKˆ\ÔÞ[]XÎˆYKˆ›Ý™[˜[˜ÙSX™[ˆÐTÐTÔÓÕTÑKˆ\š]˜][Û‘\ØÜš\[ÛŽˆÜ™X]Y\ÈHÞ[]XÈ[ÜžK]\ÝØ\ÙTÙ]È›ÝØ\Ø\Ü\˜][Û˜[]Kˆ‚ˆKˆ[˜[\Ú\ÎˆÂˆÛÛ\[žS˜[YNˆØ\Ø\\˜Ú]\H™]šY]È‹ˆÛÛ\[žU\›ˆ[ˆ›ÙXÝØ]YÛÜžNˆ‘\Ü]\ÈÈœ˜]YÈ^Ù\[Ûˆ™\ÛÛ][Ûˆ‹ˆ›ÙXÝ\ØÜš\[ÛŽˆÛÛ\[žKX[˜[\Ú\È\˜Ú]\H›ÜˆH\Ü]\ÈÛÜšÙ›ÝÈÚ\™HXÚ\Ú[ÛœÈØ[ˆ]\ÚX›H™HÜ˜YYYØZ[œÝÝ]ÛÛY\ËˆØ\ÙH›ÝÜÈ\™HÞ[]XÈš^\™\ÈÛ›Kˆ‹ˆ\™Ù]Ý\ÝÛY\Žˆ“Ü\˜][ÛœÈX[\È[™[™È™\X]Y\Ü]\ËÚ\™ÙX˜XÚÜËÜˆ^Ù\[ÛˆÛÜšÙ›ÝÜËˆ‹ˆ\Ú[™\ÜÓ[Ù[ˆ•[šÛ›ÝÛˆÈ›Ý\ÜÙ\ÜÙY‹ˆÛÜšÙ›ÝÎˆ‘\Ü]H[ZÙHOˆ]šY[˜ÙH™]šY]ÈOˆ™XÛÛ[Y[™Y™\ÛÛ][ÛˆOˆ[X[ˆ\›Ý˜[ÜˆÝ™\œšYHOˆÝ]ÛÛYH[™Ü˜YHØ\\™Kˆ‹ˆXÚ\Ú[Û‘\ØÜš\[ÛŽˆ”™XÛÛ[Y[™\›Ý™K[žK™Y[™\ØØ[]KÜˆ™\]Y\Ý]šY[˜ÙH›Üˆ™\X]Y\Ü]HØ\Ù\Ëˆ‹ˆXÝ[Û”ÜXÙNˆ\›Ý™K[žK™Y[™\ØØ[]KÜˆ™\]Y\ÝY][Û˜[]šY[˜ÙKˆ‹ˆÛÛ\[žTÝYÙNˆ•[šÛ›ÝÛˆÈ›Ý\ÜÙ\ÜÙY‹ˆ\Ú\Îˆ•\È\ÈHÝ›Û™ÈØ[™Y]H›ÜˆÛÛ\Ý[™[™È^\\ÙHYˆH›ÙXÝÝÛœÈHÜ˜YYÛÜšÙ›ÝÈ[™Ü›ÜÜËXÝ\ÝÛY\ˆØ\Ù\È™[XZ[ˆ˜[œÙ™\˜X›Kˆ‹ˆXÛÛ›ÛZXÐÛÜÝÜ›Û™ÑXÚ\Ú[ÛŽˆ’YÚ‹ˆÝ]ÛÛYSØš™XÝ]š]Nˆ“Øš™XÝ]™HÈ]\›Z[š\ÝXÈ‹ˆ˜]\˜[™YY˜XÚÕ[YNˆ‘^\È‹ˆØ\ÙQœ™\]Y[˜ÞNˆ’YÚ‹ˆÝ\ÝÛY\Ø\ÙR]\›ÙÙ[™Z]Nˆ“YY][H‹ˆ[š\›Û›Y[[Ú[™ÙT˜]Nˆ“[Ù\˜]H‹ˆ›Ý[™][Û“[Ù[[\›Ý™[Y[˜]Nˆ“[Ù\˜]H‹ˆÝÛœÑXÚ\Ú[Û”Ú[ˆ–Y\È‹ˆÛÛ›ÛÐXÝ[ÛŽˆ”\X[H‹ˆØœÙ\™\ÓÝ]ÛÛYNˆ–Y\È‹ˆØ\\™\ÓÝ™\œšY\Îˆ–Y\È‹ˆØ\\™\ÑÜ˜Y\Îˆ–Y\È‹ˆX\›œÐXÜ›ÜÜÐÝ\ÝÛY\œÎˆ”\X[H‹ˆÛÛ˜XÝX[X\›š[™ÔšYÚÎˆ”\X[È™\ÝšXÝY‹ˆ[œÐÛÛ›ÛY^\š[Y[Îˆ”ÛÛY][Y\È‹ˆ\]\Ó[Ù[ÛXÞT™YÝ[\›Nˆ–Y\È‹ˆ\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛNˆ–Y\È‹ˆ]Q^Û\Ú]š]Nˆ“YY][H‹ˆÛÜšÙ›ÝÑ[X™YY™\ÜÎˆ’YÚ‹ˆÝÚ]Ú[™ÐÛÜÝÐ\ÜÝ[\[ÛŽˆ“YY][H‹ˆ™XZ[Xš[]Nˆ“[Ù\˜]H‹ˆ›Ý[™][Û“[Ù[\[™[˜ÙNˆ“YY][H‹ˆ]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™Nˆ“YY][H‹ˆ\ÝšX][ÛY˜[YÙNˆ•[šÛ›ÝÛˆ‹ˆ™YÝ[]ÜžPÛÛ˜XÝX[˜\œšY\œÎˆ“YY][H‚ˆKˆX˜]\ÎˆVSTWÑPUTËˆØÙ[˜\š[ÜÎˆQUSÔÐÑST’SÔËˆØ\Ù\ÎˆÜ™X]TÞ[]XÐØ\Ù\ÊÂˆ™Yš^ˆ”ÖS‹QÔ‹ˆÛÝ\˜ÙSX™[ˆÐTÐTÔÓÕTÑKˆÙYÛY[ÎˆÈ›ZY[X\šÙ]X\šÙ]XÙH‹™[\œš\ÙHš[XÚ‹˜ÛÛœÝ[Y\ˆ]›Ü›H—KˆØ\ÙU\\ÎˆÈ™]šY[˜ÙHZ\ÛX]Ú‹œÛXÞH^Ù\[Ûˆ‹™œ˜]YÚYÛ˜[‹˜Ý\ÝÛY\ˆ\X[—KˆXÚ\Ú[ÛœÎˆÈ˜\›Ý™HÛZ[H‹™[žHÛZ[H‹œ™\]Y\Ý[Ü™H]šY[˜ÙH‹™\ØØ[]H›Üˆ™]šY]È—KˆÝ]ÛÛY\ÎˆÈ˜Ú\™ÙX˜XÚÈ]›ÚYY‹˜Ý\ÝÛY\ˆ™]Z[™Y‹›ÜÜÈ™]™[Y‹›X[X[™]šY]ÈØ]™Y—KˆÛÝ[ˆŽˆ[^T]\›ŽˆÌËKËLMKˆ[œ™\ÛÛ™Y]™\žNˆKˆÝ™\œšYQ]™\žNˆˆYÙQ]™\žNˆKˆØš™XÝ]™PšX\ÎˆœÝ›Û™È‹ˆ˜[YP˜\ÙNˆNˆJBˆKˆÂˆYˆ›\Ý[‹[XœÈ‹ˆX™[ˆ“\Ý[ˆXœÈ‹ˆ›ÛNˆ[XšYÝ[Ý\ÈØ\ÙNˆXØÝ[][]Y™\ÙX\˜ÚÜˆÛ›ÝÛYÙHX^H›Ý\]X[HÜ˜YYXÚ\Ú[ÛˆØÛÜ™X›ÛÚËˆ‹ˆÛÛ\[žS˜[YNˆ“\Ý[ˆXœÈ‹ˆ\Ý\Nˆ“ÕS‘T–WÕTÕ‹ˆ\ÝX™[ˆ›Ý[™\žH\Ý‹ˆØ[›ÛšXØ[]Y\Ý[ÛŽˆ’\ÈXØÝ[][]Y›ÜšY]\žHÛ›ÝÛYÙHHØ[YH[™È\ÈXØÝ[][]YÜ˜YY^\\ÙOÈ‹ˆ›ÙXÝØ]YÛÜžNˆRKX\ÜÚ\ÝY™\ÙX\˜ÚÈ\Ý[š[™È‹ˆš[˜Ú\[XÚ\Ú[ÛŽˆ”™\ÙX\˜Ú[œÚYÚÈ™XÛÛ[Y[™][Ûˆ\ÙYÈÝ\Ü]\ˆ›ÙXÝX\šÙ][™ËÜˆÝ˜]YÞHXÚ\Ú[ÛœËˆ‹ˆÜ˜YSØš™XÝ]š]Nˆ“ÝË]Ë[YY][HÈÙ[ˆ[™\™XÝ‹ˆ\XØ[™YY˜XÚÔÜYYˆ‘[^YY[™ÛÛY][Y\È[XšYÝ[Ý\È‹ˆXÛÛ›ÛZXÐÛÜÝÙ‘\œ›ÜŽˆ“YY][HÈÛÛ^Y\[™[‹ˆØ\ÙQœ™\]Y[˜ÞNˆ”Ý[X[HYÚ™\ÙX\˜Ú›Û[YK]›Ý™XÙ\ÜØ\š[HYÚÜ˜YYYXÚ\Ú[Ûˆ›Û[YH‹ˆÜ›ÜÜÐÝ\ÝÛY\•˜[œÙ™\”Ý[X[ˆ•[˜Ù\Z[ˆ‹ˆ\ÝÜšXØ[Ø\ÙQ\[™[˜ÙNˆ”]Y\Ý[Û˜X›H‹ˆš[X\žTÝÙ\’\Ý\Ú\Îˆ”Ý[X[H˜[XX›H›ÜšY]\žHÛ›ÝÛYÙHÈš[[™ÈØXš[™]˜]\ˆ[ˆHYHØÛÜ™X›ÛÚËˆ‹ˆÛÛ\][™ÔÝÙ\’\Ý\Ú\Îˆœ˜[™ÛÜšÙ›ÝÈÝÛ™\œÚ\™\ÙX\˜Ú\ÝšX][Û‹Üˆ›ÜšY]\žHXØÙ\ÜÈX^HÛZ[˜]Kˆ‹ˆÚPØ[›ÛšXØ[ˆ”Ù\\˜]\È[™›Ü›X][ÛˆXØÝ[][][Ûˆœ›ÛHXÚ\Ú[ÛˆOˆÝ]ÛÛYHOˆÜ˜YHXØÝ[][][Û‹ˆ‹ˆ^XÝY[Ü™]XØ[™Z]š[ÜŽˆ•HXˆÚÝ[›Ý[™™\ˆÝ›Û™ÈÑHY\™[Hœ›ÛH\™ÙH[[Ý[ÈÙˆ›ÜšY]\žH™\ÙX\˜ÚÜˆÝ\ÝÛY\ˆÛ›ÝÛYÙKˆ‹ˆX‘˜Z[\™PÛÛ™][ÛŽˆ’Yˆ[\šY]ËÜ™\ÙX\˜Ú›Û[YH[Û™HÜ™X]\ÈHÝ›Û™ÈÑHÛÛ˜Û\Ú[ÛˆÚ]Ý][ˆØœÙ\˜X›HXÚ\Ú[Û‹ÛÝ]ÛÛYKÙÜ˜YHÛÜHXˆ\ÈÛÛ™\ÙYHš[[™ÈØXš[™]Ú]HØÛÜ™X›ÛÚËˆ‹ˆÛÝ\˜ÙP\Ù^Nˆ[ˆÞ[]XÑ]\Ù]X™[ˆTÕS—ÔÓÕTÑKˆØ\ÙTÙ]ˆÂˆ˜[YNˆ”Þ[]XÈ™\ÙX\˜ÚÛ\Ý[š[™ÈØÛÜ™X›ÛÚÈ‹ˆ\ØÜš\[ÛŽˆØ[›ÛšXØ[›Ý[™\žK]\Ýš^\™H›Üˆ]X[]]]™H™\ÙX\˜ÚÚ\™HXÚ\Ú[Û‹ÛÝ]ÛÛYKÙÜ˜YH[šØYÙH\ÈÙXZËˆ‹ˆÛÝ\˜ÙU\NˆÐS“Ó’PÐSÔÖS•UPÈ‹ˆÛÝ\˜ÙTÞ\Ý[RÙ^Nˆ˜Ø[›ÛšXØ[Ý\ÝÜÝZ]H‹ˆÛÝ\˜ÙTÞ\Ý[SX™[ˆØ[›ÛšXØ[\Ýš^\™H‹ˆÛÝ\˜ÙT[“X™[ˆ“\Ý[ˆXœÈ›Ý[™\žH\Ýš^\™H‹ˆÛÝ\˜ÙT[•\NˆœÞ[]X×Ùš^\™H‹ˆÛÝ\˜ÙT›Ý]Nˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÛÝ™\šY]ÏØØ[›ÛšXØ[[\Ý[‹[XœÈ‹ˆÙ[™\˜]Y]ˆ™]È]JŒŒ‹LKLULŽŒŒŒˆŠKˆ\ÔÞ[]XÎˆYKˆ›Ý™[˜[˜ÙSX™[ˆTÕS—ÔÓÕTÑKˆ\š]˜][Û‘\ØÜš\[ÛŽˆÜ™X]Y\ÈHÞ[]XÈ[ÜžK]\ÝØ\ÙTÙ]È›Ý\Ý[ˆXœÈÜ\˜][Û˜[]Kˆ‚ˆKˆ[˜[\Ú\ÎˆÂˆÛÛ\[žS˜[YNˆ“\Ý[ˆXœÈ\˜Ú]\H™]šY]È‹ˆÛÛ\[žU\›ˆ[ˆ›ÙXÝØ]YÛÜžNˆRKX\ÜÚ\ÝY™\ÙX\˜ÚÈ\Ý[š[™È‹ˆ›ÙXÝ\ØÜš\[ÛŽˆÛÛ\[žKX[˜[\Ú\È\˜Ú]\H›ÜˆRKX\ÜÚ\ÝY™\ÙX\˜ÚÛ\Ý[š[™ÈÛÜšÙ›ÝÜËˆØ\ÙH›ÝÜÈ\™HÞ[]XÈš^\™\ÈÛ›Kˆ‹ˆ\™Ù]Ý\ÝÛY\Žˆ”›ÙXÝX\šÙ][™Ë[™™\ÙX\˜ÚX[\ÈÞ[\Ú^š[™ÈÝ\ÝÛY\ˆ[\šY]ÜÈÜˆ]X[]]]™H™YY˜XÚËˆ‹ˆ\Ú[™\ÜÓ[Ù[ˆ•[šÛ›ÝÛˆÈ›Ý\ÜÙ\ÜÙY‹ˆÛÜšÙ›ÝÎˆ”™\ÙX\˜Ú›Û\Oˆ\XÚ\[ÜÙ\ÜÚ[Ûˆ]šY[˜ÙHOˆÞ[\Ú\ÈOˆ™XÛÛ[Y[™][ÛˆOˆ]\ˆ›ÙXÝÜˆY\ÜØYÚ[™ÈXÚ\Ú[Û‹ˆ‹ˆXÚ\Ú[Û‘\ØÜš\[ÛŽˆ”™XÛÛ[Y[™[Y\ËÜÚ][Ûš[™Ëš[Üš]^˜][Û‹Üˆ›ÛÝË]\™\ÙX\˜Ú]Y\Ý[ÛœÈœ›ÛH]X[]]]™H]šY[˜ÙKˆ‹ˆXÝ[Û”ÜXÙNˆ”™XÛÛ[Y[™[Y\ËÙYÛY[Ë›ÛÝË]\™\ÙX\˜ÚÜˆY™\ˆÛÛ˜Û\Ú[Û‹ˆ‹ˆÛÛ\[žTÝYÙNˆ•[šÛ›ÝÛˆÈ›Ý\ÜÙ\ÜÙY‹ˆ\Ú\ÎˆXØÝ[][]YÛ›ÝÛYÙHX^H™H˜[XX›K]HØÛÜ™X›ÛÚÈÛZ[H\ÈÙXZÙ\ˆ[›\ÜÈ™XÛÛ[Y[™][ÛœÈ\™HYYÈØš™XÝ]™H]\ˆÜ˜Y\Ëˆ‹ˆXÛÛ›ÛZXÐÛÜÝÜ›Û™ÑXÚ\Ú[ÛŽˆ“YY][H‹ˆÝ]ÛÛYSØš™XÝ]š]Nˆ”ÝXš™XÝ]™H‹ˆ˜]\˜[™YY˜XÚÕ[YNˆ“[ÛÈ‹ˆØ\ÙQœ™\]Y[˜ÞNˆ“YY][H‹ˆÝ\ÝÛY\Ø\ÙR]\›ÙÙ[™Z]Nˆ’YÚ‹ˆ[š\›Û›Y[[Ú[™ÙT˜]Nˆ“[Ù\˜]H‹ˆ›Ý[™][Û“[Ù[[\›Ý™[Y[˜]Nˆ‘˜\Ý‹ˆÝÛœÑXÚ\Ú[Û”Ú[ˆ”\X[H‹ˆÛÛ›ÛÐXÝ[ÛŽˆ”™XÛÛ[Y[™ÈÛ›H‹ˆØœÙ\™\ÓÝ]ÛÛYNˆ”\X[H‹ˆØ\\™\ÓÝ™\œšY\Îˆ”\X[H‹ˆØ\\™\ÑÜ˜Y\Îˆ“›È‹ˆX\›œÐXÜ›ÜÜÐÝ\ÝÛY\œÎˆ”\X[H‹ˆÛÛ˜XÝX[X\›š[™ÔšYÚÎˆ”\X[È™\ÝšXÝY‹ˆ[œÐÛÛ›ÛY^\š[Y[Îˆ”ÛÛY][Y\È‹ˆ\]\Ó[Ù[ÛXÞT™YÝ[\›Nˆ“ØØØ\Ú[Û˜[H‹ˆ\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛNˆ”\X[H‹ˆ]Q^Û\Ú]š]Nˆ“YY][H‹ˆÛÜšÙ›ÝÑ[X™YY™\ÜÎˆ“YY][H‹ˆÝÚ]Ú[™ÐÛÜÝÐ\ÜÝ[\[ÛŽˆ“ÝÈ‹ˆ™XZ[Xš[]Nˆ“[Ù\˜]H‹ˆ›Ý[™][Û“[Ù[\[™[˜ÙNˆ’YÚ‹ˆ]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™Nˆ“ÝÈ‹ˆ\ÝšX][ÛY˜[YÙNˆ•[šÛ›ÝÛˆ‹ˆ™YÝ[]ÜžPÛÛ˜XÝX[˜\œšY\œÎˆ“ÝÈ‚ˆKˆX˜]\ÎˆVSTWÑPUTËˆØÙ[˜\š[ÜÎˆÂˆÈ‹‹‘QUSÔÐÑST’SÔÖÌKÝ\[™ÐØ\Ù\ÎˆLØ\Ù\Ô\“[ÛˆL™YY˜XÚÑ[^Q^\ÎˆÍK˜[œÙ™\˜Xš[]Nˆ‹[™›Ü›X][Û•˜[YNˆMKX\›š[™ÑY™šXÚY[˜ÞNˆKˆÈ‹‹‘QUSÔÐÑST’SÔÖÌWKÝ\[™ÐØ\Ù\ÎˆLŒØ\Ù\Ô\“[ÛˆŒ™YY˜XÚÑ[^Q^\ÎˆK˜[œÙ™\˜Xš[]NˆK[™›Ü›X][Û•˜[YNˆKX\›š[™ÑY™šXÚY[˜ÞNˆŒˆBˆKˆØ\Ù\ÎˆÜ™X]TÞ[]XÐØ\Ù\ÊÂˆ™Yš^ˆ”ÖS‹T”ÐÒ‹ˆÛÝ\˜ÙSX™[ˆTÕS—ÔÓÕTÑKˆÙYÛY[ÎˆÈ™Ü›ÝÝX[H‹œ›ÙXÝX[H‹™[\œš\ÙH™\ÙX\˜Ú—KˆØ\ÙU\\ÎˆÈ[YHÞ[\Ú\È‹œÜÚ][Ûš[™È™XY‹™™X]\™Hš[Üš]H‹š[\šY]È›ÛÝË]\—KˆXÚ\Ú[ÛœÎˆÈœ™XÛÛ[Y[™[YH‹œ™XÛÛ[Y[™ÙYÛY[‹œ™XÛÛ[Y[™›ÛÝË]\‹™Y™\ˆÛÛ˜Û\Ú[Ûˆ—KˆÝ]ÛÛY\ÎˆÈ™\™XÝ[Û˜[H\ÙY[‹˜[XšYÝ[Ý\ÈÝÛœÝ™X[HÚYÛ˜[‹››ÝYÜY‹›]\ˆ˜[Y]YžHX[H—KˆÛÝ[ˆˆ[^T]\›ŽˆÌŒKKŒLKˆ[œ™\ÛÛ™Y]™\žNˆˆÝ™\œšYQ]™\žNˆ‹ˆYÙQ]™\žNˆËˆØš™XÝ]™PšX\Îˆ›Z^Y‹ˆ˜[YP˜\ÙNˆÌˆJBˆKˆÂˆYˆ˜X\H‹ˆX™[ˆX\HÈ[Ù[Yš\œÝ™\ÙX\˜Ú‹ˆ›ÛNˆÚ[[™ÙHØ\ÙNˆÝ›Û™Ù\ˆ[Ù[[[YÙ[˜ÙHX^HÝXœÝ]]H›Üˆ›ÜšY]\žH^\šY[˜ÙKˆ‹ˆÛÛ\[žS˜[YNˆX\H‹ˆ\Ý\Nˆ”ÕP”ÕUUSÓ—ÐÓÓT‘TÔÒSÓ—ÕTÕ‹ˆ\ÝX™[ˆ”ÝXœÝ]][ÛˆÈÛÛ\™\ÜÚ[Ûˆ\Ý‹ˆØ[›ÛšXØ[]Y\Ý[ÛŽˆØ[ˆÝY™šXÚY[HØ\X›H[Ù[ÈÜˆÚ[][][ÛˆÝXœÝ]]H›Üˆ™X[]ÛÜ›^\šY[˜ÙH]\ÝÜšXØ[HYÈ™HXØÝ[][]YØ\ÙHžHØ\ÙOÈ‹ˆ›ÙXÝØ]YÛÜžNˆ“[Ù[Yš\œÝ™\ÙX\˜ÚÈÚ[][][Ûˆ‹ˆš[˜Ú\[XÚ\Ú[ÛŽˆ”™YXÝ[Û‹ÜÚ[][][ÛˆÙˆZÙ[H[X[ˆÜˆX\šÙ]™\ÜÛœÙHÈH›ÜÜÙYXÝ[Û‹ˆ‹ˆÜ˜YSØš™XÝ]š]Nˆ”Ý[X[HYÚÚ[ˆÚ[][][Ûˆ™YXÝ[ÛœÈ\™H]\ˆÛÛ\\™YÚ]XÝX[Ý]ÛÛY\È‹ˆ\XØ[™YY˜XÚÔÜYYˆ‘\[™ÈÛˆ™YXÝ[ÛˆÜš^›Ûˆ‹ˆXÛÛ›ÛZXÐÛÜÝÙ‘\œ›ÜŽˆ•\ÙKXØ\ÙH\[™[‹ˆØ\ÙQœ™\]Y[˜ÞNˆ”Ý[X[HYÚ›ÝYÚÚ[][][Ûˆ‹ˆÜ›ÜÜÐÝ\ÝÛY\•˜[œÙ™\”Ý[X[ˆ”Ý[X[HÙ[˜[‹ˆ\ÝÜšXØ[Ø\ÙQ\[™[˜ÙNˆÛÜ™H]Y\Ý[ÛˆHÝ[X[HÝÙ\ˆYˆ[Ù[š[ÜœËÜÚ[][][ÛˆÝXœÝ]]H›Üˆ^\šY[˜ÙH‹ˆš[X\žTÝÙ\’\Ý\Ú\Îˆ“[Ù[ÜÚ[][][ÛˆØ\Xš[]HX^HÛÛ\™\ÜÈH˜[YHÙˆ\ÝÜšXØ[ØÛÜ™X›ÛÚÜËˆ‹ˆÛÛ\][™ÔÝÙ\’\Ý\Ú\Îˆ˜\ÙH[Ù[Ø\Xš[]KÚ[][][Ûˆ]X[]KÜˆÞ[]XÈ]HÙ[™\˜][ÛˆX^HÛZ[˜]H›ÜšY]\žH^\šY[˜ÙKˆ‹ˆÚPØ[›ÛšXØ[ˆ‘\™XÝH\ÝÈHÛÛ™HÜš]XÚ\ÛH]XÛÛ›ÛZXØ[H\ÙY[ØÛÜ™X›ÛÚÈ[™›Ü›X][ÛˆØ[ˆ™HÛÛ\™\ÜÙYÚ[][]Y[™™\œ™YÜˆ™[X\›™Yˆ‹ˆ^XÝY[Ü™]XØ[™Z]š[ÜŽˆ’[˜Ü™X\Ú[™È˜\ÙK[[Ù[ÜÚ[][][ÛˆØ\Xš[]HÚÝ[™HØ\X›HÙˆ™YXÚ[™ÈH[Ù[YY˜[YÙHÙˆ\ÝÜšXØ[^\šY[˜ÙKˆ‹ˆX‘˜Z[\™PÛÛ™][ÛŽˆ’YˆHXˆ[Ø^\È™]Ø\™ÈH\™Ù\ˆ\ÝÜšXØ[ØÛÜ™X›ÛÚÈ[™Ø[››Ý™\™\Ù[[Ù[ÜÚ[][][ÛˆÝXœÝ]][Û‹H[ÜžH\Ý\È[˜ÛÛ\]Kˆ‹ˆÛÝ\˜ÙP\Ù^Nˆ[ˆÞ[]XÑ]\Ù]X™[ˆPT•WÔÓÕTÑKˆØ\ÙTÙ]ˆÂˆ˜[YNˆ”Þ[]XÈ[Ù[Yš\œÝ™\ÙX\˜ÚØÛÜ™X›ÛÚÈ‹ˆ\ØÜš\[ÛŽˆØ[›ÛšXØ[ÝXœÝ]][Û‹ØÛÛ\™\ÜÚ[Ûˆš^\™H›Üˆ[Ù[Yš\œÝ™\ÙX\˜Ú[™Ú[][][ÛˆÛZ[\Ëˆ‹ˆÛÝ\˜ÙU\NˆÐS“Ó’PÐSÔÖS•UPÈ‹ˆÛÝ\˜ÙTÞ\Ý[RÙ^Nˆ˜Ø[›ÛšXØ[Ý\ÝÜÝZ]H‹ˆÛÝ\˜ÙTÞ\Ý[SX™[ˆØ[›ÛšXØ[\Ýš^\™H‹ˆÛÝ\˜ÙT[“X™[ˆX\HÝXœÝ]][Û‹ØÛÛ\™\ÜÚ[Ûˆ\Ýš^\™H‹ˆÛÝ\˜ÙT[•\NˆœÞ[]X×Ùš^\™H‹ˆÛÝ\˜ÙT›Ý]Nˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÛÝ™\šY]ÏØØ[›ÛšXØ[XX\H‹ˆÙ[™\˜]Y]ˆ™]È]JŒŒ‹LKLULŽŒŒŒˆŠKˆ\ÔÞ[]XÎˆYKˆ›Ý™[˜[˜ÙSX™[ˆPT•WÔÓÕTÑKˆ\š]˜][Û‘\ØÜš\[ÛŽˆÜ™X]Y\ÈHÞ[]XÈ[ÜžK]\ÝØ\ÙTÙ]È›ÝX\HÜ\˜][Û˜[]Kˆ‚ˆKˆ[˜[\Ú\ÎˆÂˆÛÛ\[žS˜[YNˆX\H[Ù[Yš\œÝ\˜Ú]\H™]šY]È‹ˆÛÛ\[žU\›ˆ[ˆ›ÙXÝØ]YÛÜžNˆ“[Ù[Yš\œÝ™\ÙX\˜ÚÈÚ[][][Ûˆ‹ˆ›ÙXÝ\ØÜš\[ÛŽˆÛÛ\[žKX[˜[\Ú\È\˜Ú]\H›Üˆ[Ù[Yš\œÝ™\ÙX\˜ÚÚ\™H˜\ÙH[[YÙ[˜ÙHX^HÛÛ\™\ÜÈH˜[YHÙˆ\ÝÜšXØ[Ø\Ù\ËˆØ\ÙH›ÝÜÈ\™HÞ[]XÈš^\™\ÈÛ›Kˆ‹ˆ\™Ù]Ý\ÝÛY\Žˆ”Ý˜]YÞK[™\ÝY[Üˆ™\ÙX\˜ÚX[\È\ÚÚ[™È[Ù[ZX]žH[˜[]XØ[]Y\Ý[ÛœËˆ‹ˆ\Ú[™\ÜÓ[Ù[ˆ•[šÛ›ÝÛˆÈ›Ý\ÜÙ\ÜÙY‹ˆÛÜšÙ›ÝÎˆ”]Y\Ý[ÛˆOˆ[Ù[YÙ[™\˜]Y[˜[\Ú\ÈOˆ™]šY]Ù\ˆÛÜœ™XÝ[ÛˆOˆXÚ\Ú[ÛˆÝ\ÜOˆÜ[Û˜[]\ˆÝ]ÛÛYH™]šY]Ëˆ‹ˆXÚ\Ú[Û‘\ØÜš\[ÛŽˆ‘Ù[™\˜]HÜˆ˜[šÈ[˜[]XØ[ÛÛ˜Û\Ú[ÛœË™\ÙX\˜Ú]ËÜˆØÙ[˜\š[È[\XØ][ÛœËˆ‹ˆXÝ[Û”ÜXÙNˆ‘Ù[™\˜]K˜[šËÝ\ÜÚ[[™ÙKÜˆ™\]Y\Ý[Ü™H]šY[˜ÙKˆ‹ˆÛÛ\[žTÝYÙNˆ•[šÛ›ÝÛˆÈ›Ý\ÜÙ\ÜÙY‹ˆ\Ú\Îˆ•HÚ[[™ÙH\ÈÚ]\ˆYÚ\ˆ˜\ÙHØ\Xš[]HØ[ˆÝXœÝ]]H›Üˆ›ÜšY]\žH\ÝÜšXØ[^\šY[˜ÙH]ZXÚÛH[›ÝYÚÈÙXZÙ[ˆØÛÜ™X›ÛÚÈÝÙ\‹ˆ‹ˆXÛÛ›ÛZXÐÛÜÝÜ›Û™ÑXÚ\Ú[ÛŽˆ“YY][H‹ˆÝ]ÛÛYSØš™XÝ]š]Nˆ“Z^Y‹ˆ˜]\˜[™YY˜XÚÕ[YNˆ•ÙYZÜÈ‹ˆØ\ÙQœ™\]Y[˜ÞNˆ’YÚ‹ˆÝ\ÝÛY\Ø\ÙR]\›ÙÙ[™Z]Nˆ’YÚ‹ˆ[š\›Û›Y[[Ú[™ÙT˜]Nˆ”˜\YHÚ[™Ú[™È‹ˆ›Ý[™][Û“[Ù[[\›Ý™[Y[˜]Nˆ‘˜\Ý‹ˆÝÛœÑXÚ\Ú[Û”Ú[ˆ”\X[H‹ˆÛÛ›ÛÐXÝ[ÛŽˆ”™XÛÛ[Y[™ÈÛ›H‹ˆØœÙ\™\ÓÝ]ÛÛYNˆ”\X[H‹ˆØ\\™\ÓÝ™\œšY\Îˆ–Y\È‹ˆØ\\™\ÑÜ˜Y\Îˆ”\X[H‹ˆX\›œÐXÜ›ÜÜÐÝ\ÝÛY\œÎˆ”\X[H‹ˆÛÛ˜XÝX[X\›š[™ÔšYÚÎˆ•[šÛ›ÝÛˆ‹ˆ[œÐÛÛ›ÛY^\š[Y[Îˆ”ÛÛY][Y\È‹ˆ\]\Ó[Ù[ÛXÞT™YÝ[\›Nˆ–Y\È‹ˆ\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛNˆ–Y\È‹ˆ]Q^Û\Ú]š]Nˆ“ÝÈ‹ˆÛÜšÙ›ÝÑ[X™YY™\ÜÎˆ“YY][H‹ˆÝÚ]Ú[™ÐÛÜÝÐ\ÜÝ[\[ÛŽˆ“ÝÈ‹ˆ™XZ[Xš[]Nˆ‘X\ÞH‹ˆ›Ý[™][Û“[Ù[\[™[˜ÙNˆ’YÚ‹ˆ]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™Nˆ“ÝÈ‹ˆ\ÝšX][ÛY˜[YÙNˆ•[šÛ›ÝÛˆ‹ˆ™YÝ[]ÜžPÛÛ˜XÝX[˜\œšY\œÎˆ“ÝÈ‚ˆKˆX˜]\ÎˆVSTWÑPUTËˆØÙ[˜\š[ÜÎˆÂˆÈ‹‹‘QUSÔÐÑST’SÔÖÌKÝ\[™ÐØ\Ù\ÎˆŒØ\Ù\Ô\“[Ûˆ™YY˜XÚÑ[^Q^\ÎˆÍK˜[œÙ™\˜Xš[]NˆK[™›Ü›X][Û•˜[YNˆKX\›š[™ÑY™šXÚY[˜ÞNˆK˜\ÙPØ\Xš[]Nˆ‹ÈKˆÈ‹‹‘QUSÔÐÑST’SÔÖÌWKÝ\[™ÐØ\Ù\ÎˆØ\Ù\Ô\“[ÛˆLŒ™YY˜XÚÑ[^Q^\ÎˆM˜[œÙ™\˜Xš[]NˆŽ[™›Ü›X][Û•˜[YNˆNX\›š[™ÑY™šXÚY[˜ÞNˆŽ‹˜\ÙPØ\Xš[]NˆËŒÍHBˆKˆØ\Ù\ÎˆÜ™X]TÞ[]XÐØ\Ù\ÊÂˆ™Yš^ˆ”ÖS‹SQ‹ˆÛÝ\˜ÙSX™[ˆPT•WÔÓÕTÑKˆÙYÛY[ÎˆÈš[™\ÝÜˆ™\ÙX\˜Ú‹œÝ˜]YÞH\ÚÈ‹›[Ù[]˜[X][Ûˆ—KˆØ\ÙU\\ÎˆÈ›X\šÙ]X\‹˜ÛÛ\[žH\ÜÙ\ÜÛY[‹œØÙ[˜\š[È[˜[\Ú\È‹™›Ü™XØ\ÝÜš]\]YH—KˆXÚ\Ú[ÛœÎˆÈœÝ\Ü\Ú\È‹˜Ú[[™ÙH\Ú\È‹œ™\]Y\Ý[Ü™H]šY[˜ÙH‹œ˜[šÈ[\›˜]]™H—KˆÝ]ÛÛY\ÎˆÈœ™]šY]Ù\ˆXØÙ\Y‹œ\X[H™]š\ÙY‹œÝ\\œÙYYžH™]È]H‹[œ™\ÛÛ™Y^\›˜[™\Ý[—KˆÛÝ[ˆŒ‹ˆ[^T]\›ŽˆÍËMÌŒKˆ[œ™\ÛÛ™Y]™\žNˆKˆÝ™\œšYQ]™\žNˆKˆYÙQ]™\žNˆ‹ˆØš™XÝ]™PšX\Îˆ›Z^Y‹ˆ˜[YP˜\ÙNˆLˆJBˆKˆÂˆYˆ›X^X™\›ˆ‹ˆX™[ˆ“X^X™\›ˆ‹ˆ›ÛNˆ[\›˜]]™HÝÙ\Žˆ]\›Z[š\ÝXÈ˜Z[ËÜØÚ[XHX^HX]\ˆ[Ü™H[ˆÛÛ\Ý[™[™È^\\ÙKˆ‹ˆÛÛ\[žS˜[YNˆ“X^X™\›ˆ‹ˆ\Ý\NˆST“UU‘WÔÕÑT—ÕTÕ‹ˆ\ÝX™[ˆ[\›˜]]™HÝÙ\ˆ\Ý‹ˆØ[›ÛšXØ[]Y\Ý[ÛŽˆ‘Ù\È[ˆRHÛÛ\[žH™YYÛÛ\Ý[™[™È^\\ÙH][ÜˆØ[ˆ\˜X›HÝÙ\ˆ™\ÚYH[ˆ]\›Z[š\ÝXÈÛXZ[ˆ[™œ˜\ÝXÝ\™OÈ‹ˆ›ÙXÝØ]YÛÜžNˆ‘]\›Z[š\ÝXÈš[˜[˜ÙHÈ[™Ü\˜][ÛœÈ[™œ˜\ÝXÝ\™H‹ˆš[˜Ú\[XÚ\Ú[ÛŽˆ”ÝXÝ\™Y[™Ùš[˜[˜ÙHØ[Ý[][ÛˆÜˆÛÛ›ÛYÜ\˜][Û˜[XÝ[Û‹ˆ‹ˆÜ˜YSØš™XÝ]š]Nˆ•™\žHYÚ‹ˆ\XØ[™YY˜XÚÔÜYYˆ’[[YYX]KÜÚÜ‹ˆXÛÛ›ÛZXÐÛÜÝÙ‘\œ›ÜŽˆ’YÚ‹ˆØ\ÙQœ™\]Y[˜ÞNˆ”™\X]Y]›Ý™XÙ\ÜØ\š[HÝ˜]YÚXØ[H[\Ü[›ÜˆX\›š[™È‹ˆÜ›ÜÜÐÝ\ÝÛY\•˜[œÙ™\”Ý[X[ˆ“›Ý™XÙ\ÜØ\š[HHš[X\žHÝ˜]YÚXÈ˜\šXX›H‹ˆ\ÝÜšXØ[Ø\ÙQ\[™[˜ÙNˆ”Ý[X[HÙXÛÛ™\žH‹ˆš[X\žTÝÙ\’\Ý\Ú\Îˆ‘]\›Z[š\ÝXÈ˜Z[Ë›ØÙ\ÜÈÝÙ\‹ÝÚ]Ú[™ÈÛÜÝËÛXZ[ˆ[™œ˜\ÝXÝ\™Kˆ‹ˆÛÛ\][™ÔÝÙ\’\Ý\Ú\ÎˆÛÛ\Ý[™[™È^\\ÙHX^H™HÙXZËÛ[Ù\ÝÚ[H\Ú[™\ÜÈÝÙ\ˆ™\ÚY\È[Ù]Ú\™Kˆ‹ˆÚPØ[›ÛšXØ[ˆ•\ÝÈ™[‰ÜÈ\™Ý[Y[]ÛÛYH\˜X›HRH\XØ][ÛœÈX^HÙ[Ú][[YÙ[˜ÙH™YYÈ˜]\ˆ[ˆ[[YÙ[˜ÙH]Ù[‹ˆ‹ˆ^XÝY[Ü™]XØ[™Z]š[ÜŽˆ•HXˆÚÝ[™HØ\X›HÙˆÛÛ˜ÛY[™ÈÙXZËÛ[Ù\ÝÑH]Ý[X[HÝ›Û™È\Ú[™\ÜÈÝÙ\ˆ[Ù]Ú\™Kˆ‹ˆX‘˜Z[\™PÛÛ™][ÛŽˆ’YˆÙXZÈÑH]]ÛX]XØ[H›ÙXÙ\ÈHÙXZËXÛÛ\[žHÛÛ˜Û\Ú[Û‹HXˆ\È[\›Ü\›H™X][™ÈÑH\ÈHÛ›H›Ü›HÙˆÝÙ\‹ˆ‹ˆÛÝ\˜ÙP\Ù^Nˆ[ˆÞ[]XÑ]\Ù]X™[ˆPVP‘T“—ÔÓÕTÑKˆØ\ÙTÙ]ˆÂˆ˜[YNˆ”Þ[]XÈ]\›Z[š\ÝXË\˜Z[ÈØÛÜ™X›ÛÚÈ‹ˆ\ØÜš\[ÛŽˆØ[›ÛšXØ[[\›˜]]™KTÝÙ\ˆš^\™H›Üˆ]\›Z[š\ÝXÈ˜Z[ËØÚ[XK[™ÛÛ›ÛY^XÝ][Û‹ˆ‹ˆÛÝ\˜ÙU\NˆÐS“Ó’PÐSÔÖS•UPÈ‹ˆÛÝ\˜ÙTÞ\Ý[RÙ^Nˆ˜Ø[›ÛšXØ[Ý\ÝÜÝZ]H‹ˆÛÝ\˜ÙTÞ\Ý[SX™[ˆØ[›ÛšXØ[\Ýš^\™H‹ˆÛÝ\˜ÙT[“X™[ˆ“X^X™\›ˆ[\›˜]]™HÝÙ\ˆ\Ýš^\™H‹ˆÛÝ\˜ÙT[•\NˆœÞ[]X×Ùš^\™H‹ˆÛÝ\˜ÙT›Ý]Nˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÛÝ™\šY]ÏØØ[›ÛšXØ[[X^X™\›ˆ‹ˆÙ[™\˜]Y]ˆ™]È]JŒŒ‹LKLULŽŒŒŒˆŠKˆ\ÔÞ[]XÎˆYKˆ›Ý™[˜[˜ÙSX™[ˆPVP‘T“—ÔÓÕTÑKˆ\š]˜][Û‘\ØÜš\[ÛŽˆÜ™X]Y\ÈHÞ[]XÈ[ÜžK]\ÝØ\ÙTÙ]È›ÝX^X™\›ˆÜ\˜][Û˜[]Kˆ‚ˆKˆ[˜[\Ú\ÎˆÂˆÛÛ\[žS˜[YNˆ“X^X™\›ˆ\˜Ú]\H™]šY]È‹ˆÛÛ\[žU\›ˆ[ˆ›ÙXÝØ]YÛÜžNˆ‘]\›Z[š\ÝXÈš[˜[˜ÙHÈ[™Ü\˜][ÛœÈ[™œ˜\ÝXÝ\™H‹ˆ›ÙXÝ\ØÜš\[ÛŽˆÛÛ\[žKX[˜[\Ú\È\˜Ú]\H›Üˆ]\›Z[š\ÝXÈÛÜšÙ›ÝÜÈÚ\™HØÚ[XKÛÛ›ÛË[™›ØÙ\ÜÈ^XÝ][ÛˆX^H™HHÝ›Û™Ù\ˆÛÝ\˜ÙHÙˆÝÙ\‹ˆØ\ÙH›ÝÜÈ\™HÞ[]XÈš^\™\ÈÛ›Kˆ‹ˆ\™Ù]Ý\ÝÛY\Žˆ‘š[˜[˜ÙK[™Ü\˜][ÛœËÜˆÛÛ\X[˜ÙHX[\È™\]Z\š[™ÈÛÛ›ÛY^XÝ][Û‹ˆ‹ˆ\Ú[™\ÜÓ[Ù[ˆ•[šÛ›ÝÛˆÈ›Ý\ÜÙ\ÜÙY‹ˆÛÜšÙ›ÝÎˆ”ÝXÝ\™Y™\]Y\ÝOˆØÚ[XH˜[Y][ÛˆOˆ]\›Z[š\ÝXÈ[H]Oˆ^Ù\[Ûˆ[™[™ÈOˆ]Y]˜Z[ˆ‹ˆXÚ\Ú[Û‘\ØÜš\[ÛŽˆ•˜[Y]K›Ý]K™XÛÛ˜Ú[KÜˆ™Z™XÝÝXÝ\™YÜ\˜][Û˜[^Ù\[ÛœËˆ‹ˆXÝ[Û”ÜXÙNˆ•˜[Y]K›Ý]K™XÛÛ˜Ú[K™Z™XÝÜˆ™\]Y\ÝÛÝ\˜ÙHØÝ[Y[][Û‹ˆ‹ˆÛÛ\[žTÝYÙNˆ•[šÛ›ÝÛˆÈ›Ý\ÜÙ\ÜÙY‹ˆ\Ú\Îˆ•HÙ^H]Y\Ý[Ûˆ\ÈÚ]\ˆÝÙ\ˆ™\ÚY\È[ˆXØÝ[][]YÜ˜YYØ\Ù\ÈÜˆ[ˆ]\›Z[š\ÝXÈ›ØÙ\ÜÈ˜Z[ËØÚ[X\Ë[™\ÝÛÛ›ÛËˆ‹ˆXÛÛ›ÛZXÐÛÜÝÜ›Û™ÑXÚ\Ú[ÛŽˆ’YÚ‹ˆÝ]ÛÛYSØš™XÝ]š]Nˆ“Øš™XÝ]™HÈ]\›Z[š\ÝXÈ‹ˆ˜]\˜[™YY˜XÚÕ[YNˆ‘^\È‹ˆØ\ÙQœ™\]Y[˜ÞNˆ“YY][H‹ˆÝ\ÝÛY\Ø\ÙR]\›ÙÙ[™Z]Nˆ“YY][H‹ˆ[š\›Û›Y[[Ú[™ÙT˜]Nˆ”ÝX›H‹ˆ›Ý[™][Û“[Ù[[\›Ý™[Y[˜]Nˆ“[Ù\˜]H‹ˆÝÛœÑXÚ\Ú[Û”Ú[ˆ–Y\È‹ˆÛÛ›ÛÐXÝ[ÛŽˆ–Y\È‹ˆØœÙ\™\ÓÝ]ÛÛYNˆ–Y\È‹ˆØ\\™\ÓÝ™\œšY\Îˆ–Y\È‹ˆØ\\™\ÑÜ˜Y\Îˆ”\X[H‹ˆX\›œÐXÜ›ÜÜÐÝ\ÝÛY\œÎˆ”\X[H‹ˆÛÛ˜XÝX[X\›š[™ÔšYÚÎˆ–Y\È‹ˆ[œÐÛÛ›ÛY^\š[Y[Îˆ“›È‹ˆ\]\Ó[Ù[ÛXÞT™YÝ[\›Nˆ“ØØØ\Ú[Û˜[H‹ˆ\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛNˆ”\X[H‹ˆ]Q^Û\Ú]š]Nˆ“YY][H‹ˆÛÜšÙ›ÝÑ[X™YY™\ÜÎˆ’YÚ‹ˆÝÚ]Ú[™ÐÛÜÝÐ\ÜÝ[\[ÛŽˆ’YÚ‹ˆ™XZ[Xš[]Nˆ’\™‹ˆ›Ý[™][Û“[Ù[\[™[˜ÙNˆ“ÝÈ‹ˆ]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™Nˆ’YÚ‹ˆ\ÝšX][ÛY˜[YÙNˆ•[šÛ›ÝÛˆ‹ˆ™YÝ[]ÜžPÛÛ˜XÝX[˜\œšY\œÎˆ’YÚ‚ˆKˆX˜]\ÎˆVSTWÑPUTËˆØÙ[˜\š[ÜÎˆÂˆÈ‹‹‘QUSÔÐÑST’SÔÖÌKÝ\[™ÐØ\Ù\ÎˆŒØ\Ù\Ô\“[ÛˆN™YY˜XÚÑ[^Q^\ÎˆL˜[œÙ™\˜Xš[]NˆL‹[™›Ü›X][Û•˜[YNˆ‹X\›š[™ÑY™šXÚY[˜ÞNˆ‹˜\ÙPØ\Xš[]Nˆ‹ŒˆKˆÈ‹‹‘QUSÔÐÑST’SÔÖÌWKÝ\[™ÐØ\Ù\ÎˆÌØ\Ù\Ô\“[ÛˆLŒ™YY˜XÚÑ[^Q^\Îˆ˜[œÙ™\˜Xš[]NˆMK[™›Ü›X][Û•˜[YNˆX\›š[™ÑY™šXÚY[˜ÞNˆMK˜\ÙPØ\Xš[]Nˆ‹ˆBˆKˆØ\Ù\ÎˆÜ™X]TÞ[]XÐØ\Ù\ÊÂˆ™Yš^ˆ”ÖS‹TRS‹ˆÛÝ\˜ÙSX™[ˆPVP‘T“—ÔÓÕTÑKˆÙYÛY[ÎˆÈ™[™Ü\˜][ÛœÈ‹™š[˜[˜ÙHÛÛ›Û\ˆ‹˜ÛÛ\X[˜ÙHÜÈ—KˆØ\ÙU\\ÎˆÈœØÚ[XHZ\ÛX]Ú‹œ[H^Ù\[Ûˆ‹œ™XÛÛ˜Ú[X][Ûˆ˜\šX[˜ÙH‹˜\›Ý˜[›Ý][™È—KˆXÚ\Ú[ÛœÎˆÈ˜XØÙ\‹œ™Z™XÝ‹œ›Ý]H^Ù\[Ûˆ‹œ™\]Y\ÝÛÝ\˜ÙHØÝ[Y[—KˆÝ]ÛÛY\ÎˆÈ˜]Y]˜Z[ÛÛ\]H‹˜\šX[˜ÙH™\ÛÛ™Y‹˜ÛÛ›Û™]™[Y\œ›Üˆ‹›X[X[\ØØ[][Ûˆ™\]Z\™Y—KˆÛÝ[ˆ‹ˆ[^T]\›ŽˆÌK‹ËWKˆ[œ™\ÛÛ™Y]™\žNˆLËˆÝ™\œšYQ]™\žNˆËˆYÙQ]™\žNˆˆØš™XÝ]™PšX\ÎˆœÝ›Û™È‹ˆ˜[YP˜\ÙNˆLˆJBˆKˆÂˆYˆ˜Ü™X]]™KXYÙ[‹ˆX™[ˆÜ™X]]™HX\šÙ][™ÈYÙ[‹ˆ›ÛNˆ“™YØ]]™HÛÛ›ÛˆX[žHØ\Ù\È]ÝXš™XÝ]™KÛ›Ú\ÞHÜ˜Y[™È[™Y™šXÝ[]Ë\›Ý™HXÚ\Ú[ÛˆÝ\\š[Üš]Kˆ‹ˆÛÛ\[žS˜[YNˆÜ™X]]™HX\šÙ][™ÈYÙ[‹ˆ\Ý\Nˆ“‘QÐUU‘WÐÓÓ•“Ó‹ˆ\ÝX™[ˆ“™YØ]]™HÛÛ›Û‹ˆØ[›ÛšXØ[]Y\Ý[ÛŽˆ•Ú[ˆØ[ˆ[›Ü›[Ý\È›Û[Y\ÈÙˆ\\™[HÜ˜YY]H˜Z[ÈÜ™X]H\˜X›H^\\ÙOÈ‹ˆ›ÙXÝØ]YÛÜžNˆÜ™X]]™HÈX\šÙ][™ÈYÙ[‹ˆš[˜Ú\[XÚ\Ú[ÛŽˆÜ™X]]™HÈY\ÜØYÙHÈ]YY[˜ÙHÈØ[\ZYÛˆ[ØØ][ÛˆÚÚXÙKˆ‹ˆÜ˜YSØš™XÝ]š]Nˆ”Ý\\™šXÚX[HYX\Ý\˜X›H]Ø]\Ø[H›Ú\ÞH‹ˆ\XØ[™YY˜XÚÔÜYYˆ‘˜\Ý›ÜˆÛXÚÜËØÛÛ™\œÚ[ÛœÎÈÛÝÙ\ˆ›Üˆ\˜X›HXÛÛ›ÛZXÈÝ]ÛÛY\È‹ˆXÛÛ›ÛZXÐÛÜÝÙ‘\œ›ÜŽˆ“YY][H‹ˆØ\ÙQœ™\]Y[˜ÞNˆ•™\žHYÚ‹ˆÜ›ÜÜÐÝ\ÝÛY\•˜[œÙ™\”Ý[X[ˆ”Ý[X[Hœ›ØY]YÚHÛÛ^\Ù[œÚ]]™H‹ˆ\ÝÜšXØ[Ø\ÙQ\[™[˜ÙNˆ“\™ÙH]\Ù]ÈX^H^\Ý]ÛÛZ[ˆÝXœÝ[X[™Y[™[˜ÞH‹ˆš[X\žTÝÙ\’\Ý\Ú\Îˆ”ÜÜÚX›H›Û™Hœ›ÛHÑH[Û™Kˆ‹ˆÛÛ\][™ÔÝÙ\’\Ý\Ú\Îˆ•ÛÜšÙ›ÝÈ\ÝšX][Û‹œ˜[™YYXH^Z[™ÈXÛÛ›ÛZXÜËÜˆÜ™X]]™H›ØÙ\ÜÈX^HX]\ˆ[Ü™Kˆ‹ˆÚPØ[›ÛšXØ[ˆ•\ÝÈÚ]\ˆHXˆÛÛ™\Ù\ÈYÚØ\ÙH›Û[YH
+È˜\Y™YY˜XÚÈÚ]YÚ]˜[YH˜[œÙ™\˜X›H^\\ÙKˆ‹ˆ^XÝY[Ü™]XØ[™Z]š[ÜŽˆ“\™ÙH]H›Û[YHÚÝ[›Ý]]ÛX]XØ[H›ÙXÙHÝ›Û™ÈÑHÚ[ˆÝ]ÛÛY\È\™HÛÛ™›Ý[™Y›ÛœÝ][Û˜\žK™Y[™[ÜˆX\Ú[HX\›™YžHœ›ÛY\ˆ[Ù[Ëˆ‹ˆX‘˜Z[\™PÛÛ™][ÛŽˆ’YˆHXˆXÛ\™\ÈÝ›Û™ÈÑHš[X\š[Hœ›ÛH›Û[YH[™˜\ÝÛXÚÈ™YY˜XÚËH[˜[]XØ[œ˜[Y]ÛÜšÈ\È˜Z[Y]È™YØ]]™HÛÛ›Ûˆ‹ˆÛÝ\˜ÙP\Ù^Nˆ[ˆÞ[]XÑ]\Ù]X™[ˆÔ‘PUU‘WÔÓÕTÑKˆØ\ÙTÙ]ˆÂˆ˜[YNˆ”Þ[]XÈÜ™X]]™HX\šÙ][™ÈØÛÜ™X›ÛÚÈ‹ˆ\ØÜš\[ÛŽˆØ[›ÛšXØ[™YØ]]™KXÛÛ›Ûš^\™H›ÜˆYÚ]›Û[YH]›Ú\ÞH[™ÛÛ™›Ý[™YÜ™X]]™H™YY˜XÚËˆ‹ˆÛÝ\˜ÙU\NˆÐS“Ó’PÐSÔÖS•UPÈ‹ˆÛÝ\˜ÙTÞ\Ý[RÙ^Nˆ˜Ø[›ÛšXØ[Ý\ÝÜÝZ]H‹ˆÛÝ\˜ÙTÞ\Ý[SX™[ˆØ[›ÛšXØ[\Ýš^\™H‹ˆÛÝ\˜ÙT[“X™[ˆÜ™X]]™HX\šÙ][™ÈYÙ[™YØ]]™KXÛÛ›Ûš^\™H‹ˆÛÝ\˜ÙT[•\NˆœÞ[]X×Ùš^\™H‹ˆÛÝ\˜ÙT›Ý]Nˆ‹ØÛÛ\Ý[™[™ËY^\\ÙKÛÝ™\šY]ÏØØ[›ÛšXØ[XÜ™X]]™KXYÙ[‹ˆÙ[™\˜]Y]ˆ™]È]JŒŒ‹LKLULŽŒŒŒˆŠKˆ\ÔÞ[]XÎˆYKˆ›Ý™[˜[˜ÙSX™[ˆÔ‘PUU‘WÔÓÕTÑKˆ\š]˜][Û‘\ØÜš\[ÛŽˆÜ™X]Y\ÈH[HÞ[]XÈ™YØ]]™KXÛÛ›ÛØ\ÙTÙ]ˆ‚ˆKˆ[˜[\Ú\ÎˆÂˆÛÛ\[žS˜[YNˆÜ™X]]™HX\šÙ][™ÈYÙ[‹ˆÛÛ\[žU\›ˆ[ˆ›ÙXÝØ]YÛÜžNˆÜ™X]]™HÈX\šÙ][™ÈYÙ[‹ˆ›ÙXÝ\ØÜš\[ÛŽˆ‘[HÞ[]XÈ™YØ]]™KXÛÛ›Û\˜Ú]\H›ÜˆHYÚ]›Û[YHÜ™X]]™HÛÜšÙ›ÝÈÚ]ÝXš™XÝ]™HÝ]ÛÛY\È[™]šX][Ûˆ[XšYÝZ]Kˆ‹ˆ\™Ù]Ý\ÝÛY\Žˆ“X\šÙ][™ÈX[\È›ÙXÚ[™ÈÜ™X]]™H˜\šX[ËÛØÚX[ÜÝËYË[™Ø[\ZYÛˆÛÛ˜Ù\Ëˆ‹ˆ\Ú[™\ÜÓ[Ù[ˆ”Þ[]XÈ‹ˆÛÜšÙ›ÝÎˆœšYYˆOˆÙ[™\˜]YÜ™X]]™HOˆ[X[ˆY]Oˆ][˜ÚÜˆ\ØØ\™Oˆ›Ú\ÞH\™›Ü›X[˜ÙH™XYÝ]ˆ‹ˆXÚ\Ú[Û‘\ØÜš\[ÛŽˆ”Ù[XÝ™]Üš]KÜˆ™Z™XÝÜ™X]]™H˜\šX[È›Üˆ]YY[˜ÙKØÚ[›™[\ÙKˆ‹ˆXÝ[Û”ÜXÙNˆ”Ú\™]Üš]K™Z™XÝÜˆ\ÝHÜ™X]]™H˜\šX[YØZ[œÝHÛÛ›Ûˆ‹ˆÛÛ\[žTÝYÙNˆ”Þ[]XÈ‹ˆ\Ú\Îˆ’YÚØ\ÙH›Û[YH[Û™HÚÝ[›Ý[\HÛÛ\Ý[™[™È^\\ÙHYˆÜ˜Y\È\™HÝXš™XÝ]™K[^YYÛÛ™›Ý[™YÜˆÙXZÛHYYÈXÚ\Ú[ÛœËˆ‹ˆXÛÛ›ÛZXÐÛÜÝÜ›Û™ÑXÚ\Ú[ÛŽˆ“ÝÈ‹ˆÝ]ÛÛYSØš™XÝ]š]Nˆ”ÝXš™XÝ]™H‹ˆ˜]\˜[™YY˜XÚÕ[YNˆ•ÙYZÜÈ‹ˆØ\ÙQœ™\]Y[˜ÞNˆ•™\žHYÚ‹ˆÝ\ÝÛY\Ø\ÙR]\›ÙÙ[™Z]Nˆ’YÚ‹ˆ[š\›Û›Y[[Ú[™ÙT˜]Nˆ”˜\YHÚ[™Ú[™È‹ˆ›Ý[™][Û“[Ù[[\›Ý™[Y[˜]Nˆ‘˜\Ý‹ˆÝÛœÑXÚ\Ú[Û”Ú[ˆ”\X[H‹ˆÛÛ›ÛÐXÝ[ÛŽˆ”\X[H‹ˆØœÙ\™\ÓÝ]ÛÛYNˆ”\X[H‹ˆØ\\™\ÓÝ™\œšY\Îˆ–Y\È‹ˆØ\\™\ÑÜ˜Y\Îˆ”\X[H‹ˆX\›œÐXÜ›ÜÜÐÝ\ÝÛY\œÎˆ”\X[H‹ˆÛÛ˜XÝX[X\›š[™ÔšYÚÎˆ•[šÛ›ÝÛˆ‹ˆ[œÐÛÛ›ÛY^\š[Y[Îˆ”ÛÛY][Y\È‹ˆ\]\Ó[Ù[ÛXÞT™YÝ[\›Nˆ–Y\È‹ˆ\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛNˆ–Y\È‹ˆ]Q^Û\Ú]š]Nˆ“ÝÈ‹ˆÛÜšÙ›ÝÑ[X™YY™\ÜÎˆ“ÝÈ‹ˆÝÚ]Ú[™ÐÛÜÝÐ\ÜÝ[\[ÛŽˆ“ÝÈ‹ˆ™XZ[Xš[]Nˆ‘X\ÞH‹ˆ›Ý[™][Û“[Ù[\[™[˜ÙNˆ’YÚ‹ˆ]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™Nˆ“ÝÈ‹ˆ\ÝšX][ÛY˜[YÙNˆ“YY][H‹ˆ™YÝ[]ÜžPÛÛ˜XÝX[˜\œšY\œÎˆ“ÝÈ‚ˆKˆX˜]\ÎˆVSTWÑPUTËˆØÙ[˜\š[ÜÎˆÂˆÈ‹‹‘QUSÔÐÑST’SÔÖÌKÝ\[™ÐØ\Ù\ÎˆŒØ\Ù\Ô\“[ÛˆÌ™YY˜XÚÑ[^Q^\ÎˆŽ˜[œÙ™\˜Xš[]NˆŒŽ[™›Ü›X][Û•˜[YNˆŒÍKX\›š[™ÑY™šXÚY[˜ÞNˆŒÎÝ[[™\ÜÔ˜]NˆŒ˜\ÙPØ\Xš[]Nˆ‹ŒÈKˆÈ‹‹‘QUSÔÐÑST’SÔÖÌWKÝ\[™ÐØ\Ù\ÎˆMLØ\Ù\Ô\“[ÛˆŒŒ™YY˜XÚÑ[^Q^\ÎˆŒK˜[œÙ™\˜Xš[]Nˆ[™›Ü›X][Û•˜[YNˆ‹X\›š[™ÑY™šXÚY[˜ÞNˆËÝ[[™\ÜÔ˜]NˆŒK˜\ÙPØ\Xš[]NˆËŒBˆKˆØ\Ù\ÎˆÜ™X]TÞ[]XÐØ\Ù\ÊÂˆ™Yš^ˆ”ÖS‹PÔ•ˆ‹ˆÛÝ\˜ÙSX™[ˆÔ‘PUU‘WÔÓÕTÑKˆÙYÛY[ÎˆÈœZYÛØÚX[‹™[XZ[‹˜œ˜[™‹˜ÛÛ[—KˆØ\ÙU\\ÎˆÈšXY[™H˜\šX[‹š[XYÙHÛÛ˜Ù\‹™[XZ[ÝXš™XÝ‹›[™[™ÈÛÜH—KˆXÚ\Ú[ÛœÎˆÈœÚ\˜\šX[‹œ™]Üš]H‹œ™Z™XÝ‹\ÝYØZ[œÝÛÛ›Û—KˆÝ]ÛÛY\ÎˆÈ›Z^Y\™›Ü›X[˜ÙH‹˜]šX][Ûˆ[˜ÛX\ˆ‹X[HZÙYÜ™X]]™H‹[™\œ\™›Ü›YY›Ú\ÞH˜\Ù[[™H—KˆÛÝ[ˆÌ‹ˆ[^T]\›ŽˆÌMŒKŽWKˆ[œ™\ÛÛ™Y]™\žNˆËˆÝ™\œšYQ]™\žNˆˆYÙQ]™\žNˆKˆØš™XÝ]™PšX\ÎˆÙXZÈ‹ˆ˜[YP˜\ÙNˆÌˆJBˆB—NÂ‚™^Ü[˜Ý[Ûˆ^[\PžRY
+YˆÝš[™È[[™Yš[™Y
+HÂˆ™]\›ˆÓÓTÕS‘S‘×ÑVSTTË™š[™
+
+^[\JHOˆ^[\KšYOOHY
+HÏÈÓÓTÕS‘S‘×ÑVSTTÖÌNÂŸB‚™^Ü[˜Ý[ÛˆØ[›ÛšXØ[^[\Q›ÜÛÛ\[žJÛÛ\[žS˜[YNˆÝš[™È[[™Yš[™Y
+HÂˆÛÛœÝ›Ü›X[^™YHÝš[™ÊÛÛ\[žS˜[YHÏÈˆŠKÓÝÙ\Ø\ÙJ
+NÂˆYˆ
+P“P×ÑU’QSÑWÐSSTÑTËœÛÛYJ
+[˜[\Ú\ÊHO‚ˆ›Ü›X[^™YOOH[˜[\Ú\Ë˜[˜[\Ú\Ë˜ÛÛ\[žS˜[YKÓÝÙ\Ø\ÙJ
+Bˆ›Ü›X[^™YOOH[˜[\Ú\Ë›X™[ÓÝÙ\Ø\ÙJ
+Bˆ›Ü›X[^™Yš[˜ÛY\Ê[˜[\Ú\ËšY
+Bˆ›Ü›X[^™Yš[˜ÛY\ÊœX›XÈ]šY[˜ÙH[˜[\Ú\ÈŠBˆ
+JH™]\›ˆ[Âˆ™]\›ˆÓÓTÕS‘S‘×ÑVSTTË™š[™
+
+^[\JHO‚ˆ›Ü›X[^™Yš[˜ÛY\Ê^[\KšYœ™\XÙJ‹[XœÈ‹ˆXœÈŠJBˆ›Ü›X[^™Yš[˜ÛY\Ê^[\K˜ÛÛ\[žS˜[YKÓÝÙ\Ø\ÙJ
+JBˆ›Ü›X[^™Yš[˜ÛY\Ê^[\K›X™[ÓÝÙ\Ø\ÙJ
+JBˆ
+HÏÈ[ÂŸB‚™^Ü[˜Ý[ÛˆX›XÑ]šY[˜ÙQY˜][\ÜÙ\ÜÛY[Ê
+HÂˆ™]\›ˆY˜][\ÜÙ\ÜÛY[Ê
+K›X\
+
+\ÜÙ\ÜÛY[
+HOˆ›Ü›X[^™P\ÜÙ\ÜÛY[
+Âˆ‹‹˜\ÜÙ\ÜÛY[ˆ˜][Û˜[Nˆ”X›XÈ]šY[˜ÙH[˜[\Ú\ÈÝ\Èœ›ÛHÛÝ\˜ÙYX›XÈ™XÛÜ™È[™^XÚ][šÛ›ÝÛœËˆ›È›ÙXÝ[ÛˆØ\ÙK[]™[]H\È™Y[ˆØYYˆ‹ˆ]šY[˜ÙTÝ]\Îˆ•S’Ó“ÕÓˆ‚ˆJJNÂŸB‚™^Ü[˜Ý[ÛˆØ\ÙTÙ]›Ü‘^[\J^[\NˆÛÛ\Ý[™[™Ñ^[\JNˆØ\ÙTÙ][œ]Âˆ™]\›ˆÂˆ‹‹™^[\K˜Ø\ÙTÙ]ˆØ\ÙPÛÝ[ˆ^[\K˜Ø\Ù\Ë›[™ÝˆNÂŸB‚™^ÜÛÛœÝÐTÐTÔP“P×ÔÒSUSUSÓ—ÐÐTÑTÑUÒÑVHH˜Ø\Ø\ÜX›X×Ù]šY[˜ÙWÙÜ›Ý[™YÜÚ[][][Û—ÝŒÌHŽÂ™^ÜÛÛœÝÐTÐTÔP“P×ÔÒSUSUSÓ—ÐÐTÑTÑUÓSQHHØ\Ø\X›XËQ]šY[˜ÙKQÜ›Ý[™YÚ[][][ÛˆŒŒHŽÂ™^ÜÛÛœÝÐTÐTÔP“P×ÔÒSUSUSÓ—ÔÓÕTÑWÓP‘SH”ÖS•UPÈÒSUSUSÓˆ8 %P“PËQU’QSÑKQÔ“ÕS‘QŽÂ‚™^Ü[˜Ý[ÛˆØ\ÙTÙ]\\Ý[ZXÕ\JØ\ÙTÙ]ˆÂˆÛÝ\˜ÙU\OÎˆÝš[™È[ÂˆÛÝ\˜ÙTÞ\Ý[RÙ^OÎˆÝš[™È[ÂˆÛÝ\˜ÙTÞ\Ý[SX™[ÎˆÝš[™È[Âˆ\ÔÞ[]XÏÎˆ›ÛÛX[ˆ[Âˆ›Ý™[˜[˜ÙSX™[ÎˆÝš[™È[Âˆ\š]˜][Û‘\ØÜš\[ÛÎˆÝš[™È[ÂŸH[[™Yš[™Y
+NˆØ\ÙTÙ]\\Ý[ZXøï­û¶‰žËkºwµç[ÝNˆ‘[›ÜK™\]][Û‹›Ý™[K[™]]X[[™›Ü›X][ÛˆÈ›Ý\ÝX›\ÚX\›š[™ÈØ]\Ø[]KÜ›ÜÜËXÝ\ÝÛY\ˆ˜[œÙ™\‹ÛÛ\™\ÜÚXš[]KÜˆ\˜X›HÝÙ\‹ˆ‹ˆY]šXÜÎˆÂˆÈX™[ˆ“X\›š[™ËXØ]\Ø[]HÙ\\˜][Ûˆ‹˜[YNˆÛÛ^Û›H‹Ø[\Nˆ’[™›Ü›X][ÛˆÝXÝ\™H]˜[X]\ÈØÛÜ™X›ÛÚÈÛÛ[Ë›ÝÚ]\ˆHÞ\Ý[HX\›™Yœ›ÛH[Kˆ‹›Ý™[˜[˜ÙK™YŽˆÛÛ\[žR™YˆKˆÈX™[ˆ”ÝÙ\ˆÙ\\˜][Ûˆ‹˜[YNˆ“›È\™XÝÝÙ\ˆ[™™\™[˜ÙH‹Ø[\Nˆ’[™›Ü›X][Ûˆ^\ÝÈ\È›ÝHØ[YH\È›ÜšY]\žK\™›Ü›X[˜ÙKZ[\›Ýš[™Ë\œ™\›ÙXÚX›H[™›Ü›X][Û‹ˆ‹›Ý™[˜[˜ÙK™YŽˆÛÛ\[žR™YˆBˆBˆBˆBˆNÂˆB‚ˆÛÛœÝ˜[˜XÚÕ[\]HHX˜]U[\]J˜[Z[JNÂˆ™]\›ˆÂˆ˜[Z[Kˆ]Nˆ	Ù˜[˜XÚÕ[\]K]_H]šY[˜ÙH\Ú›Ø\™ˆÝ[[X\žNˆ”ÚÝÜÈÝ\œ™[H]XÚY]H[™^XÚ]]šY[˜ÙHØ\È›Üˆ\ÈX˜]Kˆ‹ˆ^\›˜[]šY[˜ÙKˆÙXÝ[ÛœÎˆÂˆÂˆ]NˆÝ\œ™[]šY[˜ÙHÝ]H‹ˆY]šXÜÎˆÂˆÈX™[ˆXÝ]™HØ\ÙTÙ]Ø\Ù\È‹˜[YNˆÝš[™ÊY]šXÜËÝ[Ø\Ù\ÊK›Ý™[˜[˜ÙK™YŽˆ^\šY[˜ÙR™YˆKˆÈX™[ˆ‘^\›˜[]šY[˜ÙH™XÛÜ™È‹˜[YNˆÝš[™Ê^\›˜[]šY[˜ÙK›[™Ý
+K›Ý™[˜[˜ÙNˆ^\›˜[]šY[˜ÙK›[™ÝÈ”ÓÕTÑQ8 %VT“SU’QSÑHˆˆ•S’Ó“ÕÓˆÈSQÑSÑH‘TURT‘QˆBˆBˆBˆBˆNÂŸB‚™^Ü[˜Ý[Ûˆ\š]™QX˜]P\ÜÙ\ÜÛY[
+[œ]ˆX˜]Q[™Ú[™R[œ]˜[Z[NˆX˜]Q˜[Z[JNˆXÚÏ\š]™YX˜]PØ[™Y]K˜\ÜÙ\ÜÛY[ˆ˜ÛÛ™šY[˜ÙHˆ˜\ÜÙ\ÜÛY[™X\ÛÛˆˆ™]šY[˜ÙQ›Üˆˆ™]šY[˜ÙPYØZ[œÝˆ›Z\ÜÚ[™Ñ]šY[˜ÙHˆÂˆÛÛœÝY]šXÜÈHØ[Ý[]TØÛÜ™X›ÛÚÓY]šXÜÊ[œ]œ›ÝÜÊNÂˆÛÛœÝ™\ÜH[œ]™^\šY[˜ÙP[˜[\Ú\ÈÏÈ[˜[^™Q^\šY[˜ÙJ[œ]œ›ÝÜÊNÂˆÛÛœÝ›ÝÜÐ\™TÞ[]XÈHØÛÜ™X›ÛÚÔ›ÝÜÐ\™TÞ[]XÊ[œ]œ›ÝÜÊNÂˆÛÛœÝ›ÝÜÐ\™TÞ[]XÔÚ[][][ÛˆHØÛÜ™X›ÛÚÔ›ÝÜÐ\™TÞ[]XÔÚ[][][ÛŠ[œ]œ›ÝÜÊNÂˆÛÛœÝ›Ý™[˜[˜ÙHHØ\ÙTÙ]\š]™Y›Ý™[˜[˜ÙSX™[
+È\Ô›ÝÜÎˆ[œ]œ›ÝÜË›[™Ýˆ›ÝÜÐ\™TÞ[]XË›ÝÜÐ\™TÞ[]XÔÚ[][][ÛˆJNÂˆÛÛœÝÛÛ\[žS[Ù[™YˆHX˜]PÛÛ\[žS[Ù[™YŠ[œ]
+NÂˆÛÛœÝ^\šY[˜ÙR™YˆHX˜]Q^\šY[˜ÙR™YŠ[œ]
+NÂˆÛÛœÝ›Ü‘]šY[˜ÙNˆX˜]Q]šY[˜ÙR][V×HH×NÂˆÛÛœÝYØZ[œÝ]šY[˜ÙNˆX˜]Q]šY[˜ÙR][V×HH×NÂˆÛÛœÝZ\ÜÚ[™ÎˆX˜]Q]šY[˜ÙR][V×HH×NÂˆÛÛœÝÙ[XÝY]\Ù]Ù^HH[œ]˜Ø\ÙTÙ]YÏÈ[œ]™]\Ù]ÂˆÛÛœÝ^\š[Y[š[™[™ÜÈH
+[œ]™]šY[˜ÙT™XÛÜ™ÈÏÈ×JBˆ™š[\Š™XÛÜ™OˆÈ”ÖS•UP×ÑVT’SQS•‹”ÖS•UP×ÑVT’SQS•ÔÕRUH‹PÕSÓ—ÔÓPÖWÑVT’SQS•—Kš[˜ÛY\Ê™XÛÜ™™]šY[˜ÙU\HÏÈˆŠH	‰ˆ›ÛÛX[ŠÙ[XÝY]\Ù]Ù^JH	‰ˆ™XÛÜ™œÛÝ\˜ÙPØ\ÙTÙ]YOOHÙ[XÝY]\Ù]Ù^JBˆ™›]X\
+™XÛÜ™OˆÂˆžHÂˆÛÛœÝ\œÙYH”ÓÓ‹œ\œÙJ™XÛÜ™˜[YTÛ˜\ÚÝÏÈžßHŠH\ÈÈ\ÜÝ[\[ÛœÏÎˆÝš[™ÎÈš[™[™ÜÏÎˆ\œ˜^OÈ˜[Z[OÎˆÝš[™ÎÈ™\™XÝÎˆÝš[™ÎÈXY[™OÎˆÝš[™ÎÈ]Z[ÎˆÝš[™ÎÈ[\XØ][ÛÎˆÝš[™ÎÈÛÜšÜÕÚ[ÎˆÝš[™ÎÈ˜Z[ÕÚ[ÎˆÝš[™ÎÈ™^^\š[Y[ÎˆÝš[™ÈOˆNÂˆ™]\›ˆ
+\œÙY™š[™[™ÜÈÏÈ×JK™š[\Šš[™[™ÈOˆš[™[™Ë™˜[Z[HOOH˜[Z[JK›X\
+š[™[™ÈOˆ
+Âˆ‹‹™š[™[™Ëˆ\ÜÝ[\[ÛœÎˆ\œÙY˜\ÜÝ[\[ÛœËˆÝZ]Nˆ™XÛÜ™™]šY[˜ÙU\HOOH”ÖS•UP×ÑVT’SQS•ÔÕRUH‹ˆXÝ[Û”ÛXÞNˆ™XÛÜ™™]šY[˜ÙU\HOOHPÕSÓ—ÔÓPÖWÑVT’SQS•‚ˆJJNÂˆHØ]ÚÂˆ™]\›ˆ×NÂˆBˆJNÂˆÛÛœÝ]\Ý^\š[Y[H^\š[Y[š[™[™ÜË˜]
+LJNÂˆÛÛœÝY^\šY[˜ÙQ\ØÜš\]™HH
+˜[YNˆÝš[™Ë[\œ™]][ÛŽˆÝš[™Ë[Z]][ÛŽˆÝš[™ÊHOˆÂˆ›Ü‘]šY[˜ÙKœ\Ú
+]šY[˜ÙR][JÂˆÛÝ\˜ÙNˆ‘^\šY[˜ÙH8¡¤ˆXÝ]™HØ\ÙTÙ]‹ˆ˜[YKˆ\™XÝ[ÛŽˆÓÓ•VQTÐÔ’TU‘H‹ˆÝ™[™ÝˆÓÓ•V‹ˆ›Ý™[˜[˜ÙKˆ™YŽˆ^\šY[˜ÙR™Y‹ˆ[\œ™]][Û‹ˆ[Z]][Û‚ˆJJNÂˆNÂˆÛÛœÝYZ\ÜÚ[™ÈH
+ÛÝ\˜ÙNˆÝš[™Ë˜[YNˆÝš[™Ë[\œ™]][ÛŽˆÝš[™ËØZ[•šXHH‘[YÙ[˜ÙHÈ^\š[Y[‹^XÝY]šY[˜ÙHH”ÛÝ\˜ÙY]šY[˜ÙHÝY™šXÚY[È]˜[X]HH›ÜÜÚ][Û‹ˆŠHOˆÂˆZ\ÜÚ[™Ëœ\Ú
+]šY[˜ÙR][JÂˆÛÝ\˜ÙKˆ˜[YKˆ\™XÝ[ÛŽˆ“RTÔÒS‘È‹ˆÝ™[™Ýˆ“RTÔÒS‘È‹ˆ›Ý™[˜[˜ÙNˆ•S’Ó“ÕÓˆÈSQÑSÑH‘TURT‘Q‹ˆ[\œ™]][Û‹ˆ[Z]][ÛŽˆ“Z\ÜÚ[™È]šY[˜ÙHØ[››ÝÝ\ÜH›ÜÜÚ][Û‹ˆ‹ˆØZ[•šXKˆ^XÝY]šY[˜ÙBˆJJNÂˆNÂ‚ˆ›Üˆ
+ÛÛœÝš[™[™ÈÙˆ™\Ü™š[™[™ÜË™š[\Š][HOˆ][K™˜[Z[HOOH˜[Z[H	‰ˆ][KšYOOH˜Ø\\™HŠJHÂˆY^\šY[˜ÙQ\ØÜš\]™Jš[™[™ËœÝ[[X\žKš[™[™Ëš[\œ™]][Û‹š[™[™Ë›™^\Ý
+NÂˆBˆ›Üˆ
+ÛÛœÝš[™[™ÈÙˆ^\š[Y[š[™[™ÜËœÛXÙJLÊJHÂˆ›Ü‘]šY[˜ÙKœ\Ú
+]šY[˜ÙR][JÂˆÛÝ\˜ÙNˆš[™[™Ë˜XÝ[Û”ÛXÞHÈ‘^\šY[˜ÙH8¡¤ˆXÝ[Û‹TÛXÞH^\š[Y[ˆˆš[™[™ËœÝZ]HÈ‘^\šY[˜ÙH8¡¤ˆ]]ÛX]Y^\š[Y[›ÙÜ˜[Hˆˆ‘^\šY[˜ÙH8¡¤ˆ^\š[Y[Xˆ‹ˆ˜[YNˆ	Ùš[™[™Ë™\™XÝNˆ	Ùš[™[™ËšXY[™_H	Ùš[™[™Ë™]Z[IÙš[™[™ËÛÜšÜÕÚ[ˆÈÛÜšÜÈÚ[Žˆ	Ùš[™[™ËÛÜšÜÕÚ[ŸXˆˆŸIÙš[™[™Ë™˜Z[ÕÚ[ˆÈ˜Z[ÈÚ[Žˆ	Ùš[™[™Ë™˜Z[ÕÚ[ŸXˆˆŸXˆ\™XÝ[ÛŽˆÓÓ•VQTÐÔ’TU‘H‹ˆÝ™[™ÝˆÓÓ•V‹ˆ›Ý™[˜[˜ÙNˆ‘T’U‘Q8 %ÖS•UPÈVT’SQS•‹ˆ™YŽˆ	Ù^\šY[˜ÙR™Y‹œÜ]
+ˆÈŠVÌ_HÉÙš[™[™Ë˜XÝ[Û”ÛXÞHÈ˜XÝ[Û‹\ÛXÞK[Xˆˆˆ™^\š[Y[[XˆŸXˆ[\œ™]][ÛŽˆ	Ùš[™[™Ëš[\XØ][ÛˆÏÈÛÛ™][Û˜[YXÚ[š\ÛH™\Ý[ˆŸIÙš[™[™Ë›™^^\š[Y[È™^^\š[Y[ˆ	Ùš[™[™Ë›™^^\š[Y[XˆˆŸXˆ[Z]][ÛŽˆš[™[™Ë˜\ÜÝ[\[ÛœÈÏÈ\Y\ÈÛ›H[™\ˆHØ]™YÞ[]XË]ÛÜ›\ÜÝ[\[ÛœËˆ‚ˆJJNÂˆBˆYˆ
+˜[Z[HOOH‘VT’QSÑWÐÐTT‘HŠHÂˆY^\šY[˜ÙQ\ØÜš\]™J	ÛY]šXÜË™Ü˜YYØ\Ù\ßKÉÛY]šXÜËÝ[Ø\Ù\ßHÜ˜YYØ\Ù\ÎÈ	ÛY]šXÜËœ™\ÛÛ™YØ\Ù\ßKÉÛY]šXÜËÝ[Ø\Ù\ßHÝ]ÛÛY\È™\™\Ù[Y˜”ÚÝÜÈÚ]\ˆHXÝ]™HØ\ÙTÙ]\ÈØÛÜ™X›ÛÚË[ZÙKˆ‹ÛÛ\][™\ÜÈ[Û™HÙ\È›Ý›Ý™HX\›š[™È[\›Ý™\È]\™HXÚ\Ú[ÛœËˆŠNÂˆÛÛœÝ[šÙYØ\Ù\ÈH[œ]œ›ÝÜË™š[\Š›ÝÈOˆ›ÝË˜YÙ[XÚ\Ú[Ûˆ	‰ˆ›ÝË˜XÝ[Û•ZÙ[ˆ	‰ˆ›ÝË›Ý]ÛÛYH	‰ˆ\Ô™\ÛÛ˜X›QÜ˜YJ›ÝË™Ü˜YJJK›[™ÝÂˆYˆ
+Y]šXÜËÝ[Ø\Ù\Èˆ	‰ˆ[šÙYØ\Ù\ÈÈY]šXÜËÝ[Ø\Ù\ÈHÍJHÂˆ›Ü‘]šY[˜ÙKœ\Ú
+]šY[˜ÙR][JÂˆÛÝ\˜ÙNˆ‘^\šY[˜ÙH8¡¤ˆXÝ]™HØ\ÙTÙ]‹ˆ˜[YNˆ	ÛY]šXÜË™Ü˜YYØ\Ù\ßKÉÛY]šXÜËÝ[Ø\Ù\ßHØ\Ù\ÈÜ˜YYÈ	ÛY]šXÜËœ™\ÛÛ™YØ\Ù\ßKÉÛY]šXÜËÝ[Ø\Ù\ßHÝ]ÛÛY\È™\™\Ù[YÈYYX[ˆ™YY˜XÚÈ	ÛY]šXÜË›YYX[‘™YY˜XÚÓ][˜ÞQ^\ÈÏÈ[˜]˜Z[X›HŸH^\Ë˜ˆ\™XÝ[ÛŽˆ”ÕTÔ•È‹ˆÝ™[™Ýˆ’S‘T‘PÕ‹ˆ›Ý™[˜[˜ÙKˆ™YŽˆ^\šY[˜ÙR™Y‹ˆ[\œ™]][ÛŽˆ”Ý\ÜÈÜ˜YY^\šY[˜ÙHØ\\™HÚ][ˆHÙ[XÝY]\Ù]ˆ‹ˆ[Z]][ÛŽˆ”Ý[Ù\È›Ý›Ý™H]Ø\\™YÜ˜Y\È[\›Ý™H]\™H™Z]š[Ü‹ˆ‚ˆJJNÂˆ™]\›ˆÈ\ÜÙ\ÜÛY[ˆ“PS’S‘ÈÕTÔ•Q‹ÛÛ™šY[˜ÙNˆ“QQUSH‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ‘Ü˜YY^\šY[˜ÙHØ\\™H\ÈÝ\ÜY[ˆHÙ[XÝY]\Ù]ÈX\›š[™È[\›Ý™[Y[[™\˜Xš[]H™\]Z\™HÙ\\˜]H\ÝËˆ‹]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆ×KZ\ÜÚ[™Ñ]šY[˜ÙNˆZ\ÜÚ[™ÈNÂˆBˆYˆ
+Y]šXÜËÝ[Ø\Ù\Èˆ
+HYZ\ÜÚ[™Ê‘^\šY[˜ÙH8¡¤ˆ[˜ÛÛ\]HØ\Ù\È‹	ÛY]šXÜËÝ[Ø\Ù\ÈH[šÙYØ\Ù\ßHØ\Ù\ÈXÚÈHÛÛ\]HXÚ\Ú[Û‹ØXÝ[Û‹ÛÝ]ÛÛYKÙÜ˜YHÚZ[‹˜ÛÛ\]HH™YY˜XÚÈÛÜ›ÜˆZ\ÜÚ[™È›ÝÜËˆ‹Ø\ÙH™]šY]È‹“[šÙYXÚ\Ú[ÛœËXÝ[ÛœËÝ]ÛÛY\È[™Ü˜Y\ËˆŠNÂˆYˆ
+Y]šXÜËÝ[Ø\Ù\ÈOOH
+HYZ\ÜÚ[™Ê‘^\šY[˜ÙH8¡¤ˆXÝ]™HØ\ÙTÙ]‹“›ÈXÝ]™HØ\ÙTÙ]›ÝÜËˆ‹“›ÈØÛÜ™X›ÛÚË[ZÙH›ÙHÙˆ^\šY[˜ÙH\È]˜Z[X›Kˆ‹“ØYÜˆ[\ÜHØ\ÙTÙ]‹‘XÚ\Ú[Û‹ØXÝ[Û‹ÛÝ]ÛÛYKÙÜ˜YH›ÝÜÈ›ÜˆHXÝ]™H[˜[\Ú\ËˆŠNÂˆ™]\›ˆÈ\ÜÙ\ÜÛY[ˆ•S”“Õ‘Sˆ‹ÛÛ™šY[˜ÙNˆ“QQUSH‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ‘™]Ù\ˆ[ˆÍIHÙˆÙ[XÝYØ\Ù\È[šÈHXÚ\Ú[Û‹XÝ[Û‹Ý]ÛÛYH[™™\ÛÛ™YÜ˜YNÈ[œÜXÝ[˜ÛÛ\]HØ\Ù\Ëˆ‹]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆ×KZ\ÜÚ[™Ñ]šY[˜ÙNˆZ\ÜÚ[™ÈNÂˆB‚ˆYˆ
+˜[Z[HOOH“PT“’S‘×ÐÐUTÐSUHŠHÂˆÛÛœÝ\]HH[œ]›X\›š[™Ð\˜Ú]XÝ\™OË\Ù\ÓÝ]ÛÛYQÜ˜Y\Ñ›Ü“X\›š[™ÈÏÈ[œ]˜[˜[\Ú\Ë\]\Ó[Ù[ÛXÞT™YÝ[\›NÂˆÛÛœÝ\ÞHH[œ]›X\›š[™Ð\˜Ú]XÝ\™OË™\Þ[Y[ØY[˜ÙHÏÈ[œ]˜[˜[\Ú\Ë™\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛNÂˆY^\šY[˜ÙQ\ØÜš\]™J	ÛY]šXÜË™Ü˜YYØ\Ù\ßKÉÛY]šXÜËÝ[Ø\Ù\ßHÜ˜YYØ\Ù\Ë˜‘Ü˜Y\È^\ÝÈX\›ˆœ›ÛHYˆÛÛ›™XÝYÈ\]\Ëˆ‹‘Ü˜YHÛÝ™\˜YÙHÙ\È›Ý\ÝX›\Ú]Ü˜Y\È[\›Ý™H]\™HXÚ\Ú[ÛœËˆŠNÂˆYˆ
+]˜[YR[˜ÛY\Ê\]KÈ–QTÈ‹”‘QÕSTˆ‹‘RSH‹•ÑQRÓH—JJHYZ\ÜÚ[™ÊÛÛ\[žH[Ù[8¡¤ˆX\›š[™ÈÛÜ8¡¤ˆTUH‹Ýš[™Ê\]HÏÈ•[šÛ›ÝÛˆŠK“›È]šY[˜ÙHÝ\œ™[HÚÝÜÈ]Ü˜Y\È[\ˆ]\™H[Ù[ÜˆÛXÞH™Z]š[Ü‹ˆ‹”›ÙXÝÜ›ØÙ\ÜÈ[YÙ[˜ÙH‹“[Ù[ÜˆÛXÞH\]H™XÛÜ™YYÈÜ˜YYÝ]ÛÛY\ËˆŠNÂˆYˆ
+]˜[YR[˜ÛY\Ê\ÞKÈ–QTÈ‹‘TÕ‹‘RSH‹•ÑQRÓH—JJHYZ\ÜÚ[™ÊÛÛ\[žH[Ù[8¡¤ˆX\›š[™ÈÛÜ8¡¤ˆTÖH‹Ýš[™Ê\ÞHÏÈ•[šÛ›ÝÛˆŠK“›È]šY[˜ÙHÝ\œ™[HÚÝÜÈX\›™Y[\›Ý™[Y[È™XXÚ›ÙXÝ[Û‹ˆ‹”™[X\ÙKÜ›ØÙ\ÜÈ[YÙ[˜ÙH‹‘\Þ[Y[\ÝÜžHÚÝÚ[™ÈX\›™YÚ[™Ù\È™XXÚY›ÙXÝ[Û‹ˆŠNÂˆYZ\ÜÚ[™Ê‘^\šY[˜ÙH8¡¤ˆX\›š[™ÈÛÛ\\š\ÛÛˆ‹“›ÈÛÛ›ÛY™Y›Ü™KØY\ˆX\›š[™ÈÛÛ\\š\ÛÛ‹ˆ‹ÛÛ\\™H[[Ý]XÚ\Ú[ÛœÈÚ][™Ú]Ý]\]\Èœ›ÛHXØÝ[][]YÜ˜Y\Ëˆ‹‘^\š[Y[‹•™\œÚ[Û™Y[[Ý]\™›Ü›X[˜ÙH™Y›Ü™H[™Y\ˆX\›š[™Èœ›ÛH\ÙHØ\Ù\ËˆŠNÂˆ™]\›ˆÈ\ÜÙ\ÜÛY[ˆ•S”“Õ‘Sˆ‹ÛÛ™šY[˜ÙNˆ“ÕÈ‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ	Ü™\Ü™š[™[™ÜË™š[™
+][HOˆ][KšYOOHœ™YXÝXš[]HŠHKœÝ[[X\ž_HXÚ\Ú[Û‹\ÛXÞH[\›Ý™[Y[Ý[™\]Z\™\ÈHÛÛ›ÛY\Ý˜]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆ×KZ\ÜÚ[™Ñ]šY[˜ÙNˆZ\ÜÚ[™ÈNÂˆB‚ˆYˆ
+˜[Z[HOOHÔ“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆŠHÂˆÛÛœÝ^\š[Y[H[‘^\šY[˜ÙU˜[œÙ™\‘^\š[Y[
+[œ]œ›ÝÜÊNÂˆY^\šY[˜ÙQ\ØÜš\]™J	Ù^\š[Y[œÚ\™Y]\›œßKÉÙ^\š[Y[œ]\›ÛÝ[HXÚ\Ú[Û‹XÛ\ÜËØØ\ÙK]\H]\›œÈØØÝ\ˆXÜ›ÜÜÈÙYÛY[ÎÈ	Ù^\š[Y[œÚ\™YØ\Ù\ßKÉÙ^\š[Y[™[YÚX›_H[YÚX›HØ\Ù\È™[Û™ÈÈÚ\™Y]\›œË˜“YX\Ý\™\ÈÚ]\ˆÙYÛY[ÈÚ\™HÝ[X[H™]\ØX›HXÚ\Ú[ÛˆÝXÝ\™Kˆ‹”Ú\™YÝXÝ\™H\ÈH™\™\]Z\Ú]H›Üˆ˜[œÙ™\‹›Ý]È\™›Ü›X[˜ÙH™\Ý[ˆŠNÂˆY^\šY[˜ÙQ\ØÜš\]™J	Ù^\š[Y[™š[™[™ßKˆ	Ù^\š[Y[œØÛÜ™YH[[Ý]Ø\Ù\ÎÈØØ[œšY\ˆ	Ù^\š[Y[›ØØ[ËÑš^Y
+ÊHÏÈ[˜]˜Z[X›HŸKÛÛY	Ù^\š[Y[œÛÛYËÑš^Y
+ÊHÏÈ[˜]˜Z[X›HŸK˜^\š[Y[›Y]Ù^\š[Y[œØÛÜJNÂˆYZ\ÜÚ[™Ê‘^\šY[˜ÙH8¡¤ˆXÝ[Û‹\ÛXÞH^\š[Y[‹^\š[Y[™[›ÝYÚÈ‘Ü˜YH™YXÝ[Ûˆ\ÝYÈXÚ\Ú[Û‹\ÛXÞH[\›Ý™[Y[™[XZ[œÈ[\ÝYˆˆˆ’[œÝY™šXÚY[Ü˜YK\™YXÝ[ÛˆÛÝ™\˜YÙNÈXÚ\Ú[Û‹\ÛXÞH[\›Ý™[Y[™[XZ[œÈ[\ÝYˆ‹•\ÙHY[YšYYÝ\ÝÛY\œÈ[™ÛÛ\\™HØØ[™\œÝ\ÈÛÛYÛXÚY\ÈÛˆ[[Ý]XÚ\Ú[ÛœËYX\Ý\š[™ÈÛÜœ™XÝ™\ÜÈ[™XÛÛ›ÛZXÈÝ]ÛÛY\Ëˆ‹”ÛXÞH^\š[Y[‹“ØØ[™\œÝ\ÈÛÛYÝ\ÝÛY\‹[]™[[[Ý]ÛXÞHÛÛ\\š\ÛÛˆ[™ÙYÛY[\›H[˜[\Ú\ËˆŠNÂˆ™]\›ˆÈ\ÜÙ\ÜÛY[ˆ•S”“Õ‘Sˆ‹ÛÛ™šY[˜ÙNˆ“ÕÈ‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ	Ù^\š[Y[™š[™[™ßIÙ^\š[Y[™[HOOH[Èˆˆˆ
+ØØ[Z[\ÈÛÛYœšY\Žˆ	Ù^\š[Y[™[KÑš^Y
+Ê_JXKˆÚ\™Y]\›œÎˆ	Ù^\š[Y[œÚ\™Y]\›œßKÉÙ^\š[Y[œ]\›ÛÝ[Kˆ\È˜\œ›ÝÜÈH˜[œÙ™\ˆ]Y\Ý[ÛˆÈÚ]\ˆÛÛYX\›š[™È[\›Ý™\ÈXÝ[ÛœË›Ý\ÝÜ˜YH™YXÝ[Û‹‰Û]\Ý^\š[Y[ÈÛÛ™][Û˜[Ú[][][ÛŽˆ	Û]\Ý^\š[Y[šXY[™_XˆˆŸX]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆ×KZ\ÜÚ[™Ñ]šY[˜ÙNˆZ\ÜÚ[™ÈNÂˆB‚ˆYˆ
+˜[Z[HOOH“PT‘ÒSSÒS‘“Ô“PUSÓ—ÕSQHŠHÂˆÛÛœÝ[™›Ü›X][ÛˆH\š]™R[™›Ü›X][Û”ÝXÝ\™J[œ]œ›ÝÜÊNÂˆY^\šY[˜ÙQ\ØÜš\]™J	ÛY]šXÜËÝ[Ø\Ù\ßHØ\Ù\Ëˆ	Ú[™›Ü›X][Û‹œÝ[[X\žK™]™\œÚ]_NÈ	Ú[™›Ü›X][Û‹œÝ[[X\žKœ]\›”™\]][ÛŸNÈ	Ú[™›Ü›X][Û‹œÝ[[X\žK›X\™Ú[˜[›Ý™[_K˜”]\›ˆ]™\œÚ]H[™ÛÚÜ›Ý™[H\ØÜšX™HHÝ\HÙˆ™]È[™›Ü›X][Ûˆ]˜Z[X›HÈX\›ˆœ›ÛKˆ‹H[[Ý]X\›š[™ÈÝ\™H\È™YYYÈÛÛ›™XÝ›Ý™[HÈ\™›Ü›X[˜ÙHØZ[‹ˆŠNÂˆYZ\ÜÚ[™Ê‘^\šY[˜ÙHÈ]\™H^\š[Y[‹™\Üœ™XYHÈ”™YXÝ]™HX\›š[™ÈÝ\™HYX\Ý\™YÈÛXÞK]˜[YHÝ\™HÝ[™YYYˆˆˆ’[œÝY™šXÚY[Ø\Ù\È›ÜˆH[[Ý]X\›š[™ÈÝ\™Kˆ‹“YX\Ý\™HXÝ[Û‹\ÛXÞH\™›Ü›X[˜ÙHXÜ›ÜÜÈÝXØÙ\ÜÚ]™H˜Z[š[™ÈÛÚÜËˆ‹‘^\š[Y[‹‘XÚ\Ú[Û‹\ÛXÞH˜[YHžHÝXØÙ\ÜÚ]™HÛÚÜÛˆHš^Y]˜[X][ÛˆÙ]ˆŠNÂˆ™]\›ˆÈ\ÜÙ\ÜÛY[ˆ•S”“Õ‘Sˆ‹ÛÛ™šY[˜ÙNˆ“ÕÈ‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ	Ú[™›Ü›X][Û‹œÝ[[X\žK›X\™Ú[˜[›Ý™[_Kˆ	Ü™\Ü™š[™[™ÜË™š[™
+][HOˆ][KšYOOH›X\›š[™ËXÝ\™HŠHKœÝ[[X\ž_IÛ]\Ý^\š[Y[ÈÛÛ™][Û˜[Ú[][][ÛŽˆ	Û]\Ý^\š[Y[šXY[™_XˆˆŸX]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆ×KZ\ÜÚ[™Ñ]šY[˜ÙNˆZ\ÜÚ[™ÈNÂˆB‚ˆYˆ
+˜[Z[HOOH”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆŠHÂˆÛÛœÝY™šXÝ[HH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OË˜ÛÛ\]]Ü”™[X\›š[™ÑY™šXÝ[HÏÈ[œ]˜[˜[\Ú\Ëœ™XZ[Xš[]NÂˆÛÛœÝ›Ý[™][Û”š\ÚÈH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OË™›Ý[™][Û“[Ù[ÝXœÝ]][Û”š\ÚÈÏÈ[œ]˜[˜[\Ú\Ë™›Ý[™][Û“[Ù[\[™[˜ÙNÂˆYˆ
+Y™šXÝ[JH›Ü‘]šY[˜ÙKœ\Ú
+]šY[˜ÙR][JÈÛÝ\˜ÙNˆÛÛ\[žH[Ù[8¡¤ˆÛÛ\]]]™H\˜Ú]XÝ\™H‹˜[YNˆ™[X\›š[™ÈY™šXÝ[Nˆ	ÙY™šXÝ[_X\™XÝ[ÛŽˆÓÓ•VQTÐÔ’TU‘H‹Ý™[™ÝˆÓÓ•V‹›Ý™[˜[˜ÙNˆSSTÕTÔÕSTSÓˆ‹™YŽˆÛÛ\[žS[Ù[™Y‹[\œ™]][ÛŽˆ‘œ˜[Y\ÈH™XZ[Xš[]H\Ý\Ú\Ëˆ‹[Z]][ÛŽˆ\ÜÝ[\[Ûˆ\È›ÝHÚ[[™Ù\ˆ™[˜ÚX\šËˆˆJJNÂˆYˆ
+˜[YR[˜ÛY\Ê›Ý[™][Û”š\ÚËÈ’QÒ‹‘TÕ—JJHYØZ[œÝ]šY[˜ÙKœ\Ú
+]šY[˜ÙR][JÈÛÝ\˜ÙNˆÛÛ\[žH[Ù[8¡¤ˆÛÛ\]]]™H\˜Ú]XÝ\™H‹˜[YNˆ›Ý[™][Û‹[[Ù[ÝXœÝ]][Ûˆš\ÚÎˆ	Ù›Ý[™][Û”š\ÚßX\™XÝ[ÛŽˆÓÓ•QPÕÈ‹Ý™[™Ýˆ’S‘T‘PÕ‹›Ý™[˜[˜ÙNˆSSTÕTÔÕSTSÓˆ‹™YŽˆÛÛ\[žS[Ù[™Y‹[\œ™]][ÛŽˆHYÚÝXœÝ]][Ûˆš\ÚÈÙXZÙ[œÈ\˜X›HÑHÝÙ\‹ˆ‹[Z]][ÛŽˆ”Ý[™\]Z\™\È\™XÝ™[˜ÚX\šÈ]šY[˜ÙKˆˆJJNÂˆYZ\ÜÚ[™Ê‘]\™HÚ[[™Ù\ˆ™[˜ÚX\šÈ‹“›ÈÛÛ\™\ÜÚ[Û‹Ü™[X\›š[™È™[˜ÚX\šËˆ‹“™YY]šY[˜ÙH]HØ\X›HÚ[[™Ù\ˆØ[››Ý™\›ÙXÙH\™›Ü›X[˜ÙHÚX\Kˆ‹™[˜ÚX\šÈ‹’[˜Ý[X™[]œËXÚ[[™Ù\ˆ\™›Ü›X[˜ÙHØ\Y\ˆÛXÞHØÜËX›XÈ]KÞ[]XÈØ\Ù\Ë[™[Z]YØ[Xœ˜][Û‹ˆŠNÂˆ™]\›ˆÈ\ÜÙ\ÜÛY[ˆ•S”“Õ‘Sˆ‹ÛÛ™šY[˜ÙNˆ“ÕÈ‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ	Ü™\Ü™š[™[™ÜË™š[™
+][HOˆ][KšYOOHœ™XÛÛœÝXÝ[Û‹\›ÞHŠHKœÝ[[X\ž_IÛ]\Ý^\š[Y[ÈÛÛ™][Û˜[Ú[][][ÛŽˆ	Û]\Ý^\š[Y[šXY[™_Xˆˆ™\ÝšXÝYXXØÙ\ÜÈÚ[[™Ù\ˆ\™›Ü›X[˜ÙH™[XZ[œÈ[\ÝYˆŸX]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆYØZ[œÝ]šY[˜ÙKZ\ÜÚ[™Ñ]šY[˜ÙNˆZ\ÜÚ[™ÈNÂˆB‚ˆYˆ
+˜[Z[HOOH“PT“’S‘×Ô’QÒÈŠHÂˆÛÛœÝšYÚÈH[œ]›X\›š[™Ð\˜Ú]XÝ\™OË˜Ø[•˜Z[XÜ›ÜÜÐÝ\ÝÛY\œÈÏÈ[œ]˜[˜[\Ú\Ë˜ÛÛ˜XÝX[X\›š[™ÔšYÚÎÂˆÛÛœÝšYÚÔÝ]HHÛ\ÜÚYžSX\›š[™ÔšYÚÊšYÚÊNÂˆÛÛœÝ\ÔÛÝ\˜ÙHHÛÝ\˜ÙYÝ\Ü
+[œ]™]šY[˜ÙT™XÛÜ™ÏË™š[\Š™XÛÜ™Oˆ\™XÛÜ™œÛÝ\˜ÙPØ\ÙTÙ]Y™XÛÜ™œÛÝ\˜ÙPØ\ÙTÙ]YOOH
+[œ]˜Ø\ÙTÙ]YÏÈ[œ]™]\Ù]
+JKÈœšYÚ‹˜ÛÛ˜XÝ‹˜Z[ˆ‹œ™]Z[ˆ—JNÂˆYˆ
+šYÚÊH›Ü‘]šY[˜ÙKœ\Ú
+]šY[˜ÙR][JÈÛÝ\˜ÙNˆÛÛ\[žH[Ù[8¡¤ˆX\›š[™ÈšYÚÈ‹˜[YNˆX\›š[™ÈšYÚÎˆ	ÜšYÚßX\™XÝ[ÛŽˆšYÚÔÝ]HOOH”‘TÕ’PÕQˆÈÓÓ•QPÕÈˆˆšYÚÔÝ]HOOHSÕÑQˆ	‰ˆ\ÔÛÝ\˜ÙHÈ”ÕTÔ•ÈˆˆÓÓ•VQTÐÔ’TU‘H‹Ý™[™Ýˆ\ÔÛÝ\˜ÙHÈ‘T‘PÕˆˆšYÚÔÝ]HOOH”‘TÕ’PÕQˆÈ’S‘T‘PÕˆˆÓÓ•V‹›Ý™[˜[˜ÙNˆ\ÔÛÝ\˜ÙHÈ”ÓÕTÑQ8 %VT“SU’QSÑHˆˆSSTÕTÔÕSTSÓˆ‹™YŽˆÛÛ\[žS[Ù[™Y‹[\œ™]][ÛŽˆ”šYÚÈ]\›Z[™HÚ]\ˆ^\šY[˜ÙHØ[ˆ™H™]Z[™Y[™™]\ÙYˆ‹[Z]][ÛŽˆ\ÔÛÝ\˜ÙHÈ”™]šY]ÈØÛÜHÙˆ[ÝÙY\Ù\Ëˆˆˆ[˜[\Ý\ÜÝ[\[Ûˆ\È›ÝÛÛ˜XÝX[]šY[˜ÙKˆˆJJNÂˆYˆ
+šYÚÔÝ]HOOH”‘TÕ’PÕQŠH™]\›ˆÈ\ÜÙ\ÜÛY[ˆ“PS’S‘ÈQÐRS”Õ‹ÛÛ™šY[˜ÙNˆ\ÔÛÝ\˜ÙHÈ“QQUSHˆˆ“ÕÈ‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ•H™XÛÜ™YšYÚÈÜÚ][Ûˆ\È™\ÝšXÝ]™NÈ™]šY]ÈHØÛÜHÙˆH™\ÝšXÝ[Û‹ˆ‹]šY[˜ÙQ›ÜŽˆ×K]šY[˜ÙPYØZ[œÝˆ›Ü‘]šY[˜ÙKZ\ÜÚ[™Ñ]šY[˜ÙNˆ×HNÂˆYˆ
+šYÚÔÝ]HOOHSÕÑQˆ	‰ˆ\ÔÛÝ\˜ÙJH™]\›ˆÈ\ÜÙ\ÜÛY[ˆ“PS’S‘ÈÕTÔ•Q‹ÛÛ™šY[˜ÙNˆ“QQUSH‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ”ÛÝ\˜ÙYšYÚÈ]šY[˜ÙHÝ\ÜÈ™][[Û‹Ý\ÙKÝXš™XÝÈØÛÜH™]šY]Ëˆ‹]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆ×KZ\ÜÚ[™Ñ]šY[˜ÙNˆ×HNÂˆYZ\ÜÚ[™ÊÛÛ˜XÝÈÈ]HÛÝ™\›˜[˜ÙH‹“›ÈÛÝ\˜ÙYÛÛ˜XÝX[šYÚÈ]šY[˜ÙKˆ‹“™YY™][[Û‹\š]™YY™X]\™K]˜[X][Û‹[™Ü›ÜÜËXÝ\ÝÛY\ˆ˜Z[š[™ÈšYÚËˆ‹“YØ[Ù]K\›ÛÛH™]šY]È‹ÛÛ˜XÝX[[™ÝXYÙHÛÝ™\š[™È™][[Û‹\š]™Y™X]\™\Ë]˜[X][Û‹[™Ü›ÜÜËXÝ\ÝÛY\ˆ˜Z[š[™ËˆŠNÂˆ™]\›ˆÈ\ÜÙ\ÜÛY[ˆšYÚÔÝ]HOOH•S’Ó“ÕÓˆˆÈ•S’Ó“ÕÓˆˆˆ•S”“Õ‘Sˆ‹ÛÛ™šY[˜ÙNˆ“ÕÈ‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ“X\›š[™ÈšYÚÈ\™H›Ý\ÝX›\ÚYˆ[šÛ›ÝÛˆ\›Z\ÜÚ[Ûˆ\È›Ý]šY[˜ÙHÙˆH™\ÝšXÝ[Û‹ˆ‹]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆ×KZ\ÜÚ[™Ñ]šY[˜ÙNˆZ\ÜÚ[™ÈNÂˆB‚ˆYˆ
+˜[Z[HOOH‘PÓÓ“ÓRP×ÓPUT’PSUHŠHÂˆYˆ
+Y]šXÜË›Ý]ÛÛYU˜[YTØ[\TÚ^™Hˆ
+HY^\šY[˜ÙQ\ØÜš\]™J	ÛY]šXÜË›Ý]ÛÛYU˜[YTØ[\TÚ^™_KÉÛY]šXÜËÝ[Ø\Ù\ßHØ\Ù\È[˜ÛYHÝ]ÛÛYH˜[YNÈÝ[	ÛY]šXÜËÝ[Ý]ÛÛYU˜[Y_K˜”ÚÝÜÈXÛÛ›ÛZXÈÝ]ÛÛYHšY[È\™H™\™\Ù[Yˆ‹‘XÛÛ›ÛZXÈ˜[Y\È[Û™HÈ›Ý›Ý™H[\›Ý™YXÚ\Ú[ÛœÈØ]\ÙY˜[YKˆŠNÂˆ[ÙHYZ\ÜÚ[™Ê‘^\šY[˜ÙH8¡¤ˆXÛÛ›ÛZXÈÝ]ÛÛY\È‹“›ÈÝ]ÛÛYH˜[YH›ÝÜËˆ‹“™YYXÛÛ›ÛZXÈÝ]ÛÛYH˜[Y\ÈYYÈXÚ\Ú[ÛœÈ[™Ü˜Y\Ëˆ‹Ø\ÙTÙ][œšXÚY[‹‘XÛÛ›ÛZXÈÝ]ÛÛYH˜[Y\È›Ú[™YÈXÚ\Ú[Û‹ØXÝ[Û‹ÛÝ]ÛÛYKÙÜ˜YH›ÝÜËˆŠNÂˆYZ\ÜÚ[™Ê‘^\šY[˜ÙH8¡¤ˆ[˜Ü™[Y[[XÛÛ›ÛZXÈ˜[YH‹“›ÈX]ÚYÛXÞK]˜[YHÛÛ\\š\ÛÛ‹ˆ‹ÛÛ\\™HÝ]ÛÛY\È[™\ˆH˜\Ù[[™H[™[ˆ[\›Ý™YXÚ\Ú[ÛˆÛXÞKÚ]ÛÛœÚ\Ý[˜[YH[š]È[™ÛÛ\\˜X›HØ\ÙHZ^ˆ‹”ÛXÞK]˜[YH^\š[Y[‹’[˜Ü™[Y[[XÛÛ›ÛZXÈ˜[YH]šX]X›HÈÚ[™ÙYXÚ\Ú[ÛœË[˜ÛY[™È[\™[[ÛˆÛÜÝËˆŠNÂˆ™]\›ˆÈ\ÜÙ\ÜÛY[ˆ•S”“Õ‘Sˆ‹ÛÛ™šY[˜ÙNˆ“ÕÈ‹\ÜÙ\ÜÛY[™X\ÛÛŽˆY]šXÜË›Ý]ÛÛYU˜[YTØ[\TÚ^™HˆÈ™XÛÜ™YXÛÛ›ÛZXÈÝZÙ\È\™HYX\Ý\˜X›H[ˆ	ÛY]šXÜË›Ý]ÛÛYU˜[YTØ[\TÚ^™_HØ\Ù\ËˆY][Û˜[˜[YHØ]\ÙYžH™]\ˆXÚ\Ú[ÛœÈ\È›Ý™Y[ˆ\ÝY˜ˆ‘XÛÛ›ÛZXÈÝZÙ\È[™[˜Ü™[Y[[XÚ\Ú[Ûˆ˜[YHØ[››ÝY]™H\ÜÙ\ÜÙYœ›ÛH\ÙHØ\Ù\Ëˆ‹]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆ×KZ\ÜÚ[™Ñ]šY[˜ÙNˆZ\ÜÚ[™ÈNÂˆB‚ˆÛÛœÝ]\›Z[š\ÝXÈH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OË™]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™TÝ™[™ÝÏÈ[œ]˜[˜[\Ú\Ë™]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™NÂˆYˆ
+]\›Z[š\ÝXÊH›Ü‘]šY[˜ÙKœ\Ú
+]šY[˜ÙR][JÈÛÝ\˜ÙNˆÛÛ\[žH[Ù[8¡¤ˆÛÛ\]]]™H\˜Ú]XÝ\™H‹˜[YNˆ]\›Z[š\ÝXÈ[™œ˜\ÝXÝ\™Nˆ	Ù]\›Z[š\ÝXßX\™XÝ[ÛŽˆÓÓ•VQTÐÔ’TU‘H‹Ý™[™ÝˆÓÓ•V‹›Ý™[˜[˜ÙNˆSSTÕTÔÕSTSÓˆ‹™YŽˆÛÛ\[žS[Ù[™Y‹[\œ™]][ÛŽˆ“X^H[™XØ]HÝÙ\ˆÝ]ÚYHÑKˆ‹[Z]][ÛŽˆ‘Ù\È›Ý]Ù[ˆ›Ý™HH[Y\ˆYXÚ[š\ÛKˆˆJJNÂˆYZ\ÜÚ[™Ê”Ý˜]YÚXÈ]šY[˜ÙH‹“›ÈYÜ[Û‹Ü›ØÙ\ÜËÜÝÚ]Ú[™È]šY[˜ÙKˆ‹“™YY\™XÝ]šY[˜ÙH›Üˆ›ØÙ\ÜÈÝÙ\‹ÝÚ]Ú[™ÈÛÜÝËÜˆ[™œ˜\ÝXÝ\™H\[™[˜ÙKˆ‹Ý\ÝÛY\‹Ü›ØÙ\ÜÈ[YÙ[˜ÙH‹YÜ[Û‹ÛÜšÙ›ÝËÝÚ]Ú[™ËÜˆ[™œ˜\ÝXÝ\™H]šY[˜ÙHYYÈH[Y\ˆYXÚ[š\ÛKˆŠNÂˆ™]\›ˆÈ\ÜÙ\ÜÛY[ˆ•S”“Õ‘Sˆ‹ÛÛ™šY[˜ÙNˆ“ÕÈ‹\ÜÙ\ÜÛY[™X\ÛÛŽˆ[\›˜]]™HÝÙ\ˆX^H™H]\ÚX›H]\È›Ý\ÝX›\ÚYžHHÝ\œ™[ÑH]šY[˜ÙH[Ù[ˆ‹]šY[˜ÙQ›ÜŽˆ›Ü‘]šY[˜ÙK]šY[˜ÙPYØZ[œÝˆ×KZ\ÜÚ[™Ñ]šY[˜ÙNˆZ\ÜÚ[™ÈNÂŸB‚™^Ü[˜Ý[Ûˆ\š]™QX˜]Q]šY[˜ÙT™YÚ\ÝžJ[œ]ˆX˜]Q[™Ú[™R[œ]
+Nˆ™XÛÜ™X˜]Q˜[Z[KXÚÏ\š]™YX˜]PØ[™Y]K˜\ÜÙ\ÜÛY[ˆ˜ÛÛ™šY[˜ÙHˆ˜\ÜÙ\ÜÛY[™X\ÛÛˆˆ™]šY[˜ÙQ›Üˆˆ™]šY[˜ÙPYØZ[œÝˆ˜ÛÛ^]šY[˜ÙHˆ›Z\ÜÚ[™Ñ]šY[˜ÙHˆ™]šY[˜ÙQ\Ú›Ø\™ˆ™]šY[˜ÙPÛÝ™\˜YÙHˆ[”ÙXÛÛ™Ý[[X\žHˆšYÚ\Ý˜[YQ[YÙ[˜ÙHˆÂˆ[œ]HÈ‹‹š[œ]^\šY[˜ÙP[˜[\Ú\Îˆ[œ]™^\šY[˜ÙP[˜[\Ú\ÈÏÈ[˜[^™Q^\šY[˜ÙJ[œ]œ›ÝÜÊKØœÙ\™Y^\š[Y[Y\\Žˆ[œ]›ØœÙ\™Y^\š[Y[Y\\ˆÏÈ[“ØœÙ\™Y]Q^\š[Y[Y\\Š[œ]œ›ÝÜÊHNÂˆÛÛœÝ˜[Z[Y\ÎˆX˜]Q˜[Z[V×HHÂˆ‘VT’QSÑWÐÐTT‘H‹ˆ“PT“’S‘×ÐÐUTÐSUH‹ˆÔ“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘Tˆ‹ˆ“PT‘ÒSSÒS‘“Ô“PUSÓ—ÕSQH‹ˆ”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆ‹ˆ“PT“’S‘×Ô’QÒÈ‹ˆ‘PÓÓ“ÓRP×ÓPUT’PSUH‹ˆST“UU‘WÔÕÑTˆ‚ˆNÂ‚ˆ™]\›ˆ˜[Z[Y\Ëœ™YXÙO™XÛÜ™X˜]Q˜[Z[KXÚÏ\š]™YX˜]PØ[™Y]K˜\ÜÙ\ÜÛY[ˆ˜ÛÛ™šY[˜ÙHˆ˜\ÜÙ\ÜÛY[™X\ÛÛˆˆ™]šY[˜ÙQ›Üˆˆ™]šY[˜ÙPYØZ[œÝˆ˜ÛÛ^]šY[˜ÙHˆ›Z\ÜÚ[™Ñ]šY[˜ÙHˆ™]šY[˜ÙQ\Ú›Ø\™ˆ™]šY[˜ÙPÛÝ™\˜YÙHˆ[”ÙXÛÛ™Ý[[X\žHˆšYÚ\Ý˜[YQ[YÙ[˜ÙHŠ
+™YÚ\ÝžK˜[Z[JHOˆÂˆÛÛœÝ˜]ÈH\š]™QX˜]P\ÜÙ\ÜÛY[
+[œ]˜[Z[JNÂˆÛÛœÝ]šY[˜ÙQ\Ú›Ø\™H\š]™QX˜]Q]šY[˜ÙQ\Ú›Ø\™
+[œ]˜[Z[JNÂˆÛÛœÝ]šY[˜ÙQ›ÜˆH˜]Ë™]šY[˜ÙQ›Ü‹™š[\Š
+][JHOˆ][K™\™XÝ[ÛˆOOH”ÕTÔ•ÈŠNÂˆÛÛœÝÛÛ^]šY[˜ÙHH˜]Ë™]šY[˜ÙQ›Ü‹™š[\Š
+][JHOˆ][K™\™XÝ[ÛˆOOHÓÓ•VQTÐÔ’TU‘HŠNÂˆÛÛœÝ]šY[˜ÙPYØZ[œÝH˜]Ë™]šY[˜ÙPYØZ[œÝ™š[\Š
+][JHOˆ][K™\™XÝ[ÛˆOOHÓÓ•QPÕÈŠNÂˆÛÛœÝZ\ÜÚ[™Ñ]šY[˜ÙHH˜]Ë›Z\ÜÚ[™Ñ]šY[˜ÙK›X\
+
+][JHOˆ
+È‹‹š][K™YŽˆ[™Yš[™YJJNÂˆÛÛœÝ]šY[˜ÙPÛÝ™\˜YÙHH	Ù]šY[˜ÙQ›Ü‹›[™ÝHÝ\ÜÈ0­È	Ù]šY[˜ÙPYØZ[œÝ›[™ÝHÛÛ˜YXÝÈ0­È	ØÛÛ^]šY[˜ÙK›[™ÝHÛÛ^0­È	ÛZ\ÜÚ[™Ñ]šY[˜ÙK›[™ÝHZ\ÜÚ[™ØÂˆÛÛœÝYÚ\Ý˜[YQ[YÙ[˜ÙHHZ\ÜÚ[™Ñ]šY[˜ÙVÌOËš[\œ™]][ÛˆX˜]U[\]J˜[Z[JK˜™\Ý™^\ÝÂˆÛÛœÝ[”ÙXÛÛ™Ý[[X\žHH	Ü˜]Ë˜\ÜÙ\ÜÛY[HÈ	Ü˜]Ë˜ÛÛ™šY[˜Ù_HÛÛ™šY[˜ÙKˆ	Ü˜]Ë˜\ÜÙ\ÜÛY[™X\ÛÛŸXÂˆ™YÚ\ÝžVÙ˜[Z[WHHÂˆ‹‹œ˜]Ëˆ]šY[˜ÙQ›Ü‹ˆ]šY[˜ÙPYØZ[œÝˆÛÛ^]šY[˜ÙKˆZ\ÜÚ[™Ñ]šY[˜ÙKˆ]šY[˜ÙQ\Ú›Ø\™ˆ]šY[˜ÙPÛÝ™\˜YÙKˆ[”ÙXÛÛ™Ý[[X\žKˆYÚ\Ý˜[YQ[YÙ[˜ÙBˆNÂˆ™]\›ˆ™YÚ\ÝžNÂˆKßH\È™XÛÜ™X˜]Q˜[Z[KXÚÏ\š]™YX˜]PØ[™Y]K˜\ÜÙ\ÜÛY[ˆ˜ÛÛ™šY[˜ÙHˆ˜\ÜÙ\ÜÛY[™X\ÛÛˆˆ™]šY[˜ÙQ›Üˆˆ™]šY[˜ÙPYØZ[œÝˆ˜ÛÛ^]šY[˜ÙHˆ›Z\ÜÚ[™Ñ]šY[˜ÙHˆ™]šY[˜ÙQ\Ú›Ø\™ˆ™]šY[˜ÙPÛÝ™\˜YÙHˆ[”ÙXÛÛ™Ý[[X\žHˆšYÚ\Ý˜[YQ[YÙ[˜ÙHŠNÂŸB‚™^Ü[˜Ý[Ûˆ\š]™RYÚ\Ý˜[YQ[YÙ[˜ÙT]Y]YJØ[™Y]\Îˆ\š]™YX˜]PØ[™Y]V×K[Z]HJHÂˆÛÛœÝ[\XÝÜ™\Žˆ™XÛÜ™X˜]U\Ú\Ò[\XÝ[X™\ˆHÈ•‘T–HQÒŽˆQÒˆKQQUSNˆˆNÂˆ™]\›ˆØ[™Y]\Âˆ™š[\Š
+Ø[™Y]JHOˆØ[™Y]K›Z\ÜÚ[™Ñ]šY[˜ÙK›[™ÝˆØ[™Y]K˜\ÜÙ\ÜÛY[OOH•S”“Õ‘SˆˆØ[™Y]K˜\ÜÙ\ÜÛY[OOH•S’Ó“ÕÓˆŠBˆœÛÜ
+
+KŠHOˆ[\XÝÜ™\–ØK\Ú\Ò[\XÝHH[\XÝÜ™\–Ø‹\Ú\Ò[\XÝH‹›Z\ÜÚ[™Ñ]šY[˜ÙK›[™ÝHK›Z\ÜÚ[™Ñ]šY[˜ÙK›[™ÝK]K›ØØ[PÛÛ\\™J‹]JJBˆœÛXÙJ[Z]
+Bˆ›X\
+
+Ø[™Y]JHOˆ
+Âˆ˜[Z[NˆØ[™Y]K™˜[Z[Kˆ]NˆØ[™Y]K]Kˆ\Ú\Ò[\XÝˆØ[™Y]K\Ú\Ò[\XÝˆ\ÝˆØ[™Y]K˜™\Ý™^\Ýˆ™X\ÛÛŽˆØ[™Y]KšYÚ\Ý˜[YQ[YÙ[˜ÙKˆ™YŽˆÙX˜]KIØØ[™Y]K™˜[Z[_XˆJJNÂŸB‚\HØ]™YÞ[]XÑš[™[™ÈHÈ™\™XÝÎˆÝš[™ÎÈXY[™OÎˆÝš[™ÎÈ]Z[ÎˆÝš[™ÎÈ[\XØ][ÛÎˆÝš[™ÈNÂ‚™[˜Ý[Ûˆ]\ÝÞ[]XÑš[™[™Ê[œ]ˆX˜]Q[™Ú[™R[œ]˜[Z[NˆX˜]Q˜[Z[JNˆØ]™YÞ[]XÑš[™[™È[ÂˆÛÛœÝÙ[XÝY]\Ù]Ù^HH[œ]˜Ø\ÙTÙ]YÏÈ[œ]™]\Ù]ÂˆYˆ
+\Ù[XÝY]\Ù]Ù^JH™]\›ˆ[ÂˆÛÛœÝš[™[™ÜÈH
+[œ]™]šY[˜ÙT™XÛÜ™ÈÏÈ×JBˆ™š[\Š™XÛÜ™OˆÈ”ÖS•UP×ÑVT’SQS•‹”ÖS•UP×ÑVT’SQS•ÔÕRUH‹PÕSÓ—ÔÓPÖWÑVT’SQS•—Kš[˜ÛY\Ê™XÛÜ™™]šY[˜ÙU\HÏÈˆŠH	‰ˆ™XÛÜ™œÛÝ\˜ÙPØ\ÙTÙ]YOOHÙ[XÝY]\Ù]Ù^JBˆ™›]X\
+™XÛÜ™OˆÂˆžHÂˆÛÛœÝ\œÙYH”ÓÓ‹œ\œÙJ™XÛÜ™˜[YTÛ˜\ÚÝÏÈžßHŠH\ÈÈš[™[™ÜÏÎˆ\œ˜^OØ]™YÞ[]XÑš[™[™È	ˆÈ˜[Z[OÎˆÝš[™ÈOˆNÂˆ™]\›ˆ
+\œÙY™š[™[™ÜÈÏÈ×JK™š[\Šš[™[™ÈOˆš[™[™Ë™˜[Z[HOOH˜[Z[JNÂˆHØ]ÚÂˆ™]\›ˆ×NÂˆBˆJNÂˆ™]\›ˆš[™[™ÜË˜]
+LJHÏÈ[ÂŸB‚™[˜Ý[Ûˆ[Ù[Y\ÜÙ\ÜÛY[›ÜŠš[™[™ÎˆØ]™YÞ[]XÑš[™[™È[
+Nˆ[Ù[YYXÚ[š\ÛP\ÜÙ\ÜÛY[ÂˆYˆ
+š[™[™ÏË™\™XÝOOH”ÕTÔ•ÈŠH™]\›ˆ”ÕTÔ•QÓÓ‘USÓSHŽÂˆYˆ
+š[™[™ÏË™\™XÝOOHÒSS‘ÑTÈŠH™]\›ˆÒSS‘ÑQÓÓ‘USÓSHŽÂˆYˆ
+š[™[™ÊH™]\›ˆ“RVQÓÓ‘USÓSHŽÂˆ™]\›ˆ““ÕTÕQŽÂŸB‚™[˜Ý[ÛˆØ\ÙTÝ]\Ê™\™XÝˆØœÙ\™Y^\š[Y[™\™XÝ
+NˆX˜]TÝX˜ÛZ[TÝ]\ÈÂˆYˆ
+™\™XÝOOH”ÕTÔ•ÈŠH™]\›ˆ”ÕTÔ•Q–HÑSPÕQÐTÑTÈŽÂˆYˆ
+™\™XÝOOHÒSS‘ÑTÈŠH™]\›ˆÒSS‘ÑQ–HÑSPÕQÐTÑTÈŽÂˆ™]\›ˆ“RVQÈSÓÓTUHŽÂŸB‚™[˜Ý[ÛˆÛÛ™][Û˜[Ý]\Ê[Ù[Yˆ[Ù[YYXÚ[š\ÛP\ÜÙ\ÜÛY[
+NˆX˜]TÝX˜ÛZ[TÝ]\ÈÂˆYˆ
+[Ù[YOOH”ÕTÔ•QÓÓ‘USÓSHŠH™]\›ˆ”ÕTÔ•QÓÓ‘USÓSHŽÂˆYˆ
+[Ù[YOOHÒSS‘ÑQÓÓ‘USÓSHŠH™]\›ˆÒSS‘ÑQÓÓ‘USÓSHŽÂˆ™]\›ˆ“RVQÈSÓÓTUHŽÂŸB‚™[˜Ý[Ûˆ™\ÛÛ™TÝX˜ÛZ[\Ê˜[Z[NˆX˜]Q˜[Z[KØœÙ\™YˆØœÙ\™Y^\š[Y[[Ù[Yˆ[Ù[YYXÚ[š\ÛP\ÜÙ\ÜÛY[Þ[]XÎˆØ]™YÞ[]XÑš[™[™È[
+Nˆ™\ÛÛ™YX˜]TÝX˜ÛZ[V×HÂˆÛÛœÝÛZ[\ÈHPUWÐT‘ÕSQS•ÔÕ•PÕT‘VÙ˜[Z[WKœÝX˜ÛZ[\ÎÂˆÛÛœÝ›ÝÈH
+[™^ˆ[X™\‹Ý]\ÎˆX˜]TÝX˜ÛZ[TÝ]\Ë™X\ÛÛŽˆÝš[™ÊNˆ™\ÛÛ™YX˜]TÝX˜ÛZ[HOˆ
+ÈÛZ[NˆÛZ[\ÖÚ[™^KÝ]\Ë™X\ÛÛˆJNÂˆYˆ
+˜[Z[HOOH‘VT’QSÑWÐÐTT‘HŠH™]\›ˆÂˆ›ÝÊØ\ÙTÝ]\ÊØœÙ\™Y™\™XÝ
+KØœÙ\™YšXY[™JKˆ›ÝÊK“RVQÈSÓÓTUH‹”™\ÛÛ™YÜ˜Y\È\™H™\Ù[]™[XXš[]HÝ[™\]Z\™\È[™\[™[™YÜ˜Y[™ËˆŠKˆ›ÝÊ‹Ø\ÙTÝ]\ÊØœÙ\™Y™\™XÝ
+KØœÙ\™Y™]Z[
+BˆNÂˆYˆ
+˜[Z[HOOH“PT“’S‘×ÐÐUTÐSUHŠH™]\›ˆÂˆ›ÝÊ”‘TURT‘TÈVT“SÈÓÓTS–HU’QSÑH‹Ø\Ù\ÈÈ›ÝY[YžHÚXÚÜ˜Y\ÈÚ[™ÙYH[Ù[ÜˆÛXÞH™\œÚ[Û‹ˆŠKˆ›ÝÊKØ\ÙTÝ]\ÊØœÙ\™Y™\™XÝ
+K	ÛØœÙ\™YšXY[™_H\È\ÝÈ]\‹XØ\ÙH™YXÝ[Û‹›Ý\ÞYYXÝ[Ûˆ[\›Ý™[Y[˜
+Kˆ›ÝÊ‹”‘TURT‘TÈVT“SÈÓÓTS–HU’QSÑH‹]šX][Ûˆ™\]Z\™\ÈH™\œÚ[Û™Y˜[™ÛZ^™YÜˆÝ\Ú\ÙHÛÛ›ÛYÛÛ\\š\ÛÛ‹ˆŠBˆNÂˆYˆ
+˜[Z[HOOHÔ“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆŠH™]\›ˆÂˆ›ÝÊØœÙ\™YœÝ]\ÈOOH“ÐÒÑQˆÈ“RVQÈSÓÓTUHˆˆØ\ÙTÝ]\ÊØœÙ\™Y™\™XÝ
+KØœÙ\™Y™]Z[
+Kˆ›ÝÊKØœÙ\™YœÝ]\ÈOOH“ÐÒÑQˆÈÛÛ™][Û˜[Ý]\Ê[Ù[Y
+HˆØ\ÙTÝ]\ÊØœÙ\™Y™\™XÝ
+KØœÙ\™YšXY[™JKˆ›ÝÊ‹ØœÙ\™YœÝ]\ÈOOH“ÐÒÑQˆÈÛÛ™][Û˜[Ý]\Ê[Ù[Y
+HˆØœÙ\™Y›Y]šXÜË›™YØ]]™U˜[œÙ™\”ÙYÛY[ÈOOHÈØ\ÙTÝ]\ÊØœÙ\™Y™\™XÝ
+Hˆ“RVQÈSÓÓTUH‹™YØ]]™K]˜[œÙ™\ˆÚXÚÎˆ	ÛØœÙ\™Y›Y]šXÜË›™YØ]]™U˜[œÙ™\”ÙYÛY[ÈÏÈ[˜]˜Z[X›HŸH]˜[X]YÙYÛY[ÈÚÝÈX]\šX[\›Kˆ	ÜÞ[]XÏËšXY[™HÏÈHÝ\ÝÛY\‹[]™[ÛXÞH\Ý™[XZ[œÈHXÚ\Ú]™H™^Ý\ˆŸX
+BˆNÂˆYˆ
+˜[Z[HOOH“PT‘ÒSSÒS‘“Ô“PUSÓ—ÕSQHŠH™]\›ˆÂˆ›ÝÊØ\ÙTÝ]\ÊØœÙ\™Y™\™XÝ
+KØœÙ\™YšXY[™JKˆ›ÝÊKØ\ÙTÝ]\ÊØœÙ\™Y™\™XÝ
+KØœÙ\™Y™]Z[
+Kˆ›ÝÊ‹[Ù[YOOH““ÕTÕQˆÈ“RVQÈSÓÓTUHˆˆÛÛ™][Û˜[Ý]\Ê[Ù[Y
+KÞ[]XÏËšXY[™HÏÈ”\œÚ\Ý[˜ÙH[™\ˆšY\È›Ý™Y[ˆÝ™\ÜË]\ÝYˆŠBˆNÂˆYˆ
+˜[Z[HOOH”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆŠH™]\›ˆÂˆ›ÝÊ“RVQÈSÓÓTUH‹•HØœÙ\™YÛÝ]YX\Ý\™\È™YXÝ]™H\™›Ü›X[˜ÙK]›È^\›˜[Ú[[™Ù\ˆ™[˜ÚX\šÈ\ÝX›\Ú\È[ˆ[˜Ý[X™[Ø\ˆŠKˆ›ÝÊKØœÙ\™YœÝ]\ÈOOH“ÐÒÑQˆÈÛÛ™][Û˜[Ý]\Ê[Ù[Y
+HˆØ\ÙTÝ]\ÊØœÙ\™Y™\™XÝ
+K	ÛØœÙ\™YšXY[™_H	ÜÞ[]XÏËšXY[™HÏÈˆŸXš[J
+JKˆ›ÝÊ‹[Ù[YOOH““ÕTÕQˆÈ”‘TURT‘TÈVT“SÈÓÓTS–HU’QSÑHˆˆÛÛ™][Û˜[Ý]\Ê[Ù[Y
+KÞ[]XÏË™]Z[ÏÈØ]Ú]\ÛÜÝ[™\ˆÝ›Û™Ù\ˆ›Ý[™][Ûˆ[Ù[È™\]Z\™\ÈH™\ÝšXÝYÚ[[™Ù\ˆ\ÝˆŠBˆNÂˆYˆ
+˜[Z[HOOH“PT“’S‘×Ô’QÒÈŠH™]\›ˆÛZ[\Ë›X\
+
+ÛZ[K[™^
+HOˆ›ÝÊ[™^”‘TURT‘TÈVT“SÈÓÓTS–HU’QSÑH‹È”™]šY]È™][[Ûˆ[™\š]™YY™X]\™HÛ]\Ù\Ëˆ‹”™]šY]È]˜[X][Û‹˜Z[š[™Ë[™Ü›ÜÜËXÝ\ÝÛY\ˆ™]\ÙH\›Z\ÜÚ[ÛœËˆ‹•™\šYžHÜ\˜][Û˜[XØÙ\ÜË[][Û‹\ÛÛ][Û‹[™ÛÝ™\›˜[˜ÙHÛÛ›ÛËˆ—VÚ[™^JJNÂˆYˆ
+˜[Z[HOOH‘PÓÓ“ÓRP×ÓPUT’PSUHŠH™]\›ˆÂˆ›ÝÊØœÙ\™YœÝ]\ÈOOH“ÐÒÑQˆÈ“RVQÈSÓÓTUHˆˆ”ÕTÔ•Q–HÑSPÕQÐTÑTÈ‹ØœÙ\™YšXY[™JKˆ›ÝÊK“RVQÈSÓÓTUH‹“Ý]ÛÛYH˜[Y\È\ØÜšX™HÝZÙ\ÎÈHX]ÚYÛXÞHÛÛ\\š\ÛÛˆ\È™YYY›Üˆ[˜Ü™[Y[[™]˜[YKˆŠKˆ›ÝÊ‹”‘TURT‘TÈVT“SÈÓÓTS–HU’QSÑH‹•˜[YHØ\\™H]ØØ[H™\]Z\™\ÈšXÚ[™Ë™][[Û‹ÛÜÝ[™Ý\ÝÛY\ˆ]šY[˜ÙKˆŠBˆNÂˆ™]\›ˆÛZ[\Ë›X\
+
+ÛZ[K[™^
+HOˆ›ÝÊ[™^”‘TURT‘TÈVT“SÈÓÓTS–HU’QSÑH‹È’Y[YžHHÜXÚYšXÈ›Û‹PÑHYXÚ[š\ÛH[™]È™[™Yš]ˆ‹]XÚÝ\ÝÛY\‹ÛÜÝÛÜšÙ›ÝËÜˆÛÛ\]]]™H]šY[˜ÙHÙˆH˜\œšY\‹ˆ‹•\ÝÚ]\ˆHY˜[YÙHÝ\š]™\ÈÚ]Ý]HÛÛ\Ý[™[™Ë[X\›š[™È\ÜÝ[\[Û‹ˆ—VÚ[™^JJNÂŸB‚™[˜Ý[Ûˆ[YÜ˜]YÛÛ˜Û\Ú[Û‘›ÜŠ˜[Z[NˆX˜]Q˜[Z[K\ÜÙ\ÜÛY[ˆX˜]P\ÜÙ\ÜÛY[Ø]YÛÜžKØœÙ\™YˆØœÙ\™Y^\š[Y[[Ù[Yˆ[Ù[YYXÚ[š\ÛP\ÜÙ\ÜÛY[Þ[]XÎˆØ]™YÞ[]XÑš[™[™È[
+HÂˆÛÛœÝ\™XÝH\ÜÙ\ÜÛY[OOH”ÕTÔ•Qˆ\ÜÙ\ÜÛY[OOH“PS’S‘ÈÕTÔ•Q‚ˆÈÙ[XÝY]šY[˜ÙHÝ\ÜÈHÛÛ\[žK[]™[\Ú\È
+	Ø\ÜÙ\ÜÛY[ÓÝÙ\Ø\ÙJ
+_JK˜ˆˆ\ÜÙ\ÜÛY[OOHÓÓ•QPÕQˆ\ÜÙ\ÜÛY[OOH“PS’S‘ÈQÐRS”Õ‚ˆÈÙ[XÝY]šY[˜ÙHÚ[[™Ù\ÈHÛÛ\[žK[]™[\Ú\È
+	Ø\ÜÙ\ÜÛY[ÓÝÙ\Ø\ÙJ
+_JK˜ˆˆ•H[ÛÛ\[žK[]™[\Ú\È\È›ÝY]™\ÛÛ™YˆŽÂˆÛÛœÝØœÙ\™YÙ[[˜ÙHHØœÙ\™YœÝ]\ÈOOH“ÐÒÑQ‚ˆÈØœÙ\™YšXY[™BˆˆHÙ[XÝYØ\Ù\È	ÛØœÙ\™Y™\™XÝOOH”ÕTÔ•ÈˆÈœÝ\ÜˆˆØœÙ\™Y™\™XÝOOHÒSS‘ÑTÈˆÈ˜Ú[[™ÙHˆˆœ\X[H™\ÛÛ™HŸHHYX\Ý\˜X›HÛÛ\Û™[ˆ	ÛØœÙ\™YšXY[™_XÂˆÛÛœÝ[Ù[YÙ[[˜ÙHH[Ù[YOOH““ÕTÕQˆÈ“›È\YYÞ[]XÈYXÚ[š\ÛH™\Ý[\È]XÚYÈ\È]\Ù]ˆˆˆH[Ù[YYXÚ[š\ÛH\È	Û[Ù[YÓÝÙ\Ø\ÙJ
+_Nˆ	ÜÞ[]XÏËšXY[™HÏÈœÙYHH\YY^\š[Y[™\Ý[ˆŸXÂˆYˆ
+˜[Z[HOOH“PT“’S‘×Ô’QÒÈˆ˜[Z[HOOHST“UU‘WÔÕÑTˆŠH™]\›ˆ	Ù\™XÝH	ÛØœÙ\™YÙ[[˜Ù_XÂˆ™]\›ˆ	Ù\™XÝH	ÛØœÙ\™YÙ[[˜Ù_H	Û[Ù[YÙ[[˜Ù_XÂŸB‚™^Ü[˜Ý[Ûˆ\š]™QX˜]PØ[™Y]\Ê[œ]ˆX˜]Q[™Ú[™R[œ]ZÙHH
+Nˆ\š]™YX˜]PØ[™Y]V×HÂˆ[œ]HÈ‹‹š[œ]^\šY[˜ÙP[˜[\Ú\Îˆ[œ]™^\šY[˜ÙP[˜[\Ú\ÈÏÈ[˜[^™Q^\šY[˜ÙJ[œ]œ›ÝÜÊKØœÙ\™Y^\š[Y[Y\\Žˆ[œ]›ØœÙ\™Y^\š[Y[Y\\ˆÏÈ[“ØœÙ\™Y]Q^\š[Y[Y\\Š[œ]œ›ÝÜÊHNÂˆÛÛœÝØœÙ\™Y›ÙÜ˜[HH[œ]›ØœÙ\™Y^\š[Y[Y\\ˆNÂˆÛÛœÝ›Ùš[HH\š]™PØ[›ÛšXØ[X˜]T›Ùš[J[œ]˜[˜[\Ú\ÊNÂˆÛÛœÝ™YÚ\ÝžHH\š]™QX˜]Q]šY[˜ÙT™YÚ\ÝžJ[œ]
+NÂˆÛÛœÝ˜[Z[Y\ÈH™]ÈÙ]X˜]Q˜[Z[OŠ
+NÂˆ›Üˆ
+ÛÛœÝX˜]HÙˆ[œ]™X˜]\ÊHÂˆÛÛœÝ˜[Z[HHX˜]Q˜[Z[Qœ›ÛT]Y\Ý[ÛŠX˜]Kœ]Y\Ý[ÛŠNÂˆYˆ
+˜[Z[JH˜[Z[Y\Ë˜Y
+˜[Z[JNÂˆBˆ›Ùš[K™›Ü‘XXÚ
+
+˜[Z[JHOˆ˜[Z[Y\Ë˜Y
+˜[Z[JJNÂˆ˜[Z[Y\Ë˜Y
+‘VT’QSÑWÐÐTT‘HŠNÂˆÛÛœÝØ[™Y]\ÈHË‹‹™˜[Z[Y\×KœÛXÙJZÙJK›X\
+
+˜[Z[JHOˆÂˆÛÛœÝ[\]HHX˜]U[\]J˜[Z[JNÂˆÛÛœÝÛÝ\˜ÙQX˜]HH[œ]™X˜]\Ë™š[™
+
+X˜]JHOˆX˜]Q˜[Z[Qœ›ÛT]Y\Ý[ÛŠX˜]Kœ]Y\Ý[ÛŠHOOH˜[Z[JNÂˆÛÛœÝ\ÜÙ\ÜÛY[H™YÚ\ÝžVÙ˜[Z[WNÂˆÛÛœÝØœÙ\™Y^\š[Y[HØœÙ\™Y›ÙÜ˜[K˜žQ˜[Z[VÙ˜[Z[WNÂˆÛÛœÝÞ[]XÑš[™[™ÈH]\ÝÞ[]XÑš[™[™Ê[œ]˜[Z[JNÂˆÛÛœÝ[Ù[Y\ÜÙ\ÜÛY[H[Ù[Y\ÜÙ\ÜÛY[›ÜŠÞ[]XÑš[™[™ÊNÂˆÛÛœÝ[™\ÝÜ™[YYˆHÛÝ\˜ÙQX˜]OËœ›Ø˜Xš[]HÏÈ[ÂˆÛÛœÝ]™\™Ù[˜ÙHH[™\ÝÜ™[YYˆOOH[	‰ˆ\ÜÙ\ÜÛY[˜\ÜÙ\ÜÛY[OOH•S”“Õ‘Sˆˆ	‰ˆ[™\ÝÜ™[YYˆHŒˆÈ–[Ý\ˆ™[YYˆ\È[Ü™HÜÚ]]™H[ˆHÝ\œ™[H]˜Z[X›H]šY[˜ÙKˆØ\\™HHš]˜]H[YÙ[˜ÙHÜˆYY][™È]šY[˜ÙH]Ý\ÜÈ]ˆ‚ˆˆ[™\ÝÜ™[YYˆOOH[	‰ˆÈ”ÕTÔ•Q‹“PS’S‘ÈÕTÔ•Q—Kš[˜ÛY\Ê\ÜÙ\ÜÛY[˜\ÜÙ\ÜÛY[
+H	‰ˆ[™\ÝÜ™[YYˆHˆÈ–[Ý\ˆ™[YYˆ\È[Ü™HÚÙ\XØ[[ˆHÝ\œ™[]šY[˜ÙH[Ù[ˆ›ÝHHÛÛ˜Ù\›ˆÜˆ[\›˜]]™H^[˜][Û‹ˆ‚ˆˆ[Âˆ™]\›ˆÂˆ‹‹[\]Kˆ‹‹˜\ÜÙ\ÜÛY[ˆÛÛ\[žP\ÜÙ\ÜÛY[ˆ\ÜÙ\ÜÛY[˜\ÜÙ\ÜÛY[ˆ[Ù[Y\ÜÙ\ÜÛY[ˆ[YÜ˜]YÛÛ˜Û\Ú[ÛŽˆ[YÜ˜]YÛÛ˜Û\Ú[Û‘›ÜŠ˜[Z[K\ÜÙ\ÜÛY[˜\ÜÙ\ÜÛY[ØœÙ\™Y^\š[Y[[Ù[Y\ÜÙ\ÜÛY[Þ[]XÑš[™[™ÊKˆÝX˜ÛZ[P\ÜÙ\ÜÛY[Îˆ™\ÛÛ™TÝX˜ÛZ[\Ê˜[Z[KØœÙ\™Y^\š[Y[[Ù[Y\ÜÙ\ÜÛY[Þ[]XÑš[™[™ÊKˆØœÙ\™Y^\š[Y[ˆ[˜[\Ú\Ñš[™[™ÜÎˆ[œ]™^\šY[˜ÙP[˜[\Ú\ÈK™š[™[™ÜË™š[\Š][HOˆ][K™˜[Z[HOOH˜[Z[JKˆ˜[œÙ™\‘^\š[Y[ˆ˜[Z[HOOHÔ“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆˆÈ[‘^\šY[˜ÙU˜[œÙ™\‘^\š[Y[
+[œ]œ›ÝÜÊHˆ[™Yš[™Yˆ›ÜÜÚ][ÛŽˆÛÝ\˜ÙQX˜]OËœ]Y\Ý[Ûˆ[\]Kœ›ÜÜÚ][Û‹ˆ[™\ÝÜ™[YY‹ˆ[™\ÝÜ™[YY‘]™\™Ù[˜ÙNˆ]™\™Ù[˜ÙKˆÛÝ\˜ÙQX˜]BˆNÂˆJNÂˆ™]\›ˆØ[™Y]\ËœÛÜ
+
+KŠHOˆÂˆÛÛœÝ[\XÝÜ™\Žˆ™XÛÜ™X˜]U\Ú\Ò[\XÝ[X™\ˆHÈ•‘T–HQÒŽˆQÒˆKQQUSNˆˆNÂˆ™]\›ˆ[\XÝÜ™\–ØK\Ú\Ò[\XÝHH[\XÝÜ™\–Ø‹\Ú\Ò[\XÝHK]K›ØØ[PÛÛ\\™J‹]JNÂˆJNÂŸB‚˜ÛÛœÝÕÑT—ÓÔ‘TŽˆ\œ˜^OÈÙ^Nˆ[Y\”ÝÙ\’Ù^NÈX™[ˆÝš[™ÎÈYš[š][ÛŽˆÝš[™ÈOˆHÂˆÈÙ^NˆœØØ[WÙXÛÛ›ÛZY\È‹X™[ˆ”ØØ[HXÛÛ›ÛZY\È‹Yš[š][ÛŽˆ•[š]XÛÛ›ÛZXÜÈ[\›Ý™HÚ]›Û[YH[ˆHØ^H]\È\™ÈX]ÚˆˆKˆÈÙ^Nˆ›™]ÛÜš×ÙXÛÛ›ÛZY\È‹X™[ˆ“™]ÛÜšÈXÛÛ›ÛZY\È‹Yš[š][ÛŽˆ•˜[YHÈÛ™HÝ\ÝÛY\ˆ[\›Ý™\Èœ›ÛH^\šY[˜ÙHÜˆ\ØYÙHÙ[™\˜]YžHÝ\œËˆˆKˆÈÙ^Nˆ˜ÛÝ[\—ÜÜÚ][Ûš[™È‹X™[ˆÛÝ[\‹TÜÚ][Ûš[™È‹Yš[š][ÛŽˆ’[˜Ý[X™[È˜XÙHÝXÝ\˜[\Ú[™\ÜË[[Ù[ÛÛ™›XÝ[ˆYÜ[™ÈH™\ÜÛœÙKˆˆKˆÈÙ^NˆœÝÚ]Ú[™×ØÛÜÝÈ‹X™[ˆ”ÝÚ]Ú[™ÈÛÜÝÈ‹Yš[š][ÛŽˆÝ\ÝÛY\œÈ˜XÙHYX[š[™Ù[\™›Ü›X[˜ÙKÛÜšÙ›ÝËZYÜ˜][Û‹Üˆš\ÚÈÛÜÝÈÚ[ˆX]š[™ËˆˆKˆÈÙ^Nˆ˜œ˜[™[™È‹X™[ˆœ˜[™[™È‹Yš[š][ÛŽˆ•\ÝÜˆ™\]][ÛˆÚ[™Ù\ÈÚ[[™Û™\ÜÈÈ^KÜ^H™^[Û™[˜Ý[Û˜[][]H[Û™KˆˆKˆÈÙ^Nˆ˜ÛÜ›™\™YÜ™\ÛÝ\˜ÙH‹X™[ˆÛÜ›™\™Y™\ÛÝ\˜ÙH‹Yš[š][ÛŽˆ•HÛÛ\[žHÛÛ›ÛÈHØØ\˜ÙH\ÜÙ]šYÚÜˆ™\ÛÝ\˜ÙHš]˜[ÈØ[››ÝXØÙ\ÜÈÜˆ™XÜ™X]HÚX\KˆˆKˆÈÙ^Nˆœ›ØÙ\Ü×ÜÝÙ\ˆ‹X™[ˆ”›ØÙ\ÜÈÝÙ\ˆ‹Yš[š][ÛŽˆ“Ü\˜][™È›Ý][™\È[™™YY˜XÚÈÛÜÈÛÛ\Ý[™[ÈY™šXÝ[]ËXÛÜH\™›Ü›X[˜ÙKˆˆB—NÂ‚™[˜Ý[Ûˆ]šY[˜ÙTÝ™[™Ýœ›ÛR][\Ê›Ü‘]šY[˜ÙNˆX˜]Q]šY[˜ÙR][V×KYØZ[œÝ]šY[˜ÙNˆX˜]Q]šY[˜ÙR][V×KÛÝ\˜ÙR[H˜[ÙJNˆÝÙ\‘]šY[˜ÙTÝ™[™ÝÂˆYˆ
+›Ü‘]šY[˜ÙKœÛÛYJ
+][JHOˆ][KœÝ™[™ÝOOH‘T‘PÕˆ	‰ˆ][Kœ›Ý™[˜[˜ÙHOOH”ÓÕTÑQ8 %VT“SU’QSÑHŠJH™]\›ˆ’QÒŽÂˆYˆ
+›Ü‘]šY[˜ÙKœÛÛYJ
+][JHOˆ][K™\™XÝ[ÛˆOOH”ÕTÔ•ÈŠJH™]\›ˆÛÝ\˜ÙR[È“QQUSHˆˆ“ÕÈŽÂˆYˆ
+YØZ[œÝ]šY[˜ÙKœÛÛYJ
+][JHOˆ][K™\™XÝ[ÛˆOOHÓÓ•QPÕÈŠJH™]\›ˆ“ÕÈŽÂˆ™]\›ˆ““Ó‘HŽÂŸB‚™[˜Ý[Ûˆ\Ú\Ñœ›ÛP[˜[\Ý˜[YJ˜[YNˆÝš[™È[[™Yš[™Y
+NˆÝÙ\•\Ú\ÔÝ™[™ÝÂˆYˆ
+˜[YR[˜ÛY\Ê˜[YKÈ’QÒ‹’T‘‹–QTÈ‹‘QT—JJH™]\›ˆ“SÑTUHŽÂˆYˆ
+˜[YR[˜ÛY\Ê˜[YKÈ“QQUSH‹”T•PS‹“SÑTUH—JJH™]\›ˆ•ÑPRÈŽÂˆYˆ
+˜[YR[˜ÛY\Ê˜[YKÈ“ÕÈ‹‘PTÖH‹““È—JJH™]\›ˆ““Ó‘HŽÂˆ™]\›ˆ•S”“Õ‘SˆŽÂŸB‚™[˜Ý[Ûˆ\Ú\Ô˜[šÊ˜[YNˆÝÙ\•\Ú\ÔÝ™[™Ý
+HÂˆÛÛœÝ˜[šÎˆ™XÛÜ™ÝÙ\•\Ú\ÔÝ™[™Ý[X™\ˆHÈÕ“Ó‘ÎˆSÑTUNˆËÑPRÎˆ‹S”“Õ‘SŽˆK“Ó‘NˆNÂˆ™]\›ˆ˜[šÖÝ˜[YWNÂŸB‚™[˜Ý[Ûˆ]šY[˜ÙT˜[šÊ˜[YNˆÝÙ\‘]šY[˜ÙTÝ™[™Ý
+HÂˆÛÛœÝ˜[šÎˆ™XÛÜ™ÝÙ\‘]šY[˜ÙTÝ™[™Ý[X™\ˆHÈQÒˆËQQUSNˆ‹ÕÎˆK“Ó‘NˆNÂˆ™]\›ˆ˜[šÖÝ˜[YWNÂŸB‚™[˜Ý[ÛˆÝ›Û™Ù\Ý\Ú\Ê‹‹˜[Y\ÎˆÝÙ\•\Ú\ÔÝ™[™Ý×JNˆÝÙ\•\Ú\ÔÝ™[™ÝÂˆ™]\›ˆ˜[Y\ËœÛÜ
+
+KŠHOˆ\Ú\Ô˜[šÊŠHH\Ú\Ô˜[šÊJJVÌHÏÈ•S”“Õ‘SˆŽÂŸB‚™[˜Ý[ÛˆÝÜ™Y[Y\\ÜÙ\ÜÛY[
+\ÜÙ\ÜÛY[Îˆ[Y[œÚ[Û\ÜÙ\ÜÛY[[œ]×H[™Yš[™YÙ^Nˆ[Y\”ÝÙ\’Ù^JNˆ[˜[\ÝÝÙ\\ÜÙ\ÜÛY[[ÂˆÛÛœÝÝÜ™YH\ÜÙ\ÜÛY[ÏË™š[™
+
+][JHOˆ][K™œ˜[Y]ÛÜšÈOOH’SQTˆˆ	‰ˆ][K™[Y[œÚ[ÛˆOOHÙ^JNÂˆ™]\›ˆÝÜ™YÈÈØÛÜ™NˆÝÜ™YœØÛÜ™KÛÛ™šY[˜ÙNˆÝÜ™Y˜ÛÛ™šY[˜ÙK]šY[˜ÙTÝ]\ÎˆÝÜ™Y™]šY[˜ÙTÝ]\Ë˜][Û˜[NˆÝÜ™Yœ˜][Û˜[HHˆ[ÂŸB‚™[˜Ý[Ûˆ[˜[\Ý[\Y\Õ\Ú\Ê\ÜÙ\ÜÛY[ˆ[˜[\ÝÝÙ\\ÜÙ\ÜÛY[[
+NˆÝÙ\•\Ú\ÔÝ™[™ÝÂˆYˆ
+X\ÜÙ\ÜÛY[
+H™]\›ˆ•S”“Õ‘SˆŽÂˆYˆ
+\ÜÙ\ÜÛY[œØÛÜ™HH
+H™]\›ˆ”Õ“Ó‘ÈŽÂˆYˆ
+\ÜÙ\ÜÛY[œØÛÜ™HOOHÊH™]\›ˆ“SÑTUHŽÂˆYˆ
+\ÜÙ\ÜÛY[œØÛÜ™Hˆ
+H™]\›ˆ•ÑPRÈŽÂˆ™]\›ˆ““Ó‘HŽÂŸB‚™[˜Ý[ÛˆÝÙ\‘]šY[˜ÙR][JÛÝ\˜ÙNˆÝš[™Ë˜[YNˆÝš[™Ë\™XÝ[ÛŽˆX˜]Q]šY[˜ÙQ\™XÝ[Û‹[\œ™]][ÛŽˆÝš[™Ë™YÎˆÝš[™ÊNˆX˜]Q]šY[˜ÙR][HÂˆ™]\›ˆÂˆÛÝ\˜ÙKˆ˜[YKˆ\™XÝ[Û‹ˆÝ™[™Ýˆ\™XÝ[ÛˆOOHÓÓ•VQTÐÔ’TU‘HˆÈÓÓ•Vˆˆ’S‘T‘PÕ‹ˆ›Ý™[˜[˜ÙNˆSSTÕTÔÕSTSÓˆ‹ˆ™Y‹ˆ[\œ™]][Û‹ˆ[Z]][ÛŽˆ•\È\È]\›Z[š\ÝXÈÝÙ\ˆX\[œ]›ÝHÝ[™[Û™H›ÛÙˆÙˆ\˜X›HÝÙ\‹ˆ‚ˆNÂŸB‚™[˜Ý[ÛˆÝÙ\“X\^\›˜[]šY[˜ÙJ[œ]ˆX˜]Q[™Ú[™R[œ]\›\ÎˆÝš[™Ö×JHÂˆ™]\›ˆ^\›˜[]šY[˜ÙQ›Ü‘˜[Z[J[œ]ST“UU‘WÔÕÑTˆŠK™š[\Š
+][JHOˆÂˆÛÛœÝ^H	Ú][KœÛÝ\˜Ù_H	Ú][K˜[Y_H	Ú][Kš[\œ™]][ÛŸXÓÝÙ\Ø\ÙJ
+NÂˆ™]\›ˆ\›\ËœÛÛYJ
+\›JHOˆ^š[˜ÛY\Ê\›JJNÂˆJNÂŸB‚™^Ü[˜Ý[Ûˆ\š]™TÝÙ\“X\
+[œ]ˆX˜]Q[™Ú[™R[œ]	ˆÈ\ÜÙ\ÜÛY[ÏÎˆ[Y[œÚ[Û\ÜÙ\ÜÛY[[œ]×HJNˆ\š]™YÝÙ\“X\ÂˆÛÛœÝØ[™Y]\ÈH\š]™QX˜]PØ[™Y]\Ê[œ]
+NÂˆÛÛœÝØ[™Y]PžQ˜[Z[HH™]ÈX\
+Ø[™Y]\Ë›X\
+
+Ø[™Y]JHOˆØØ[™Y]K™˜[Z[KØ[™Y]WJJNÂˆÛÛœÝÛÛ\[žR™YˆHX˜]PÛÛ\[žS[Ù[™YŠ[œ]
+NÂˆÛÛœÝ^\šY[˜ÙR™YˆHX˜]Q^\šY[˜ÙR™YŠ[œ]
+NÂˆÛÛœÝ›ÝÜÐ\™TÞ[]XÈHØÛÜ™X›ÛÚÔ›ÝÜÐ\™TÞ[]XÊ[œ]œ›ÝÜÊNÂˆÛÛœÝÝ\ÜžQ˜[Z[HH
+˜[Z[NˆX˜]Q˜[Z[JHOˆÂˆ‹‹ŠØ[™Y]PžQ˜[Z[K™Ù]
+˜[Z[JOË™]šY[˜ÙQ›ÜˆÏÈ×JKˆ‹‹ŠØ[™Y]PžQ˜[Z[K™Ù]
+˜[Z[JOË™]šY[˜ÙQ\Ú›Ø\™™^\›˜[]šY[˜ÙK™š[\Š
+][JHOˆ][K™\™XÝ[ÛˆOOH”ÕTÔ•ÈŠHÏÈ×JBˆNÂˆÛÛœÝYØZ[œÝžQ˜[Z[HH
+˜[Z[NˆX˜]Q˜[Z[JHOˆØ[™Y]PžQ˜[Z[K™Ù]
+˜[Z[JOË™]šY[˜ÙPYØZ[œÝÏÈ×NÂˆÛÛœÝZ\ÜÚ[™ÐžQ˜[Z[HH
+˜[Z[NˆX˜]Q˜[Z[JHOˆØ[™Y]PžQ˜[Z[K™Ù]
+˜[Z[JOË›Z\ÜÚ[™Ñ]šY[˜ÙHÏÈ×NÂˆÛÛœÝ\ÔÝ\ÜH
+˜[Z[NˆX˜]Q˜[Z[JHOˆÝ\ÜžQ˜[Z[J˜[Z[JK›[™ÝˆÂˆÛÛœÝ]šY[˜ÙQ›Ü”ÝÙ\ˆH
+˜[Z[Y\ÎˆX˜]Q˜[Z[V×JHOˆ˜[Z[Y\Ë™›]X\
+
+˜[Z[JHOˆÝ\ÜžQ˜[Z[J˜[Z[JJNÂˆÛÛœÝ]šY[˜ÙPYØZ[œÝÝÙ\ˆH
+˜[Z[Y\ÎˆX˜]Q˜[Z[V×JHOˆ˜[Z[Y\Ë™›]X\
+
+˜[Z[JHOˆYØZ[œÝžQ˜[Z[J˜[Z[JJNÂˆÛÛœÝZ\ÜÚ[™Ñ›Ü”ÝÙ\ˆH
+˜[Z[Y\ÎˆX˜]Q˜[Z[V×JHOˆ˜[Z[Y\Ë™›]X\
+
+˜[Z[JHOˆZ\ÜÚ[™ÐžQ˜[Z[J˜[Z[JJNÂˆÛÛœÝÙYÛY[ÛÝ[H™]ÈÙ]
+[œ]œ›ÝÜË›X\
+
+›ÝÊHOˆ›ÝË˜Ý\ÝÛY\”ÙYÛY[
+K™š[\Š›ÛÛX[ŠJKœÚ^™NÂˆÛÛœÝ\ÐØ\ÙT›ÝÜÈH[œ]œ›ÝÜË›[™ÝˆÂˆÛÛœÝÛÜšÙ›ÝÑ[X™YY™\ÜÈH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OËš[YÜ˜][Û‘\ÏÈ[œ]˜[˜[\Ú\ËÛÜšÙ›ÝÑ[X™YY™\ÜÎÂˆÛÛœÝÝÚ]Ú[™ÐÛÜÝÈH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OËœÝÚ]Ú[™ÐÛÜÝÈÏÈ[œ]˜[˜[\Ú\ËœÝÚ]Ú[™ÐÛÜÝÐ\ÜÝ[\[ÛŽÂˆÛÛœÝ]Q^Û\Ú]™HH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OË˜Ü›ÜÜÐÝ\ÝÛY\”ÛÛ^Û\Ú]™HÏÈ[œ]˜[˜[\Ú\Ë™]Q^Û\Ú]š]NÂˆÛÛœÝ™XZ[Xš[]HH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OË˜ÛÛ\]]Ü”™[X\›š[™ÑY™šXÝ[HÏÈ[œ]˜[˜[\Ú\Ëœ™XZ[Xš[]NÂˆÛÛœÝ]\›Z[š\ÝXÈH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OË™]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™TÝ™[™ÝÏÈ[œ]˜[˜[\Ú\Ë™]\›Z[š\ÝXÒ[™œ˜\ÝXÝ\™NÂˆÛÛœÝ\ÝšX][ÛY˜[YÙHH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OË™\ÝšX][ÛY˜[YÙHÏÈ[œ]˜[˜[\Ú\Ë™\ÝšX][ÛY˜[YÙNÂˆÛÛœÝ™YÝ[]ÜžP˜\œšY\ˆH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OËœ™YÝ[]ÜžP˜\œšY\”Ý™[™ÝÏÈ[œ]˜[˜[\Ú\Ëœ™YÝ[]ÜžPÛÛ˜XÝX[˜\œšY\œÎÂˆÛÛœÝÛÛ˜XÝX[˜\œšY\ˆH[œ]˜ÛÛ\]]]™P\˜Ú]XÝ\™OË˜ÛÛ˜XÝX[˜\œšY\”Ý™[™ÝÏÈ[œ]˜[˜[\Ú\Ëœ™YÝ[]ÜžPÛÛ˜XÝX[˜\œšY\œÎÂˆÛÛœÝØØ[Q]šY[˜ÙHHÝÙ\“X\^\›˜[]šY[˜ÙJ[œ]ÈœØØ[H‹[š]ÛÜÝ‹™š^YÛÜÝ‹š[™œ˜\ÝXÝ\™H‹˜[[Ü—JNÂˆÛÛœÝÛÝ[\‘]šY[˜ÙHHÝÙ\“X\^\›˜[]šY[˜ÙJ[œ]È˜ÛÝ[\ˆ‹š[˜Ý[X™[‹˜Ø[›šX˜[‹˜ÛÛ™›XÝ—JNÂˆÛÛœÝœ˜[™]šY[˜ÙHHÝÙ\“X\^\›˜[]šY[˜ÙJ[œ]È˜œ˜[™‹\Ý‹œ™\]][Ûˆ‹Ú[[™Û™\ÜÈ—JNÂ‚ˆÛÛœÝYš[š][ÛœÈH™]ÈX\
+ÕÑT—ÓÔ‘T‹›X\
+
+][JHOˆÚ][KšÙ^K][WJJNÂˆÛÛœÝZ[H
+ˆÙ^Nˆ[Y\”ÝÙ\’Ù^Kˆ\Ú\ÔÝ™[™ÝˆÝÙ\•\Ú\ÔÝ™[™Ýˆ]šY[˜ÙTÝ™[™ÝˆÝÙ\‘]šY[˜ÙTÝ™[™ÝˆYXÚ[š\ÛNˆÝš[™ËˆÚNˆÝš[™Ëˆ]šY[˜ÙQ›ÜŽˆX˜]Q]šY[˜ÙR][V×Kˆ]šY[˜ÙPYØZ[œÝˆX˜]Q]šY[˜ÙR][V×KˆZ\ÜÚ[™Ñ]šY[˜ÙNˆX˜]Q]šY[˜ÙR][V×Kˆ™[]˜[X˜]\ÎˆX˜]Q˜[Z[V×KˆÝX™[Y[œÚ[ÛœÎˆÝÙ\”ÝX™[Y[œÚ[Û–×Bˆ
+Nˆ\š]™YÝÙ\\ÜÙ\ÜÛY[OˆÂˆÛÛœÝYš[š][ÛˆHYš[š][ÛœË™Ù]
+Ù^JHNÂˆÛÛœÝ[˜[\Ý\ÜÙ\ÜÛY[HÝÜ™Y[Y\\ÜÙ\ÜÛY[
+[œ]˜\ÜÙ\ÜÛY[ËÙ^JNÂˆÛÛœÝ[˜[\Ý]™\™Ù\ÈH[˜[\Ý\ÜÙ\ÜÛY[ÈX]˜XœÊ\Ú\Ô˜[šÊ[˜[\Ý[\Y\Õ\Ú\Ê[˜[\Ý\ÜÙ\ÜÛY[
+JHH\Ú\Ô˜[šÊ\Ú\ÔÝ™[™Ý
+JHHˆˆ˜[ÙNÂˆ™]\›ˆÂˆÙ^KˆX™[ˆYš[š][Û‹›X™[ˆYš[š][ÛŽˆYš[š][Û‹™Yš[š][Û‹ˆ\Ú\ÔÝ™[™Ýˆ]šY[˜ÙTÝ™[™ÝˆYXÚ[š\ÛKˆÚKˆ]šY[˜ÙQ›Ü‹ˆ]šY[˜ÙPYØZ[œÝˆZ\ÜÚ[™Ñ]šY[˜ÙKˆ™[]˜[X˜]\ËˆÝX™[Y[œÚ[ÛœËˆ[˜[\Ý\ÜÙ\ÜÛY[ˆ[˜[\Ý]™\™Ù\ÂˆNÂˆNÂ‚ˆÛÛœÝ™]ÛÜšÔÝ\ÜH]šY[˜ÙQ›Ü”ÝÙ\ŠÈÔ“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘Tˆ—JNÂˆÛÛœÝ™]ÛÜšÐÛÛ^HØ[™Y]PžQ˜[Z[K™Ù]
+Ô“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆŠOË˜ÛÛ^]šY[˜ÙHÏÈ×NÂˆÛÛœÝ˜[œÙ™\Ø[™Y]HHØ[™Y]PžQ˜[Z[K™Ù]
+Ô“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆŠNÂˆÛÛœÝ™]ÛÜšÕ\Ú\ÈH\ÔÝ\Ü
+Ô“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆŠHÈ“SÑTUHˆˆ˜[œÙ™\Ø[™Y]OË›ØœÙ\™Y^\š[Y[™\™XÝOOH”ÕTÔ•Èˆ˜[œÙ™\Ø[™Y]OË›[Ù[Y\ÜÙ\ÜÛY[OOH”ÕTÔ•QÓÓ‘USÓSHˆÈ•ÑPRÈˆˆ•S”“Õ‘SˆŽÂˆÛÛœÝ›ØÙ\ÜÔÝ\ÜH]šY[˜ÙQ›Ü”ÝÙ\ŠÈ“PT“’S‘×ÐÐUTÐSUH‹‘VT’QSÑWÐÐTT‘H—JNÂˆÛÛœÝ›ØÙ\ÜÐÛÛ^HÂˆ‹‹ŠØ[™Y]PžQ˜[Z[K™Ù]
+“PT“’S‘×ÐÐUTÐSUHŠOË˜ÛÛ^]šY[˜ÙHÏÈ×JKˆ‹‹ŠØ[™Y]PžQ˜[Z[K™Ù]
+“PT‘ÒSSÒS‘“Ô“PUSÓ—ÕSQHŠOË˜ÛÛ^]šY[˜ÙHÏÈ×JKˆÝÙ\‘]šY[˜ÙR][JÛÛ\[žH[Ù[8¡¤ˆX\›š[™ÈÛÜ‹\]Nˆ	Ú[œ]›X\›š[™Ð\˜Ú]XÝ\™OË\Ù\ÓÝ]ÛÛYQÜ˜Y\Ñ›Ü“X\›š[™ÈÏÈ[œ]˜[˜[\Ú\Ë\]\Ó[Ù[ÛXÞT™YÝ[\›HÏÈ•[šÛ›ÝÛˆŸNÈ\ÞNˆ	Ú[œ]›X\›š[™Ð\˜Ú]XÝ\™OË™\Þ[Y[ØY[˜ÙHÏÈ[œ]˜[˜[\Ú\Ë™\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛHÏÈ•[šÛ›ÝÛˆŸXÓÓ•VQTÐÔ’TU‘H‹ÛÜÙY[ÛÜ\˜Ú]XÝ\™H\È™[]˜[]Ù\È›Ý›Ý™HY™šXÝ[]ËXÛÜH›ØÙ\ÜÈÝÙ\‹ˆ‹ÛÛ\[žR™YŠBˆNÂˆÛÛœÝÛÜÙYÛÜÛZ[HH˜[YR[˜ÛY\Ê[œ]›X\›š[™Ð\˜Ú]XÝ\™OË\Ù\ÓÝ]ÛÛYQÜ˜Y\Ñ›Ü“X\›š[™ÈÏÈ[œ]˜[˜[\Ú\Ë\]\Ó[Ù[ÛXÞT™YÝ[\›KÈ–QTÈ‹”‘QÕSTˆ‹‘RSH‹•ÑQRÓH—JH	‰ˆ˜[YR[˜ÛY\Ê[œ]›X\›š[™Ð\˜Ú]XÝ\™OË™\Þ[Y[ØY[˜ÙHÏÈ[œ]˜[˜[\Ú\Ë™\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛKÈ–QTÈ‹‘TÕ‹‘RSH‹•ÑQRÓH—JNÂˆÛÛœÝX\›š[™ÐØ[™Y]HHØ[™Y]PžQ˜[Z[K™Ù]
+“PT“’S‘×ÐÐUTÐSUHŠNÂˆÛÛœÝX\™Ú[˜[Ø[™Y]HHØ[™Y]PžQ˜[Z[K™Ù]
+“PT‘ÒSSÒS‘“Ô“PUSÓ—ÕSQHŠNÂˆÛÛœÝ›ØÙ\ÜÕ\Ú\ÈH\ÔÝ\Ü
+“PT“’S‘×ÐÐUTÐSUHŠH	‰ˆ˜[YR[˜ÛY\Ê™XZ[Xš[]KÈ’T‘—JHÈ“SÑTUHˆˆÛÜÙYÛÜÛZ[HX\›š[™ÐØ[™Y]OË›ØœÙ\™Y^\š[Y[™\™XÝOOH”ÕTÔ•ÈˆX\›š[™ÐØ[™Y]OË›[Ù[Y\ÜÙ\ÜÛY[OOH”ÕTÔ•QÓÓ‘USÓSHˆX\™Ú[˜[Ø[™Y]OË›[Ù[Y\ÜÙ\ÜÛY[OOH”ÕTÔ•QÓÓ‘USÓSHˆÈ•ÑPRÈˆˆ•S”“Õ‘SˆŽÂˆÛÛœÝÝÚ]Ú[™ÔÝ\ÜH˜[YR[˜ÛY\ÊÝÚ]Ú[™ÐÛÜÝËÈ’QÒ—JH˜[YR[˜ÛY\ÊÛÜšÙ›ÝÑ[X™YY™\ÜËÈ’QÒ‹‘QT—JBˆÈÜÝÙ\‘]šY[˜ÙR][JÛÛ\[žH[Ù[8¡¤ˆÛÛ\]]]™H\˜Ú]XÝ\™H‹ÝÚ]Ú[™ËÝÛÜšÙ›ÝÈÝ]Nˆ	ÜÝÚ]Ú[™ÐÛÜÝÈÏÈ•[šÛ›ÝÛˆŸHÈ	ÝÛÜšÙ›ÝÑ[X™YY™\ÜÈÏÈ•[šÛ›ÝÛˆŸX”ÕTÔ•È‹Ý\ÝÛY\‹\ÜXÚYšXÈXØÝ[][]YÝ]HÜˆY\ÛÜšÙ›ÝÈ\[™[˜ÞHX^HÝ\ÜÝÚ]Ú[™ÈÛÜÝËˆ‹ÛÛ\[žR™YŠWBˆˆ×NÂˆÛÛœÝÝÚ]Ú[™Õ\Ú\ÈHÝÚ]Ú[™ÔÝ\Ü›[™ÝÈ“SÑTUHˆˆ•S”“Õ‘SˆŽÂˆÛÛœÝÛÜ›™\™YÛÛ^H˜[YR[˜ÛY\Ê]Q^Û\Ú]™KÈ’QÒ—JBˆÈÜÝÙ\‘]šY[˜ÙR][JÛÛ\[žH[Ù[8¡¤ˆÛÛ\]]]™H\˜Ú]XÝ\™H‹]H^Û\Ú]š]Nˆ	Ù]Q^Û\Ú]™_XÓÓ•VQTÐÔ’TU‘H‹”›ÜšY]\žH]H\È™[]˜[][œÝY™šXÚY[Yˆ™\›ÙXÚX›KÛÛ\™\ÜÚX›KÜˆÙXZÛH›ÝXÝYˆ‹ÛÛ\[žR™YŠWBˆˆ×NÂˆÛÛœÝ™XÛÛœÝXÝ[ÛÛÛ^HØ[™Y]PžQ˜[Z[K™Ù]
+”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆŠOË˜ÛÛ^]šY[˜ÙHÏÈ×NÂˆÛÛœÝÛÜ›™\™YÝ\ÜH˜[YR[˜ÛY\Ê]Q^Û\Ú]™KÈ’QÒ—JH	‰ˆ˜[YR[˜ÛY\Ê™XZ[Xš[]KÈ’T‘—JH	‰ˆ\ÔÝ\Ü
+“PT“’S‘×Ô’QÒÈŠBˆÈÜÝÙ\‘]šY[˜ÙR][JÛÛ\[žH[Ù[8¡¤ˆÛÛ\]]]™H\˜Ú]XÝ\™H‹‘^Û\Ú]™HšYÚÈ\È\™™[X\›š[™ÈÚYÛ˜[‹”ÕTÔ•È‹”ØØ\˜ÙHš]š[YÙY^\šY[˜ÙHX^HÝ\ÜÛÜ›™\™Y™\ÛÝ\˜ÙHYˆšYÚÈ[™™XZ[Y™šXÝ[H\™H]šY[˜ÙYˆ‹ÛÛ\[žR™YŠWBˆˆ×NÂˆÛÛœÝ™XZ[Ø[™Y]HHØ[™Y]PžQ˜[Z[K™Ù]
+”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆŠNÂˆÛÛœÝÛÜ›™\™Y\Ú\ÈHÛÜ›™\™YÝ\Ü›[™ÝÈ“SÑTUHˆˆÛÜ›™\™YÛÛ^›[™Ý™XZ[Ø[™Y]OË›ØœÙ\™Y^\š[Y[™\™XÝOOH”ÕTÔ•Èˆ™XZ[Ø[™Y]OË›[Ù[Y\ÜÙ\ÜÛY[OOH”ÕTÔ•QÓÓ‘USÓSHˆÈ•ÑPRÈˆˆ•S”“Õ‘SˆŽÂˆÛÛœÝØØ[TÝ\ÜHØØ[Q]šY[˜ÙK™š[\Š
+][JHOˆ][K™\™XÝ[ÛˆOOH”ÕTÔ•ÈŠNÂˆÛÛœÝØØ[U\Ú\ÈHØØ[TÝ\Ü›[™ÝÈ“SÑTUHˆˆ•S”“Õ‘SˆŽÂˆÛÛœÝÛÝ[\”Ý\ÜHÛÝ[\‘]šY[˜ÙK™š[\Š
+][JHOˆ][K™\™XÝ[ÛˆOOH”ÕTÔ•ÈŠNÂˆÛÛœÝÛÝ[\•\Ú\ÈHÛÝ[\”Ý\Ü›[™ÝÈ“SÑTUHˆˆ•S”“Õ‘SˆŽÂˆÛÛœÝœ˜[™Ý\ÜHœ˜[™]šY[˜ÙK™š[\Š
+][JHOˆ][K™\™XÝ[ÛˆOOH”ÕTÔ•ÈŠNÂˆÛÛœÝœ˜[™\Ú\ÈHœ˜[™Ý\Ü›[™ÝÈ“SÑTUHˆˆ•S”“Õ‘SˆŽÂ‚ˆÛÛœÝÝÙ\œÈHÂˆZ[
+œØØ[WÙXÛÛ›ÛZY\È‹ØØ[U\Ú\Ë]šY[˜ÙTÝ™[™Ýœ›ÛR][\ÊØØ[TÝ\Ü×KØØ[TÝ\Ü›[™Ýˆ
+K‘š^YXÛÜÝ]™\˜YÙHÜˆXÛ[š[™È[š]ÛÜÝÈÚ]ØØ[Kˆ‹ØØ[TÝ\Ü›[™ÝÈ]XÚY]šY[˜ÙHÝYÙÙ\ÝÈØØ[HXÛÛ›ÛZXÜÈX^H^\Ýˆˆˆ“›È\™XÝ[š]XÛÜÝÜˆš^YXÛÜÝ]™\˜YÙH]šY[˜ÙH\È]XÚYˆ‹ØØ[TÝ\Ü×K×K×KÂˆÈX™[ˆ•[š]ÛÜÝXÛ[™H‹Ý]NˆØØ[U\Ú\Ë]šY[˜ÙNˆ]šY[˜ÙTÝ™[™Ýœ›ÛR][\ÊØØ[TÝ\Ü×KØØ[TÝ\Ü›[™Ýˆ
+HKˆÈX™[ˆ”Ú\™Y[™œ˜\ÝXÝ\™H]™\˜YÙH‹Ý]Nˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ““Ó‘HˆBˆJKˆZ[
+›™]ÛÜš×ÙXÛÛ›ÛZY\È‹™]ÛÜšÕ\Ú\Ë]šY[˜ÙTÝ™[™Ýœ›ÛR][\Ê™]ÛÜšÔÝ\Ü×K˜[ÙJKÜ›ÜÜËXÝ\ÝÛY\ˆ^\šY[˜ÙH[\›Ý™\È˜[YH›ÜˆÝ\ˆÝ\ÝÛY\œËˆ‹\ÔÝ\Ü
+Ô“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆŠHÈÜ›ÜÜËXÝ\ÝÛY\ˆ˜[œÙ™\ˆ]šY[˜ÙHÝ\ÜÈH™]ÛÜšË[ZÙHÑHYXÚ[š\ÛKˆˆˆ˜[œÙ™\Ø[™Y]OËš[YÜ˜]YÛÛ˜Û\Ú[ÛˆÏÈ•˜[œÙ™\ˆ^\š[Y[[˜]˜Z[X›Kˆ‹Ë‹‹›™]ÛÜšÔÝ\Ü‹‹›™]ÛÜšÐÛÛ^K×KZ\ÜÚ[™Ñ›Ü”ÝÙ\ŠÈÔ“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘Tˆ—JKÈÔ“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘Tˆ—KÂˆÈX™[ˆÜ›ÜÜËXÝ\ÝÛY\ˆ˜[œÙ™\ˆ‹Ý]Nˆ™]ÛÜšÕ\Ú\Ë]šY[˜ÙNˆ]šY[˜ÙTÝ™[™Ýœ›ÛR][\Ê™]ÛÜšÔÝ\Ü×K˜[ÙJHKˆÈX™[ˆ”ÛÛ[™ÈšYÚÈ‹Ý]Nˆ\Ú\Ñœ›ÛP[˜[\Ý˜[YJ[œ]›X\›š[™Ð\˜Ú]XÝ\™OË˜Ø[•˜Z[XÜ›ÜÜÐÝ\ÝÛY\œÈÏÈ[œ]˜[˜[\Ú\Ë˜ÛÛ˜XÝX[X\›š[™ÔšYÚÊK]šY[˜ÙNˆ\ÔÝ\Ü
+“PT“’S‘×Ô’QÒÈŠHÈ“QQUSHˆˆ“ÕÈˆKˆÈX™[ˆ‘™YY˜XÚÈ™[ØÚ]H‹Ý]Nˆ\ÐØ\ÙT›ÝÜÈÈ•ÑPRÈˆˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ\ÐØ\ÙT›ÝÜÈÈ“ÕÈˆˆ““Ó‘HˆBˆJKˆZ[
+˜ÛÝ[\—ÜÜÚ][Ûš[™È‹ÛÝ[\•\Ú\Ë]šY[˜ÙTÝ™[™Ýœ›ÛR][\ÊÛÝ[\”Ý\Ü×KÛÝ[\”Ý\Ü›[™Ýˆ
+K’[˜Ý[X™[ÈØ[››Ý™\ÜÛ™Ú]Ý][XYÚ[™ÈZ\ˆ^\Ý[™È\Ú[™\ÜËˆ‹ÛÝ[\”Ý\Ü›[™ÝÈ]XÚY]šY[˜ÙHÝYÙÙ\ÝÈ[˜Ý[X™[ÛÛ™›XÝˆˆˆ“›È[˜Ý[X™[ÛÛ™›XÝÜˆØ[›šX˜[^˜][Ûˆ]šY[˜ÙH\È]XÚYˆ‹ÛÝ[\”Ý\Ü×K×K×KÂˆÈX™[ˆ’[˜Ý[X™[ÛÛ™›XÝ‹Ý]NˆÛÝ[\•\Ú\Ë]šY[˜ÙNˆ]šY[˜ÙTÝ™[™Ýœ›ÛR][\ÊÛÝ[\”Ý\Ü×KÛÝ[\”Ý\Ü›[™Ýˆ
+HKˆÈX™[ˆ\Ú[™\ÜË[[Ù[[˜ÛÛ\]Xš[]H‹Ý]Nˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ““Ó‘HˆBˆJKˆZ[
+œÝÚ]Ú[™×ØÛÜÝÈ‹ÝÚ]Ú[™Õ\Ú\ËÝÚ]Ú[™ÔÝ\Ü›[™ÝÈ“ÕÈˆˆ““Ó‘H‹XØÝ[][]YÝ\ÝÛY\ˆÛÛ^[YÜ˜][ÛœËÜˆÛÜšÙ›ÝÈ\[™[˜ÞHXZÙH™\XÙ[Y[ÛÜÝKˆ‹ÝÚ]Ú[™ÔÝ\Ü›[™ÝÈÛÛ\[žH[Ù[\ÜÝ[\[ÛœÈÚ[ÈÝÚ]Ú[™ËXÛÜÝYXÚ[š\Û\Ë]\™XÝ™\XÙ[Y[YYÜ˜Y][Ûˆ]šY[˜ÙH\ÈÝ[™YYYˆˆˆ“›ÈÝÚ]Ú[™ËXÛÜÝYXÚ[š\ÛH\È]šY[˜ÙYY]ˆ‹ÝÚ]Ú[™ÔÝ\Ü×K×K×KÂˆÈX™[ˆXØÝ[][]YÝ\ÝÛY\ˆÛÛ^‹Ý]Nˆ\ÐØ\ÙT›ÝÜÈÈ•ÑPRÈˆˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ\ÐØ\ÙT›ÝÜÈÈ“ÕÈˆˆ““Ó‘HˆKˆÈX™[ˆ’[YÜ˜][Ûˆ\‹Ý]Nˆ\Ú\Ñœ›ÛP[˜[\Ý˜[YJÛÜšÙ›ÝÑ[X™YY™\ÜÊK]šY[˜ÙNˆ˜[YR[˜ÛY\ÊÛÜšÙ›ÝÑ[X™YY™\ÜËÈ’QÒ—JHÈ“ÕÈˆˆ““Ó‘HˆKˆÈX™[ˆ”™\XÙ[Y[\™›Ü›X[˜ÙHØ\‹Ý]Nˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ““Ó‘HˆBˆJKˆZ[
+˜œ˜[™[™È‹œ˜[™\Ú\Ë]šY[˜ÙTÝ™[™Ýœ›ÛR][\Êœ˜[™Ý\Ü×Kœ˜[™Ý\Ü›[™Ýˆ
+K•\ÝÜˆ™\]][Ûˆ™YXÙ\È^Y\ˆ[˜Ù\Z[HÜˆÝ\ÜÈÚ[[™Û™\ÜÈÈ^Kˆ‹œ˜[™Ý\Ü›[™ÝÈ]XÚY]šY[˜ÙHÝYÙÙ\ÝÈHœ˜[™YXÚ[š\ÛKˆˆˆ“›ÈÚ[[™Û™\ÜË]Ë\^HÜˆ\Ý]šY[˜ÙH\È]XÚYˆ‹œ˜[™Ý\Ü×K×K×KÂˆÈX™[ˆ•\ÝÈ™\]][Ûˆ‹Ý]Nˆœ˜[™\Ú\Ë]šY[˜ÙNˆ]šY[˜ÙTÝ™[™Ýœ›ÛR][\Êœ˜[™Ý\Ü×Kœ˜[™Ý\Ü›[™Ýˆ
+HKˆÈX™[ˆ•Ú[[™Û™\ÜÈÈ^H‹Ý]Nˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ““Ó‘HˆBˆJKˆZ[
+˜ÛÜ›™\™YÜ™\ÛÝ\˜ÙH‹ÛÜ›™\™Y\Ú\Ë]šY[˜ÙTÝ™[™Ýœ›ÛR][\ÊÛÜ›™\™YÝ\Ü×K˜[ÙJK”ØØ\˜ÙHš]š[YÙY]KšYÚËÜˆ™[][ÛœÚ\È\™H\™›ÜˆÚ[[™Ù\œÈÈXØÙ\ÜËˆ‹ÛÜ›™\™YÝ\Ü›[™ÝÈ”šYÚÈ\È\™™XZ[Xš[]HX^HÝ\ÜHÛÜ›™\™Y™\ÛÝ\˜ÙH\Ý\Ú\Ëˆˆˆ™XZ[Ø[™Y]OËš[YÜ˜]YÛÛ˜Û\Ú[ÛˆÏÈ”›ÜšY]\žH]H[Û™H\È›ÝÝY™šXÚY[Yˆ™\›ÙXÚX›HÜˆÛÛ\™\ÜÚX›Kˆ‹Ë‹‹˜ÛÜ›™\™YÝ\Ü‹‹˜ÛÜ›™\™YÛÛ^‹‹œ™XÛÛœÝXÝ[ÛÛÛ^K×KZ\ÜÚ[™Ñ›Ü”ÝÙ\ŠÈ“PT“’S‘×Ô’QÒÈ‹”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆ—JKÈ“PT“’S‘×Ô’QÒÈ‹”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆ—KÂˆÈX™[ˆ‘^Û\Ú]™HØ\Ù\ËÛÝ]ÛÛY\È‹Ý]Nˆ\Ú\Ñœ›ÛP[˜[\Ý˜[YJ]Q^Û\Ú]™JK]šY[˜ÙNˆ˜[YR[˜ÛY\Ê]Q^Û\Ú]™KÈ’QÒ—JHÈ“ÕÈˆˆ““Ó‘HˆKˆÈX™[ˆ“X\›š[™ÈšYÚÈ‹Ý]Nˆ\ÔÝ\Ü
+“PT“’S‘×Ô’QÒÈŠHÈ“SÑTUHˆˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ\ÔÝ\Ü
+“PT“’S‘×Ô’QÒÈŠHÈ“QQUSHˆˆ““Ó‘HˆKˆÈX™[ˆ”™\Ú\Ý[˜ÙHÈ™\›ÙXÝ[Ûˆ‹Ý]Nˆ˜[YR[˜ÛY\Ê™XZ[Xš[]KÈ’T‘—JHÈ•ÑPRÈˆˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ“ÕÈˆBˆJKˆZ[
+œ›ØÙ\Ü×ÜÝÙ\ˆ‹›ØÙ\ÜÕ\Ú\Ë]šY[˜ÙTÝ™[™Ýœ›ÛR][\Ê›ØÙ\ÜÔÝ\ÜYØZ[œÝžQ˜[Z[J“PT“’S‘×ÐÐUTÐSUHŠK˜[ÙJKÛÜÙYX\›š[™ËÝ\]KÙ\ÞH›Ý][™\ÈÛÛ\Ý[™[È\™]ËXÛÜHÜ\˜][™È\™›Ü›X[˜ÙKˆ‹›ØÙ\ÜÕ\Ú\ÈOOH“SÑTUHˆÈ“X\›š[™ÈØ]\Ø[]H\È\™]Ë\™\›ÙXÙH›ØÙ\ÜÈ]šY[˜ÙHÝ\ÜÈ›ØÙ\ÜÈÝÙ\‹ˆˆˆX\›š[™ÐØ[™Y]OËš[YÜ˜]YÛÛ˜Û\Ú[ÛˆÏÈ
+ÛÜÙYÛÜÛZ[HÈHÛÜÙYÛÜX^H^\Ý]™\›ÙXÚXš[]H[™YX\Ý\™YX\›š[™ÈØ]\Ø[]H™[XZ[ˆ[™\‹Y]šY[˜ÙYˆˆˆØ\\š[™ÈØ\Ù\È[Û™HÙ\È›Ý\ÝX›\Ú›ØÙ\ÜÈÝÙ\‹ˆŠKË‹‹œ›ØÙ\ÜÔÝ\Ü‹‹œ›ØÙ\ÜÐÛÛ^K]šY[˜ÙPYØZ[œÝÝÙ\ŠÈ“PT“’S‘×ÐÐUTÐSUH‹”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆ—JKZ\ÜÚ[™Ñ›Ü”ÝÙ\ŠÈ“PT“’S‘×ÐÐUTÐSUH‹”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆ—JKÈ‘VT’QSÑWÐÐTT‘H‹“PT“’S‘×ÐÐUTÐSUH‹”‘P•RSP’SUWÐÓÓT‘TÔÒSÓˆ—KÂˆÈX™[ˆØ\\™H‹Ý]Nˆ\ÔÝ\Ü
+‘VT’QSÑWÐÐTT‘HŠHÈ“SÑTUHˆˆ•ÑPRÈ‹]šY[˜ÙNˆ\ÔÝ\Ü
+‘VT’QSÑWÐÐTT‘HŠHÈ“QQUSHˆˆ“ÕÈˆKˆÈX™[ˆ‘Ü˜YH‹Ý]Nˆ\ÐØ\ÙT›ÝÜÈÈ•ÑPRÈˆˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ\ÐØ\ÙT›ÝÜÈÈ“ÕÈˆˆ““Ó‘HˆKˆÈX™[ˆ•\]H‹Ý]Nˆ\Ú\Ñœ›ÛP[˜[\Ý˜[YJ[œ]›X\›š[™Ð\˜Ú]XÝ\™OË\Ù\ÓÝ]ÛÛYQÜ˜Y\Ñ›Ü“X\›š[™ÈÏÈ[œ]˜[˜[\Ú\Ë\]\Ó[Ù[ÛXÞT™YÝ[\›JK]šY[˜ÙNˆ“ÕÈˆKˆÈX™[ˆ‘\ÞH‹Ý]Nˆ\Ú\Ñœ›ÛP[˜[\Ý˜[YJ[œ]›X\›š[™Ð\˜Ú]XÝ\™OË™\Þ[Y[ØY[˜ÙHÏÈ[œ]˜[˜[\Ú\Ë™\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛJK]šY[˜ÙNˆ“ÕÈˆKˆÈX™[ˆ”™\›ÙXÚXš[]H‹Ý]Nˆ˜[YR[˜ÛY\Ê™XZ[Xš[]KÈ’T‘—JHÈ•ÑPRÈˆˆ•S”“Õ‘Sˆ‹]šY[˜ÙNˆ“ÕÈˆBˆJBˆNÂ‚ˆÛÛœÝÝ\ÜYÝÙ\ˆHÝÙ\œË™š[\Š
+ÝÙ\ŠHOˆ\Ú\Ô˜[šÊÝÙ\‹\Ú\ÔÝ™[™Ý
+HHÈ	‰ˆ]šY[˜ÙT˜[šÊÝÙ\‹™]šY[˜ÙTÝ™[™Ý
+HHŠNÂˆÛÛœÝ\Ý\Ú^™YÝÙ\ˆHÝÙ\œË™š[\Š
+ÝÙ\ŠHOˆ\Ú\Ô˜[šÊÝÙ\‹\Ú\ÔÝ™[™Ý
+HHŠKœÛÜ
+
+KŠHOˆ\Ú\Ô˜[šÊ‹\Ú\ÔÝ™[™Ý
+HH\Ú\Ô˜[šÊK\Ú\ÔÝ™[™Ý
+H]šY[˜ÙT˜[šÊ‹™]šY[˜ÙTÝ™[™Ý
+HH]šY[˜ÙT˜[šÊK™]šY[˜ÙTÝ™[™Ý
+JNÂˆÛÛœÝÛ\ÜÚYšXØ][ÛœÈH™]ÈÙ]ÑTÝÙ\Û\ÜÚYšXØ][ÛŠ
+NÂˆYˆ
+\ÔÝ\Ü
+Ô“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆŠH	‰ˆ\ÔÝ\Ü
+“PT“’S‘×ÐÐUTÐSUHŠJHÛ\ÜÚYšXØ][ÛœË˜Y
+”‘RS‘“ÔÑTÈ‘UÓÔ’ÈPÓÓ“ÓRQTÈŠNÂˆYˆ
+›ØÙ\ÜÕ\Ú\ÈOOH“SÑTUHŠHÛ\ÜÚYšXØ][ÛœË˜Y
+”‘RS‘“ÔÑTÈ“ÐÑTÔÈÕÑTˆŠNÂˆYˆ
+ÝÚ]Ú[™Õ\Ú\ÈOOH“SÑTUHˆ	‰ˆZ\ÔÝ\Ü
+Ô“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆŠJHÛ\ÜÚYšXØ][ÛœË˜Y
+”‘RS‘“ÔÑTÈÕÒUÒS‘ÈÓÔÕÈŠNÂˆYˆ
+ÛÜ›™\™Y\Ú\ÈOOH“SÑTUHŠHÛ\ÜÚYšXØ][ÛœË˜Y
+”‘RS‘“ÔÑTÈÓÔ“‘T‘Q‘TÓÕTÑHŠNÂˆYˆ
+Û\ÜÚYšXØ][ÛœËœÚ^™HOOH	‰ˆØ[™Y]\ËœÛÛYJØ[™Y]HOˆØ[™Y]K›ØœÙ\™Y^\š[Y[™\™XÝOOH”ÕTÔ•ÈˆØ[™Y]K›[Ù[Y\ÜÙ\ÜÛY[OOH”ÕTÔ•QÓÓ‘USÓSHŠJHÛ\ÜÚYšXØ][ÛœË˜Y
+ÐTP’SUHQS•QÑHÓ“HŠNÂˆYˆ
+Û\ÜÚYšXØ][ÛœËœÚ^™HOOH	‰ˆÝÙ\œËœÛÛYJ
+ÝÙ\ŠHOˆ\Ú\Ô˜[šÊÝÙ\‹\Ú\ÔÝ™[™Ý
+HHŠJHÛ\ÜÚYšXØ][ÛœË˜Y
+ÐTP’SUHQS•QÑHÓ“HŠNÂˆYˆ
+Û\ÜÚYšXØ][ÛœËœÚ^™HOOH	‰ˆØ[™Y]\ËœÛÛYJ
+Ø[™Y]JHOˆØ[™Y]K˜\ÜÙ\ÜÛY[OOH•S”“Õ‘SˆˆØ[™Y]K˜\ÜÙ\ÜÛY[OOH•S’Ó“ÕÓˆŠJHÛ\ÜÚYšXØ][ÛœË˜Y
+•S”“Õ‘SˆQPÒS’TÓHŠNÂˆYˆ
+Û\ÜÚYšXØ][ÛœËœÚ^™HOOH
+HÛ\ÜÚYšXØ][ÛœË˜Y
+““ÈTP“HQS•QÑHSSÓ”ÕUQŠNÂ‚ˆÛÛœÝÙSYXÚ[š\ÛHHÂˆÛ\ÜÚYšXØ][ÛœÎˆË‹‹˜Û\ÜÚYšXØ][Ûœ×KˆÝ[[X\žNˆÛ\ÜÚYšXØ][ÛœËš\Ê•S”“Õ‘SˆQPÒS’TÓHŠBˆÈ\ÔÝ\Ü
+‘VT’QSÑWÐÐTT‘HŠHÈ‘Ü˜YYØ\\™H\ÈÝ\ÜY[ˆHÙ[XÝYØ\Ù\ËˆX\›š[™È[\›Ý™[Y[˜[œÙ™\‹[™™\Ú\Ý[˜ÙHÈ™XÛÛœÝXÝ[Ûˆ™[XZ[ˆÈ™H\ÝYˆˆˆ•HÙ[XÝY]šY[˜ÙHÙ\È›ÝY]\ÝX›\ÚHØ\\™K]Ë[X\›š[™ÈYXÚ[š\ÛKˆ‚ˆˆÛ\ÜÚYšXØ][ÛœËš\ÊÐTP’SUHQS•QÑHÓ“HŠBˆÈ•HÝ\œ™[]šY[˜ÙHÝYÙÙ\ÝÈÜÜÚX›HØ\Xš[]HY˜[YÙK]›Ý[[ÛœÝ˜]Y\˜X›HÝÙ\‹ˆ‚ˆˆÛÛ\Ý[™[™È^\\ÙHX^H	ÖË‹‹˜Û\ÜÚYšXØ][Ûœ×K›X\
+
+][JHOˆ][KÓÝÙ\Ø\ÙJ
+JKš›Ú[Š‹Š_K˜ˆNÂ‚ˆÛÛœÝÛÛ˜Û\Ú[ÛˆHÝ\ÜYÝÙ\‹›[™ÝˆÈHÝ›Û™Ù\Ý[[ÛœÝ˜]YÝÙ\ˆ\Ý\Ú\È\È	ÜÝ\ÜYÝÙ\–ÌK›X™[KÚ]	ÜÝ\ÜYÝÙ\–ÌK™]šY[˜ÙTÝ™[™ÝÓÝÙ\Ø\ÙJ
+_H]šY[˜ÙK˜ˆˆ\Ý\Ú^™YÝÙ\‹›[™ÝˆÈHÝ›Û™Ù\ÝÝ\œ™[\Ý\Ú\È\È	Ú\Ý\Ú^™YÝÙ\–ÌK›X™[K]\™XÝ]šY[˜ÙH™[XZ[œÈ	Ú\Ý\Ú^™YÝÙ\–ÌK™]šY[˜ÙTÝ™[™ÝÓÝÙ\Ø\ÙJ
+_K˜ˆˆ“›È\˜X›HÝÙ\ˆ\ÈÝ\œ™[H[[ÛœÝ˜]YžH]˜Z[X›H]šY[˜ÙKˆŽÂ‚ˆÛÛœÝYXÚ[š\ÛQYÙ\ÎˆÝÙ\“YXÚ[š\ÛQYÙV×HHÂˆÈœ›ÛNˆÜ›ÜÜËXÝ\ÝÛY\ˆ˜[œÙ™\ˆ‹Îˆ“™]ÛÜšÈXÛÛ›ÛZY\È‹Ý]NˆÝÙ\œË™š[™
+
+ÝÙ\ŠHOˆÝÙ\‹šÙ^HOOH›™]ÛÜš×ÙXÛÛ›ÛZY\ÈŠHK\Ú\ÔÝ™[™Ý]šY[˜ÙNˆÝÙ\œË™š[™
+
+ÝÙ\ŠHOˆÝÙ\‹šÙ^HOOH›™]ÛÜš×ÙXÛÛ›ÛZY\ÈŠHK™]šY[˜ÙTÝ™[™ÝKˆÈœ›ÛNˆ“X\›š[™ÈØ]\Ø[]H
+ÈÛÜÙYÛÜ‹Îˆ”›ØÙ\ÜÈÝÙ\ˆ‹Ý]NˆÝÙ\œË™š[™
+
+ÝÙ\ŠHOˆÝÙ\‹šÙ^HOOHœ›ØÙ\Ü×ÜÝÙ\ˆŠHK\Ú\ÔÝ™[™Ý]šY[˜ÙNˆÝÙ\œË™š[™
+
+ÝÙ\ŠHOˆÝÙ\‹šÙ^HOOHœ›ØÙ\Ü×ÜÝÙ\ˆŠHK™]šY[˜ÙTÝ™[™ÝKˆÈœ›ÛNˆÝ\ÝÛY\‹\ÜXÚYšXÈXØÝ[][]YÝ]H‹Îˆ”ÝÚ]Ú[™ÈÛÜÝÈ‹Ý]NˆÝÙ\œË™š[™
+
+ÝÙ\ŠHOˆÝÙ\‹šÙ^HOOHœÝÚ]Ú[™×ØÛÜÝÈŠHK\Ú\ÔÝ™[™Ý]šY[˜ÙNˆÝÙ\œË™š[™
+
+ÝÙ\ŠHOˆÝÙ\‹šÙ^HOOHœÝÚ]Ú[™×ØÛÜÝÈŠHK™]šY[˜ÙTÝ™[™ÝKˆÈœ›ÛNˆ”š]š[YÙY^\šY[˜ÙH
+ÈšYÚÈ‹ÎˆÛÜ›™\™Y™\ÛÝ\˜ÙH‹Ý]NˆÝÙ\œË™š[™
+
+ÝÙ\ŠHOˆÝÙ\‹šÙ^HOOH˜ÛÜ›™\™YÜ™\ÛÝ\˜ÙHŠHK\Ú\ÔÝ™[™Ý]šY[˜ÙNˆÝÙ\œË™š[™
+
+ÝÙ\ŠHOˆÝÙ\‹šÙ^HOOH˜ÛÜ›™\™YÜ™\ÛÝ\˜ÙHŠHK™]šY[˜ÙTÝ™[™ÝBˆNÂ‚ˆ™]\›ˆÈÝÙ\œËÙSYXÚ[š\ÛKÛÛ˜Û\Ú[Û‹YXÚ[š\ÛQYÙ\Ë\ÓÝ™\˜[[Ø]ØÛÜ™Nˆ˜[ÙHNÂŸB‚™[˜Ý[Ûˆ]šY[˜ÙT]X[]Qœ›ÛTÞ[\Ú\Ê^\šY[˜ÙNˆ^\šY[˜ÙTÛ˜\ÚÝX˜]\Îˆ\š]™YX˜]PØ[™Y]V×KÝÙ\“X\ˆ\š]™YÝÙ\“X\
+Nˆ[™\ÝY[Þ[\Ú\ÖÈ™]šY[˜ÙT]X[]H—HÂˆYˆ
+^\šY[˜ÙKÝ[Ø\Ù\ÈOOH	‰ˆX˜]\Ë™]™\žJ
+X˜]JHOˆX˜]K™]šY[˜ÙQ›Ü‹›[™ÝOOH
+JH™]\›ˆ““Ó‘HŽÂˆYˆ
+ÝÙ\“X\œÝÙ\œËœÛÛYJ
+ÝÙ\ŠHOˆÝÙ\‹™]šY[˜ÙTÝ™[™ÝOOH’QÒŠJH™]\›ˆ’QÒŽÂˆYˆ
+ÝÙ\“X\œÝÙ\œËœÛÛYJ
+ÝÙ\ŠHOˆÝÙ\‹™]šY[˜ÙTÝ™[™ÝOOH“QQUSHŠJH™]\›ˆ“QQUSHŽÂˆYˆ
+X˜]\ËœÛÛYJ
+X˜]JHOˆX˜]K™]šY[˜ÙQ›Ü‹›[™ÝˆX˜]K˜ÛÛ^]šY[˜ÙK›[™Ýˆ
+JH™]\›ˆ”T•PSŽÂˆ™]\›ˆ“ÕÈŽÂŸB‚™[˜Ý[ÛˆÙU\Ú\Ñœ›ÛQX˜]\ÊX˜]\Îˆ\š]™YX˜]PØ[™Y]V×KÝÙ\“X\ˆ\š]™YÝÙ\“X\
+Nˆ[™\ÝY[Þ[\Ú\ÖÈ˜ÙU\Ú\È—HÂˆYˆ
+YX˜]\Ë›[™Ý
+H™]\›ˆ•S’Ó“ÕÓˆŽÂˆYˆ
+X˜]\ËœÛÛYJ
+X˜]JHOˆX˜]K˜\ÜÙ\ÜÛY[OOHÓÓ•QPÕQŠJH™]\›ˆÓÓ•QPÕQŽÂˆÛÛœÝÝ\ÜYÛÜ™HHX˜]\Ë™š[\Š
+X˜]JHOˆÈ‘VT’QSÑWÐÐTT‘H‹“PT“’S‘×ÐÐUTÐSUH‹Ô“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘Tˆ—Kš[˜ÛY\ÊX˜]K™˜[Z[JH	‰ˆÈ”ÕTÔ•Q‹“PS’S‘ÈÕTÔ•Q—Kš[˜ÛY\ÊX˜]K˜\ÜÙ\ÜÛY[
+JNÂˆYˆ
+Ý\ÜYÛÜ™K›[™ÝHˆ	‰ˆ\ÝÙ\“X\˜ÙSYXÚ[š\ÛK˜Û\ÜÚYšXØ][ÛœËš[˜ÛY\Ê•S”“Õ‘SˆQPÒS’TÓHŠJH™]\›ˆ”ÕTÔ•QŽÂˆYˆ
+Ý\ÜYÛÜ™K›[™ÝHH	‰ˆÝÙ\“X\œÝÙ\œËœÛÛYJ
+ÝÙ\ŠHOˆ\Ú\Ô˜[šÊÝÙ\‹\Ú\ÔÝ™[™Ý
+HHˆ	‰ˆ]šY[˜ÙT˜[šÊÝÙ\‹™]šY[˜ÙTÝ™[™Ý
+HHJJH™]\›ˆ”T•PSHÕTÔ•QŽÂˆYˆ
+X˜]\ËœÛÛYJ
+X˜]JHOˆX˜]K˜\ÜÙ\ÜÛY[OOH•S”“Õ‘SˆŠJH™]\›ˆ•S”“Õ‘SˆŽÂˆ™]\›ˆ•S’Ó“ÕÓˆŽÂŸB‚™[˜Ý[ÛˆÛÛ˜Ú\ÙQ]šY[˜ÙJ][\ÎˆX˜]Q]šY[˜ÙR][V×K[Z]ˆ[X™\ŠHÂˆÛÛœÝÙY[ˆH™]ÈÙ]Ýš[™ÏŠ
+NÂˆÛÛœÝ™\Ý[ˆX˜]Q]šY[˜ÙR][V×HH×NÂˆ›Üˆ
+ÛÛœÝ][HÙˆ][\ÊHÂˆÛÛœÝÙ^HH	Ú][K™\™XÝ[ÛŸN‰Ú][KœÛÝ\˜Ù_N‰Ú][K˜[Y_XÂˆYˆ
+ÙY[‹š\ÊÙ^JJHÛÛ[YNÂˆÙY[‹˜Y
+Ù^JNÂˆ™\Ý[œ\Ú
+][JNÂˆYˆ
+™\Ý[›[™ÝH[Z]
+Hœ™XZÎÂˆBˆ™]\›ˆ™\Ý[ÂŸB‚™[˜Ý[ÛˆÞ[\Ú\Ñ]šY[˜ÙPXÚÙ]ÊX˜]\Îˆ\š]™YX˜]PØ[™Y]V×K^\šY[˜ÙNˆ^\šY[˜ÙTÛ˜\ÚÝ
+Nˆ[™\ÝY[Þ[\Ú\ÖÈ™]šY[˜ÙPXÚÙ]È—HÂˆÛÛœÝÝ\ÜÈHÛÛ˜Ú\ÙQ]šY[˜ÙJX˜]\Ë™›]X\
+
+X˜]JHOˆX˜]K™]šY[˜ÙQ›ÜŠK
+NÂˆÛÛœÝÛÛ˜YXÝÈHÛÛ˜Ú\ÙQ]šY[˜ÙJX˜]\Ë™›]X\
+
+X˜]JHOˆX˜]K™]šY[˜ÙPYØZ[œÝ
+K
+NÂˆÛÛœÝÛÛ^HÛÛ˜Ú\ÙQ]šY[˜ÙJX˜]\Ë™›]X\
+
+X˜]JHOˆX˜]K˜ÛÛ^]šY[˜ÙJK
+NÂˆÛÛœÝ[Z]][ÛœÈHÛÛ˜Ú\ÙQ]šY[˜ÙJX˜]\Ë™›]X\
+
+X˜]JHOˆX˜]K›Z\ÜÚ[™Ñ]šY[˜ÙJK
+NÂˆ™]\›ˆÈÝ\ÜËÛÛ˜YXÝËÛÛ^[Z]][ÛœÎˆÛÛ˜Ú\ÙQ]šY[˜ÙJ[Z]][ÛœË
+HNÂŸB‚™[˜Ý[Ûˆ[™\ÝY[Y[[Õ^
+[œ]ˆ[™\ÝY[Þ[\Ú\Ò[œ]Þ[\Ú\ÎˆÛZ][™\ÝY[Þ[\Ú\Ë›Y[[ÈŠHÂˆÛÛœÝ[YÙ[˜ÙHH\š]™RYÚ\Ý˜[YQ[YÙ[˜ÙT]Y]YJ[œ]™X˜]\ËJNÂˆÛÛœÝ^\šY[˜ÙS[™HH	Ú[œ]™^\šY[˜ÙKÝ[Ø\Ù\ßHØ\Ù\ÎÈ	Ú[œ]™^\šY[˜ÙK™Ü˜YYØ\Ù\ßHÜ˜YYÈYYX[ˆ™YY˜XÚÈ	Ú[œ]™^\šY[˜ÙK›YYX[‘™YY˜XÚÓ][˜ÞQ^\ÈOOH[È[˜]˜Z[X›Hˆˆ	Ú[œ]™^\šY[˜ÙK›YYX[‘™YY˜XÚÓ][˜ÞQ^\ßYNÈ	Ú[œ]™^\šY[˜ÙKš[X[“Ý™\œšYPÛÝ[H[X[ˆÝ™\œšY\Ë˜ÂˆÛÛœÝÝ™\ÜÓ[™HH[œ]œÝ™\ÜÕ\ÝˆÈ	Ú[œ]œÝ™\ÜÕ\Ý[\]S˜[Y_Nˆ	Ú[œ]œÝ™\ÜÕ\Ýœ™\Ý[›X™[Kˆ	Ú[œ]œÝ™\ÜÕ\Ýœš[X\žPÚ[™Ù_KˆÍ‹[[Û[Ù[YØ\	Ú[œ]œÝ™\ÜÕ\Ýœ™\Ý[›[ÛÍ‘Ø\Ñš^Y
+Š_KˆÐÑST’SÈSTPÐUSÓˆ8 %“ÕSTT’PÐSU’QSÑK˜ˆˆ“›ÈÝ™\ÜÈ\Ý\È™Y[ˆ[ˆÜˆ™[XX›HY[YšYY\ÈÝ\œ™[›Üˆ\È[˜[\Ú\ËˆŽÂˆ™]\›ˆÂˆ[™\ÝY[Þ[\Ú\È8 %	Ú[œ]˜[˜[\Ú\Ë˜ÛÛ\[žS˜[Y_Xˆˆ‹ˆÝ\œ™[ÑH\Ú\Îˆ	ÜÞ[\Ú\Ë˜ÙU\Ú\ßKˆ	ÜÞ[\Ú\Ë˜Ý\œ™[\Ú\ßXˆˆ‹ˆÝÙ\ˆ\Ý\Ú\Îˆ	ÜÞ[\Ú\Ëœš[X\žTÝÙ\’\Ý\Ú\ßKˆ	Ú[œ]œÝÙ\“X\˜ÛÛ˜Û\Ú[ÛŸXˆˆ‹ˆÙ^HÝ\Ü[™È]šY[˜ÙNˆ	ÜÞ[\Ú\Ë™]šY[˜ÙPXÚÙ]ËœÝ\ÜË›[™ÝÈÞ[\Ú\Ë™]šY[˜ÙPXÚÙ]ËœÝ\ÜË›X\
+
+][JHOˆ	Ú][K˜[Y_H
+	Ú][Kœ›Ý™[˜[˜Ù_JX
+Kš›Ú[ŠŽÈŠHˆ“›È\™XÝÝ\Ü[™È]šY[˜ÙH\È™Y[ˆ\ÝX›\ÚYY]ˆŸXˆˆ‹ˆÛÛ˜YXÝ[™ÈÈ[Z][™È]šY[˜ÙNˆ	ÖË‹‹œÞ[\Ú\Ë™]šY[˜ÙPXÚÙ]Ë˜ÛÛ˜YXÝË‹‹œÞ[\Ú\Ë™]šY[˜ÙPXÚÙ]Ë›[Z]][Ûœ×K›[™ÝÈË‹‹œÞ[\Ú\Ë™]šY[˜ÙPXÚÙ]Ë˜ÛÛ˜YXÝË‹‹œÞ[\Ú\Ë™]šY[˜ÙPXÚÙ]Ë›[Z]][Ûœ×KœÛXÙJ
+K›X\
+
+][JHOˆ	Ú][K˜[Y_H
+	Ú][Kœ›Ý™[˜[˜Ù_JX
+Kš›Ú[ŠŽÈŠHˆ“›È^XÚ]ÛÛ˜YXÝ[™È]šY[˜ÙH\È™Y[ˆ]XÚYÈZ\ÜÚ[™È]šY[˜ÙH™[XZ[œÈX]\šX[ˆŸXˆˆ‹ˆÜš]XØ[[œ™\ÛÛ™YX˜]\Îˆ	Ú[œ]™X˜]\ËœÛXÙJ
+K›X\
+
+X˜]JHOˆ	ÙX˜]K]_Nˆ	ÙX˜]K˜\ÜÙ\ÜÛY[HÈ	ÙX˜]K˜ÛÛ™šY[˜Ù_X
+Kš›Ú[ŠŽÈŠH“›Û™HÙ[™\˜]YˆŸXˆˆ‹ˆYÚ\Ý]˜[YH[YÙ[˜ÙNˆ	Ù[YÙ[˜ÙK›X\
+
+][JHOˆ	Ú][K]_H8 %	Ú][K\ÝX
+Kš›Ú[ŠŽÈŠH“›È[YÙ[˜ÙH]Y]YHÙ[™\˜]YˆŸXˆˆ‹ˆ^\šY[˜ÙNˆ	Ù^\šY[˜ÙS[™_H›Ý™[˜[˜ÙNˆ	Ú[œ]™^\šY[˜ÙKœ›Ý™[˜[˜Ù_K˜ˆ^\šY[˜ÙH^\š[Y[Îˆ	Ú[œ]™X˜]\Ë™›]X\
+X˜]HOˆX˜]K˜[˜[\Ú\Ñš[™[™ÜÈÏÈ×JK™š[\Šš[™[™ÈOˆš[™[™ËœÝ]\ÈOOH•TÕQŠK›X\
+š[™[™ÈOˆš[™[™ËœÝ[[X\žJKš›Ú[ŠˆŠH“›È^\š[Y[Y]]È]H™\]Z\™[Y[ËˆŸXˆˆ‹ˆÝ™\ÜË]\Ýš[™[™Îˆ	ÜÝ™\ÜÓ[™_Xˆˆ‹ˆ[™\ÝÜˆšY]Îˆ	ÜÞ[\Ú\Ëš[™\ÝÜ•šY]ËœÝ[[X\ž_Xˆˆ‹ˆ\ÜÙ\ÜÛY[È\HÈHÙ[XÝY^\šY[˜ÙH]\Ù]ˆØÙ[˜\š[È™\Ý[È\ØÜšX™HHÜXÚYšYY\ÜÝ[\[ÛœËˆ‚ˆKš›Ú[Š—ˆŠNÂŸB‚™^Ü[˜Ý[Ûˆ\š]™R[™\ÝY[Þ[\Ú\Ê[œ]ˆ[™\ÝY[Þ[\Ú\Ò[œ]
+Nˆ[™\ÝY[Þ[\Ú\ÈÂˆÛÛœÝÙU\Ú\ÈHÙU\Ú\Ñœ›ÛQX˜]\Ê[œ]™X˜]\Ë[œ]œÝÙ\“X\
+NÂˆÛÛœÝ]šY[˜ÙT]X[]HH]šY[˜ÙT]X[]Qœ›ÛTÞ[\Ú\Ê[œ]™^\šY[˜ÙK[œ]™X˜]\Ë[œ]œÝÙ\“X\
+NÂˆÛÛœÝ˜[šÙYÝÙ\œÈHË‹‹š[œ]œÝÙ\“X\œÝÙ\œ×Bˆ™š[\Š
+ÝÙ\ŠHOˆÝÙ\‹\Ú\ÔÝ™[™ÝOOH““Ó‘HŠBˆœÛÜ
+
+KŠHOˆ\Ú\Ô˜[šÊ‹\Ú\ÔÝ™[™Ý
+HH\Ú\Ô˜[šÊK\Ú\ÔÝ™[™Ý
+H]šY[˜ÙT˜[šÊ‹™]šY[˜ÙTÝ™[™Ý
+HH]šY[˜ÙT˜[šÊK™]šY[˜ÙTÝ™[™Ý
+JNÂˆÛÛœÝš[X\žTÝÙ\ˆH˜[šÙYÝÙ\œÖÌNÂˆÛÛœÝ[œ™\ÛÛ™YH[œ]™X˜]\Ë™š[™
+
+X˜]JHOˆÈ•S”“Õ‘Sˆ‹•S’Ó“ÕÓˆ—Kš[˜ÛY\ÊX˜]K˜\ÜÙ\ÜÛY[
+JHÏÈ[œ]™X˜]\ÖÌHÏÈ[ÂˆÛÛœÝØ\\™HH[œ]™X˜]\Ë™š[™
+][HOˆ][K™˜[Z[HOOH‘VT’QSÑWÐÐTT‘HŠNÂˆÛÛœÝ^\š[Y[›Ý[™\šY\ÈH[œ]™X˜]\Âˆ™›]X\
+X˜]HOˆX˜]K˜ÛÛ^]šY[˜ÙJBˆ™š[\Š][HOˆÈ‘^\šY[˜ÙH8¡¤ˆ]]ÛX]Y^\š[Y[›ÙÜ˜[H‹‘^\šY[˜ÙH8¡¤ˆXÝ[Û‹TÛXÞH^\š[Y[—Kš[˜ÛY\Ê][KœÛÝ\˜ÙJJBˆœÛXÙJÊBˆ›X\
+][HOˆ][K˜[YKœÜ]
+ÊÏVËˆO×JWËÊVÌJNÂˆÛÛœÝ›Ý[™\žTÝ[[X\žHH^\š[Y[›Ý[™\šY\Ë›[™ÝÈÛÛ™][Û˜[^\š[Y[›Ý[™\šY\Îˆ	Ù^\š[Y[›Ý[™\šY\Ëš›Ú[ŠˆŠ_XˆˆŽÂˆÛÛœÝ˜[œÙ™\ˆH[œ]™X˜]\Ë™š[™
+][HOˆ][K™˜[Z[HOOHÔ“ÔÔ×ÐÕTÕÓQT—ÕS”Ñ‘TˆŠNÂˆÛÛœÝÝ\œ™[\Ú\ÈH	Ú[œ]™^\šY[˜ÙKÝ[Ø\Ù\ßHÙ[XÝYØ\Ù\Ë	Ú[œ]™^\šY[˜ÙK™Ü˜YYØ\Ù\ßHÜ˜YYˆ	ØØ\\™OËš[YÜ˜]YÛÛ˜Û\Ú[ÛˆÏÈØ\\™H\È›Ý™Y[ˆ\ÜÙ\ÜÙYˆŸH	Ý˜[œÙ™\Ëš[YÜ˜]YÛÛ˜Û\Ú[ÛˆÏÈˆŸIØ›Ý[™\žTÝ[[X\ž_H	Ú[œ]œÝÙ\“X\˜ÙSYXÚ[š\ÛKœÝ[[X\ž_H	Ú[œ]œÝÙ\“X\˜ÛÛ˜Û\Ú[ÛŸHH\™Ù\Ý[œ™\ÛÛ™Y\[™[˜ÞH\È	Ý[œ™\ÛÛ™YË]HÏÈ››ÝY]Y[YšYYŸK˜ÂˆÛÛœÝ]šY[˜ÙPXÚÙ]ÈHÞ[\Ú\Ñ]šY[˜ÙPXÚÙ]Ê[œ]™X˜]\Ë[œ]™^\šY[˜ÙJNÂˆÛÛœÝ[™\ÝÜ‘X˜]\ÈH[œ]™X˜]\Ë™š[\Š
+X˜]JHOˆX˜]Kš[™\ÝÜ™[YYˆOOH[
+NÂˆÛÛœÝ[™\ÝÜ•šY]ÈH[™\ÝÜ‘X˜]\Ë›[™ÝˆÈÂˆ\Ò[™\ÝÜ™[YYŽˆYKˆÝ[[X\žNˆ[™\ÝÜ‘X˜]\Ë›X\
+
+X˜]JHOˆ	ÙX˜]K]_Nˆ	ÙX˜]Kš[™\ÝÜ™[YYŸIH[™\ÝÜˆ™[YYŽÈÑH\ÜÙ\ÜÛY[	ÙX˜]K˜\ÜÙ\ÜÛY[Kˆ	ÙX˜]Kš[™\ÝÜ™[YY‘]™\™Ù[˜ÙHÏÈ’[™\ÝÜˆ™[YYˆ™[XZ[œÈÙ\\˜]Hœ›ÛHÑH]šY[˜ÙKˆŸX
+Kš›Ú[ŠˆŠBˆBˆˆÈ\Ò[™\ÝÜ™[YYŽˆ˜[ÙKÝ[[X\žNˆ“›È[™\ÝÜˆÝ™\œšY\ÈÜˆ™[YYœÈ]™H™Y[ˆ™XÛÜ™YˆˆNÂˆÛÛœÝ˜\ÙHHÂˆÙU\Ú\Ëˆ]šY[˜ÙT]X[]Kˆš[X\žTÝÙ\’\Ý\Ú\Îˆš[X\žTÝÙ\Ë›X™[ÏÈ“›È[[ÛœÝ˜]YÝÙ\ˆY]‹ˆÜš]XØ[[œ™\ÛÛ™Y\[™[˜ÞNˆ[œ™\ÛÛ™YË]HÏÈ“›È[œ™\ÛÛ™YX˜]HY[YšYY‹ˆÝ\œ™[\Ú\ËˆÝÙ\’YÚYÚÎˆ˜[šÙYÝÙ\œËœÛXÙJ
+K›X\
+
+ÝÙ\ŠHOˆ
+ÂˆX™[ˆÝÙ\‹›X™[ˆ\Ú\ÔÝ™[™ÝˆÝÙ\‹\Ú\ÔÝ™[™Ýˆ]šY[˜ÙTÝ™[™ÝˆÝÙ\‹™]šY[˜ÙTÝ™[™ÝˆÚNˆÝÙ\‹ÚBˆJJKˆ]šY[˜ÙPXÚÙ]Ëˆ[™\ÝÜ•šY]ÂˆNÂˆ™]\›ˆÈ‹‹˜˜\ÙKY[[Îˆ[™\ÝY[Y[[Õ^
+[œ]˜\ÙJHNÂŸB‚™^Ü[˜Ý[Ûˆ\š]™QXÚ\Ú[Û”Þ\Ý[SY]šXÜÊ›ÝÜÎˆØÛÜ™X›ÛÚÐØ\ÙR[œ]×JNˆXÚ\Ú[Û”Þ\Ý[Q\š]™YY]šXÜÈÂˆÛÛœÝÝ[Ø\Ù\ÈH›ÝÜË›[™ÝÂˆÛÛœÝØÛÜ™X›ÛÚÈHØ[Ý[]TØÛÜ™X›ÛÚÓY]šXÜÊ›ÝÜÊNÂˆÛÛœÝXÝ[Û“][˜ÞU˜[Y\ÈH›ÝÜË›X\
+XÝ[Û“][˜ÞQ^\ÊK™š[\Š
+˜[YJNˆ˜[YH\È[X™\ˆOˆ˜[YHOOH[
+NÂˆÛÛœÝÝ]ÛÛYS][˜ÞU˜[Y\ÈH›ÝÜË›X\
+™YY˜XÚÓ][˜ÞQ^\ÊK™š[\Š
+˜[YJNˆ˜[YH\È[X™\ˆOˆ˜[YHOOH[
+NÂˆÛÛœÝXÝ[Û•˜[Y\ÈH›ÝÜÂˆ›X\
+
+›ÝÊHOˆ›ÝË˜XÝ[Û•ZÙ[ˆÏÈ›ÝËš[X[‘XÚ\Ú[ÛˆÏÈ›ÝË˜YÙ[XÚ\Ú[ÛŠBˆ™š[\Š
+˜[YJNˆ˜[YH\ÈÝš[™ÈOˆ›ÛÛX[Š˜[YJJNÂˆÛÛœÝXÚ\Ú[Û‘]\ÈH›ÝÜË›X\
+
+›ÝÊHOˆ\Ñ]J›ÝË™XÚ\Ú[Û]
+JK™š[\Š
+˜[YJNˆ˜[YH\È]HOˆ˜[YHOOH[
+NÂˆÛÛœÝÚ[™ÝÔÝ\HXÚ\Ú[Û‘]\Ë›[™ÝÈ™]È]JX]›Z[Š‹‹™XÚ\Ú[Û‘]\Ë›X\
+
+]JHOˆ]K™Ù][YJ
+JJJHˆ[ÂˆÛÛœÝÚ[™ÝÑ[™HXÚ\Ú[Û‘]\Ë›[™ÝÈ™]È]JX]›X^
+‹‹™XÚ\Ú[Û‘]\Ë›X\
+
+]JHOˆ]K™Ù][YJ
+JJJHˆ[ÂˆÛÛœÝÚ[™ÝÑ^\ÈHÚ[™ÝÔÝ\	‰ˆÚ[™ÝÑ[™ˆÈX]›X^
+K
+Ú[™ÝÑ[™™Ù][YJ
+HHÚ[™ÝÔÝ\™Ù][YJ
+JHÈ
+
+ˆŒ
+ˆŒ
+ˆL
+JBˆˆ[Â‚ˆ™]\›ˆÂˆÝ[Ø\Ù\Ëˆ™\ÛÛ™YØ\Ù\ÎˆØÛÜ™X›ÛÚËœ™\ÛÛ™YØ\Ù\ËˆÜ˜YYØ\Ù\ÎˆØÛÜ™X›ÛÚË™Ü˜YYØ\Ù\ËˆÜ˜YPÛÝ™\˜YÙNˆØÛÜ™X›ÛÚË™Ü˜YPÛÝ™\˜YÙKˆÝ]ÛÛYPÛÛ\][Û”˜]NˆØÛÜ™X›ÛÚË›Ý]ÛÛYPÛÛ\][Û”˜]KˆYYX[‘XÚ\Ú[Û•ÐXÝ[Û“][˜ÞQ^\ÎˆYYX[ŠXÝ[Û“][˜ÞU˜[Y\ÊKˆYYX[‘XÚ\Ú[Û•ÓÝ]ÛÛYS][˜ÞQ^\ÎˆYYX[ŠÝ]ÛÛYS][˜ÞU˜[Y\ÊKˆ[X[“Ý™\œšYT˜]NˆØÛÜ™X›ÛÚËš[X[“Ý™\œšYT˜]KˆXÝ[Û‘\ÝšX][ÛŽˆ\ÝšX][ÛŠXÝ[Û•˜[Y\ËÝ[Ø\Ù\ÊKˆÜ˜YQ\ÝšX][ÛŽˆ\ÝšX][ÛŠ›ÝÜË›X\
+
+›ÝÊHOˆ›ÝË™Ü˜YJKÝ[Ø\Ù\ÊKˆYÙPØ\ÙTÚ\™NˆØÛÜ™X›ÛÚË™YÙPØ\ÙTÚ\™KˆÝ[Ý]ÛÛYU˜[YNˆØÛÜ™X›ÛÚËÝ[Ý]ÛÛYU˜[YKˆ]™\˜YÙSÝ]ÛÛYU˜[YNˆØÛÜ™X›ÛÚË˜]™\˜YÙSÝ]ÛÛYU˜[YKˆÝ\ÝÛY\”ÙYÛY[ÛÝ[ˆ™]ÈÙ]
+›ÝÜË›X\
+
+›ÝÊHOˆ›ÝË˜Ý\ÝÛY\”ÙYÛY[
+K™š[\Š›ÛÛX[ŠJKœÚ^™KˆØ\ÙU\PÛÝ[ˆ™]ÈÙ]
+›ÝÜË›X\
+
+›ÝÊHOˆ›ÝË˜Ø\ÙU\JK™š[\Š›ÛÛX[ŠJKœÚ^™KˆØœÙ\™YXÚ\Ú[Û•›Û[YNˆÂˆÛÝ[ˆXÚ\Ú[Û‘]\Ë›[™ÝˆÚ[™ÝÔÝ\ˆÚ[™ÝÑ[™ˆ^\ÎˆÚ[™ÝÑ^\ËˆØ\Ù\Ô\“[ÛˆÚ[™ÝÑ^\ÈOOH[È[ˆ›Ý[™
+XÚ\Ú[Û‘]\Ë›[™ÝÈÚ[™ÝÑ^\È
+ˆÌŠBˆBˆNÂŸB‚™^Ü[˜Ý[ÛˆÝ[[X\š^™Q]šY[˜ÙPÛÝ™\˜YÙJ™XÛÜ™Îˆ\œ˜^OÈ\\Ý[ZXÔÝ]\ÎˆÝš[™ÎÈ]šY[˜ÙU\OÎˆÝš[™ÈOŠNˆ]šY[˜ÙPÛÝ™\˜YÙTÝ[[X\žHÂˆ™]\›ˆ™XÛÜ™Ëœ™YXÙO]šY[˜ÙPÛÝ™\˜YÙTÝ[[X\žOŠ
+Ý[[X\žK™XÛÜ™
+HOˆÂˆYˆ
+™XÛÜ™™]šY[˜ÙU\HOOHSSTÒT×Ô•SˆŠH™]\›ˆÝ[[X\žNÂˆÛÛœÝÝ]\ÈH™XÛÜ™™\\Ý[ZXÔÝ]\ËÕ\\Ø\ÙJ
+NÂˆYˆ
+Ý]\ÈOOH‘T’U‘QˆÝ]\ÈOOH“Ð”ÑT•‘QŠHÝ[[X\žK™\š]™Y
+ÏHNÂˆ[ÙHYˆ
+Ý]\ÈOOH”ÓÕTÑQŠHÝ[[X\žKœÛÝ\˜ÙY
+ÏHNÂˆ[ÙHYˆ
+Ý]\ÈOOHTÔÕSQQŠHÝ[[X\žK˜\ÜÝ[YY
+ÏHNÂˆ[ÙHYˆ
+Ý]\ÈOOH’S‘‘T”‘QŠHÝ[[X\žKš[™™\œ™Y
+ÏHNÂˆ[ÙHÝ[[X\žK[šÛ›ÝÛˆ
+ÏHNÂˆ™]\›ˆÝ[[X\žNÂˆKÈ\š]™YˆÛÝ\˜ÙYˆ\ÜÝ[YYˆ[™™\œ™Yˆ[šÛ›ÝÛŽˆJNÂŸB‚™^Ü[˜Ý[ÛˆÚ[][]TØÙ[˜\š[Ê[œ]ˆÚ[][][Û”ØÙ[˜\š[Ò[œ][ÛÈHÍŠNˆÚ[][][Û”Ù\šY\ÈÂˆÛÛœÝØÙ[˜\š[ÈHØ[š]^™TØÙ[˜\š[Ê[œ]
+NÂˆÛÛœÝ[^S[ÛÈHX]›X^
+X]˜ÙZ[
+ØÙ[˜\š[Ë™™YY˜XÚÑ[^Q^\ÈÈÌ
+JNÂˆÛÛœÝ[™[™Îˆ[X™\–×HH×NÂˆ]Y™™XÝ]™Q^\šY[˜ÙHHØÙ[˜\š[ËœÝ\[™ÐØ\Ù\ÎÂˆÛÛœÝÚ[ÎˆÚ[][][Û”Ú[×HH×NÂ‚ˆ›Üˆ
+][ÛHÈ[ÛH[ÛÎÈ[Û
+ÊÊHÂˆÛÛœÝ^\\ÙHHØÙ[˜\š[Ë˜˜\ÙPØ\Xš[]Bˆ
+ÈØÙ[˜\š[Ë›X\›š[™ÑY™šXÚY[˜ÞBˆ
+ˆØÙ[˜\š[Ëš[™›Ü›X][Û•˜[YBˆ
+ˆØÙ[˜\š[Ë˜[œÙ™\˜Xš[]Bˆ
+ˆX]›ÙÊH
+ÈX]›X^
+Y™™XÝ]™Q^\šY[˜ÙJJNÂ‚ˆÚ[Ëœ\Ú
+Âˆ[ÛˆY™™XÝ]™Q^\šY[˜ÙNˆ›Ý[™
+Y™™XÝ]™Q^\šY[˜ÙKŠKˆ^\\ÙNˆ›Ý[™
+^\\ÙK
+KˆX]\™YØ\Ù\ÎˆˆJNÂ‚ˆYˆ
+[ÛOOH[ÛÊHœ™XZÎÂˆ[™[™Ëœ\Ú
+ØÙ[˜\š[Ë˜Ø\Ù\Ô\“[Û
+NÂˆÛÛœÝX]\™YØ\Ù\ÈH[^S[ÛÈOOHˆÈ[™[™ËœÚY
+
+HÏÈˆˆ[™[™Ë›[™Ýˆ[^S[ÛÂˆÈ[™[™ËœÚY
+
+HÏÈˆˆÂˆY™™XÝ]™Q^\šY[˜ÙHH
+HHØÙ[˜\š[ËœÝ[[™\ÜÔ˜]JH
+ˆY™™XÝ]™Q^\šY[˜ÙH
+ÈX]\™YØ\Ù\ÎÂˆÚ[ÖÜÚ[Ë›[™ÝHWK›X]\™YØ\Ù\ÈH›Ý[™
+X]\™YØ\Ù\ËŠNÂˆB‚ˆ™]\›ˆÈØÙ[˜\š[ËÚ[ÈNÂŸB‚™^Ü[˜Ý[ÛˆÚ[][]PÛÛ\\š\ÛÛŠØÙ[˜\š[ÜÎˆÚ[][][Û”ØÙ[˜\š[Ò[œ]×K[ÛÈHÍŠHÂˆ™]\›ˆØÙ[˜\š[ÜË›X\
+
+ØÙ[˜\š[ÊHOˆÚ[][]TØÙ[˜\š[ÊØÙ[˜\š[Ë[ÛÊJNÂŸB‚™^Ü[˜Ý[Ûˆ]XÝÜ›ÜÜÛÝ™\ŠNˆÚ[][][Û”Ù\šY\ËŽˆÚ[][][Û”Ù\šY\ÊNˆÜ›ÜÜÛÝ™\ˆ[ÂˆÛÛœÝX^HX]›Z[ŠKœÚ[Ë›[™Ý‹œÚ[Ë›[™Ý
+NÂˆ›Üˆ
+][™^HNÈ[™^X^È[™^
+ÊÊHÂˆÛÛœÝ™]š[Ý\Ñ[HHKœÚ[ÖÚ[™^HWK™^\\ÙHH‹œÚ[ÖÚ[™^HWK™^\\ÙNÂˆÛÛœÝÝ\œ™[[HHKœÚ[ÖÚ[™^K™^\\ÙHH‹œÚ[ÖÚ[™^K™^\\ÙNÂˆYˆ
+™]š[Ý\Ñ[HOOH
+HÛÛ[YNÂˆYˆ
+
+™]š[Ý\Ñ[Hˆ	‰ˆÝ\œ™[[HH
+H
+™]š[Ý\Ñ[H	‰ˆÝ\œ™[[HH
+JHÂˆ™]\›ˆÂˆ[ÛˆKœÚ[ÖÚ[™^K›[Ûˆœ›ÛNˆ™]š[Ý\Ñ[HˆÈKœØÙ[˜\š[Ë›˜[YHˆ‹œØÙ[˜\š[Ë›˜[YKˆÎˆ™]š[Ý\Ñ[HˆÈ‹œØÙ[˜\š[Ë›˜[YHˆKœØÙ[˜\š[Ë›˜[YBˆNÂˆBˆBˆ™]\›ˆ[ÂŸB‚™^Ü[˜Ý[Ûˆ^Z[”Ú[][]ÜÛÛ\\š\ÛÛŠÙ\šY\ÎˆÚ[][][Û”Ù\šY\Ö×KÜ›ÜÜÛÝ™\ŽˆÜ›ÜÜÛÝ™\ˆ[
+HÂˆYˆ
+Ù\šY\Ë›[™ÝŠH™]\›ˆYÛÈØÙ[˜\š[ÜÈÈÛÛ\\™H˜Z™XÝÜšY\Ëˆ\È\È[ˆ^Ü˜]ÜžHØÙ[˜\š[Ë›ÝH›Ü™XØ\ÝˆŽÂˆÛÛœÝØK—HHÙ\šY\ÎÂˆÛÛœÝQ[™HKœÚ[ÖØKœÚ[Ë›[™ÝHWOË™^\\ÙHÏÈÂˆÛÛœÝ‘[™H‹œÚ[ÖØ‹œÚ[Ë›[™ÝHWOË™^\\ÙHÏÈÂˆÛÛœÝXY\ˆHQ[™H‘[™ÈHˆŽÂˆÛÛœÝ˜Z[\ˆHQ[™H‘[™ÈˆˆNÂˆÛÛœÝ™X\ÛÛœÎˆÝš[™Ö×HH×NÂˆYˆ
+XY\‹œØÙ[˜\š[ËœÝ\[™ÐØ\Ù\Èˆ˜Z[\‹œØÙ[˜\š[ËœÝ\[™ÐØ\Ù\È
+ˆKJH™X\ÛÛœËœ\Ú
+˜H\™Ù\ˆÝ\[™ÈÝØÚÈÙˆÜ˜YYØ\Ù\ÈŠNÂˆYˆ
+XY\‹œØÙ[˜\š[Ë™™YY˜XÚÑ[^Q^\È˜Z[\‹œØÙ[˜\š[Ë™™YY˜XÚÑ[^Q^\ÊH™X\ÛÛœËœ\Ú
+™˜\Ý\ˆ[Ù[Y™YY˜XÚÈX]\˜][ÛˆŠNÂˆYˆ
+XY\‹œØÙ[˜\š[Ë›X\›š[™ÑY™šXÚY[˜ÞHˆ˜Z[\‹œØÙ[˜\š[Ë›X\›š[™ÑY™šXÚY[˜ÞJH™X\ÛÛœËœ\Ú
+šYÚ\ˆX\›š[™ÈY™šXÚY[˜ÞHŠNÂˆYˆ
+XY\‹œØÙ[˜\š[Ë˜˜\ÙPØ\Xš[]Hˆ˜Z[\‹œØÙ[˜\š[Ë˜˜\ÙPØ\Xš[]JH™X\ÛÛœËœ\Ú
+šYÚ\ˆ˜\ÙKÙ›Ý[™][Û‹[[Ù[Ø\Xš[]HŠNÂˆYˆ
+XY\‹œØÙ[˜\š[Ë˜[œÙ™\˜Xš[]Hˆ˜Z[\‹œØÙ[˜\š[Ë˜[œÙ™\˜Xš[]JH™X\ÛÛœËœ\Ú
+œÝ›Û™Ù\ˆ\ÜÝ[YY˜[œÙ™\˜Xš[]HŠNÂˆYˆ
+XY\‹œØÙ[˜\š[ËœÝ[[™\ÜÔ˜]H˜Z[\‹œØÙ[˜\š[ËœÝ[[™\ÜÔ˜]JH™X\ÛÛœËœ\Ú
+œÛÝÙ\ˆ[Ù[YÝ[[™\ÜÈŠNÂˆÛÛœÝ™X\ÛÛ•^H™X\ÛÛœË›[™ÝÈ™X\ÛÛœËš›Ú[Š‹ŠHˆœÛX[ÛÛXš[™Y\˜[Y]\ˆY™™\™[˜Ù\ÈŽÂ‚ˆYˆ
+Ü›ÜÜÛÝ™\ŠHÂˆ™]\›ˆ	ØÜ›ÜÜÛÝ™\‹ßHÝ™\ZÙ\È	ØÜ›ÜÜÛÝ™\‹™œ›Û_H\›Ý[™[Û	ØÜ›ÜÜÛÝ™\‹›[ÛH[ˆ\ÈÞH[Ù[™XØ]\ÙH	Ü™X\ÛÛ•^Kˆ\È\È[ˆ^Ü˜]ÜžHØÙ[˜\š[Ë›ÝH›Ü™XØ\Ý˜ÂˆBˆ™]\›ˆ	ÛXY\‹œØÙ[˜\š[Ë›˜[Y_H™[XZ[œÈZXYÝ™\ˆH[Ù[YÜš^›Ûˆš[X\š[H™XØ]\ÙHÙˆ	Ü™X\ÛÛ•^Kˆ\È\È[ˆ^Ü˜]ÜžHØÙ[˜\š[Ë›ÝH›Ü™XØ\Ý˜ÂŸB‚™^Ü[˜Ý[ÛˆÙ]Ý™\ÜÕ\Ý[\]JYˆÝš[™È[[™Yš[™Y
+NˆÝ™\ÜÕ\Ý[\]HÂˆ™]\›ˆÕ‘TÔ×ÕTÕÕSTUTË™š[™
+
+[\]JHOˆ[\]KšYOOHY
+HÏÈÕ‘TÔ×ÕTÕÕSTUTÖÌNÂŸB‚™^Ü[˜Ý[Ûˆš\ÚX›TÝ™\ÜÕ\ÝÚ[™ÙY\˜[Y]\œÊ[\]RYˆÝš[™È[[™Yš[™Y
+HÂˆÛÛœÝ[\]HHÙ]Ý™\ÜÕ\Ý[\]J[\]RY
+NÂˆÛÛœÝÙ^\ÈH™]ÈÙ]
+[\]K˜Ú[™ÙY\˜[Y]\’Ù^\ÊNÂˆ™]\›ˆÒSUSUÔ—ÔTSQUT—ÑQ’S’USÓ”Ë™š[\Š
+Yš[š][ÛŠHOˆÙ^\Ëš\ÊYš[š][Û‹šÙ^JJNÂŸB‚™[˜Ý[ÛˆÝ™\ÜÕ˜[YU^
+˜[YNˆ[X™\ˆ[[™Yš[™Y
+HÂˆYˆ
+\[Ùˆ˜[YHOOH›[X™\ˆˆS[X™\‹š\Ñš[š]J˜[YJJH™]\›ˆ››ÝÙ]ŽÂˆ™]\›ˆ[X™\‹š\Ò[YÙ\Š˜[YJHÈ	Ý˜[Y_Xˆ	Ü›Ý[™
+˜[YKÊ_XÂŸB‚™^Ü[˜Ý[ÛˆÝ[[X\š^™TÝ™\ÜÕ\Ýš[X\žPÚ[™ÙJˆ[\]RYˆÝš[™È[[™Yš[™YˆØÙ[˜\š[ÜÎˆÚ[][][Û”ØÙ[˜\š[Ò[œ]×Kˆ˜\Ù[[™TØÙ[˜\š[ÜÎˆÚ[][][Û”ØÙ[˜\š[Ò[œ]×BŠNˆÝ™\ÜÕ\Ýš[X\žPÚ[™ÙHÂˆÛÛœÝ[\]HHÙ]Ý™\ÜÕ\Ý[\]J[\]RY
+NÂˆÛÛœÝYš[š][ÛœÈHš\ÚX›TÝ™\ÜÕ\ÝÚ[™ÙY\˜[Y]\œÊ[\]KšY
+NÂˆYˆ
+[\]KšYOOH˜Ý\ÝÛHŠHÂˆ™]\›ˆÂˆX™[ˆÝ\ÝÛH\ÜÝ[\[ÛœÈ‹ˆ[˜Ý[X™[˜[YNˆ[ˆÚ[[™Ù\•˜[YNˆ[ˆ[˜Ý[X™[˜\Ù[[™Nˆ[ˆÚ[[™Ù\˜\Ù[[™Nˆ[ˆÝ[[X\žNˆÝ\ÝÛHØÙ[˜\š[ÈH™]šY]ÈH[\ÜÝ[\[ÛœÈ™Y›Ü™H[›š[™Ëˆ‚ˆNÂˆBˆYˆ
+Yš[š][ÛœË›[™ÝOOH
+HÂˆ™]\›ˆÂˆX™[ˆ˜\Ù[[™H\ÜÝ[\[ÛœÈ‹ˆ[˜Ý[X™[˜[YNˆ[ˆÚ[[™Ù\•˜[YNˆ[ˆ[˜Ý[X™[˜\Ù[[™Nˆ[ˆÚ[[™Ù\˜\Ù[[™Nˆ[ˆÝ[[X\žNˆ“›È[\]HÛÛ™][Ûˆ\ÈÚ[™ÙYˆ‚ˆNÂˆBˆÛÛœÝYš[š][ÛˆHYš[š][ÛœÖÌNÂˆÛÛœÝ[˜Ý[X™[˜[YHH[X™\ŠØÙ[˜\š[ÜÖÌOË–ÙYš[š][Û‹šÙ^WJNÂˆÛÛœÝÚ[[™Ù\•˜[YHH[X™\ŠØÙ[˜\š[ÜÖÌWOË–ÙYš[š][Û‹šÙ^WJNÂˆÛÛœÝ[˜Ý[X™[˜\Ù[[™HH[X™\Š˜\Ù[[™TØÙ[˜\š[ÜÖÌOË–ÙYš[š][Û‹šÙ^WJNÂˆÛÛœÝÚ[[™Ù\˜\Ù[[™HH[X™\Š˜\Ù[[™TØÙ[˜\š[ÜÖÌWOË–ÙYš[š][Û‹šÙ^WJNÂˆÛÛœÝ[˜Ý[X™[Ú[™ÙYH[˜Ý[X™[˜[YHOOH[˜Ý[X™[˜\Ù[[™NÂˆÛÛœÝÚ[[™Ù\Ú[™ÙYHÚ[[™Ù\•˜[YHOOHÚ[[™Ù\˜\Ù[[™NÂˆÛÛœÝXÝÜˆH[˜Ý[X™[Ú[™ÙY	‰ˆXÚ[[™Ù\Ú[™ÙYˆÈØÙ[˜\š[ÜÖÌOË›˜[YH’[˜Ý[X™[‚ˆˆÚ[[™Ù\Ú[™ÙY	‰ˆZ[˜Ý[X™[Ú[™ÙYˆÈØÙ[˜\š[ÜÖÌWOË›˜[YHÚ[[™Ù\ˆ‚ˆˆ”ØÙ[˜\š[ÈŽÂˆÛÛœÝœ›ÛU˜[YHH[˜Ý[X™[Ú[™ÙY	‰ˆXÚ[[™Ù\Ú[™ÙYÈ[˜Ý[X™[˜\Ù[[™HˆÚ[[™Ù\˜\Ù[[™NÂˆÛÛœÝÕ˜[YHH[˜Ý[X™[Ú[™ÙY	‰ˆXÚ[[™Ù\Ú[™ÙYÈ[˜Ý[X™[˜[YHˆÚ[[™Ù\•˜[YNÂ‚ˆ™]\›ˆÂˆX™[ˆYš[š][Û‹›X™[ˆ[˜Ý[X™[˜[YKˆÚ[[™Ù\•˜[YKˆ[˜Ý[X™[˜\Ù[[™KˆÚ[[™Ù\˜\Ù[[™KˆÝ[[X\žNˆ	ØXÝÜŸH	ÙYš[š][Û‹›X™[ÓÝÙ\Ø\ÙJ
+_H	ÜÝ™\ÜÕ˜[YU^
+œ›ÛU˜[YJ_HOˆ	ÜÝ™\ÜÕ˜[YU^
+Õ˜[YJ_XˆNÂŸB‚™^Ü[˜Ý[ÛˆÝ™\ÜÕ\Ý[”ÙX\˜Ú\˜[\ÊÂˆ[˜[\Ú\ÒYˆØ\ÙTÙ]Yˆ]\Ù]ˆ[\]RYˆØÙ[˜\š[ÜËˆ[˜ÛYT[ˆHYBŸNˆÝ™\ÜÕ\Ý[”]Y\žR[œ]
+NˆT“ÙX\˜Ú\˜[\ÈÂˆÛÛœÝ\˜[\ÈH™]ÈT“ÙX\˜Ú\˜[\ÊÈ[˜[\Ú\ÒY[\]Nˆ[\]RYJNÂˆYˆ
+Ø\ÙTÙ]Y
+H\˜[\ËœÙ]
+˜Ø\ÙTÙ]Y‹Ø\ÙTÙ]Y
+NÂˆYˆ
+]\Ù]
+H\˜[\ËœÙ]
+™]\Ù]‹]\Ù]
+NÂˆYˆ
+[˜ÛYT[ŠH\˜[\ËœÙ]
+œ[ˆ‹ŒHŠNÂˆØÙ[˜\š[ÜËœÛXÙJŠK›X\
+
+ØÙ[˜\š[ÊHOˆØ[š]^™TØÙ[˜\š[ÊØÙ[˜\š[ÊJK™›Ü‘XXÚ
+
+ØÙ[˜\š[ÊHOˆÂˆ\˜[\Ë˜\[™
+œØÙ[˜\š[ÒY‹ØÙ[˜\š[ËšYÏÈˆŠNÂˆ\˜[\Ë˜\[™
+›˜[YH‹ØÙ[˜\š[Ë›˜[YJNÂˆ›Üˆ
+ÛÛœÝÙ^HÙˆÕ‘TÔ×ÕTÕÔÐÑST’S×ÔUQT–WÒÑVTÊHÂˆ\˜[\Ë˜\[™
+Ù^K	ÜØÙ[˜\š[ÖÚÙ^W_X
+NÂˆBˆJNÂˆ™]\›ˆ\˜[\ÎÂŸB‚™^Ü[˜Ý[ÛˆÝ™\ÜÕ\Ý[’™YŠ˜\ÙT]ˆÝš[™Ë[œ]ˆÝ™\ÜÕ\Ý[”]Y\žR[œ]
+HÂˆ™]\›ˆ	Ø˜\ÙT]OÉÜÝ™\ÜÕ\Ý[”ÙX\˜Ú\˜[\Ê[œ]
+KÔÝš[™Ê
+_XÂŸB‚™^Ü[˜Ý[Ûˆ\Ñ^XÚ]Ý™\ÜÕ\Ý[ÛÛ^
+\˜[\ÎˆT“ÙX\˜Ú\˜[\ÊHÂˆ™]\›ˆ\˜[\Ë™Ù]
+œ[ˆŠHOOHŒH‚ˆ	‰ˆ›ÛÛX[Š\˜[\Ë™Ù]
+[\]HŠJBˆ	‰ˆ\˜[\Ë™Ù][
+œÝ\[™ÐØ\Ù\ÈŠK›[™ÝH‚ˆ	‰ˆ\˜[\Ë™Ù][
+›˜[YHŠK›[™ÝHŽÂŸB‚™^Ü[˜Ý[Ûˆ\TÝ™\ÜÕ\Ý[\]JˆØÙ[˜\š[ÜÎˆÚ[][][Û”ØÙ[˜\š[Ò[œ]×Kˆ[\]RYˆÝš[™È[[™Yš[™YŠNˆÚ[][][Û”ØÙ[˜\š[Ò[œ]×HÂˆÛÛœÝØ[š]^™YHØÙ[˜\š[ÜËœÛXÙJŠK›X\
+
+ØÙ[˜\š[ÊHOˆØ[š]^™TØÙ[˜\š[ÊØÙ[˜\š[ÊJNÂˆÛÛœÝÜ˜]Ò[˜Ý[X™[˜]ÐÚ[[™Ù\—HHØ[š]^™Y›[™ÝHˆÈØ[š]^™YˆQUSÔÐÑST’SÔÎÂˆÛÛœÝ[˜Ý[X™[ˆÚ[][][Û”ØÙ[˜\š[Ò[œ]HÈ‹‹œ˜]Ò[˜Ý[X™[˜[YNˆ˜]Ò[˜Ý[X™[›˜[YH’[˜Ý[X™[ÈÛÛ\[žHˆNÂˆÛÛœÝÚ[[™Ù\ŽˆÚ[][][Û”ØÙ[˜\š[Ò[œ]HÈ‹‹œ˜]ÐÚ[[™Ù\‹˜[YNˆ˜]ÐÚ[[™Ù\‹›˜[YHÚ[[™Ù\ˆÈ[\›˜]]™HˆNÂˆÛÛœÝ[\]HHÙ]Ý™\ÜÕ\Ý[\]J[\]RY
+NÂ‚ˆYˆ
+[\]KšYOOH˜˜\Ù[[™Hˆ[\]KšYOOH˜Ý\ÝÛHŠH™]\›ˆÚ[˜Ý[X™[Ú[[™Ù\—NÂˆYˆ
+[\]KšYOOH˜™]\—Ù›Ý[™][Û—Û[Ù[ŠHÂˆ™]\›ˆÚ[˜Ý[X™[È‹‹˜Ú[[™Ù\‹˜\ÙPØ\Xš[]NˆÛ[\
+X]›X^
+Ú[[™Ù\‹˜˜\ÙPØ\Xš[]K[˜Ý[X™[˜˜\ÙPØ\Xš[]H
+ÈÊKJHWNÂˆBˆYˆ
+[\]KšYOOH™˜\Ý\—ÛX\›™\ˆŠHÂˆ™]\›ˆÚ[˜Ý[X™[È‹‹˜Ú[[™Ù\‹X\›š[™ÑY™šXÚY[˜ÞNˆÛ[\
+X]›X^
+Ú[[™Ù\‹›X\›š[™ÑY™šXÚY[˜ÞK[˜Ý[X™[›X\›š[™ÑY™šXÚY[˜ÞH
+ÈŒŠKJHWNÂˆBˆYˆ
+[\]KšYOOH˜[œÙ™\—Øœ™XZÙÝÛˆŠHÂˆ™]\›ˆÞÈ‹‹š[˜Ý[X™[˜[œÙ™\˜Xš[]NˆÛ[\
+X]›Z[Š[˜Ý[X™[˜[œÙ™\˜Xš[]KŒÍJKJHKÚ[[™Ù\—NÂˆBˆYˆ
+[\]KšYOOH™™YY˜XÚ×Ù[^HŠHÂˆ™]\›ˆÞÈ‹‹š[˜Ý[X™[™YY˜XÚÑ[^Q^\ÎˆX]›X^
+[˜Ý[X™[™™YY˜XÚÑ[^Q^\ËL
+HKÚ[[™Ù\—NÂˆBˆYˆ
+[\]KšYOOH™^\šY[˜ÙWÜÝ[[™\ÜÈŠHÂˆ™]\›ˆÞÈ‹‹š[˜Ý[X™[Ý[[™\ÜÔ˜]NˆÛ[\
+X]›X^
+[˜Ý[X™[œÝ[[™\ÜÔ˜]KŒMJKJHKÚ[[™Ù\—NÂˆBˆYˆ
+[\]KšYOOH˜ÛÛ[[Ý\×ØØ\\™HŠHÂˆ™]\›ˆÂˆÈ‹‹š[˜Ý[X™[Ø\Ù\Ô\“[ÛˆX]›X^
+[˜Ý[X™[˜Ø\Ù\Ô\“[ÛÚ[[™Ù\‹˜Ø\Ù\Ô\“[Û
+ˆŠHKˆÚ[[™Ù\‚ˆNÂˆBˆ™]\›ˆÚ[˜Ý[X™[Ú[[™Ù\—NÂŸB‚™[˜Ý[ÛˆÚ[]
+Ù\šY\ÎˆÚ[][][Û”Ù\šY\Ë[Ûˆ[X™\ŠHÂˆ™]\›ˆÙ\šY\ËœÚ[Ë™š[™
+
+Ú[
+HOˆÚ[›[ÛOOH[Û
+HÏÈÙ\šY\ËœÚ[ÖÜÙ\šY\ËœÚ[Ë›[™ÝHWNÂŸB‚™[˜Ý[ÛˆÝ™\ÜÓX™[
+Û\ÜÚYšXØ][ÛŽˆÝ™\ÜÕ\Ý™\Ý[Û\ÜÚYšXØ][ÛŠHÂˆ™]\›ˆÛ\ÜÚYšXØ][Û‹œÜ]
+—ÈŠK›X\
+
+ÛÜ™
+HOˆÛÜ™ÌH
+ÈÛÜ™œÛXÙJJKÓÝÙ\Ø\ÙJ
+JKš›Ú[ŠˆŠNÂŸB‚™^Ü[˜Ý[ÛˆÛ\ÜÚYžTÝ™\ÜÕ\Ý™\Ý[
+Ù\šY\ÎˆÚ[][][Û”Ù\šY\Ö×KÜ›ÜÜÛÝ™\ŽˆÜ›ÜÜÛÝ™\ˆ[
+NˆÝ™\ÜÕ\Ý™\Ý[Ý[[X\žHÂˆYˆ
+Ù\šY\Ë›[™ÝŠHÂˆ™]\›ˆÂˆÛ\ÜÚYšXØ][ÛŽˆ““×ÓPUT’PSÒS’UPSÐQS•QÑH‹ˆX™[ˆÝ™\ÜÓX™[
+““×ÓPUT’PSÒS’UPSÐQS•QÑHŠKˆ[š]X[Ø\ˆˆ[ÛL‘Ø\ˆˆ[ÛÍ‘Ø\ˆˆ[˜Ý[X™[š[˜[^\\ÙNˆˆÚ[[™Ù\‘š[˜[^\\ÙNˆˆØ\\™XÝ[ÛŽˆœÝX›H‹ˆÜ›ÜÜÛÝ™\“[Ûˆ[ˆNÂˆBˆÛÛœÝÚ[˜Ý[X™[Ú[[™Ù\—HHÙ\šY\ÎÂˆÛÛœÝ[š]X[Ø\H›Ý[™
+Ú[]
+[˜Ý[X™[
+K™^\\ÙHHÚ[]
+Ú[[™Ù\‹
+K™^\\ÙK
+NÂˆÛÛœÝ[ÛL‘Ø\H›Ý[™
+Ú[]
+[˜Ý[X™[LŠK™^\\ÙHHÚ[]
+Ú[[™Ù\‹LŠK™^\\ÙK
+NÂˆÛÛœÝš[˜[[ÛHX]›X^
+[˜Ý[X™[œÚ[ÖÚ[˜Ý[X™[œÚ[Ë›[™ÝHWOË›[ÛÏÈÍ‹Ú[[™Ù\‹œÚ[ÖØÚ[[™Ù\‹œÚ[Ë›[™ÝHWOË›[ÛÏÈÍŠNÂˆÛÛœÝ[ÛÍ‘Ø\H›Ý[™
+Ú[]
+[˜Ý[X™[š[˜[[Û
+K™^\\ÙHHÚ[]
+Ú[[™Ù\‹š[˜[[Û
+K™^\\ÙK
+NÂˆÛÛœÝ[˜Ý[X™[š[˜[^\\ÙHHÚ[]
+[˜Ý[X™[š[˜[[Û
+K™^\\ÙNÂˆÛÛœÝÚ[[™Ù\‘š[˜[^\\ÙHHÚ[]
+Ú[[™Ù\‹š[˜[[Û
+K™^\\ÙNÂˆÛÛœÝX]\šX[Ø\HŒNÂˆÛÛœÝ[š]X[XœÈHX]˜XœÊ[š]X[Ø\
+NÂˆÛÛœÝš[˜[XœÈHX]˜XœÊ[ÛÍ‘Ø\
+NÂˆ]Û\ÜÚYšXØ][ÛŽˆÝ™\ÜÕ\Ý™\Ý[Û\ÜÚYšXØ][ÛŽÂ‚ˆYˆ
+[š]X[Ø\HX]\šX[Ø\
+HÛ\ÜÚYšXØ][ÛˆH““×ÓPUT’PSÒS’UPSÐQS•QÑHŽÂˆ[ÙHYˆ
+[š]X[Ø\ˆX]\šX[Ø\	‰ˆ[ÛÍ‘Ø\[X]\šX[Ø\
+HÛ\ÜÚYšXØ][ÛˆHÒSS‘ÑT—ÓÕ‘T•RÑTÈŽÂˆ[ÙHYˆ
+[š]X[Ø\ˆX]\šX[Ø\	‰ˆ
+Ü›ÜÜÛÝ™\ˆš[˜[XœÈX]\šX[Ø\
+JHÛ\ÜÚYšXØ][ÛˆHÒSS‘ÑT—ÐÐUÒT×ÕTŽÂˆ[ÙHYˆ
+[š]X[Ø\ˆX]\šX[Ø\	‰ˆ[ÛÍ‘Ø\ˆ	‰ˆš[˜[XœÈ[š]X[XœÈ
+ˆŠHÛ\ÜÚYšXØ][ÛˆHQS•QÑWÐÓÓT‘TÔÑTÈŽÂˆ[ÙHÛ\ÜÚYšXØ][ÛˆHQS•QÑWÔT”ÒTÕÈŽÂ‚ˆÛÛœÝØ\\™XÝ[ÛŽˆÝ™\ÜÕ\Ý™\Ý[Ý[[X\žVÈ™Ø\\™XÝ[Ûˆ—HBˆ[š]X[Ø\ˆX]\šX[Ø\	‰ˆ[ÛÍ‘Ø\[X]\šX[Ø\ˆÈœ™]™\œÙY‚ˆˆš[˜[XœÈ[š]X[XœÈ
+ˆŽBˆÈ˜ÛÛ\™\ÜÚ[™È‚ˆˆš[˜[XœÈˆ[š]X[XœÈ
+ˆKŒMBˆÈÚY[š[™È‚ˆˆœÝX›HŽÂ‚ˆ™]\›ˆÂˆÛ\ÜÚYšXØ][Û‹ˆX™[ˆÝ™\ÜÓX™[
+Û\ÜÚYšXØ][ÛŠKˆ[š]X[Ø\ˆ[ÛL‘Ø\ˆ[ÛÍ‘Ø\ˆ[˜Ý[X™[š[˜[^\\ÙKˆÚ[[™Ù\‘š[˜[^\\ÙKˆØ\\™XÝ[Û‹ˆÜ›ÜÜÛÝ™\“[ÛˆÜ›ÜÜÛÝ™\Ë›[ÛÏÈ[ˆNÂŸB‚™^Ü[˜Ý[Ûˆ\š]™TÝ™\ÜÕ\Ýš]™\œÊÙ\šY\ÎˆÚ[][][Û”Ù\šY\Ö×K™\Ý[ˆÝ™\ÜÕ\Ý™\Ý[Ý[[X\žJNˆÝ™\ÜÕ\Ýš]™\–×HÂˆYˆ
+Ù\šY\Ë›[™ÝŠH™]\›ˆ×NÂˆÛÛœÝÚ[˜Ý[X™[Ú[[™Ù\—HHÙ\šY\Ë›X\
+
+][JHOˆ][KœØÙ[˜\š[ÊNÂˆÛÛœÝØ[™Y]\ÎˆÝ™\ÜÕ\Ýš]™\–×HHÂˆÂˆ]Nˆ”Ý\[™È^\šY[˜ÙH‹ˆ]Z[ˆ	Ú[˜Ý[X™[›˜[Y_HÝ\ÈÚ]	Ü›Ý[™
+[˜Ý[X™[œÝ\[™ÐØ\Ù\ÈÈX]›X^
+Ú[[™Ù\‹œÝ\[™ÐØ\Ù\ËJKŠ_^HÜ˜YYØ\Ù\Ë]H[Ù[\Ù\ÈÙØ\š]ZXÈ™]\›œÈÈ^\šY[˜ÙK˜ˆXYÛš]YNˆX]˜XœÊX]›ÙÌ\
+[˜Ý[X™[œÝ\[™ÐØ\Ù\ÊHHX]›ÙÌ\
+Ú[[™Ù\‹œÝ\[™ÐØ\Ù\ÊJBˆKˆÂˆ]Nˆ“™]È^\šY[˜ÙHÙ[™\˜][Ûˆ‹ˆ]Z[ˆ	Ú[˜Ý[X™[›˜[Y_HÙ[™\˜]\È	Ü›Ý[™
+[˜Ý[X™[˜Ø\Ù\Ô\“[ÛHÚ[[™Ù\‹˜Ø\Ù\Ô\“[ÛŠ_H[Ü™HØ\Ù\È\ˆ[Û[ˆ	ØÚ[[™Ù\‹›˜[Y_K˜ˆXYÛš]YNˆX]˜XœÊ[˜Ý[X™[˜Ø\Ù\Ô\“[ÛHÚ[[™Ù\‹˜Ø\Ù\Ô\“[Û
+HÈX]›X^
+[˜Ý[X™[˜Ø\Ù\Ô\“[ÛÚ[[™Ù\‹˜Ø\Ù\Ô\“[ÛJBˆKˆÂˆ]Nˆ‘™YY˜XÚÈX]\˜][Ûˆ‹ˆ]Z[ˆ	Ú[˜Ý[X™[›˜[Y_H™YY˜XÚÈ[^H\È	Ú[˜Ý[X™[™™YY˜XÚÑ[^Q^\ßH^\È™\œÝ\È	ØÚ[[™Ù\‹™™YY˜XÚÑ[^Q^\ßH^\È›Üˆ	ØÚ[[™Ù\‹›˜[Y_K˜ˆXYÛš]YNˆX]˜XœÊ[˜Ý[X™[™™YY˜XÚÑ[^Q^\ÈHÚ[[™Ù\‹™™YY˜XÚÑ[^Q^\ÊHÈX]›X^
+[˜Ý[X™[™™YY˜XÚÑ[^Q^\ËÚ[[™Ù\‹™™YY˜XÚÑ[^Q^\ËJBˆKˆÂˆ]Nˆ“X\›š[™ÈY™šXÚY[˜ÞH‹ˆ]Z[ˆ	ØÚ[[™Ù\‹›˜[Y_HX\›š[™ÈY™šXÚY[˜ÞH\È	ØÚ[[™Ù\‹›X\›š[™ÑY™šXÚY[˜Þ_H™\œÝ\È	Ú[˜Ý[X™[›X\›š[™ÑY™šXÚY[˜Þ_H›Üˆ	Ú[˜Ý[X™[›˜[Y_K˜ˆXYÛš]YNˆX]˜XœÊÚ[[™Ù\‹›X\›š[™ÑY™šXÚY[˜ÞHH[˜Ý[X™[›X\›š[™ÑY™šXÚY[˜ÞJBˆKˆÂˆ]Nˆ˜\ÙHØ\Xš[]H‹ˆ]Z[ˆ	ØÚ[[™Ù\‹›˜[Y_H˜\ÙHØ\Xš[]H\È	ØÚ[[™Ù\‹˜˜\ÙPØ\Xš[]_H™\œÝ\È	Ú[˜Ý[X™[˜˜\ÙPØ\Xš[]_H›Üˆ	Ú[˜Ý[X™[›˜[Y_K˜ˆXYÛš]YNˆX]˜XœÊÚ[[™Ù\‹˜˜\ÙPØ\Xš[]HH[˜Ý[X™[˜˜\ÙPØ\Xš[]JHÈBˆKˆÂˆ]Nˆ•˜[œÙ™\˜Xš[]H‹ˆ]Z[ˆ	Ú[˜Ý[X™[›˜[Y_H˜[œÙ™\˜Xš[]H\È	Ú[˜Ý[X™[˜[œÙ™\˜Xš[]_H™\œÝ\È	ØÚ[[™Ù\‹˜[œÙ™\˜Xš[]_H›Üˆ	ØÚ[[™Ù\‹›˜[Y_K˜ˆXYÛš]YNˆX]˜XœÊ[˜Ý[X™[˜[œÙ™\˜Xš[]HHÚ[[™Ù\‹˜[œÙ™\˜Xš[]JBˆKˆÂˆ]Nˆ”Ý[[™\ÜÈ‹ˆ]Z[ˆ	Ú[˜Ý[X™[›˜[Y_H[ÛHÝ[[™\ÜÈ\È	Ú[˜Ý[X™[œÝ[[™\ÜÔ˜]_H™\œÝ\È	ØÚ[[™Ù\‹œÝ[[™\ÜÔ˜]_H›Üˆ	ØÚ[[™Ù\‹›˜[Y_K˜ˆXYÛš]YNˆX]˜XœÊ[˜Ý[X™[œÝ[[™\ÜÔ˜]HHÚ[[™Ù\‹œÝ[[™\ÜÔ˜]JH
+ˆˆBˆNÂˆÛÛœÝ˜[šÙYHØ[™Y]\Âˆ™š[\Š
+š]™\ŠHOˆš]™\‹›XYÛš]YHˆŒŠBˆœÛÜ
+
+KŠHOˆ‹›XYÛš]YHHK›XYÛš]YJBˆœÛXÙJ
+NÂˆYˆ
+˜[šÙY›[™Ýˆ
+H™]\›ˆ˜[šÙYÂˆ™]\›ˆÞÂˆ]Nˆ”ÛX[ÛÛXš[™YY™™\™[˜Ù\È‹ˆ]Z[ˆ›ÈÚ[™ÛH\˜[Y]\ˆÛZ[˜]\ÈH	Ü™\Ý[›X™[ÓÝÙ\Ø\ÙJ
+_H™\Ý[[ˆ\ÈØÙ[˜\š[È[Ù[˜ˆXYÛš]YNˆˆWNÂŸB‚™^Ü[˜Ý[ÛˆÝ[[X\š^™UÜÝ™\ÜÕ\Ýš]™\œÊš]™\œÎˆÝ™\ÜÕ\Ýš]™\–×K[Z]HÊHÂˆ™]\›ˆš]™\œËœÛXÙJX]›X^
+[Z]
+JNÂŸB‚™^Ü[˜Ý[Ûˆ\š]™TÝ™\ÜÕ\ÝÝÙ\’[\XØ][ÛŠ[\]RYˆÝš[™È[[™Yš[™Y™\Ý[ˆÝ™\ÜÕ\Ý™\Ý[Ý[[X\žJHÂˆÛÛœÝ[\]HHÙ]Ý™\ÜÕ\Ý[\]J[\]RY
+NÂˆYˆ
+[\]KšYOOH˜™]\—Ù›Ý[™][Û—Û[Ù[ˆ	‰ˆÈÒSS‘ÑT—ÐÐUÒT×ÕT‹ÒSS‘ÑT—ÓÕ‘T•RÑTÈ‹QS•QÑWÐÓÓT‘TÔÑTÈ—Kš[˜ÛY\Ê™\Ý[˜Û\ÜÚYšXØ][ÛŠJHÂˆ™]\›ˆ’YÚ\ˆ˜\ÙHØ\Xš[]HÛÛ\™\ÜÙ\ÈH[Ù[YY˜[YÙKÙXZÙ[š[™ÈH\Ú\È]\ÝÜšXØ[^\šY[˜ÙH[Û™HÜ™X]\È\˜X›HÝÙ\‹ˆŽÂˆBˆYˆ
+[\]KšYOOH˜ÛÛ[[Ý\×ØØ\\™Hˆ	‰ˆ™\Ý[˜Û\ÜÚYšXØ][ÛˆOOHQS•QÑWÔT”ÒTÕÈŠHÂˆ™]\›ˆ•H™\Ý[Ý™[™Ý[œÈHØÙ[˜\š[È\Ý\Ú\È]ÝÛš[™ÈHÛ™ÛÚ[™È^\šY[˜ÙKYÙ[™\˜][ÛˆÛÜX]\œÈ[Ü™H[ˆHÝ]XÈ\ÝÜšXØ[ØÛÜ™X›ÛÚËˆŽÂˆBˆYˆ
+[\]KšYOOH˜[œÙ™\—Øœ™XZÙÝÛˆˆ	‰ˆ™\Ý[˜Û\ÜÚYšXØ][ÛˆOOHQS•QÑWÔT”ÒTÕÈŠHÂˆ™]\›ˆ•ÙXZÈ˜[œÙ™\˜Xš[]H™YXÙ\ÈH]\ÚXš[]HÙˆ™]ÛÜšÈXÛÛ›Û^H[\œ™]][ÛœÈÙˆÛÛ\Ý[™[™È^\\ÙKˆŽÂˆBˆYˆ
+[\]KšYOOH™^\šY[˜ÙWÜÝ[[™\ÜÈˆ	‰ˆ™\Ý[˜Û\ÜÚYšXØ][ÛˆOOHQS•QÑWÔT”ÒTÕÈŠHÂˆ™]\›ˆ‘˜\ÝÝ[[™\ÜÈÝYÙÙ\ÝÈ\ÝÜšXØ[^\šY[˜ÙHX^H™H\ÙY[Ú]Ý]™Z[™È\˜X›KˆŽÂˆBˆYˆ
+[\]KšYOOH™™YY˜XÚ×Ù[^Hˆ	‰ˆ™\Ý[˜Û\ÜÚYšXØ][ÛˆOOHQS•QÑWÔT”ÒTÕÈŠHÂˆ™]\›ˆ‘[^YY™YY˜XÚÈÛÝÜÈ[Ù[YÛÛ\Ý[™[™È[™ÙXZÙ[œÈÛZ[\È]^\šY[˜ÙHXØÝ[][]\È]ZXÚÛH[›ÝYÚÈY™[™HÜÚ][Û‹ˆŽÂˆBˆYˆ
+[\]KšYOOH™˜\Ý\—ÛX\›™\ˆˆ	‰ˆÈÒSS‘ÑT—ÐÐUÒT×ÕT‹ÒSS‘ÑT—ÓÕ‘T•RÑTÈ‹QS•QÑWÐÓÓT‘TÔÑTÈ—Kš[˜ÛY\Ê™\Ý[˜Û\ÜÚYšXØ][ÛŠJHÂˆ™]\›ˆH˜\Ý\ˆX\›™\ˆØ[ˆ™YXÙHH˜[YHÙˆHÝ\[™ÈØÛÜ™X›ÛÚÈY˜[YÙH[ˆ\È[Ù[XZÚ[™ÈX\›š[™È™[ØÚ]HHÙ^H[YÙ[˜ÙH]Y\Ý[Û‹ˆŽÂˆBˆYˆ
+™\Ý[˜Û\ÜÚYšXØ][ÛˆOOHQS•QÑWÔT”ÒTÕÈŠHÂˆ™]\›ˆ•HØÙ[˜\š[È\ÈÛÛœÚ\Ý[Ú][ˆ^\šY[˜ÙHY˜[YÙH\œÚ\Ý[™È[™\ˆ\ÙH\ÜÝ[\[ÛœË]]™[XZ[œÈHØÙ[˜\š[È[\XØ][Ûˆ˜]\ˆ[ˆ[\\šXØ[]šY[˜ÙKˆŽÂˆBˆ™]\›ˆ•HØÙ[˜\š[ÈÙXZÙ[œÈHÚ[\H\ÝÜšXØ[\ØÛÜ™X›ÛÚÈÝÙ\ˆ\Ú\È[™Ú[È˜XÚÈÈX˜]\È[™ÝÙ\ˆ›Üˆ]šY[˜ÙHÛˆ˜[œÙ™\˜Xš[]KX\›š[™ÈØ]\Ø[]K[™Y™[œÚXš[]KˆŽÂŸB‚™^Ü[˜Ý[ÛˆY˜][\ÜÙ\ÜÛY[Ê
+Nˆ[Y[œÚ[Û\ÜÙ\ÜÛY[[œ]×HÂˆ™]\›ˆSÑSQS”ÒSÓ”Ë›X\
+
+Yš[š][ÛŠHOˆ
+Âˆœ˜[Y]ÛÜšÎˆYš[š][Û‹™œ˜[Y]ÛÜšËˆ[Y[œÚ[ÛŽˆYš[š][Û‹™[Y[œÚ[Û‹ˆØÛÜ™NˆˆÛÛ™šY[˜ÙNˆ“ÕÈ‹ˆ˜][Û˜[Nˆˆ‹ˆ]šY[˜ÙTÝ]\Îˆ•S’Ó“ÕÓˆ‹ˆÛÝ\˜ÙNˆ•TÑTˆ‚ˆJJNÂŸB‚™^ÜÛÛœÝPQÓ“ÔÕP×ÔUQTÕSÓ”ÈHÂˆÂˆ]Nˆ’\È˜[XX›H^\\ÙH™Z[™ÈÜ™X]YÈ‹ˆ\ØÜš\[ÛŽˆ‘Ù\ÈXXÚØ\ÙHXXÚÛÛY][™ÈXÚ\Ú[Û‹\™[]˜[XÛÛ›ÛZXØ[HYX[š[™Ù[[™Ø]\Ø[H[\œ™]X›OÈ‹ˆ][\ÎˆÂˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ›Øš™XÝ]™WÙÜ˜Y[™ÈˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ™XÛÛ›ÛZX×Ý˜[YWÛÙ—Ø™Z[™×ÜšYÚˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ›X\™Ú[˜[Ú[™›Ü›X][Û—ÙØZ[ˆˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ˜Ø]\Ø[Ü]X[]HˆBˆBˆKˆÂˆ]Nˆ‘Ù\ÈH^\\ÙHÛÛ\Ý[™È‹ˆ\ØÜš\[ÛŽˆ‘Ù\È™YY˜XÚÈ\œš]™H˜\Ý[›ÝYÚ™[XZ[ˆœ™\ÚÛÝ™\ˆYÙHØ\Ù\Ë[™˜[œÙ™\ˆXÜ›ÜÜÈÝ\ÝÛY\œÏÈ‹ˆ][\ÎˆÂˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ™™YY˜XÚ×ÜÜYYˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ™œ™\Ú™\ÜÈˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ˜Ü›ÜÜ×ØÝ\ÝÛY\—ÛX\›š[™ÈˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ™]™\œÚ]WÙYÙWØØ\Ù\ÈˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ˜Ü›ÜÜ×ØÝ\ÝÛY\—Ý˜[œÙ™\˜Xš[]HˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ˜Ý\ÝÛY\—Ú]\›ÙÙ[™Z]HˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ››ÛœÝ][Û˜\š]HˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆ›X\›š[™×ÙY™šXÚY[˜ÞHˆBˆBˆKˆÂˆ]Nˆ’\ÈH^\\ÙHY™[œÚX›OÈ‹ˆ\ØÜš\[ÛŽˆØ[ˆÛÛ\]]ÜœÈ™\›ÙXÙKÛÛ\™\ÜË[™™\‹ÜˆYØ[HXØÙ\ÜÈH\ÙY[X\›š[™ÈÛÜÈ‹ˆ][\ÎˆÂˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆÛÜšÙ›Ý×ØØ\\™WÜÜÚ][ÛˆˆKˆÈœ˜[Y]ÛÜšÎˆ”ÕSˆ‹[Y[œÚ[ÛŽˆ˜ÛÛ˜XÝX[ÜšYÚ×ØÛÛœÙ[ˆKˆÈœ˜[Y]ÛÜšÎˆ•ÓÓ‘H‹[Y[œÚ[ÛŽˆšÛ›ÝÛYÙWØÛÛ\™\ÜÚXš[]HˆBˆBˆB—HØ]\ÙšY\È\œ˜^OÂˆ]NˆÝš[™ÎÂˆ\ØÜš\[ÛŽˆÝš[™ÎÂˆ][\Îˆ\œ˜^OÈœ˜[Y]ÛÜšÎˆÛÛ\Ý[™[™Ñœ˜[Y]ÛÜšÎÈ[Y[œÚ[ÛŽˆÝš[™ÈOŽÂŸOŽÂ‚™^Ü[˜Ý[ÛˆÛÜYYÚ]™\˜YÙQX˜]\ÊX˜]\ÎˆÙ^QX˜]R[œ]×KZÙHH
+HÂˆ™]\›ˆË‹‹™X˜]\×BˆœÛÜ
+
+KŠHOˆX]˜XœÊLHKœ›Ø˜Xš[]JHHX]˜XœÊLH‹œ›Ø˜Xš[]JJBˆœÛXÙJZÙJNÂŸB‚™^Ü[˜Ý[ÛˆÝ›Û™Ù\Ý]šY[˜ÙJ\ÜÙ\ÜÛY[Îˆ[Y[œÚ[Û\ÜÙ\ÜÛY[[œ]×KZÙHHÊHÂˆ™]\›ˆ\ÜÙ\ÜÛY[Âˆ™š[\Š
+][JHOˆ][KœØÛÜ™HH
+BˆœÛÜ
+
+KŠHOˆ‹œØÛÜ™HHKœØÛÜ™JBˆœÛXÙJZÙJNÂŸB‚™^Ü[˜Ý[ÛˆÝ›Û™Ù\ÝÚ[[™Ù\Ê\ÜÙ\ÜÛY[Îˆ[Y[œÚ[Û\ÜÙ\ÜÛY[[œ]×KZÙHHÊHÂˆ™]\›ˆ\ÜÙ\ÜÛY[Âˆ™š[\Š
+][JHOˆ][KœØÛÜ™HHŠBˆœÛÜ
+
+KŠHOˆKœØÛÜ™HH‹œØÛÜ™JBˆœÛXÙJZÙJNÂŸB‚™^Ü[˜Ý[Ûˆ\\™[ÝÙ\“ØØ][ÛœÊ\ÜÙ\ÜÛY[Îˆ[Y[œÚ[Û\ÜÙ\ÜÛY[[œ]×JHÂˆÛÛœÝX™[ÈH™]ÈÙ]Ýš[™ÏŠ
+NÂˆ›Üˆ
+ÛÛœÝ][HÙˆ\ÜÙ\ÜÛY[ÊHÂˆYˆ
+][KœØÛÜ™H][K˜ÛÛ™šY[˜ÙHOOH“ÕÈŠHÛÛ[YNÂˆYˆ
+][K™œ˜[Y]ÛÜšÈOOH”ÕSˆŠHÂˆYˆ
+][K™[Y[œÚ[ÛˆOOHÛÜšÙ›Ý×ØØ\\™WÜÜÚ][ÛˆŠHX™[Ë˜Y
+˜Ø\\™HÚ[ŠNÂˆYˆ
+È›Øš™XÝ]™WÙÜ˜Y[™È‹™™YY˜XÚ×ÜÜYY‹™]™\œÚ]WÙYÙWØØ\Ù\È‹˜Ü›ÜÜ×ØÝ\ÝÛY\—ÛX\›š[™È—Kš[˜ÛY\Ê][K™[Y[œÚ[ÛŠJHX™[Ë˜Y
+œØÛÜ™X›ÛÚÈŠNÂˆBˆYˆ
+][K™œ˜[Y]ÛÜšÈOOH’SQTˆŠHÂˆÛÛœÝX™[HSQT—ÔÕÑT”Ë™š[™
+
+ÝÙ\ŠHOˆÝÙ\‹™[Y[œÚ[ÛˆOOH][K™[Y[œÚ[ÛŠOË›X™[ÂˆYˆ
+X™[
+HX™[Ë˜Y
+X™[
+NÂˆBˆBˆYˆ
+X™[ËœÚ^™HˆJHX™[Ë˜Y
+˜ÛÛXš[˜][ÛˆŠNÂˆYˆ
+X™[ËœÚ^™HOOH
+HX™[Ë˜Y
+››È[[ÛœÝ˜]YÝÙ\ˆY]ŠNÂˆ™]\›ˆË‹‹›X™[×NÂŸB‚™[˜Ý[Ûˆ[˜ÛY\Ð[žJ˜[Y\Îˆ\œ˜^OÝš[™È[[™Yš[™Y‹\™Ù]ÎˆÝš[™Ö×JHÂˆ™]\›ˆ˜[Y\ËœÛÛYJ
+˜[YJHOˆ˜[YHÈ\™Ù]Ëš[˜ÛY\Ê˜[YJHˆ˜[ÙJNÂŸB‚™^Ü[˜Ý[ÛˆÝ[[X\š^™PÛÛ˜Û\Ú[ÛŠ[œ]ˆÂˆ[˜[\Ú\ÎˆÛÛ\[žU\Ú\Ò[œ]ÂˆY]šXÜÎˆØÛÜ™X›ÛÚÓY]šXÜÎÂˆ\ÜÙ\ÜÛY[Îˆ[Y[œÚ[Û\ÜÙ\ÜÛY[[œ]×NÂˆX˜]\ÎˆÙ^QX˜]R[œ]×NÂŸJHÂˆÛÛœÝÜÜ[š]Q˜]›Ü˜X›HH[˜ÛY\Ð[žJÂˆ[œ]˜[˜[\Ú\Ë™XÛÛ›ÛZXÐÛÜÝÜ›Û™ÑXÚ\Ú[Û‹ˆ[œ]˜[˜[\Ú\Ë›Ý]ÛÛYSØš™XÝ]š]Kˆ[œ]˜[˜[\Ú\Ë›˜]\˜[™YY˜XÚÕ[YBˆKÈ’YÚ‹“Øš™XÝ]™HÈ]\›Z[š\ÝXÈ‹“Z[]\È‹‘^\È‹•ÙYZÜÈ—JNÂˆÛÛœÝÜÜ[š]U[™˜]›Ü˜X›HH[˜ÛY\Ð[žJÂˆ[œ]˜[˜[\Ú\Ë›Ý]ÛÛYSØš™XÝ]š]Kˆ[œ]˜[˜[\Ú\Ë™›Ý[™][Û“[Ù[[\›Ý™[Y[˜]Kˆ[œ]˜[˜[\Ú\Ë™[š\›Û›Y[[Ú[™ÙT˜]BˆKÈ”ÝXš™XÝ]™H‹‘˜\Ý‹”˜\YHÚ[™Ú[™È—JNÂˆÛÛœÝØ\Xš[]TÝ›Û™ÐÛÝ[HÂˆ[œ]˜[˜[\Ú\Ë›ÝÛœÑXÚ\Ú[Û”Ú[ˆ[œ]˜[˜[\Ú\Ë›ØœÙ\™\ÓÝ]ÛÛYKˆ[œ]˜[˜[\Ú\Ë˜Ø\\™\ÓÝ™\œšY\Ëˆ[œ]˜[˜[\Ú\Ë˜Ø\\™\ÑÜ˜Y\Ëˆ[œ]˜[˜[\Ú\Ë›X\›œÐXÜ›ÜÜÐÝ\ÝÛY\œËˆ[œ]˜[˜[\Ú\Ë˜ÛÛ˜XÝX[X\›š[™ÔšYÚËˆ[œ]˜[˜[\Ú\Ëœ[œÐÛÛ›ÛY^\š[Y[Ëˆ[œ]˜[˜[\Ú\Ë\]\Ó[Ù[ÛXÞT™YÝ[\›Kˆ[œ]˜[˜[\Ú\Ë™\Þ\Ò[\›Ý™[Y[Ô]ZXÚÛBˆK™š[\Š
+˜[YJHOˆ˜[YHOOH–Y\ÈŠK›[™ÝÂˆÛÛœÝØ\Xš[]UÙXZÐÛÝ[HÂˆ[œ]˜[˜[\Ú\Ë›ÝÛœÑXÚ\Ú[Û”Ú[ˆ[œ]˜[˜[\Ú\Ë›ØœÙ\™\ÓÝ]ÛÛYKˆ[œ]˜[˜[\Ú\Ë˜Ø\\™\ÑÜ˜Y\Ëˆ[œ]˜[˜[\Ú\Ë›X\›œÐXÜ›ÜÜÐÝ\ÝÛY\œËˆ[œ]˜[˜[\Ú\Ë˜ÛÛ˜XÝX[X\›š[™ÔšYÚÂˆK™š[\Š
+˜[YJHOˆ˜[YHOOH“›ÈŠK›[™ÝÂˆÛÛœÝ]šY[˜ÙT]X[]HH[œ]›Y]šXÜËÝ[Ø\Ù\ÈH[œ]›Y]šXÜË™Ü˜YPÛÝ™\˜YÙHOOH[[œ]›Y]šXÜË™Ü˜YPÛÝ™\˜YÙHŒÍBˆÈ•ÙXZÈÈ[œÝY™šXÚY[‚ˆˆ[œ]›Y]šXÜË™Ü˜YPÛÝ™\˜YÙHHÍH	‰ˆ[œ]›Y]šXÜË™™YY˜XÚÓ][˜ÞTØ[\TÚ^™HHBˆÈ”Ý›Û™È‚ˆˆ”\X[ŽÂˆÛÛœÝšYÙÙ\ÝX˜]HHÛÜYYÚ]™\˜YÙQX˜]\Ê[œ]™X˜]\ËJVÌHÏÈ[ÂˆÛÛœÝ™^^\š[Y[HšYÙÙ\ÝX˜]OË™]šY[˜ÙS™YYYˆ
+[œ]›Y]šXÜËš[X[“Ý™\œšYU˜[YK˜ÛÝ[ˆˆÈÛÛ\\™H[X[ˆÝ™\œšY\ÈÚ]]™[X[Ý]ÛÛY\ÈÈ]\›Z[™HÚ]\ˆÝ™\œšY\ÈYXÚ\Ú[Ûˆ˜[YKˆ‚ˆˆ”[ˆH[[Ý]XÝ\ÝÛY\ˆ\ÝÈÙYHÚ]\ˆÛÛY^\šY[˜ÙH[\›Ý™\ÈXÚ\Ú[ÛœÈ™^[Û™Ý\ÝÛY\‹\ÜXÚYšXÈ\ÝÜžKˆŠNÂ‚ˆ™]\›ˆÂˆÜÜ[š]NˆÜÜ[š]Q˜]›Ü˜X›H	‰ˆ[ÜÜ[š]U[™˜]›Ü˜X›HÈ‘˜]›Ü˜X›HˆˆÜÜ[š]U[™˜]›Ü˜X›H	‰ˆ[ÜÜ[š]Q˜]›Ü˜X›HÈ•[™˜]›Ü˜X›Hˆˆ•[˜Ù\Z[ˆ‹ˆÜÜ[š]UÚNˆ˜\ÙYÛˆ^ÙÙ[›Ý\È\ÜÝ[\[ÛœÈX›Ý]XÚ\Ú[Ûˆ˜[YKÝ]ÛÛYHØš™XÝ]š]K™YY˜XÚÈ[Z[™Ë›ÛœÝ][Û˜\š]K[™[Ù[[\›Ý™[Y[ˆ‹ˆØ\Xš[]NˆØ\Xš[]TÝ›Û™ÐÛÝ[Hˆ	‰ˆØ\Xš[]UÙXZÐÛÝ[OOHÈ”Ý›Û™ÈˆˆØ\Xš[]UÙXZÐÛÝ[HˆÈ•ÙXZÈˆˆ•[˜Ù\Z[ˆ‹ˆØ\Xš[]UÚNˆ˜\ÙYÛˆ[™ÙÙ[›Ý\È\ÜÝ[\[ÛœÈX›Ý]Ø\\™HÜÚ][Û‹Ý]ÛÛYHš\ÚXš[]KÝ™\œšYKÙÜ˜YHØ\\™KšYÚË^\š[Y[][Û‹[™\Þ[Y[™[ØÚ]Kˆ‹ˆ]šY[˜ÙT]X[]Kˆ]šY[˜ÙUÚNˆ˜\ÙYÛˆ	Ú[œ]›Y]šXÜËÝ[Ø\Ù\ßHØ\Ù\Ë	Ú[œ]›Y]šXÜË™Ü˜YYØ\Ù\ßHÜ˜YY›ÝÜË[™	Ú[œ]›Y]šXÜË™™YY˜XÚÓ][˜ÞTØ[\TÚ^™_H][˜ÞHØœÙ\˜][ÛœË˜ˆšYÙÙ\ÝX˜]Kˆ™^^\š[Y[ˆNÂŸB‚™^Ü[˜Ý[ÛˆÛÛ\ÜÙSY[[Ê[œ]ˆÂˆ[˜[\Ú\ÎˆÛÛ\[žU\Ú\Ò[œ]ÂˆX˜]\ÎˆÙ^QX˜]R[œ]×NÂˆ\ÜÙ\ÜÛY[Îˆ[Y[œÚ[Û\ÜÙ\ÜÛY[[œ]×NÂŸJHÂˆÛÛœÝ]šY[˜ÙHHÝ›Û™Ù\Ý]šY[˜ÙJ[œ]˜\ÜÙ\ÜÛY[ÊNÂˆÛÛœÝÚ[[™Ù\ÈHÝ›Û™Ù\ÝÚ[[™Ù\Ê[œ]˜\ÜÙ\ÜÛY[ÊNÂˆÛÛœÝ[œ™\ÛÛ™YHÛÜYYÚ]™\˜YÙQX˜]\Ê[œ]™X˜]\ÊNÂˆÛÛœÝÝÙ\ˆH\\™[ÝÙ\“ØØ][ÛœÊ[œ]˜\ÜÙ\ÜÛY[ÊNÂ‚ˆ™]\›ˆÂˆÝ\œ™[\Ú\Îˆ[œ]˜[˜[\Ú\Ë\Ú\ËˆÝ›Û™Ù\Ý]šY[˜ÙNˆ]šY[˜ÙK›X\
+
+][JHOˆ	Ú][K™œ˜[Y]ÛÜšßNˆ	Ú][K™[Y[œÚ[ÛŸHØÛÜ™Y	Ú][KœØÛÜ™_KÍH
+	Ú][K™]šY[˜ÙTÝ]\ËÓÝÙ\Ø\ÙJ
+_JKˆ	Ú][Kœ˜][Û˜[H“›È˜][Û˜[HÝ\YYˆŸX
+KˆÝ›Û™Ù\ÝÚ[[™Ù\ÎˆÚ[[™Ù\Ë›X\
+
+][JHOˆ	Ú][K™œ˜[Y]ÛÜšßNˆ	Ú][K™[Y[œÚ[ÛŸHØÛÜ™Y	Ú][KœØÛÜ™_KÍH
+	Ú][K™]šY[˜ÙTÝ]\ËÓÝÙ\Ø\ÙJ
+_JKˆ	Ú][Kœ˜][Û˜[H“›È˜][Û˜[HÝ\YYˆŸX
+Kˆ[œ™\ÛÛ™YX˜]\Îˆ[œ™\ÛÛ™Y›X\
+
+X˜]JHOˆ
+Âˆ]Y\Ý[ÛŽˆX˜]Kœ]Y\Ý[Û‹ˆ›Ø˜Xš[]NˆX˜]Kœ›Ø˜Xš[]Kˆ[˜Ü™X\ÙP™[YYŽˆX˜]Kš[˜Ü™X\ÙP™[YY‹ˆXÜ™X\ÙP™[YYŽˆX˜]K™XÜ™X\ÙP™[YY‚ˆJJKˆÝÙ\“ØØ][ÛœÎˆÝÙ\‹ˆ]šY[˜ÙT™\]Y\ÝÎˆ[œ™\ÛÛ™YœÛXÙJÊK›X\
+
+X˜]JHOˆX˜]K™]šY[˜ÙS™YYY
+KˆÛÛ™TÝ™\ÜÕ\Ý‚ˆÛÝ[H\ÙY[[™›Ü›X][Ûˆ[ˆH\ÝÜšXØ[ØÛÜ™X›ÛÚÈ™HÛÛ\™\ÜÙY[™™\œ™YÚ[][]YÜˆ™[X\›™YžHHØ\X›HÚ[[™Ù\È‚ˆNÂŸB

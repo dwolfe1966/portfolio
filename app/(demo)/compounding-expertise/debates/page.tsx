@@ -5,6 +5,7 @@ import { LabWorkflowRail } from "@/components/compounding-expertise/CompoundingL
 import { DebateSuggestionFeedback, DebateChangedBadge, DebateChangedSection, DebatePanel, DebateCard, DebateEditButton, DebateEditor, DebateEditingRegion } from "@/components/compounding-expertise/DebateSuggestionFeedback";
 import { debateReviewSnapshots } from "@/lib/debate-suggestion-feedback";
 import { DebateArgumentBrief } from "@/components/compounding-expertise/DebateArgumentBrief";
+import { ACTION_POLICY_FAMILIES } from "@/lib/action-policy-experiment";
 import {
   buildCasapPublicSimulationCases,
   CASAP_PUBLIC_EVIDENCE_ANALYSIS,
@@ -224,7 +225,7 @@ function editDebateFields(debate: Partial<KeyDebateInput>, index: number) {
 export default async function CompoundingExpertiseDebatesPage({
   searchParams
 }: {
-  searchParams: Promise<{ ai?: string; analysisId?: string; caseSetId?: string; dataset?: string; experimentApplied?: string }>;
+  searchParams: Promise<{ ai?: string; analysisId?: string; caseSetId?: string; dataset?: string; experimentApplied?: string; policyApplied?: string }>;
 }) {
   const params = await searchParams;
   const accountUserId = await currentAccountUserId();
@@ -266,7 +267,7 @@ export default async function CompoundingExpertiseDebatesPage({
     competitiveArchitecture: analysis.competitiveArchitecture,
     evidenceRecords: analysis.evidenceRecords
   });
-  const appliedExperimentDebates = candidates.filter(candidate => candidate.contextEvidence.some(item => item.source === "Experience → Automated Experiment Program"));
+  const appliedExperimentDebates = candidates.filter(candidate => candidate.contextEvidence.some(item => ["Experience → Automated Experiment Program", "Experience → Action-Policy Experiment"].includes(item.source)));
   const downstreamParams = new URLSearchParams({ analysisId: analysis.id });
   if (selectedCaseSet?.id) downstreamParams.set("caseSetId", selectedCaseSet.id);
   if (dataset) downstreamParams.set("dataset", dataset);
@@ -307,6 +308,20 @@ export default async function CompoundingExpertiseDebatesPage({
             <Link className="btn" href={`/compounding-expertise/diagnostic?${downstreamParams.toString()}`}>Review Power</Link>
             <Link className="btn" href={`/compounding-expertise/memo?${downstreamParams.toString()}`}>Review Conclusion</Link>
             <Link className="btn" href={`/compounding-expertise/scorebook?${downstreamParams.toString()}#experiment-lab`}>Back to Experiment Lab</Link>
+          </div>
+        </div>
+      </Section> : null}
+
+      {params.policyApplied ? <Section title="Action-policy result applied">
+        <div className="card" style={{ borderColor: "#16a34a" }}>
+          <span className="statusPill live">APPLIED TO SELECTED DATASET</span>
+          <h3>The {params.policyApplied.replaceAll("_", " ").toLowerCase()} experiment now informs the broader analysis.</h3>
+          <p>The reviewed conclusion is attached to this selected parent dataset, while its trial rows are available as a separate synthetic child CaseSet. Debate assessments, Power, Conclusion, and future AI suggestions can now use the conditional finding without confusing it with observed company outcomes.</p>
+          <div className="ctaRow">
+            <a className="btn primary" href={`#debate-${params.policyApplied}`}>Review updated debate</a>
+            <Link className="btn" href={`/compounding-expertise/diagnostic?${downstreamParams.toString()}`}>Review Power</Link>
+            <Link className="btn" href={`/compounding-expertise/memo?${downstreamParams.toString()}`}>Review Conclusion</Link>
+            <Link className="btn" href={`/compounding-expertise/scorebook?${downstreamParams.toString()}#action-policy-lab`}>Inspect experiment</Link>
           </div>
         </div>
       </Section> : null}
@@ -352,6 +367,14 @@ export default async function CompoundingExpertiseDebatesPage({
                   </div>
                 </div>
                 <DebateArgumentBrief candidate={candidate} />
+                {ACTION_POLICY_FAMILIES.some(family => family === candidate.family) ? <div className="card compact compoundingExperimentPrompt">
+                  <div>
+                    <p className="small">EXECUTABLE NEXT TEST</p>
+                    <h4>Test whether a changed action policy improves outcomes</h4>
+                    <p>{candidate.bestNextTest}</p>
+                  </div>
+                  <Link className="btn primary" href={`/compounding-expertise/scorebook?${downstreamParams.toString()}&policyFamily=${candidate.family}#action-policy-lab`}>Configure experiment</Link>
+                </div> : null}
                 <DebatePanel family={candidate.family} kind="evidence" title="Evidence details" description="Inspect measurements, provenance, and original sources.">
                   {evidenceDashboard(candidate.evidenceDashboard)}
                   <details className="compoundingEvidenceLedgerLink">

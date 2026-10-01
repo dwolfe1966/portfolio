@@ -4,6 +4,7 @@ import { createExperienceRun } from "@/lib/experience-run";
 import { resolveExperienceContext } from "@/lib/experience-context";
 import { runSyntheticExperimentLab } from "@/lib/experience-experiment-lab";
 import { runAutomatedExperimentProgram } from "@/lib/experience-experiment-program";
+import { actionPolicyEvidenceSnapshot, runActionPolicyExperiment } from "@/lib/action-policy-experiment";
 
 import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -965,4 +966,90 @@ export async function saveAutomatedExperimentProgramAction(formData: FormData) {
   } });
   revalidateLab();
   redirect(labPath("/compounding-expertise/debates", analysisId, { caseSetId: context.selected.caseSetId, dataset: context.dataset, experimentApplied: "1" }));
+}
+
+export async function applyActionPolicyExperimentAction(formData: FormData) {
+  const analysisId = text(formData.get("analysisId"));
+  if (!analysisId) throw new Error("Analysis is required.");
+  const accountUserId = await currentAccountUserId();
+  const analysis = await db.compoundingExpertiseAnalysis.findFirst({
+    where: compoundingAnalysisAccessWhere(accountUserId, analysisId),
+    include: { caseSets: true, scorebookCases: true }
+  });
+  if (!analysis) throw new Error("Analysis unavailable.");
+  const context = resolveExperienceContext(analysis, analysis.scorebookCases, {
+    caseSetId: text(formData.get("caseSetId")), dataset: text(formData.get("dataset"))
+  });
+  const result = runActionPolicyExperiment({
+    family: text(formData.get("family")), cases: text(formData.get("cases")),
+    customers: text(formData.get("customers")), patterns: text(formData.get("patterns")),
+    sharedStructure: text(formData.get("sharedStructure")), drift: text(formData.get("drift")),
+    effectStrength: text(formData.get("effectStrength")), outcomeNoise: text(formData.get("outcomeNoise")),
+    interventionCost: text(formData.get("interventionCost")), minimumEffect: text(formData.get("minimumEffect")),
+    repetitions: text(formData.get("repetitions")), seed: text(formData.get("seed"))
+  }, context.activeRows);
+  const parentDatasetKey = context.selected.caseSetId ?? context.selected.datasetKey;
+  const sourceRecordId = `${result.version}:${createHash("sha256").update(JSON.stringify({ parentDatasetKey, config: result.config })).digest("hex")}`;
+  const parentCaseSet = context.selected.caseSetId
+    ? analysis.caseSets.find((caseSet) => caseSet.id === context.selected.caseSetId) ?? null
+    : null;
+
+  await db.$transaction(async (tx) => {
+    let childCaseSet = await tx.compoundingExpertiseCaseSet.findFirst({ where: { analysisId, sourceRunId: sourceRecordId } });
+    if (!childCaseSet) {
+      childCaseSet = await tx.compoundingExpertiseCaseSet.create({ data: {
+        analysisId,
+        workflowId: parentCaseSet?.workflowId ?? null,
+        decisionClassId: parentCaseSet?.decisionClassId ?? null,
+        name: `${result.config.family.replaceAll("_", " ")} · action-policy experiment`,
+        description: `${result.finding.headline} Generated from the selected dataset's structural calibration.`,
+        sourceType: "SYNTHETIC_SIMULATION",
+        sourceSystemKey: "action-policy-experiment",
+        sourceSystemLabel: "CE Lab Action-Policy Experiment",
+        sourceRunId: sourceRecordId,
+        sourceRunLabel: result.finding.headline,
+        sourceRunType: "ACTION_POLICY_EXPERIMENT",
+        generatedAt: new Date(),
+        modelVersion: result.version,
+        policyVersion: `${result.comparator.candidate}-vs-${result.comparator.comparison}`,
+        experimentId: sourceRecordId,
+        isSynthetic: true,
+        provenanceLabel: "DERIVED — SYNTHETIC ACTION-POLICY EXPERIMENT — NOT OBSERVED COMPANY DATA",
+        caseCount: result.generatedRows.length,
+        parentCaseSetId: parentCaseSet?.id ?? null,
+        derivationDescription: `Synthetic counterfactual action-policy trial calibrated from ${context.selected.name}; conclusions remain conditional on configured assumptions.`
+      } });
+      await tx.compoundingExpertiseCase.createMany({
+        data: result.generatedRows.map((row) => ({
+          ...row,
+          analysisId,
+          caseSetId: childCaseSet!.id
+        }))
+      });
+    }
+    const existingEvidence = await tx.compoundingEvidence.findFirst({
+      where: { analysisId, evidenceType: "ACTION_POLICY_EXPERIMENT", sourceRecordId }
+    });
+    if (!existingEvidence) await tx.compoundingEvidence.create({ data: {
+      analysisId,
+      entityType: "EXPERIENCE_EXPERIMENT",
+      fieldKey: `experience.action-policy.${result.config.family.toLowerCase()}`,
+      evidenceType: "ACTION_POLICY_EXPERIMENT",
+      epistemicStatus: "DERIVED",
+      sourceLabel: `Action-Policy Experiment · ${context.selected.name}`,
+      sourceCaseSetId: parentDatasetKey,
+      sourceRecordId,
+      valueSnapshot: JSON.stringify(actionPolicyEvidenceSnapshot(result)),
+      derivationMethod: result.version,
+      confidence: "CONDITIONAL_ACTION_POLICY",
+      analystNotes: `Synthetic potential-outcomes trial calibrated from the selected dataset. Inspect generated cases in child CaseSet ${childCaseSet.id}; do not treat as observed company outcomes.`
+    } });
+  });
+
+  revalidateLab();
+  redirect(labPath("/compounding-expertise/debates", analysisId, {
+    caseSetId: context.selected.caseSetId,
+    dataset: context.dataset,
+    policyApplied: result.config.family
+  }));
 }

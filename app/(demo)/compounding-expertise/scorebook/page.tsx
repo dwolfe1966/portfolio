@@ -1,9 +1,11 @@
 import { createExperienceRun } from "@/lib/experience-run";
 import { ExperienceAnalysisPanel } from "@/components/compounding-expertise/ExperienceAnalysisPanel";
 import { ExperimentLabPanel } from "@/components/compounding-expertise/ExperimentLabPanel";
+import { ActionPolicyExperimentPanel } from "@/components/compounding-expertise/ActionPolicyExperimentPanel";
 import { calibrateWorldDefaults, runSyntheticExperimentLab } from "@/lib/experience-experiment-lab";
 import { buildAutomatedExperimentPlan, runAutomatedExperimentProgram } from "@/lib/experience-experiment-program";
 import { runObservedDataExperimentAdapter } from "@/lib/observed-experiment-adapter";
+import { normalizeActionPolicyConfig, runActionPolicyExperiment } from "@/lib/action-policy-experiment";
 import { resolveExperienceContext } from "@/lib/experience-context";
 import Link from "next/link";
 import { Section } from "@/components/site/Section";
@@ -480,6 +482,13 @@ export default async function CompoundingExpertiseScorebookPage({
   const experimentPlan = buildAutomatedExperimentPlan(activeRows);
   const experimentProgram = params.experimentProgram === "1" ? runAutomatedExperimentProgram(activeRows) : null;
   const experimentProgramApplied = experimentProgram !== null && analysis.evidenceRecords.some(item => item.evidenceType === "SYNTHETIC_EXPERIMENT_SUITE" && item.sourceCaseSetId === experienceRun.source.datasetKey && item.valueSnapshot === JSON.stringify(experimentProgram));
+  const policyConfig = normalizeActionPolicyConfig({
+    family: params.policyFamily, cases: params.policyCases, customers: params.policyCustomers, patterns: params.policyPatterns,
+    sharedStructure: params.policyShared, drift: params.policyDrift, effectStrength: params.policyEffect,
+    outcomeNoise: params.policyNoise, interventionCost: params.policyCost, minimumEffect: params.policyMinimum,
+    repetitions: params.policyRepetitions, seed: params.policySeed
+  }, activeRows);
+  const policyResult = params.policyRun === "1" ? runActionPolicyExperiment(policyConfig, activeRows) : null;
 
   const filtered = applyExperienceSlice(activeRows.filter((row) => matches(row, params as Record<string, string>)), params.slice);
   timer.mark("filterRows");
@@ -671,6 +680,11 @@ export default async function CompoundingExpertiseScorebookPage({
 
       <Section title="Experiment Lab">
         <div id="experiment-lab" />
+        <div id="action-policy-lab" />
+        <h2>Action-Policy Experiment</h2>
+        <ActionPolicyExperimentPanel defaults={policyConfig} result={policyResult} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} />
+        <hr />
+        <h2>Mechanism Sensitivity Experiments</h2>
         <ExperimentLabPanel defaults={experimentDefaults} result={experimentResult} program={experimentProgram} plan={experimentPlan} programApplied={experimentProgramApplied} analysisId={analysis.id} caseSetId={selectedCaseSet?.id} dataset={experienceContext.dataset} savedRuns={savedExperimentRuns.length} />
       </Section>
 
